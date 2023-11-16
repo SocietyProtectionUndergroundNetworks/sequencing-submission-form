@@ -12,7 +12,7 @@ steps:
     args:
       - 'run'
       - 'deploy'
-      - '$SERVICE_NAME'
+      - '${_SERVICE_NAME_}'
       - '--image=gcr.io/${_PROJECT_ID_}/${_IMAGE_NAME_}'
       - '--platform=managed'
       # Additional flags and settings for Cloud Run deployment
