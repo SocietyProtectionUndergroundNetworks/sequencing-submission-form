@@ -1,11 +1,11 @@
 steps:
   # Step to build the Docker image  
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/$DEPLOY_IMAGE_NAME', '.']
+    args: ['build', '-t', 'gcr.io/${_PROJECT_ID_}/${_IMAGE_NAME_}', '.']
 
   # Step to push the Docker image to Google Container Registry  
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/$DEPLOY_IMAGE_NAME']
+    args: ['push', 'gcr.io/${_PROJECT_ID_}/${_IMAGE_NAME_}']
 
   # Step to deploy the image to Cloud Run  
   - name: 'gcr.io/cloud-builders/gcloud'
@@ -13,6 +13,11 @@ steps:
       - 'run'
       - 'deploy'
       - '$SERVICE_NAME'
-      - '--image=gcr.io/$PROJECT_ID/$DEPLOY_IMAGE_NAME'
+      - '--image=gcr.io/${_PROJECT_ID_}/${_IMAGE_NAME_}'
       - '--platform=managed'
       # Additional flags and settings for Cloud Run deployment
+      
+substitutions:
+  _IMAGE_NAME_: 'your-default-image-name'  # This will be overridden by the GitHub secret value
+  _PROJECT_ID_: 'your-default-project-id'  # This will be overridden by the GitHub secret value
+  _SERVICE_NAME_: 'your-default-service-name'  # This will be overridden by the GitHub secret value    

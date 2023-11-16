@@ -19,4 +19,4 @@ jobs:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
       
       - name: Run Cloud Build
-        run: gcloud builds submit --config=cloudbuild.yaml .
+        run: gcloud builds submit --config=cloudbuild.yaml --substitutions=_IMAGE_NAME_=${{ secrets.IMAGE_NAME }},_PROJECT_ID_=${{ secrets.PROJECT_ID }},_SERVICE_NAME_=${{ secrets.SERVICE_NAME }}
