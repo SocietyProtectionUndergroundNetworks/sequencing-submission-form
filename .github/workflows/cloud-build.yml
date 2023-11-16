@@ -1,0 +1,22 @@
+name: Cloud Build and Deploy
+
+on:
+  push:
+    branches:
+      - main # Or your desired branch name
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v0
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      
+      - name: Run Cloud Build
+        run: gcloud builds submit --config=cloudbuild.yaml .
