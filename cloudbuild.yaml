@@ -15,6 +15,7 @@ steps:
       - '${_SERVICE_NAME_}'
       - '--image=gcr.io/${_PROJECT_ID_}/${_IMAGE_NAME_}'
       - '--platform=managed'
+      - '--region=us-central1'      
       # Additional flags and settings for Cloud Run deployment
       
 substitutions:
