@@ -3,7 +3,7 @@ name: Cloud Build and Deploy
 on:
   push:
     branches:
-      - main # Or your desired branch name
+      - master # Or your desired branch name
 
 jobs:
   build-and-deploy:
