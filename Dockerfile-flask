@@ -1,6 +1,10 @@
 # Python image to use.
 FROM python:3.11-alpine
 
+# Install Bash
+RUN apk update && \
+    apk add --no-cache bash
+
 # Set the working directory to /app
 WORKDIR /app
 

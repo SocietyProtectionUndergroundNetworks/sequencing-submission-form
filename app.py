@@ -12,6 +12,7 @@ from flask_wtf import FlaskForm, CSRFProtect
 from flask_wtf.file import FileField, FileAllowed
 from wtforms import StringField, SubmitField
 from wtforms.validators import DataRequired, Length
+from waitress import serve
 
 # Library about google cloud storage
 from google.cloud import storage
@@ -80,4 +81,5 @@ def hello():
 
 if __name__ == '__main__':
     server_port = os.environ.get('PORT', '8080')
+    #serve(app, host="0.0.0.0", port=server_port)
     app.run(debug=True, port=server_port, host='0.0.0.0')
