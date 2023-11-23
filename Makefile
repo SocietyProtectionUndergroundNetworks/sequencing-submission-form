@@ -16,9 +16,11 @@ build:
 run:
 	docker-compose up -d
 	
-start: run
+start: 
+	docker-compose start
 
-restart: stop remove run
+restart:
+	docker-compose start
 
 stop:
 	docker-compose stop
