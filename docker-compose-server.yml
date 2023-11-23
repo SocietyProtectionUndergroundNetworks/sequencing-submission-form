@@ -10,11 +10,8 @@ services:
       - 56733      
     volumes:
       - .:/app
-      - ${GOOGLE_APPLICATION_CREDENTIALS_PATH}:/google_auth_file/key_file.json
     env_file:
       - .env
-    environment:
-      - GOOGLE_APPLICATION_CREDENTIALS=/google_auth_file/key_file.json
     networks:
       - flask      
 
