@@ -1,83 +1,75 @@
-"""
-A sample Hello World server.
-"""
 import os
+import sys
 import secrets
+import math
+import json
+from pathlib import Path
 
-from flask import Flask, render_template, redirect, url_for
-from flask_bootstrap import Bootstrap5
+from flask import Flask, render_template, request
+from werkzeug.utils import secure_filename
 
-# Libraries regarding forms handling
-from flask_wtf import FlaskForm, CSRFProtect
-from flask_wtf.file import FileField, FileAllowed
-from wtforms import StringField, SubmitField
-from wtforms.validators import DataRequired, Length
-from waitress import serve
+#library to track bytes uploaded to google cloud:
+from tqdm import tqdm
 
 # Library about google cloud storage
 from google.cloud import storage
 
-#load the .env variables
-# PLACEHOLDER: If I decide to go with .env files (depending on cloud run implementation)
-# Then I will need to load the .env variables with the two commands bellow
-# For now I load them directly on the docker container with the flag --env-file=.env
-#from dotenv import load_dotenv
-#load_dotenv()
-
-
-# pylint: disable=C0103
 app = Flask(__name__)
 foo = secrets.token_urlsafe(16)
 app.secret_key = foo
 print (os.environ.get('GOOGLE_STORAGE_BUCKET_NAME'))
+print (os.environ.get('GOOGLE_APPLICATION_CREDENTIALS'))
 # Configure Google Cloud Storage
 bucket_name = os.environ.get('GOOGLE_STORAGE_BUCKET_NAME')
 project_id = os.environ.get('GOOGLE_STORAGE_PROJECT_ID')
 bucket_location = os.environ.get('GOOGLE_STORAGE_BUCKET_LOCATION')
 
-# Bootstrap-Flask requires this line
-bootstrap = Bootstrap5(app)
-# Flask-WTF requires this line
-csrf = CSRFProtect(app)
+def chunked_upload(local_file_path, destination_blob_name, file_uuid):
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
 
-def upload_file_to_storage(file, filename):
-    client = storage.Client(project=project_id)
-    bucket = client.get_bucket(bucket_name)
-    blob = bucket.blob(f'uploads/{filename}')
-    blob.upload_from_file(file)
+    chunk_size = 5 * 1024 * 1024  # 5 MB chunk size (adjust as needed)
 
-class NameForm(FlaskForm):
-    name = StringField('Name a character from the book', validators=[DataRequired(), Length(4, 40)])
-    gzfile = FileField('Upload a gz file with all the data', validators=[
-            DataRequired(),
-            FileAllowed(['gz'], 'Only .gz files allowed!')
-        ])
-    submit = SubmitField('Submit')
+    # Create a blob object with the desired name
+    blob = bucket.blob(f'uploads/{destination_blob_name}')
 
+    # Start a resumable upload session
+    with open(local_file_path, "rb") as file:
+        blob.chunk_size = chunk_size
+        blob.upload_from_file(file)
 
+    print(f"File {local_file_path} uploaded to {destination_blob_name} in {bucket_name} bucket.")
 
-@app.route('/', methods=['GET', 'POST'])
-def hello():
-    """Return a friendly HTTP greeting."""
-    message = "Test Form for uploading data"
-    form = NameForm()
-    names = ["darrow", "servo", "virga", "the poet", "mastang", "ragnar"]
-    if form.validate_on_submit():
-        name = form.name.data
-        if name.lower() in names:
-            # empty the form field
-            form.name.data = ""
-            message = "We found the character " + name
+@app.get("/")
+def index():
+    return render_template("index.html")
+
+@app.post("/upload")
+def upload_chunk():
+    file = request.files["file"]
+    file_uuid = request.form["dzuuid"]
+    # Generate a unique filename to avoid overwriting using 8 chars of uuid before filename.
+    filename = f"{file_uuid[:8]}_{secure_filename(file.filename)}"
+    save_path = Path("uploads", filename)
+    current_chunk = int(request.form["dzchunkindex"])
+
+    try:
+        with open(save_path, "ab") as f:
+            f.seek(int(request.form["dzchunkbyteoffset"]))
+            f.write(file.stream.read())
+    except OSError:
+        return "Error saving file.", 500
+
+    total_chunks = int(request.form["dztotalchunkcount"])
+
+    if current_chunk + 1 == total_chunks:
+        # This was the last chunk, the file should be complete and the size we expect
+        if os.path.getsize(save_path) != int(request.form["dztotalfilesize"]):
+            return "Size mismatch.", 500
         else:
-            message = "That character is not in our list."
+            resumable_upload(save_path, filename, file_uuid)
 
-        # Handle the gz file
-        uploaded_gz_file = form.gzfile.data
-        filename = uploaded_gz_file.filename
-        upload_file_to_storage(uploaded_gz_file, filename)
-
-
-    return render_template('index.html', names=names, form=form, message=message)
+    return "Chunk upload successful.", 200
 
 if __name__ == '__main__':
     server_port = os.environ.get('PORT', '8080')

@@ -15,25 +15,25 @@ build:
 
 run:
 	docker-compose up -d
-	
-start: 
+
+start:
 	docker-compose start
 
 restart:
-	docker-compose start
+	docker-compose restart
 
 stop:
 	docker-compose stop
-	
+
 rebuild: stop build run
-	
+
 bashflask:
 	docker-compose run --rm --entrypoint "" flask /bin/bash
 
 bashnginx:
 	docker-compose run --rm nginx /bin/sh
 
-logsflask: 
+logsflask:
 	docker-compose logs flask
 
 echo:
