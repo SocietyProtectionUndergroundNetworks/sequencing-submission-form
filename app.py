@@ -67,7 +67,7 @@ def upload_chunk():
         if os.path.getsize(save_path) != int(request.form["dztotalfilesize"]):
             return "Size mismatch.", 500
         else:
-            resumable_upload(save_path, filename, file_uuid)
+            chunked_upload(save_path, filename, file_uuid)
 
     return "Chunk upload successful.", 200
 
