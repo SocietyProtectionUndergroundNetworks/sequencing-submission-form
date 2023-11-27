@@ -8,9 +8,6 @@ from pathlib import Path
 from flask import Flask, render_template, request
 from werkzeug.utils import secure_filename
 
-#library to track bytes uploaded to google cloud:
-from tqdm import tqdm
-
 # Library about google cloud storage
 from google.cloud import storage
 
