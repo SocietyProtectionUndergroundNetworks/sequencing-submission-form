@@ -64,21 +64,68 @@ def load_user(user_id):
 def get_google_provider_cfg():
     return requests.get(GOOGLE_DISCOVERY_URL).json()
 
-def chunked_upload(local_file_path, destination_blob_name, file_uuid):
+def get_progress(file_uuid):
+    try:
+        with open("upload_progress.json", "r") as file:
+            progress_data = json.load(file)
+            return progress_data.get(file_uuid, 0)
+    except FileNotFoundError:
+        return 0
+
+def update_progress(file_uuid, percentage):
+    try:
+        with open("upload_progress.json", "r") as file:
+            progress_data = json.load(file)
+    except FileNotFoundError:
+        progress_data = {}
+
+    progress_data[file_uuid] = percentage
+
+    with open("upload_progress.json", "w") as file:
+        json.dump(progress_data, file)
+
+def chunked_upload(local_file_path, destination_blob_name, file_uuid, bucket_name):
+    chunk_size = 20 * 1024 * 1024  # 20 MB chunk size
+
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
 
-    chunk_size = 5 * 1024 * 1024  # 5 MB chunk size (adjust as needed)
-
-    # Create a blob object with the desired name
     blob = bucket.blob(f'uploads/{destination_blob_name}')
 
-    # Start a resumable upload session
-    with open(local_file_path, "rb") as file:
-        blob.chunk_size = chunk_size
-        blob.upload_from_file(file)
+    temp_directory = f"temp_{file_uuid}"
 
-    print(f"File {local_file_path} uploaded to {destination_blob_name} in {bucket_name} bucket.")
+    total_size = os.path.getsize(local_file_path)
+    uploaded_bytes = 0
+
+    with open(local_file_path, 'rb') as file:
+        blob.chunk_size = chunk_size
+        chunk_num = 0
+        chunks = []
+
+        while True:
+            data = file.read(chunk_size)
+            if not data:
+                break
+
+            temp_blob = bucket.blob(f'uploads/{temp_directory}/{destination_blob_name}.part{chunk_num}')
+            temp_blob.upload_from_string(data, content_type='application/octet-stream')
+            chunks.append(temp_blob)
+            chunk_num += 1
+
+            uploaded_bytes += len(data)
+            percentage = (uploaded_bytes / total_size) * 100
+            update_progress(file_uuid, percentage)
+            print(f"Bytes uploaded: {uploaded_bytes} / {total_size} ({percentage:.2f}%)", flush=True)
+
+        blob.compose(chunks)
+
+        for temp_blob in chunks:
+            temp_blob.delete()
+
+        update_progress(file_uuid, 100)
+        print(f"File {local_file_path} uploaded to {destination_blob_name} in {bucket_name} bucket.", flush=True)
+
+        
 
 @app.route("/")
 def index():
@@ -185,7 +232,7 @@ def upload_form():
 
 @app.post("/upload")
 @login_required
-def upload_chunk():
+def upload_chunked():
     file = request.files["file"]
     file_uuid = request.form["dzuuid"]
     # Generate a unique filename to avoid overwriting using 8 chars of uuid before filename.
@@ -207,9 +254,18 @@ def upload_chunk():
         if os.path.getsize(save_path) != int(request.form["dztotalfilesize"]):
             return "Size mismatch.", 500
         else:
-            chunked_upload(save_path, filename, file_uuid)
+            chunked_upload(save_path, filename, file_uuid, bucket_name)
 
     return "Chunk upload successful.", 200
+
+@app.get("/uploadprogress")
+def api_progress():
+    file_uuid = request.args.get('file_uuid')
+    progress = get_progress(file_uuid)
+    return {
+        "progress": progress
+    }    
+    
 
 if __name__ == '__main__':
     server_port = os.environ.get('PORT', '8080')

@@ -14,7 +14,8 @@ services:
     env_file:
       - .env
     environment:
-      - GOOGLE_APPLICATION_CREDENTIALS=/google_auth_file/key_file.json      
+      - GOOGLE_APPLICATION_CREDENTIALS=/google_auth_file/key_file.json
+      - OAUTHLIB_INSECURE_TRANSPORT=1
     networks:
       - flask      
 

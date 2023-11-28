@@ -1,10 +1,9 @@
 <html lang="en">
 <head>
-
     <meta charset="UTF-8">
-		<script src="/static/js/dropzone.min.js"></script>
-		<link href="/static/css/dropzone.min.css" rel="stylesheet" type="text/css" />
-		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="/static/js/dropzone.min.js"></script>
+    <link href="/static/css/dropzone.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <title>File Dropper</title>
 </head>
 <body>
@@ -18,6 +17,8 @@
     >
     </form>
 
+    <div id="bucketProgress">Bucket Transfer Progress: 0%</div> <!-- Progress div outside Dropzone -->
+
     <script type="application/javascript">
         Dropzone.options.dropper = {
             paramName: "file",
@@ -25,7 +26,35 @@
             forceChunking: true,
             url: "/upload",
             maxFilesize: 25025, // megabytes
-            chunkSize: 1000000 // bytes
+            chunkSize: 1000000, // bytes
+            maxFiles: 1, // Restrict to accept only one file
+
+            sending: function(file, xhr, formData) {
+                let file_uuid = file.upload.uuid;
+                if (file_uuid) {
+                    updateProgress(file_uuid);
+                }
+            }
+        }
+
+        function updateProgress(file_uuid) {
+            let intervalId = setInterval(function () {
+                $.ajax({
+                    url: `/uploadprogress?file_uuid=${file_uuid}`,
+                    type: 'GET',
+                    success: function(data) {
+                        let progress = data.progress;
+                        $('#bucketProgress').text(`Bucket Transfer Progress: ${progress}%`);
+
+                        if (progress >= 100) {
+                            clearInterval(intervalId); // Stop updating when progress reaches 100%
+                        }
+                    },
+                    error: function() {
+                        // Handle error situations
+                    }
+                });
+            }, 1000); // Update progress every second (adjust timing as needed)
         }
     </script>
 </body>
