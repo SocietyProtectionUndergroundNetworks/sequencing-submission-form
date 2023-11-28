@@ -1,0 +1,31 @@
+events {
+    # Define default settings for events block if needed
+}
+
+http {
+    server {
+        listen 80;
+        listen [::]:80;
+
+        server_name [my-domain.com] www.[my-domain.com];
+        server_tokens off;
+
+        location / {
+            proxy_pass http://flask:56733;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            # Additional proxy settings if needed...
+        }
+    }
+    server {
+        listen 443 ssl;
+        server_name [my-domain.com];
+        ssl_certificate /etc/nginx/certs/fullchain1.pem;
+        ssl_certificate_key /etc/nginx/certs/privkey1.pem;
+        client_max_body_size 20M;
+        index index.html;
+        location / {
+            proxy_pass http://[my-domain.com]/;
+        }
+    }
+}

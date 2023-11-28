@@ -2,3 +2,17 @@
 .env
 
 docker-compose.yml
+
+certs/localhost.crt
+
+certs/localhost.key
+
+__pycache__/
+
+nginx.conf
+
+sqlite_db
+
+test.py
+
+uploads/
