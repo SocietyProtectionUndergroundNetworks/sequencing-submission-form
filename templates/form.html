@@ -7,18 +7,28 @@
     <title>File Dropper</title>
 </head>
 <body>
+    <div id="step1">
+      <h3> Step 1: upload key file </h3>
+      <div> PLACEHOLDER FOR FIRST STEP </div>
+    </div>
+    <div id="step2">
+      <h3> Step 2: upload gz file with sample data </h3>
+      <form
+          method="POST"
+          action="/upload"
+          class="dropzone dz-clickable"
+          id="dropper"
+          enctype="multipart/form-data"
+      >
+      </form>
 
-    <form
-        method="POST"
-        action="/upload"
-        class="dropzone dz-clickable"
-        id="dropper"
-        enctype="multipart/form-data"
-    >
-    </form>
-
-    <div id="bucketProgress">Bucket Transfer Progress: 0%</div> <!-- Progress div outside Dropzone -->
-
+      <div id="bucketProgress">Bucket Transfer Progress: 0%</div> 
+      
+    </div>
+    <div id="step3">
+      <h3> Step 3: Process files with uploaded file </h3>
+      <div> PLACEHOLDER FOR THIRD STEP </div>
+    </div>    
     <script type="application/javascript">
         Dropzone.options.dropper = {
             paramName: "file",
