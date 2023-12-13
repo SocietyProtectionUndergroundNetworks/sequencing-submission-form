@@ -6,7 +6,7 @@ import json
 import sqlite3
 from pathlib import Path
 
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 from flask_login import (
     LoginManager,
     current_user,
@@ -22,6 +22,7 @@ from werkzeug.utils import secure_filename
 from helpers.db import init_db_command
 from helpers.user import User
 from helpers.bucket_upload import chunked_upload, get_progress
+from helpers.csv import validate_csv_column_names
 
 app = Flask(__name__)
 foo = secrets.token_urlsafe(16)
@@ -57,7 +58,7 @@ def load_user(user_id):
     return User.get(user_id)
 
 def get_google_provider_cfg():
-    return requests.get(GOOGLE_DISCOVERY_URL).json()   
+    return requests.get(GOOGLE_DISCOVERY_URL).json()
 
 @app.route("/")
 def index():
@@ -159,12 +160,20 @@ def upload_form():
 @login_required
 def upload_csv():
     # Handle CSV file uploads separately
-    file = request.files['file']
+    file = request.files.get('file')
+    if not file:
+        return jsonify({"error": "No file uploaded"}), 400
+
     # Process the CSV file (e.g., save it or perform specific operations)
     filename = secure_filename(file.filename)
     save_path = Path("uploads", filename)
     file.save(save_path)  # Save the CSV file to a specific location
-    return 'CSV file uploaded successfully'
+
+    structure_matches = validate_csv_column_names(save_path)
+    if structure_matches:
+        return 'CSV file uploaded successfully. Fields match', 200
+    else:
+        return jsonify({"error": "CSV file fields don't match expected structure"}), 400
 
 @app.post("/upload")
 @login_required
@@ -201,8 +210,8 @@ def api_progress():
     progress = get_progress(file_uuid)
     return {
         "progress": progress
-    }    
-    
+    }
+
 
 if __name__ == '__main__':
     server_port = os.environ.get('PORT', '8080')
