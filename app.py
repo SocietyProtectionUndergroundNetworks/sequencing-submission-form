@@ -23,6 +23,7 @@ from helpers.db import init_db_command
 from helpers.user import User
 from helpers.bucket_upload import chunked_upload, get_progress
 from helpers.csv import validate_csv_column_names
+from helpers.file_renaming import extract_gzip, rename_file
 
 app = Flask(__name__)
 foo = secrets.token_urlsafe(16)
@@ -66,6 +67,11 @@ def index():
         return render_template("index.html", name=current_user.name, email=current_user.email)
     else:
         return '<a class="button" href="/login">Google Login</a>'
+
+@app.route("/test")
+def test():
+    text = rename_file('example1.csv', 'test_Example_data2.tar.gz')
+    return text
 
 @app.route("/login")
 def login():
@@ -154,6 +160,7 @@ def logout():
 @app.get("/form")
 @login_required
 def upload_form():
+    app.logger.info('form requested')
     return render_template("form.html")
 
 @app.post("/uploadcsv")
@@ -178,6 +185,7 @@ def upload_csv():
 @app.post("/upload")
 @login_required
 def upload_chunked():
+    app.logger.info('upload starts')
     file = request.files["file"]
     file_uuid = request.form["dzuuid"]
     # Generate a unique filename to avoid overwriting using 8 chars of uuid before filename.
@@ -199,7 +207,12 @@ def upload_chunked():
         if os.path.getsize(save_path) != int(request.form["dztotalfilesize"]):
             return "Size mismatch.", 500
         else:
+            print('upload finished')
             chunked_upload(save_path, filename, file_uuid)
+
+            extract_directory = Path("processing", file_uuid)
+            gunzip_result = extract_gzip(save_path, file_uuid, extract_directory)
+            app.logger.info(gunzip_result)
 
     return "Chunk upload successful.", 200
 

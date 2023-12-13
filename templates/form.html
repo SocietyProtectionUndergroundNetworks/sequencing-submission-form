@@ -20,9 +20,8 @@
       >
       </form>
       <div id="csv_msg"></div>
-      <div> PLACEHOLDER FOR FIRST STEP </div>
     </div>
-    <div id="step2">
+    <div id="step2" style="opacity: 0.5;">
       <h3> Step 2: upload gz file with sample data </h3>
       <form
           method="POST"
@@ -30,6 +29,7 @@
           class="dropzone dz-clickable"
           id="otherDropper"
           enctype="multipart/form-data"
+          style="display: none;"
       >
       </form>
 
@@ -58,6 +58,8 @@
                 });
                 this.on("success", function (file, response) {
                     $("#csv_msg").html('<span class="text-success">' + response + '</span>');
+                    $('#step2').css('opacity', '1');
+                    $('#otherDropper').show(); // Show the dropzone area                    
                 });             
             }
         };

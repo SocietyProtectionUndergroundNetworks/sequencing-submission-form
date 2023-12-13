@@ -6,7 +6,6 @@ def validate_csv_column_names(file_path):
         first_row = next(reader)  # Get the first row (column names)
 
         expected_column_names = [
-            'Sample Number',
             'Sample_ID',
             'Sequencer_ID',
             'Sequencing_provider',
