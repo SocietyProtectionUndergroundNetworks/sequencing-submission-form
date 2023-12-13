@@ -4,11 +4,19 @@
     <script src="/static/js/dropzone.min.js"></script>
     <link href="/static/css/dropzone.min.css" rel="stylesheet" type="text/css" />
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-    <title>File Dropper</title>
+    <title>Upload data</title>
 </head>
 <body>
     <div id="step1">
-      <h3> Step 1: upload key file </h3>
+      <h3> Step 1: upload key file (csv) </h3>
+      <form
+          method="POST"
+          action="/uploadcsv"
+          class="dropzone dz-clickable"
+          id="csvDropper"
+          enctype="multipart/form-data"
+      >
+      </form>
       <div> PLACEHOLDER FOR FIRST STEP </div>
     </div>
     <div id="step2">
@@ -17,7 +25,7 @@
           method="POST"
           action="/upload"
           class="dropzone dz-clickable"
-          id="dropper"
+          id="otherDropper"
           enctype="multipart/form-data"
       >
       </form>
@@ -30,10 +38,19 @@
       <div> PLACEHOLDER FOR THIRD STEP </div>
     </div>    
     <script type="application/javascript">
-        Dropzone.options.dropper = {
+        let progressTrackers = {}; // To track progress for each file
+        Dropzone.options.csvDropper = {
+            paramName: "file",
+            url: "/uploadcsv", // Set the specific endpoint for CSV
+            maxFilesize: 1, // MB
+            acceptedFiles: '.csv'
+        };
+        
+        Dropzone.options.otherDropper = {
             paramName: "file",
             chunking: true,
             forceChunking: true,
+            acceptedFiles : ".tar,.gz",
             url: "/upload",
             maxFilesize: 25025, // megabytes
             chunkSize: 1000000, // bytes
@@ -41,14 +58,23 @@
 
             sending: function(file, xhr, formData) {
                 let file_uuid = file.upload.uuid;
-                if (file_uuid) {
+
+                if (file_uuid && !progressTrackers[file_uuid]) {
+                    progressTrackers[file_uuid] = true;
                     updateProgress(file_uuid);
                 }
             }
         }
 
+        let intervals = {}; // To store interval IDs for each file upload
+
         function updateProgress(file_uuid) {
-            let intervalId = setInterval(function () {
+            console.log('We will now start calling for updates');
+
+            // Clear any existing interval for the same file upload
+            clearInterval(intervals[file_uuid]);
+
+            intervals[file_uuid] = setInterval(function () {
                 $.ajax({
                     url: `/uploadprogress?file_uuid=${file_uuid}`,
                     type: 'GET',
@@ -57,14 +83,15 @@
                         $('#bucketProgress').text(`Bucket Transfer Progress: ${progress}%`);
 
                         if (progress >= 100) {
-                            clearInterval(intervalId); // Stop updating when progress reaches 100%
+                            clearInterval(intervals[file_uuid]); // Stop updating when progress reaches 100%
+                            console.log('We will now stop calling for updates');
                         }
                     },
                     error: function() {
                         // Handle error situations
                     }
                 });
-            }, 1000); // Update progress every second (adjust timing as needed)
+            }, 5000); // Update progress every 5 seconds (adjust timing as needed)
         }
     </script>
 </body>

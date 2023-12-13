@@ -155,6 +155,17 @@ def logout():
 def upload_form():
     return render_template("form.html")
 
+@app.post("/uploadcsv")
+@login_required
+def upload_csv():
+    # Handle CSV file uploads separately
+    file = request.files['file']
+    # Process the CSV file (e.g., save it or perform specific operations)
+    filename = secure_filename(file.filename)
+    save_path = Path("uploads", filename)
+    file.save(save_path)  # Save the CSV file to a specific location
+    return 'CSV file uploaded successfully'
+
 @app.post("/upload")
 @login_required
 def upload_chunked():
