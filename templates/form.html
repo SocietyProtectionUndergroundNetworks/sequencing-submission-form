@@ -11,35 +11,42 @@
 <body>
     <div id="step1">
       <h3> Step 1: upload key file (csv) </h3>
-      <form
-          method="POST"
-          action="/uploadcsv"
-          class="dropzone dz-clickable"
-          id="csvDropper"
-          enctype="multipart/form-data"
-      >
-      </form>
-      <div id="csv_msg"></div>
+      {% if csv_uploaded %}
+        <div id="csv_msg" class="text-success">CSV file already uploaded : {{ csv_filename }}</div>
+      {% else %}
+        <form
+            method="POST"
+            action="/uploadcsv"
+            class="dropzone dz-clickable"
+            id="csvDropper"
+            enctype="multipart/form-data"
+        >
+        </form>
+        <div id="csv_msg"></div>
+      {% endif %}
     </div>
-    <div id="step2" style="opacity: 0.5;">
+    <div id="step2" {% if not csv_uploaded %} style="opacity: 0.5;" {% endif %}>
       <h3> Step 2: upload gz file with sample data </h3>
-      <form
-          method="POST"
-          action="/upload"
-          class="dropzone dz-clickable"
-          id="otherDropper"
-          enctype="multipart/form-data"
-          style="display: none;"
-      >
-      </form>
-      <div id="upload_msg"></div>
-      
+      {% if gz_uploaded %}
+        <div id="upload_msg" class="text-success">GZ file already uploaded: {{ gz_filename }}</div>
+      {% else %}
+        <form
+            method="POST"
+            action="/upload"
+            class="dropzone dz-clickable"
+            id="otherDropper"
+            enctype="multipart/form-data"
+            {% if ((not csv_uploaded) and (not gz_uploaded)) %} style="display: none;" {% endif %}
+        >
+        </form>
+        <div id="upload_msg"></div>
+      {% endif %}
     </div>
-    <div id="step3" style="opacity: 0.5;">
+    <div id="step3" {% if not gz_uploaded %} style="opacity: 0.5;" {% endif %}>
       <h3> Step 3: Raw files uploaded to google storage </h3>
       <div> 
         <form id="step_3_upload_raw" method="POST" action="/sendrawtostorage">
-          <input type="hidden" name="process_id">
+          <input type="hidden" name="process_id" value="{{ process_id }}">
           <input type="hidden" name="file_uuid">
           <input type="submit">
         </form>
@@ -48,7 +55,7 @@
       <div id="bucket_msg"></div>      
     </div>    
     <script type="application/javascript">
-        let process_id = 0; // To track the process from start to end. 
+        let process_id = {{ process_id | default('0') }}; // To track the process from start to end. 
         let progressTrackers = {}; // To track progress for each file
         Dropzone.options.csvDropper = {
             paramName: "file",

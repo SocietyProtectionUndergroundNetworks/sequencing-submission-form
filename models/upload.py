@@ -1,5 +1,6 @@
 from helpers.dbm import connect_db, get_session
 from models.db_model import UploadTable
+from sqlalchemy import desc
 
 class Upload():
     def __init__(
@@ -53,6 +54,25 @@ class Upload():
         )
         
         return upload
+
+    @classmethod
+    def get_latest_not_sent_to_bucket(cls, user_id):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        latest_upload = (
+            session.query(UploadTable)
+            .filter(
+                UploadTable.user_id == user_id,
+                UploadTable.gz_sent_to_bucket != True  # Assuming it's a Boolean field
+            )
+            .order_by(desc(UploadTable.updated_at))  # Get the latest based on updated_at
+            .first()
+        )
+
+        session.close()
+
+        return latest_upload
 
     @classmethod
     def create(self, user_id, csv_filename, uploads_folder):

@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from werkzeug.utils import secure_filename
 from flask import Blueprint, render_template, request, jsonify
-# from flask import current_app as app  # Import the 'app' instance
+from flask import current_app as app  # Import the 'app' instance
 from flask_login import (
     LoginManager,
     current_user,
@@ -27,6 +27,26 @@ def index():
         return render_template("index.html", name=current_user.name, email=current_user.email)
     else:
         return '<a class="button" href="/login">Google Login</a>'
+
+@upload_bp.route('/form_resume')
+@login_required
+def upload_form_resume():
+    upload = Upload.get_latest_not_sent_to_bucket(current_user.id)
+    app.logger.info('upload id ' + str(upload.id))
+    show_step_2 = False
+    if (upload.csv_uploaded and not upload.gz_uploaded):
+        show_step_2 = True
+    
+    return render_template(
+                            "form.html", 
+                            process_id=upload.id, 
+                            csv_uploaded=upload.csv_uploaded,
+                            csv_filename=upload.csv_filename,
+                            show_step_2=show_step_2, 
+                            gz_uploaded=upload.gz_uploaded, 
+                            gz_filename=upload.gz_filename, 
+                            gz_sent_to_bucket=upload.gz_sent_to_bucket
+                            )
 
 @upload_bp.route('/form')
 @login_required
