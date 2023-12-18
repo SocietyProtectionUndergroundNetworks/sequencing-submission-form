@@ -32,15 +32,23 @@
           style="display: none;"
       >
       </form>
-
-      <div id="bucketProgress">Bucket Transfer Progress: 0%</div> 
+      <div id="upload_msg"></div>
       
     </div>
-    <div id="step3">
-      <h3> Step 3: Process files with uploaded file </h3>
-      <div> PLACEHOLDER FOR THIRD STEP </div>
+    <div id="step3" style="opacity: 0.5;">
+      <h3> Step 3: Raw files uploaded to google storage </h3>
+      <div> 
+        <form id="step_3_upload_raw" method="POST" action="/sendrawtostorage">
+          <input type="hidden" name="process_id">
+          <input type="hidden" name="file_uuid">
+          <input type="submit">
+        </form>
+      </div>
+      <div id="bucketProgress">Bucket Transfer Progress: 0%</div> 
+      <div id="bucket_msg"></div>      
     </div>    
     <script type="application/javascript">
+        let process_id = 0; // To track the process from start to end. 
         let progressTrackers = {}; // To track progress for each file
         Dropzone.options.csvDropper = {
             paramName: "file",
@@ -56,11 +64,20 @@
                         $("#csv_msg").html('<span class="text-danger">' + errorMessage + '</span>');
                     }
                 });
+                
                 this.on("success", function (file, response) {
-                    $("#csv_msg").html('<span class="text-success">' + response + '</span>');
+                    $("#csv_msg").html('<span class="text-success">' + response.msg + '</span>');
+                    
+                    // Access and use the process ID
+                    process_id = response.process_id;
+
+                    // Update the hidden input field within the specific form
+                    var form = $("#step_3_upload_raw");
+                    form.find('input[name="process_id"]').val(process_id);                    
+
                     $('#step2').css('opacity', '1');
                     $('#otherDropper').show(); // Show the dropzone area                    
-                });             
+                });
             }
         };
         
@@ -76,12 +93,32 @@
 
             sending: function(file, xhr, formData) {
                 let file_uuid = file.upload.uuid;
-
+                var form = $("#step_3_upload_raw");
+                form.find('input[name="file_uuid"]').val(file_uuid);  
                 if (file_uuid && !progressTrackers[file_uuid]) {
                     progressTrackers[file_uuid] = true;
-                    updateProgress(file_uuid);
                 }
-            }
+                formData.append("process_id", process_id);
+            },
+            
+            init: function () {
+              
+               
+                this.on("error", function (file, errorMessage, xhr) {
+                    if (xhr && xhr.responseText) {
+                        var response = JSON.parse(xhr.responseText);
+                        $("#upload_msg").html('<span class="text-danger">' + response.error + '</span>');
+                    } else {
+                        $("#upload_msg").html('<span class="text-danger">' + errorMessage + '</span>');
+                    }
+                });
+                
+                this.on("success", function (file, response) {
+                    $("#upload_msg").html('<span class="text-success">' + response.msg + '</span>');
+                    
+                    $('#step3').css('opacity', '1');                 
+                });
+            }            
         }
 
         let intervals = {}; // To store interval IDs for each file upload
@@ -111,6 +148,33 @@
                 });
             }, 5000); // Update progress every 5 seconds (adjust timing as needed)
         }
+        
+        $(document).ready(function () {
+            $('#step_3_upload_raw').submit(function (event) {
+                // Prevent the default form submission
+                event.preventDefault();
+
+                // Get form data
+                var formData = $(this).serialize();
+                
+                var file_uuid = $(this).find('input[name="file_uuid"]').val();
+                updateProgress(file_uuid);
+                
+                $.ajax({
+                    type: 'POST',
+                    url: '/sendrawtostorage',
+                    data: formData,
+                    success: function (response) {
+                        // Handle success
+                        console.log('Form data submitted via AJAX successfully');
+                    },
+                    error: function (error) {
+                        // Handle errors
+                        console.error('Error submitting form data via AJAX', error);
+                    }
+                });
+            });
+        });        
     </script>
 </body>
 </html>

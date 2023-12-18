@@ -25,7 +25,7 @@ def get_progress(file_uuid):
     except FileNotFoundError:
         return 0  
     
-def chunked_upload(local_file_path, destination_blob_name, file_uuid):
+def chunked_upload(local_file_path, destination_upload_directory, destination_blob_name, file_uuid):
     # Configure Google Cloud Storage
     bucket_name = os.environ.get('GOOGLE_STORAGE_BUCKET_NAME')
     project_id = os.environ.get('GOOGLE_STORAGE_PROJECT_ID')
@@ -36,9 +36,8 @@ def chunked_upload(local_file_path, destination_blob_name, file_uuid):
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
 
-    blob = bucket.blob(f'uploads/{destination_blob_name}')
+    blob = bucket.blob(f'uploads/{destination_upload_directory}/{destination_blob_name}')
 
-    temp_directory = f"temp_{file_uuid}"
 
     total_size = os.path.getsize(local_file_path)
     uploaded_bytes = 0
@@ -53,7 +52,7 @@ def chunked_upload(local_file_path, destination_blob_name, file_uuid):
             if not data:
                 break
 
-            temp_blob = bucket.blob(f'uploads/{temp_directory}/{destination_blob_name}.part{chunk_num}')
+            temp_blob = bucket.blob(f'uploads/{destination_upload_directory}/{destination_blob_name}.part{chunk_num}')
             temp_blob.upload_from_string(data, content_type='application/octet-stream')
             chunks.append(temp_blob)
             chunk_num += 1
@@ -69,5 +68,6 @@ def chunked_upload(local_file_path, destination_blob_name, file_uuid):
             temp_blob.delete()
 
         update_progress(file_uuid, 100)
-        print(f"File {local_file_path} uploaded to {destination_blob_name} in {bucket_name} bucket.", flush=True)
+        return True
+        #print(f"File {local_file_path} uploaded to {destination_blob_name} in {bucket_name} bucket.", flush=True)
         

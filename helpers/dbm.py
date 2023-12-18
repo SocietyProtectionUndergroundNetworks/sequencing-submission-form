@@ -6,8 +6,7 @@ from sqlalchemy.sql import and_, not_, select, exists, text
 import os
 import time
 
-from helpers.db_model import Base, UserTable  # Import your models from db_model.py
-
+from models.db_model import Base  # Import your models from db_model.py
 
 def connect_db():
     db_engine = create_engine(

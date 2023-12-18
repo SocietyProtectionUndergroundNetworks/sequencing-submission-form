@@ -1,7 +1,7 @@
 from flask_login import UserMixin
 
 from helpers.dbm import connect_db, get_session
-from helpers.db_model import UserTable
+from models.db_model import UserTable
 
 class User(UserMixin):
     def __init__(self, id_, name, email, profile_pic, admin):

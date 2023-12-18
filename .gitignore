@@ -18,3 +18,5 @@ test.py
 uploads/
 
 processing
+
+upload_progress.json

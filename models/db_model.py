@@ -15,11 +15,11 @@ class UserTable(Base):
     admin = Column(Boolean, default=False)
 
         
-class Upload(Base):
+class UploadTable(Base):
     __tablename__ = 'uploads'
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, nullable=False)
+    user_id = Column(String(36), default=lambda: str(uuid.uuid4()), index=True)
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(
         DateTime, 
@@ -27,5 +27,9 @@ class Upload(Base):
         onupdate=func.now(), 
         nullable=True
     )
+    uploads_folder = Column(String(20), nullable=True)
     csv_uploaded = Column(Boolean, default=False)
     csv_filename = Column(String(255), nullable=True)
+    gz_uploaded = Column(Boolean, default=False)
+    gz_filename = Column(String(255), nullable=True)
+    gz_sent_to_bucket = Column(Boolean, default=False)
