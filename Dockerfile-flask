@@ -3,7 +3,8 @@ FROM python:3.11-alpine
 
 # Install Bash
 RUN apk update && \
-    apk add --no-cache bash
+    apk add --no-cache bash && \
+    apk add --no-cache mysql-dev gcc musl-dev
 
 # Set the working directory to /app
 WORKDIR /app

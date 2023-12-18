@@ -6,6 +6,8 @@ services:
       context: .
       dockerfile: Dockerfile-flask
     container_name: spun-flask
+    depends_on:
+      - db    
     expose:
       - 56733      
     volumes:
@@ -31,8 +33,37 @@ services:
     networks:
       - flask
 
+  db:
+    image: mysql:5.7
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=flask
+      - MYSQL_USER=flask
+      - MYSQL_PASSWORD=flask
+    networks:
+      - database
+      - flask
+    restart: unless-stopped
+    
+  adminer:
+    depends_on:
+      - db
+    volumes:
+      - ./config/docker/adminer/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
+    image: adminer
+    ports:
+      - 8080:8080
+    environment:
+      - ADMINER_DESIGN=pepa-linha
+      - VIRTUAL_HOST=db.b4b.local
+      - VIRTUAL_PORT=8080
+    networks:
+      - database
+    restart: unless-stopped    
+
 networks:
   default:
     name: default_network
+  database:    
   flask:
     driver: bridge

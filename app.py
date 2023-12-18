@@ -14,20 +14,24 @@ from flask_login import (
     login_user,
     logout_user,
 )
+
 from oauthlib.oauth2 import WebApplicationClient
 import requests
 from werkzeug.utils import secure_filename
 
 # Internal imports
-from helpers.db import init_db_command
 from helpers.user import User
 from helpers.bucket_upload import chunked_upload, get_progress
 from helpers.csv import validate_csv_column_names
 from helpers.file_renaming import extract_gzip, rename_file
 
+from helpers.db_model import Base
+from helpers.dbm import test_select
+
 app = Flask(__name__)
 foo = secrets.token_urlsafe(16)
 app.secret_key = foo
+
 
 # Configure login via google
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", None)
@@ -41,13 +45,6 @@ GOOGLE_DISCOVERY_URL = (
 login_manager = LoginManager()
 login_manager.session_protection = "strong"
 login_manager.init_app(app)
-
-# Naive database setup
-try:
-    init_db_command()
-except sqlite3.OperationalError:
-    # Assume it's already been created
-    pass
 
 # OAuth 2 client setup
 client = WebApplicationClient(GOOGLE_CLIENT_ID)
@@ -67,6 +64,11 @@ def index():
         return render_template("index.html", name=current_user.name, email=current_user.email)
     else:
         return '<a class="button" href="/login">Google Login</a>'
+
+@app.route("/testdb")
+def testdb():
+    user = get_user_by_id(1)
+    return user['name']
 
 @app.route("/test")
 def test():
@@ -137,12 +139,14 @@ def callback():
     # Create a user in our db with the information provided
     # by Google
     user = User(
-        id_=unique_id, name=users_name, email=users_email, profile_pic=picture
+        id_=unique_id, name=users_name, email=users_email, profile_pic=picture, admin=False
     )
 
     # Doesn't exist? Add to database
+    print('the unique_id id ' + str(unique_id))
+    app.logger.info('unique_id is ' + str(unique_id))
     if not User.get(unique_id):
-        User.create(unique_id, users_name, users_email, picture)
+        User.create(id_=unique_id, name=users_name, email=users_email, profile_pic=picture, admin=False)
 
     # Begin user session by logging the user in
     login_user(user, remember=True)

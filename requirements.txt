@@ -10,5 +10,9 @@ werkzeug
 oauthlib==3.0.1
 pyOpenSSL==19.0.0
 Flask-Login==0.6.3
+# pandas==2.1.4
+SQLAlchemy==2.0.23
+alembic
+mysqlclient
 
 debugpy # Required for debugging.

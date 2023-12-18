@@ -1,34 +1,44 @@
 from flask_login import UserMixin
 
-from helpers.db import get_db
+from helpers.dbm import connect_db, get_session
+from helpers.db_model import UserTable
 
 class User(UserMixin):
-    def __init__(self, id_, name, email, profile_pic):
+    def __init__(self, id_, name, email, profile_pic, admin):
         self.id = id_
         self.name = name
         self.email = email
         self.profile_pic = profile_pic
+        self.admin = admin
 
-    @staticmethod
-    def get(user_id):
-        db = get_db()
-        user = db.execute(
-            "SELECT * FROM user WHERE id = ?", (user_id,)
-        ).fetchone()
-        if not user:
+    @classmethod
+    def get(cls, user_id):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+        
+        user_db = session.query(UserTable).filter_by(id=user_id).first()
+        
+        session.close()
+        
+        if not user_db:
             return None
 
         user = User(
-            id_=user[0], name=user[1], email=user[2], profile_pic=user[3]
+            id_=user_db.id, name=user_db.name, email=user_db.email, profile_pic=user_db.profile_pic, admin=user_db.admin
         )
+        
         return user
 
-    @staticmethod
-    def create(id_, name, email, profile_pic):
-        db = get_db()
-        db.execute(
-            "INSERT INTO user (id, name, email, profile_pic) "
-            "VALUES (?, ?, ?, ?)",
-            (id_, name, email, profile_pic),
-        )
-        db.commit()
+    @classmethod
+    def create(cls, id_, name, email, profile_pic, admin=False):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+        
+        new_user = UserTable(id=id_, name=name, email=email, profile_pic=profile_pic, admin=admin)
+        
+        session.add(new_user)
+        session.commit()
+        
+        session.close()
+        
+        return id_
