@@ -39,7 +39,6 @@ services:
     env_file:
       - .env
     networks:
-      - database
       - flask          
     restart: unless-stopped
       
