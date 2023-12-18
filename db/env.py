@@ -4,7 +4,7 @@ from sqlalchemy import engine_from_config, pool
 from alembic import context
 
 # Add your SQLAlchemy models' Base here
-from helpers.db_model import Base  # Update the path as needed
+from models.db_model import Base  # Update the path as needed
 
 # This is the Alembic Config object, which provides access to the values within the .ini file in use.
 config = context.config
