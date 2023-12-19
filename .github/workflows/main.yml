@@ -3,7 +3,7 @@ name: Deploy to Google Cloud VM
 on:
   push:
     branches:
-      - main  # Change this to match your branch name
+      - master
 
 jobs:
   deploy:
