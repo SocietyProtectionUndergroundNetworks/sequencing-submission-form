@@ -34,7 +34,7 @@ def index():
 def upload_form_resume():
     upload = Upload.get_latest_unfinished_process(current_user.id)
     
-    if upload is None or len(upload) == 0:
+    if upload is None:
         # Handle the case where no data is returned
         print("No data found.")
         return render_template("form.html", msg='We could not find an unfinished process to resume')
