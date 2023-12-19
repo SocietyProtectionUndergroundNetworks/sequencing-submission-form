@@ -24,4 +24,4 @@ jobs:
 
       - name: Deploy code to Google Cloud VM
         run: |
-          gcloud compute ssh ${{ secrets.GCP_VM_INSTANCE }} --zone=${{ secrets.GCP_ZONE }} --command="cd /var/lib/${{ secrets.GCP_PROJECT_DIRECTORY }} && git pull origin master"
+          gcloud compute ssh ${{ secrets.GCP_VM_INSTANCE }} --zone=${{ secrets.GCP_ZONE }} --command="cd ${{ secrets.GCP_PROJECT_DIRECTORY }} && git pull origin master"
