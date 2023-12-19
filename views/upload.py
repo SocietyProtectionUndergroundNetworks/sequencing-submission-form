@@ -16,6 +16,7 @@ from flask_login import (
 
 from helpers.csv import validate_csv_column_names
 from helpers.bucket_upload import chunked_upload, get_progress
+from helpers.file_renaming import extract_gzip
 
 from models.upload import Upload
 
@@ -31,22 +32,30 @@ def index():
 @upload_bp.route('/form_resume')
 @login_required
 def upload_form_resume():
-    upload = Upload.get_latest_not_sent_to_bucket(current_user.id)
-    app.logger.info('upload id ' + str(upload.id))
-    show_step_2 = False
-    if (upload.csv_uploaded and not upload.gz_uploaded):
-        show_step_2 = True
+    upload = Upload.get_latest_unfinished_process(current_user.id)
     
-    return render_template(
-                            "form.html", 
-                            process_id=upload.id, 
-                            csv_uploaded=upload.csv_uploaded,
-                            csv_filename=upload.csv_filename,
-                            show_step_2=show_step_2, 
-                            gz_uploaded=upload.gz_uploaded, 
-                            gz_filename=upload.gz_filename, 
-                            gz_sent_to_bucket=upload.gz_sent_to_bucket
-                            )
+    if upload is None or len(upload) == 0:
+        # Handle the case where no data is returned
+        print("No data found.")
+        return render_template("form.html", msg='We could not find an unfinished process to resume')
+    else:
+
+        app.logger.info('upload id ' + str(upload.id))
+        show_step_2 = False
+        if (upload.csv_uploaded and not upload.gz_uploaded):
+            show_step_2 = True
+        
+        return render_template(
+                                "form.html", 
+                                process_id=upload.id, 
+                                csv_uploaded=upload.csv_uploaded,
+                                csv_filename=upload.csv_filename,
+                                show_step_2=show_step_2, 
+                                gz_uploaded=upload.gz_uploaded, 
+                                gz_filename=upload.gz_filename, 
+                                gz_sent_to_bucket=upload.gz_sent_to_bucket,
+                                gz_unziped=upload.gz_unziped
+                                )
 
 @upload_bp.route('/form')
 @login_required
@@ -130,9 +139,6 @@ def upload_chunked():
             print('upload finished')
             Upload.mark_field_as_true(process_id, 'gz_uploaded')
             Upload.update_gz_filename(process_id, filename)
-            
-            # chunked_upload(save_path, uploads_folder, filename, file_uuid)
-            #Upload.mark_field_as_true(process_id, 'gz_sent_to_bucket')
 
             #extract_directory = Path("processing", file_uuid)
             #gunzip_result = extract_gzip(save_path, file_uuid, extract_directory)
@@ -158,7 +164,48 @@ def send_raw_to_storage():
     save_path = path / filename   
     raw_uploaded = chunked_upload(save_path, uploads_folder, filename, file_uuid)
     #Upload.mark_field_as_true(process_id, 'gz_sent_to_bucket')
-    if (raw_uploaded):    
+    if (raw_uploaded):
+        Upload.mark_field_as_true(process_id, 'gz_sent_to_bucket')  
         return jsonify({"msg": "Raw to storage was successfully transfered."}), 200
     
     return jsonify({"error": "Something went wrong."}), 400
+
+@upload_bp.route('/unzipraw', methods=['POST'])
+@login_required
+def unzip_raw():
+    app.logger.info('unzip file starts')
+    
+    # in order to continue on the same process, lets get the id from the form
+    process_id = request.form["process_id"]
+    file_uuid   = request.form["file_uuid"]
+
+    upload = Upload.get(process_id)
+    uploads_folder = upload.uploads_folder
+    path = Path("uploads", uploads_folder)
+    filename = upload.gz_filename
+    save_path = path / filename   
+    
+    extract_directory = Path("processing", uploads_folder)
+    gunzip_result = extract_gzip(save_path, file_uuid, extract_directory)
+
+    if (gunzip_result):
+        Upload.mark_field_as_true(process_id, 'gz_unziped')
+        return jsonify({"msg": "Raw unzipped successfully."}), 200
+    
+    return jsonify({"error": "Something went wrong."}), 400
+    
+@upload_bp.route('/test2', methods=['GET'])
+def testunzip_raw():
+    process_id = 49
+    file_uuid   = 'aaaaa'
+
+    upload = Upload.get(process_id)
+    uploads_folder = upload.uploads_folder
+    path = Path("uploads", uploads_folder)
+    filename = upload.gz_filename
+    save_path = path / filename   
+    
+    extract_directory = Path("processing", uploads_folder)
+    gunzip_result = extract_gzip(save_path, file_uuid, extract_directory)
+    app.logger.info(gunzip_result)
+    return 'Done'      

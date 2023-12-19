@@ -3,6 +3,17 @@
 import os
 import gzip
 import csv
+import tarfile
+
+def extract_tar(tar_file, extract_path):
+    with tarfile.open(tar_file, 'r') as tar:
+        tar.extractall(path=extract_path)
+
+def extract_tar_without_structure(tar_file, extract_path):
+    with tarfile.open(tar_file, 'r') as tar:
+        for member in tar.getmembers():
+            member.name = os.path.basename(member.name)
+            tar.extract(member, path=extract_path)
 
 def extract_gzip(uploaded_file_path, file_id, extract_directory):
 
@@ -27,7 +38,12 @@ def extract_gzip(uploaded_file_path, file_id, extract_directory):
         with open(extract_path, 'wb') as f_out:
             f_out.write(f_in.read())
 
-    return f"File extracted to: {extract_path}"
+    # check if the file is a tar, in which case we have more to do
+    if file_name.endswith('.tar'):
+        extract_tar_without_structure(extract_path, extract_directory)
+        os.remove(extract_path)
+    
+    return True
     
 
 

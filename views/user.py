@@ -2,7 +2,7 @@ import os
 import requests
 import json
 from flask import Blueprint
-from flask import request, redirect, url_for
+from flask import request, redirect, url_for, render_template
 from oauthlib.oauth2 import WebApplicationClient
 from extensions import login_manager
 from flask_login import (
@@ -124,3 +124,8 @@ def callback():
 def logout():
     logout_user()
     return redirect(url_for("upload.index"))
+    
+@login_manager.unauthorized_handler
+def custom_unauthorized():
+    # Customize the unauthorized page
+    return render_template('custom_unauthorized.html')

@@ -1,6 +1,6 @@
 from helpers.dbm import connect_db, get_session
 from models.db_model import UploadTable
-from sqlalchemy import desc
+from sqlalchemy import desc, or_
 
 class Upload():
     def __init__(
@@ -14,7 +14,8 @@ class Upload():
                     csv_filename, 
                     gz_uploaded, 
                     gz_filename, 
-                    gz_sent_to_bucket
+                    gz_sent_to_bucket,
+                    gz_unziped
                 ):
         self.id = id
         self.user_id = user_id
@@ -26,6 +27,7 @@ class Upload():
         self.gz_uploaded = gz_uploaded        
         self.gz_filename = gz_filename
         self.gz_sent_to_bucket = gz_sent_to_bucket
+        self.gz_unziped = gz_unziped
               
 
     @classmethod
@@ -50,13 +52,14 @@ class Upload():
             csv_filename=upload_db.csv_filename, 
             gz_uploaded=upload_db.gz_uploaded, 
             gz_filename=upload_db.gz_filename, 
-            gz_sent_to_bucket=upload_db.gz_sent_to_bucket
+            gz_sent_to_bucket=upload_db.gz_sent_to_bucket,
+            gz_unziped=upload_db.gz_unziped
         )
         
         return upload
 
     @classmethod
-    def get_latest_not_sent_to_bucket(cls, user_id):
+    def get_latest_unfinished_process(cls, user_id):
         db_engine = connect_db()
         session = get_session(db_engine)
 
@@ -64,7 +67,10 @@ class Upload():
             session.query(UploadTable)
             .filter(
                 UploadTable.user_id == user_id,
-                UploadTable.gz_sent_to_bucket != True  # Assuming it's a Boolean field
+                or_(
+                    UploadTable.gz_unziped == False,
+                    UploadTable.gz_unziped.is_(None)
+                )
             )
             .order_by(desc(UploadTable.updated_at))  # Get the latest based on updated_at
             .first()

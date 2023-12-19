@@ -33,3 +33,4 @@ class UploadTable(Base):
     gz_uploaded = Column(Boolean, default=False)
     gz_filename = Column(String(255), nullable=True)
     gz_sent_to_bucket = Column(Boolean, default=False)
+    gz_unziped = Column(Boolean, default=False)
