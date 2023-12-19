@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2  # Update to the latest version that supports Node.js 16
+        uses: actions/checkout@v2.4.0  # Update to the latest version that supports Node.js 16
 
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v0.7.0
