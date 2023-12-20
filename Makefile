@@ -37,10 +37,10 @@ logsflask:
 	docker-compose logs flask
 
 migration:
-	docker-compose run --rm flask alembic revision --autogenerate -m "${description}"
+	docker-compose exec flask alembic revision --autogenerate -m "${description}"
 
 migrate:
-	docker-compose run --rm flask alembic upgrade head
+	docker-compose exec flask alembic upgrade head
 
 echo:
 	echo $${GOOGLE_APPLICATION_CREDENTIALS_PATH}
