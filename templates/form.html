@@ -13,7 +13,7 @@
     <div id="step1">
       <h3> Step 1: upload key file (csv) </h3>
       {% if csv_uploaded %}
-        <div id="csv_msg" class="text-success">CSV file already uploaded : {{ csv_filename }}</div>
+        <div id="step_1_msg" class="text-success">CSV file already uploaded : {{ csv_filename }}</div>
       {% else %}
         <form
             method="POST"
@@ -23,13 +23,13 @@
             enctype="multipart/form-data"
         >
         </form>
-        <div id="csv_msg"></div>
+        <div id="step_1_msg"></div>
       {% endif %}
     </div>
     <div id="step2" {% if not csv_uploaded %} style="opacity: 0.5;" {% endif %}>
       <h3> Step 2: upload gz file with sample data </h3>
       {% if gz_uploaded %}
-        <div id="upload_msg" class="text-success">GZ file already uploaded: {{ gz_filename }}</div>
+        <div id="step_2_msg" class="text-success">GZ file already uploaded: {{ gz_filename }}</div>
       {% else %}
         <form
             method="POST"
@@ -40,42 +40,58 @@
             {% if ((not csv_uploaded) and (not gz_uploaded)) %} style="display: none;" {% endif %}
         >
         </form>
-        <div id="upload_msg"></div>
+        <div id="step_2_msg"></div>
       {% endif %}
     </div>
     <div id="step3" {% if not gz_uploaded %} style="opacity: 0.5;" {% endif %}>
       <h3> Step 3: Raw files uploaded to google storage </h3>
 
       {% if gz_uploaded %}
-        <div id="bucket_msg" class="text-success">GZ file successfully sent to google storage</div>
-      {% else %}      
+        <div id="step_3_msg" class="text-success">GZ file successfully sent to google storage</div>
+      {% else %}
         <div>
           <form 
-              id="step_3_upload_raw" 
+              id="step_3_form" 
               method="POST" 
               action="/sendrawtostorage"
               {% if ((not gz_uploaded) or (gz_sent_to_bucket)) %} style="display: none;" {% endif %}
           >
             <input type="hidden" name="process_id" value="{{ process_id }}">
             <input type="hidden" name="file_uuid">
-            <input type="submit" class="btn btn-primary" id="step3-button">
+            <input type="submit" class="btn btn-primary" id="step_3_button">
           </form>
         </div>
         <div id="bucketProgress">Bucket Transfer Progress: 0%</div> 
-        <div id="bucket_msg"></div>
+        <div id="step_3_msg"></div>
       {% endif %}
     </div>
     <div id="step4" {% if not gz_uploaded %} style="opacity: 0.5;" {% endif %}>
       <h3> Step 4: Unzip Raw files</h3>
+      {% if gz_unziped %}
+        <div id="step_4_msg" class="text-success">File successfully unzipped</div>
+      {% else %}
+        <div> 
+          <form id="step_4_form" method="POST" action="/unzipraw">
+            <input type="hidden" name="process_id" value="{{ process_id }}">
+            <input type="hidden" name="file_uuid">
+            <input type="submit" class="btn btn-primary" id="step_4_button">
+          </form>
+        </div>
+        <div id="step_4_msg"></div>
+      {% endif %}
+    </div>  
+    <div id="step5" {% if not gz_unziped %} style="opacity: 0.5;" {% endif %}>
+      <h3> Step 5: Rename files</h3>
       <div> 
-        <form id="step_4_unzip_raw" method="POST" action="/unzipraw">
+        <form id="step_5_form" method="POST" action="/renamefiles">
           <input type="hidden" name="process_id" value="{{ process_id }}">
           <input type="hidden" name="file_uuid">
-          <input type="submit" class="btn btn-primary" id="step4-button">
+          <input type="submit" class="btn btn-primary" id="step_5_button">
         </form>
       </div>
-      <div id="unzip_msg"></div>
-    </div>     
+      <div id="step_5_msg"></div>
+      <div id="step_5_details"></div>
+    </div>        
     <script type="application/javascript">
         let process_id = {{ process_id | default('0') }}; // To track the process from start to end. 
         let progressTrackers = {}; // To track progress for each file
@@ -88,24 +104,24 @@
                 this.on("error", function (file, errorMessage, xhr) {
                     if (xhr && xhr.responseText) {
                         var response = JSON.parse(xhr.responseText);
-                        $("#csv_msg").html('<span class="text-danger">' + response.error + '</span>');
+                        $("#step_1_msg").html('<span class="text-danger">' + response.error + '</span>');
                     } else {
-                        $("#csv_msg").html('<span class="text-danger">' + errorMessage + '</span>');
+                        $("#step_1_msg").html('<span class="text-danger">' + errorMessage + '</span>');
                     }
                 });
                 
                 this.on("success", function (file, response) {
-                    $("#csv_msg").html('<span class="text-success">' + response.msg + '</span>');
+                    $("#step_1_msg").html('<span class="text-success">' + response.msg + '</span>');
                     
                     // Access and use the process ID
                     process_id = response.process_id;
 
-                    // Update the hidden input field within the specific form
-                    var form3 = $("#step_3_upload_raw");
+                    // Update the hidden input field within the specific forms
+                    var form3 = $("#step_3_form");
                     form3.find('input[name="process_id"]').val(process_id);                    
-
-                    // Update the hidden input field within the specific form
-                    var form4 = $("#step_4_unzip_raw");
+                    var form4 = $("#step_4_form");
+                    form4.find('input[name="process_id"]').val(process_id);
+                    var form4 = $("#step_5_form");
                     form4.find('input[name="process_id"]').val(process_id);
 
                     $('#step2').css('opacity', '1');
@@ -126,7 +142,7 @@
 
             sending: function(file, xhr, formData) {
                 let file_uuid = file.upload.uuid;
-                var form = $("#step_3_upload_raw");
+                var form = $("#step_3_form");
                 form.find('input[name="file_uuid"]').val(file_uuid);  
                 if (file_uuid && !progressTrackers[file_uuid]) {
                     progressTrackers[file_uuid] = true;
@@ -140,16 +156,16 @@
                 this.on("error", function (file, errorMessage, xhr) {
                     if (xhr && xhr.responseText) {
                         var response = JSON.parse(xhr.responseText);
-                        $("#upload_msg").html(response.error).addClass('text-danger').removeClass('text-success');
+                        $("#step_2_msg").html(response.error).addClass('text-danger').removeClass('text-success');
                     } else {
-                        $("#upload_msg").html(errorMessage).addClass('text-danger').removeClass('text-success');
+                        $("#step_2_msg").html(errorMessage).addClass('text-danger').removeClass('text-success');
                     }
                 });
                 
                 this.on("success", function (file, response) {
-                    $("#upload_msg").html(response.msg).addClass('text-success').removeClass('text-danger');
-                    $('#step_3_upload_raw').show();
-                    $('#step3-button').prop("disabled", false);
+                    $("#step_2_msg").html(response.msg).addClass('text-success').removeClass('text-danger');
+                    $('#step_3_form').show();
+                    $('#step_3_button').prop("disabled", false);
                     $('#step3').css('opacity', '1');
                 });
             }            
@@ -174,7 +190,7 @@
                         if (progress >= 100) {
                             clearInterval(intervals[file_uuid]); // Stop updating when progress reaches 100%
                             console.log('We will now stop calling for updates');
-                            $('#bucket_msg').text('Raw file successfully uploaded to google storage').addClass('text-success');
+                            $('#step_3_msg').text('Raw file successfully uploaded to google storage').addClass('text-success');
                             $('#step4').css('opacity', '1');
                         }
                     },
@@ -186,10 +202,10 @@
         }
         
         $(document).ready(function () {
-            $('#step_3_upload_raw').submit(function (event) {
+            $('#step_3_form').submit(function (event) {
                 // Prevent the default form submission
                 event.preventDefault();
-                $('#step3-button').prop("disabled", true);
+                $('#step_3_button').prop("disabled", true);
                 // Get form data
                 var formData = $(this).serialize();
                 
@@ -212,10 +228,10 @@
             });
         });
         $(document).ready(function () {
-            $('#step_4_unzip_raw').submit(function (event) {
+            $('#step_4_form').submit(function (event) {
                 // Prevent the default form submission
                 event.preventDefault();
-                $('#step4-button').prop("disabled", true);
+                $('#step_4_button').prop("disabled", true);
                 // Get form data
                 var formData = $(this).serialize();
                 
@@ -228,7 +244,7 @@
                     success: function (response) {
                         // Handle success
                         console.log('Form data submitted via AJAX successfully');
-                        $('#unzip_msg').text('Raw file successfully unzipped').addClass('text-success');
+                        $('#step_4_msg').text('Raw file successfully unzipped').addClass('text-success');
                     },
                     error: function (error) {
                         // Handle errors
@@ -236,7 +252,44 @@
                     }
                 });
             });
-        });           
+        });
+        $(document).ready(function () {
+            $('#step_5_form').submit(function (event) {
+                // Prevent the default form submission
+                event.preventDefault();
+                $('#step_5_button').prop("disabled", true);
+                // Get form data
+                var formData = $(this).serialize();
+                
+                var file_uuid = $(this).find('input[name="file_uuid"]').val();
+                
+                $.ajax({
+                    type: 'POST',
+                    url: '/renamefiles',
+                    data: formData,
+                    success: function (response) {
+                        // Handle success
+                        console.log('Form data submitted via AJAX successfully');
+                        $('#step_5_msg').text('File renaming process finished').addClass('text-success');
+                        console.log(response);
+                        let results = response.results;
+                        let $ul = $('<ul>'); // Create a new ul element
+                        
+                        // Loop through the results array and create list items
+                        $.each(results, function(index, text) {
+                          $ul.append($('<li>').text(text)); // Create li with the text and append to ul
+                        });
+                        
+                        // Append the ul with list items to the specified HTML element
+                        $('#step_5_details').empty().append($ul);                        
+                    },
+                    error: function (error) {
+                        // Handle errors
+                        console.error('Error submitting form data via AJAX', error);
+                    }
+                });
+            });
+        });          
     </script>
 </body>
 </html>

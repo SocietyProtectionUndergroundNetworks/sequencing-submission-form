@@ -4,6 +4,8 @@ import os
 import gzip
 import csv
 import tarfile
+import pandas as pd
+from flask import current_app as app  # Import the 'app' instance
 
 def extract_tar(tar_file, extract_path):
     with tarfile.open(tar_file, 'r') as tar:
@@ -44,108 +46,21 @@ def extract_gzip(uploaded_file_path, file_id, extract_directory):
         os.remove(extract_path)
     
     return True
-    
 
-
-def rename_file(csv_file, uploaded_file):
-    csv_path = os.path.join('uploads', csv_file)
-
-    # Initialize an empty dictionary to store dictionaries with keys as the first value of each row
-    data_dict = {}
-
-    # Load the csv file
-    with open(csv_path, newline='') as csvfile:
-        csvreader = csv.reader(csvfile, delimiter=',')  # Assuming CSV is comma-separated
-        headers = next(csvreader)  # Read the first row as headers
-
-        for row in csvreader:
-            key = row[0]  # Get the key (first value of the row)
-
-            if key in ["Description", "Sample Number", "Example", ""] or key is None:
-                continue  # Skip this row if the key is empty or matches specific strings
-
-            # Check for duplicate keys
-            if key in data_dict:
-                raise ValueError(f"Duplicate key found: {key}")
-
-            # Create a dictionary for each row using headers as keys
-            row_dict = {header: value for header, value in zip(headers, row)}
-
-            # Check if 'Sequencer_ID' exists and is not empty before printing
-            sequencer_id = row_dict.get('Sample_ID', '')
-            if sequencer_id and sequencer_id.strip():  # Check if 'Sequencer_ID' is not empty or whitespace
-                sampleid = str(sequencer_id)
-                print('we have a row for the sampleid ', sampleid)
-                print(sampleid.split('id', 1)[0])
-                if uploaded_file.startswith(sampleid.split('id', 1)[0] + 'id'):
-                    print(row_dict)
-
-            # Add the row dictionary to the data_dict with the key
-            data_dict[key] = row_dict
-
-    return "done4"
-            
-    if False:
-        # Load the Excel file
-        df = pd.read_excel(excel_path)
-
-        # Iterate through each row in the DataFrame
-        for index, row in df.iterrows():
-            sampleid = str(row['Sequencer_ID'])
-            name = str(row['Sample_ID'])
-
-            # Get a list of all file names in the directory
-            file_names = os.listdir(directory_path)
-
-            # Find the matching filenames based on the Sequencer_ID
-            matching_files = [filename for filename in file_names if filename.startswith(sampleid.split('id', 1)[0] + 'id')]
-
-            for matching_file in matching_files:
-                # Get the full path of the matching file
-                old_file_path = os.path.join(directory_path, matching_file)
-
-                # Extract the portion after '_S' from the matching file
-                extension = matching_file.split('_S')[-1]
-
-                # Replace 'RIBO' with 'SSU' in the 'Name' column
-                if 'RIBO' in name:
-                    new_name = name.replace('RIBO', 'SSU')
-                else:
-                    new_name = name
-
-                # Create the new file name based on the extracted extension, modified 'Name' column, and the 'CCBB' prefix
-                new_file_name = new_name + '_S' + extension
-
-                # Check for duplicate names
-                if new_file_name in file_names:
-                    print(f"Duplicate file name: {new_file_name}. Skipping renaming for {matching_file}")
-                else:
-                    # Get the full path of the new file name
-                    new_file_path = os.path.join(directory_path, new_file_name)
-
-                    # Rename the file
-                    os.rename(old_file_path, new_file_path)
-                    print(f"Renamed {matching_file} to {new_file_name}")
-
-            if not matching_files:
-                print(f"File with SampleID {sampleid} not found in the directory")
-
-
-def rename_files(excel_file, directory):
-    # Get the current working directory
-    current_dir = os.getcwd()
-
-    # Create the full paths for the Excel file and the directory
-    excel_path = os.path.join(current_dir, excel_file)
-    directory_path = os.path.join(current_dir, directory)
+def rename_files(csv_file_path, directory_path):
 
     # Load the Excel file
-    df = pd.read_excel(excel_path)
+    df = pd.read_csv(csv_file_path)
+    
+    results=[]
 
     # Iterate through each row in the DataFrame
     for index, row in df.iterrows():
         sampleid = str(row['Sequencer_ID'])
         name = str(row['Sample_ID'])
+        #app.logger.info('---')
+        #app.logger.info('sampleid is ' + sampleid)
+        #app.logger.info('name is ' + name)
 
         # Get a list of all file names in the directory
         file_names = os.listdir(directory_path)
@@ -156,6 +71,7 @@ def rename_files(excel_file, directory):
         for matching_file in matching_files:
             # Get the full path of the matching file
             old_file_path = os.path.join(directory_path, matching_file)
+            # app.logger.info('old_file_path is ' + old_file_path)
 
             # Extract the portion after '_S' from the matching file
             extension = matching_file.split('_S')[-1]
@@ -165,23 +81,30 @@ def rename_files(excel_file, directory):
                 new_name = name.replace('RIBO', 'SSU')
             else:
                 new_name = name
+                
+            # app.logger.info('new_name is ' + new_name)    
 
             # Create the new file name based on the extracted extension, modified 'Name' column, and the 'CCBB' prefix
             new_file_name = new_name + '_S' + extension
+            # app.logger.info('new_file_name is ' + new_file_name)    
 
             # Check for duplicate names
             if new_file_name in file_names:
-                print(f"Duplicate file name: {new_file_name}. Skipping renaming for {matching_file}")
+                # app.logger.info(f"Duplicate file name: {new_file_name}. Skipping renaming for {matching_file}")
+                results.append(f"Duplicate file name: {new_file_name}. Skipping renaming for {matching_file}")
             else:
                 # Get the full path of the new file name
                 new_file_path = os.path.join(directory_path, new_file_name)
 
                 # Rename the file
                 os.rename(old_file_path, new_file_path)
-                print(f"Renamed {matching_file} to {new_file_name}")
+                results.append(f"Renamed {matching_file} to {new_file_name}")
 
         if not matching_files:
-            print(f"File with SampleID {sampleid} not found in the directory")
+            # app.logger.info(f"File with SampleID {sampleid} not found in the directory")
+            results.append(f"File with SampleID {sampleid} not found in the directory")
+            
+    return results
 
 
 

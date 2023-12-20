@@ -16,7 +16,7 @@ from flask_login import (
 
 from helpers.csv import validate_csv_column_names
 from helpers.bucket_upload import chunked_upload, get_progress
-from helpers.file_renaming import extract_gzip
+from helpers.file_renaming import extract_gzip, rename_files
 
 from models.upload import Upload
 
@@ -54,7 +54,8 @@ def upload_form_resume():
                                 gz_uploaded=upload.gz_uploaded, 
                                 gz_filename=upload.gz_filename, 
                                 gz_sent_to_bucket=upload.gz_sent_to_bucket,
-                                gz_unziped=upload.gz_unziped
+                                gz_unziped=upload.gz_unziped,
+                                files_renamed=upload.files_renamed
                                 )
 
 @upload_bp.route('/form')
@@ -194,6 +195,35 @@ def unzip_raw():
     
     return jsonify({"error": "Something went wrong."}), 400
     
+    
+@upload_bp.route('/renamefiles', methods=['POST'])
+@login_required
+def renamefiles():
+    app.logger.info('renaming files starts')
+    
+    # in order to continue on the same process, lets get the id from the form
+    process_id = request.form["process_id"]
+    file_uuid   = request.form["file_uuid"]
+
+    upload = Upload.get(process_id)
+    uploads_folder = upload.uploads_folder
+    path = Path("uploads", uploads_folder)
+    csv_filepath = path / upload.csv_filename
+    filename = upload.gz_filename
+    save_path = path / filename   
+    
+    extract_directory = Path("processing", uploads_folder)
+    rename_results = rename_files(csv_filepath, extract_directory)
+
+    to_render = '<br>'.join(rename_results)
+    
+    if rename_results:
+        Upload.mark_field_as_true(process_id, 'files_renamed')
+        return jsonify({"msg": "Raw unzipped successfully.", "results":rename_results}), 200
+    return jsonify({"error": "Something went wrong."}), 400
+    
+        
+
 @upload_bp.route('/test2', methods=['GET'])
 def testunzip_raw():
     process_id = 49
@@ -208,4 +238,22 @@ def testunzip_raw():
     extract_directory = Path("processing", uploads_folder)
     gunzip_result = extract_gzip(save_path, file_uuid, extract_directory)
     app.logger.info(gunzip_result)
-    return 'Done'      
+    return 'Done'
+    
+@upload_bp.route('/test3', methods=['GET'])
+def testrename_raw():
+    process_id = 49
+    file_uuid   = 'aaaaa'
+
+    upload = Upload.get(process_id)
+    uploads_folder = upload.uploads_folder
+    path = Path("uploads", uploads_folder)
+    csv_filepath = path / upload.csv_filename
+    filename = upload.gz_filename
+    save_path = path / filename   
+    
+    extract_directory = Path("processing", uploads_folder)
+    rename_results = rename_files(csv_filepath, extract_directory)
+    #app.logger.info(rename_result)
+    to_render = '<br>'.join(rename_results)
+    return to_render

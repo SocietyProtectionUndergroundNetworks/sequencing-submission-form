@@ -15,7 +15,8 @@ class Upload():
                     gz_uploaded, 
                     gz_filename, 
                     gz_sent_to_bucket,
-                    gz_unziped
+                    gz_unziped,
+                    files_renamed
                 ):
         self.id = id
         self.user_id = user_id
@@ -28,6 +29,7 @@ class Upload():
         self.gz_filename = gz_filename
         self.gz_sent_to_bucket = gz_sent_to_bucket
         self.gz_unziped = gz_unziped
+        self.files_renamed = files_renamed
               
 
     @classmethod
@@ -53,7 +55,8 @@ class Upload():
             gz_uploaded=upload_db.gz_uploaded, 
             gz_filename=upload_db.gz_filename, 
             gz_sent_to_bucket=upload_db.gz_sent_to_bucket,
-            gz_unziped=upload_db.gz_unziped
+            gz_unziped=upload_db.gz_unziped,
+            files_renamed=upload_db.files_renamed
         )
         
         return upload
@@ -68,8 +71,8 @@ class Upload():
             .filter(
                 UploadTable.user_id == user_id,
                 or_(
-                    UploadTable.gz_unziped == False,
-                    UploadTable.gz_unziped.is_(None)
+                    UploadTable.files_renamed == False,
+                    UploadTable.files_renamed.is_(None)
                 )
             )
             .order_by(desc(UploadTable.updated_at))  # Get the latest based on updated_at
