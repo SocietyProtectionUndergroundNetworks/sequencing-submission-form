@@ -42,7 +42,8 @@ def upload_form_resume():
     else:
 
         app.logger.info('upload id ' + str(upload.id))
-        matching_files = []
+        matching_files_filesystem = []
+        matching_files_dict = []
         nr_files = 0
         if (upload.gz_unziped):
 
