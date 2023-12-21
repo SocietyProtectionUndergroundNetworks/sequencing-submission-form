@@ -1,36 +1,14 @@
+import json
 from helpers.dbm import connect_db, get_session
 from models.db_model import UploadTable
 from sqlalchemy import desc, or_
+from pathlib import Path
 
 class Upload():
-    def __init__(
-                    self, 
-                    id, 
-                    user_id, 
-                    created_at, 
-                    updated_at, 
-                    uploads_folder, 
-                    csv_uploaded, 
-                    csv_filename, 
-                    gz_uploaded, 
-                    gz_filename, 
-                    gz_sent_to_bucket,
-                    gz_unziped,
-                    files_renamed
-                ):
-        self.id = id
-        self.user_id = user_id
-        self.created_at = created_at
-        self.updated_at = updated_at
-        self.uploads_folder = uploads_folder
-        self.csv_uploaded = csv_uploaded
-        self.csv_filename = csv_filename
-        self.gz_uploaded = gz_uploaded        
-        self.gz_filename = gz_filename
-        self.gz_sent_to_bucket = gz_sent_to_bucket
-        self.gz_unziped = gz_unziped
-        self.files_renamed = files_renamed
-              
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+        self.path = Path("uploads", self.uploads_folder)
+        self.extract_directory = Path("processing", self.uploads_folder)
 
     @classmethod
     def get(self, id):
@@ -44,20 +22,14 @@ class Upload():
         if not upload_db:
             return None
 
-        upload = UploadTable(
-            id=upload_db.id, 
-            user_id=upload_db.user_id, 
-            created_at=upload_db.created_at, 
-            updated_at=upload_db.updated_at, 
-            uploads_folder=upload_db.uploads_folder, 
-            csv_uploaded=upload_db.csv_uploaded, 
-            csv_filename=upload_db.csv_filename, 
-            gz_uploaded=upload_db.gz_uploaded, 
-            gz_filename=upload_db.gz_filename, 
-            gz_sent_to_bucket=upload_db.gz_sent_to_bucket,
-            gz_unziped=upload_db.gz_unziped,
-            files_renamed=upload_db.files_renamed
-        )
+        # Assuming upload_db is an instance of some SQLAlchemy model
+        upload_db_dict = upload_db.__dict__
+
+        # Remove keys starting with '_'
+        filtered_dict = {key: value for key, value in upload_db_dict.items() if not key.startswith('_')}
+
+        # Create an instance of YourClass using the dictionary
+        upload = Upload(**filtered_dict)
         
         return upload
 
@@ -71,8 +43,8 @@ class Upload():
             .filter(
                 UploadTable.user_id == user_id,
                 or_(
-                    UploadTable.files_renamed == False,
-                    UploadTable.files_renamed.is_(None)
+                    UploadTable.fastqc_run == False,
+                    UploadTable.fastqc_run.is_(None)
                 )
             )
             .order_by(desc(UploadTable.updated_at))  # Get the latest based on updated_at
@@ -134,4 +106,19 @@ class Upload():
             session.close()
             return False
             
-         
+    @classmethod
+    def update_files_json(cls, upload_id, files_dict):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+        files_json = json.dumps(files_dict)
+
+        upload = session.query(UploadTable).filter_by(id=upload_id).first()
+
+        if upload:
+            upload.files_json = files_json
+            session.commit()
+            session.close()
+            return True
+        else:
+            session.close()
+            return False         

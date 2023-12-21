@@ -18,4 +18,6 @@ SQLAlchemy==2.0.23
 alembic==1.13.0
 mysqlclient==2.2.1
 
+multiqc==1.19
+
 debugpy # Required for debugging.

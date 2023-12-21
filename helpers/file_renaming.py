@@ -6,6 +6,8 @@ import csv
 import tarfile
 import pandas as pd
 import subprocess
+import json
+import multiqc
 from flask import current_app as app  # Import the 'app' instance
 
 def extract_tar(tar_file, extract_path):
@@ -48,44 +50,40 @@ def extract_uploaded_gzip(uploaded_file_path, extract_directory):
     
     return True
 
-def fastqc_files(directory_path):
-    file_names = os.listdir(directory_path)
+def fastqc_multiqc_files(input_folder):
     results=[]
+    app.logger.info('input_folder is ' + str(input_folder))
+    output_folder = os.path.join(input_folder, 'fastqc')
+    os.makedirs(output_folder, exist_ok=True)
     
-    matching_files = [filename for filename in file_names if filename.endswith('.fastq.gz')]
-    for matching_file in matching_files:
-        results.append(matching_file)
+    # Run fastqc on all raw fastq.gz files within the 'fastqc' conda environment
+    fastq_files = [f for f in os.listdir(input_folder) if f.endswith('.fastq.gz')]
+    for fastq_file in fastq_files:
+        app.logger.info('file we will try is ' + str(fastq_file))
+        input_file = os.path.join(input_folder, fastq_file)
+        output_file = os.path.join(output_folder, fastq_file.replace('.fastq.gz', '_fastqc.zip'))
+        fastqc_cmd = f'/usr/local/bin/FastQC/fastqc -o {output_folder} {input_file}'
+        subprocess.run(fastqc_cmd, shell=True, executable='/bin/bash')
+    
+    multiqc.run(output_folder, outdir=output_folder)
 
-        # Get the file name without the '.gz' extension
-        file_name = os.path.splitext(matching_file)[0]
-        
-        full_path = directory_path / matching_file
-        # Path to extract the file to
-        extract_path = os.path.join(directory_path, file_name)
-
-        # Extract the gzip file
-        with gzip.open(full_path, 'rb') as f_in:
-            with open(extract_path, 'wb') as f_out:
-                f_out.write(f_in.read())
-
-        # Command to execute FastQC
-        command = ['/usr/local/bin/FastQC/fastqc', extract_path]
-
-        # Run FastQC using subprocess
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = process.communicate()
-        results.append(stdout)
-        results.append(stderr)
+    # Delete individual fastqc.html files and fastq.zip files
+    for fastq_file in fastq_files:
+        individual_fastqc_file = os.path.join(output_folder, fastq_file.replace('.fastq.gz', '_fastqc.html'))
+        os.remove(individual_fastqc_file)
+        zip_file = os.path.join(output_folder, fastq_file.replace('.fastq.gz', '_fastqc.zip'))
+        os.remove(zip_file)
     
     results.append("Finished")
-    return results
+    return results 
 
-def rename_files(csv_file_path, directory_path):
-
+def rename_files(csv_file_path, directory_path, files_json):
+    matching_files_dict = json.loads(files_json)
     # Load the Excel file
     df = pd.read_csv(csv_file_path)
     
-    results=[]
+    results={}
+    not_found=[]
 
     # Iterate through each row in the DataFrame
     for index, row in df.iterrows():
@@ -124,19 +122,21 @@ def rename_files(csv_file_path, directory_path):
             # Check for duplicate names
             if new_file_name in file_names:
                 # app.logger.info(f"Duplicate file name: {new_file_name}. Skipping renaming for {matching_file}")
-                results.append(f"Duplicate file name: {new_file_name}. Skipping renaming for {matching_file}")
+                results[matching_file] = f"Duplicate file name: {new_file_name}. Skipping renaming"
+                #results.append(f"Duplicate file name: {new_file_name}. Skipping renaming for {matching_file}")
             else:
                 # Get the full path of the new file name
                 new_file_path = os.path.join(directory_path, new_file_name)
 
                 # Rename the file
                 os.rename(old_file_path, new_file_path)
-                results.append(f"Renamed {matching_file} to {new_file_name}")
+                #results.append(f"Renamed {matching_file} to {new_file_name}")
+                results[matching_file] = f"Renamed to {new_file_name}"
+                matching_files_dict[matching_file]['new_filename'] = new_file_name
 
         if not matching_files:
-            # app.logger.info(f"File with SampleID {sampleid} not found in the directory")
-            results.append(f"File with SampleID {sampleid} not found in the directory")
+            not_found.append(sampleid)
             
-    return results
+    return results, not_found, matching_files_dict
 
 

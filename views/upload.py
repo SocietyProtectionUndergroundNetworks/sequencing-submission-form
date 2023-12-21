@@ -2,6 +2,7 @@ import datetime
 import random
 import string
 import os
+import json
 from pathlib import Path
 from werkzeug.utils import secure_filename
 from flask import Blueprint, render_template, request, jsonify
@@ -16,7 +17,7 @@ from flask_login import (
 
 from helpers.csv import validate_csv_column_names
 from helpers.bucket_upload import chunked_upload, get_progress
-from helpers.file_renaming import extract_uploaded_gzip, rename_files, fastqc_files
+from helpers.file_renaming import extract_uploaded_gzip, rename_files, fastqc_multiqc_files
 
 from models.upload import Upload
 
@@ -41,21 +42,36 @@ def upload_form_resume():
     else:
 
         app.logger.info('upload id ' + str(upload.id))
-        show_step_2 = False
-        if (upload.csv_uploaded and not upload.gz_uploaded):
-            show_step_2 = True
+        matching_files = []
+        nr_files = 0
+        if (upload.gz_unziped):
+
+            uploads_folder = upload.uploads_folder             
+            extract_directory = Path("processing", uploads_folder)
+
+            # count the files ending with fastq.gz
+            file_names = os.listdir(extract_directory)
+            matching_files_filesystem = [filename for filename in file_names if filename.endswith('.fastq.gz')]
+            nr_files = 0
+            if (matching_files_filesystem):
+                nr_files=len(matching_files_filesystem)
+
+            matching_files_dict = json.loads(upload.files_json)
         
         return render_template(
                                 "form.html", 
                                 process_id=upload.id, 
                                 csv_uploaded=upload.csv_uploaded,
                                 csv_filename=upload.csv_filename,
-                                show_step_2=show_step_2, 
                                 gz_uploaded=upload.gz_uploaded, 
                                 gz_filename=upload.gz_filename, 
                                 gz_sent_to_bucket=upload.gz_sent_to_bucket,
                                 gz_unziped=upload.gz_unziped,
-                                files_renamed=upload.files_renamed
+                                files_renamed=upload.files_renamed,
+                                nr_files=nr_files,
+                                matching_files=matching_files_filesystem,
+                                matching_files_db=matching_files_dict,
+                                fastqc_run=upload.fastqc_run
                                 )
 
 @upload_bp.route('/form')
@@ -187,7 +203,18 @@ def unzip_raw():
 
     if (gunzip_result):
         Upload.mark_field_as_true(process_id, 'gz_unziped')
-        return jsonify({"msg": "Raw unzipped successfully."}), 200
+        
+        # count the files ending with fastq.gz
+        file_names = os.listdir(extract_directory)
+        matching_files = [filename for filename in file_names if filename.endswith('.fastq.gz')]
+        nr_files = 0
+        if (matching_files):
+            nr_files=len(matching_files)
+            # Convert the list to a dictionary with empty parameters
+            matching_files_dict = {filename: {'new_filename': '', 'fastqc': ''} for filename in matching_files}
+            Upload.update_files_json(process_id, matching_files_dict)
+        
+        return jsonify({"msg": "Raw unzipped successfully.", "nr_files": nr_files, "matching_files":matching_files}), 200
     
     return jsonify({"error": "Something went wrong."}), 400
     
@@ -199,7 +226,6 @@ def renamefiles():
     
     # in order to continue on the same process, lets get the id from the form
     process_id = request.form["process_id"]
-    file_uuid   = request.form["file_uuid"]
 
     upload = Upload.get(process_id)
     uploads_folder = upload.uploads_folder
@@ -209,16 +235,30 @@ def renamefiles():
     save_path = path / filename   
     
     extract_directory = Path("processing", uploads_folder)
-    rename_results = rename_files(csv_filepath, extract_directory)
+    rename_results, not_found, files_dict = rename_files(csv_filepath, extract_directory, upload.files_json)
+    Upload.update_files_json(process_id, files_dict)
 
     to_render = '<br>'.join(rename_results)
     
     if rename_results:
         Upload.mark_field_as_true(process_id, 'files_renamed')
-        return jsonify({"msg": "Raw unzipped successfully.", "results":rename_results}), 200
+        return jsonify({"msg": "Raw unzipped successfully.", "results":rename_results, "not_found":not_found, "files_dict": files_dict}), 200
     return jsonify({"error": "Something went wrong."}), 400
     
-        
+
+@upload_bp.route('/fastqcfiles', methods=['POST'])
+@login_required
+def fastqcfiles():
+    app.logger.info('fastqc of files starts')
+    
+    # in order to continue on the same process, lets get the id from the form
+    process_id = request.form["process_id"]
+
+    upload = Upload.get(process_id)
+    fastqc_multiqc_files(upload.extract_directory)
+
+    to_render = '<br>'.join(rename_results)
+    return 'ok', 200
 
 @upload_bp.route('/test2', methods=['GET'])
 def testunzip_raw():
@@ -241,13 +281,7 @@ def test_fastqc_files():
     process_id = 49
 
     upload = Upload.get(process_id)
-    uploads_folder = upload.uploads_folder
-    path = Path("uploads", uploads_folder)
-    csv_filepath = path / upload.csv_filename
-    filename = upload.gz_filename
-    save_path = path / filename   
-    
-    extract_directory = Path("processing", uploads_folder)
-    rename_results = fastqc_files(extract_directory)
+    files_dict = fastqc_files(upload.extract_directory, upload.files_json)
+    #files_dict = multiqc_files(upload.extract_directory)
 
-    return '<br>'.join(rename_results)
+    return '<br>'.join(files_dict)

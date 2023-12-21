@@ -1,6 +1,7 @@
 # helpers/db_model.py
 
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, BigInteger
+from sqlalchemy.dialects.mysql import JSON
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
@@ -34,4 +35,6 @@ class UploadTable(Base):
     gz_filename = Column(String(255), nullable=True)
     gz_sent_to_bucket = Column(Boolean, default=False)
     gz_unziped = Column(Boolean, default=False)
+    files_json = Column(JSON(none_as_null=True))
     files_renamed = Column(Boolean, default=False)
+    fastqc_run = Column(Boolean, default=False)
