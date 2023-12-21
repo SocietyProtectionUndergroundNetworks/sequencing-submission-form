@@ -191,7 +191,6 @@ def unzip_raw():
     
     # in order to continue on the same process, lets get the id from the form
     process_id = request.form["process_id"]
-    file_uuid   = request.form["file_uuid"]
 
     upload = Upload.get(process_id)
     uploads_folder = upload.uploads_folder
