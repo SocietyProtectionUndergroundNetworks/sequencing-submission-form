@@ -5,6 +5,7 @@ import gzip
 import csv
 import tarfile
 import pandas as pd
+import subprocess
 from flask import current_app as app  # Import the 'app' instance
 
 def extract_tar(tar_file, extract_path):
@@ -17,7 +18,7 @@ def extract_tar_without_structure(tar_file, extract_path):
             member.name = os.path.basename(member.name)
             tar.extract(member, path=extract_path)
 
-def extract_gzip(uploaded_file_path, file_id, extract_directory):
+def extract_uploaded_gzip(uploaded_file_path, extract_directory):
 
     # Create the directory if it doesn't exist
     os.makedirs(extract_directory, exist_ok=True)
@@ -46,6 +47,38 @@ def extract_gzip(uploaded_file_path, file_id, extract_directory):
         os.remove(extract_path)
     
     return True
+
+def fastqc_files(directory_path):
+    file_names = os.listdir(directory_path)
+    results=[]
+    
+    matching_files = [filename for filename in file_names if filename.endswith('.fastq.gz')]
+    for matching_file in matching_files:
+        results.append(matching_file)
+
+        # Get the file name without the '.gz' extension
+        file_name = os.path.splitext(matching_file)[0]
+        
+        full_path = directory_path / matching_file
+        # Path to extract the file to
+        extract_path = os.path.join(directory_path, file_name)
+
+        # Extract the gzip file
+        with gzip.open(full_path, 'rb') as f_in:
+            with open(extract_path, 'wb') as f_out:
+                f_out.write(f_in.read())
+
+        # Command to execute FastQC
+        command = ['/usr/local/bin/FastQC/fastqc', extract_path]
+
+        # Run FastQC using subprocess
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = process.communicate()
+        results.append(stdout)
+        results.append(stderr)
+    
+    results.append("Finished")
+    return results
 
 def rename_files(csv_file_path, directory_path):
 
@@ -107,9 +140,3 @@ def rename_files(csv_file_path, directory_path):
     return results
 
 
-
-# Example usage
-# excel_file = 'Documents/Data/Sample_Key_Run1.csv'  # Provide the name of your Excel file
-# directory = 'Data_processing/Utrecht/ITS2'  # Provide the path to the directory containing the files
-
-# rename_files(excel_file, directory)

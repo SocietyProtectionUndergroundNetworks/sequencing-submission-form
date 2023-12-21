@@ -6,6 +6,23 @@ RUN apk update && \
     apk add --no-cache bash && \
     apk add --no-cache mysql-dev gcc musl-dev
 
+# Install Java 8 and perl as it is required by fastqc to run 
+RUN apk add --no-cache openjdk8 && \
+    apk add perl
+
+# Set environment variable for Java 8
+ENV JAVA_HOME=/usr/lib/jvm/default-jvm
+
+# Download and instal fastqc
+WORKDIR /usr/local/bin
+RUN wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.9.zip -O fastqc.zip && \
+    unzip fastqc.zip && \
+    chmod +x FastQC/fastqc && \
+    ln -s /usr/local/bin/FastQC/fastqc /usr/local/bin/fastqc
+
+# Set FastQC in the PATH  
+ENV PATH="/usr/local/bin/FastQC:${PATH}"    
+
 # Set the working directory to /app
 WORKDIR /app
 

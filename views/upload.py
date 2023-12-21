@@ -16,7 +16,7 @@ from flask_login import (
 
 from helpers.csv import validate_csv_column_names
 from helpers.bucket_upload import chunked_upload, get_progress
-from helpers.file_renaming import extract_gzip, rename_files
+from helpers.file_renaming import extract_uploaded_gzip, rename_files, fastqc_files
 
 from models.upload import Upload
 
@@ -141,10 +141,6 @@ def upload_chunked():
             Upload.mark_field_as_true(process_id, 'gz_uploaded')
             Upload.update_gz_filename(process_id, filename)
 
-            #extract_directory = Path("processing", file_uuid)
-            #gunzip_result = extract_gzip(save_path, file_uuid, extract_directory)
-            #app.logger.info(gunzip_result)
-
     return jsonify({"msg": "Chunk upload successful."}), 200
     
 @upload_bp.route('/sendrawtostorage', methods=['POST'])
@@ -187,7 +183,7 @@ def unzip_raw():
     save_path = path / filename   
     
     extract_directory = Path("processing", uploads_folder)
-    gunzip_result = extract_gzip(save_path, file_uuid, extract_directory)
+    gunzip_result = extract_uploaded_gzip(save_path, extract_directory)
 
     if (gunzip_result):
         Upload.mark_field_as_true(process_id, 'gz_unziped')
@@ -236,14 +232,13 @@ def testunzip_raw():
     save_path = path / filename   
     
     extract_directory = Path("processing", uploads_folder)
-    gunzip_result = extract_gzip(save_path, file_uuid, extract_directory)
+    gunzip_result = extract_uploaded_gzip(save_path, extract_directory)
     app.logger.info(gunzip_result)
     return 'Done'
     
 @upload_bp.route('/test3', methods=['GET'])
-def testrename_raw():
+def test_fastqc_files():
     process_id = 49
-    file_uuid   = 'aaaaa'
 
     upload = Upload.get(process_id)
     uploads_folder = upload.uploads_folder
@@ -253,7 +248,6 @@ def testrename_raw():
     save_path = path / filename   
     
     extract_directory = Path("processing", uploads_folder)
-    rename_results = rename_files(csv_filepath, extract_directory)
-    #app.logger.info(rename_result)
-    to_render = '<br>'.join(rename_results)
-    return to_render
+    rename_results = fastqc_files(extract_directory)
+
+    return '<br>'.join(rename_results)
