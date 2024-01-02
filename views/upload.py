@@ -34,7 +34,7 @@ def index():
 @login_required
 def upload_form_resume():
     upload = Upload.get_latest_unfinished_process(current_user.id)
-    
+
     if upload is None:
         # Handle the case where no data is returned
         print("No data found.")
@@ -47,7 +47,7 @@ def upload_form_resume():
         nr_files = 0
         if (upload.gz_unziped):
 
-            uploads_folder = upload.uploads_folder             
+            uploads_folder = upload.uploads_folder
             extract_directory = Path("processing", uploads_folder)
 
             # count the files ending with fastq.gz
@@ -58,14 +58,14 @@ def upload_form_resume():
                 nr_files=len(matching_files_filesystem)
 
             matching_files_dict = json.loads(upload.files_json)
-        
+
         return render_template(
-                                "form.html", 
-                                process_id=upload.id, 
+                                "form.html",
+                                process_id=upload.id,
                                 csv_uploaded=upload.csv_uploaded,
                                 csv_filename=upload.csv_filename,
-                                gz_uploaded=upload.gz_uploaded, 
-                                gz_filename=upload.gz_filename, 
+                                gz_uploaded=upload.gz_uploaded,
+                                gz_filename=upload.gz_filename,
                                 gz_sent_to_bucket=upload.gz_sent_to_bucket,
                                 gz_unziped=upload.gz_unziped,
                                 files_renamed=upload.files_renamed,
@@ -89,26 +89,26 @@ def upload_csv():
     if not file:
         return jsonify({"error": "No file uploaded"}), 400
 
-    # lets create a directory only for this process. 
+    # lets create a directory only for this process.
     uploads_folder = datetime.datetime.now().strftime("%Y%m%d") + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
     # Process the CSV file (e.g., save it or perform specific operations)
     filename = secure_filename(file.filename)
-    
+
     path = Path("uploads", uploads_folder)
-    path.mkdir(parents=True, exist_ok=True)    
+    path.mkdir(parents=True, exist_ok=True)
     save_path = path / filename
     #save_path = Path("uploads", filename)
     file.save(save_path)  # Save the CSV file to a specific location
 
-    structure_matches = validate_csv_column_names(save_path)
-    if structure_matches:
+    structure_compare = validate_csv_column_names(save_path)
+    if structure_compare is True:
         chunked_upload(save_path, uploads_folder, filename, file_uuid='temp_csv')
         new_id = Upload.create(user_id=current_user.id, csv_filename=filename, uploads_folder=uploads_folder)
         # app.logger.info('new_id is ' + str(new_id))
         return jsonify({"msg": "CSV file uploaded successfully. Fields match", "process_id": new_id}), 200
     else:
-        return jsonify({"error": "CSV file fields don't match expected structure"}), 400
+        return jsonify({"error": "CSV file fields don't match expected structure", "mismatch": structure_compare}), 400
 
 
 @upload_bp.route('/uploadprogress')
@@ -119,25 +119,25 @@ def api_progress():
     return {
         "progress": progress
     }
-    
+
 @upload_bp.route('/upload', methods=['POST'])
 @login_required
 def upload_chunked():
     # app.logger.info('upload starts')
     file = request.files["file"]
     file_uuid = request.form["dzuuid"]
-    
+
     # in order to continue on the same process, lets get the id from the form
     process_id = request.form["process_id"]
     upload = Upload.get(process_id)
     uploads_folder = upload.uploads_folder
-    
+
     # app.logger.info('process_id is ' + str(process_id))
     # Generate a unique filename to avoid overwriting using 8 chars of uuid before filename.
     filename = secure_filename(file.filename)
-    
-    path = Path("uploads", uploads_folder)  
-    save_path = path / filename    
+
+    path = Path("uploads", uploads_folder)
+    save_path = path / filename
     current_chunk = int(request.form["dzchunkindex"])
 
     try:
@@ -159,12 +159,12 @@ def upload_chunked():
             Upload.update_gz_filename(process_id, filename)
 
     return jsonify({"msg": "Chunk upload successful."}), 200
-    
+
 @upload_bp.route('/sendrawtostorage', methods=['POST'])
 @login_required
 def send_raw_to_storage():
     #app.logger.info('raw to storage starts')
-    
+
     # in order to continue on the same process, lets get the id from the form
     process_id = request.form["process_id"]
     file_uuid   = request.form["file_uuid"]
@@ -175,20 +175,20 @@ def send_raw_to_storage():
     uploads_folder = upload.uploads_folder
     path = Path("uploads", uploads_folder)
     filename = upload.gz_filename
-    save_path = path / filename   
+    save_path = path / filename
     raw_uploaded = chunked_upload(save_path, uploads_folder, filename, file_uuid)
     #Upload.mark_field_as_true(process_id, 'gz_sent_to_bucket')
     if (raw_uploaded):
-        Upload.mark_field_as_true(process_id, 'gz_sent_to_bucket')  
+        Upload.mark_field_as_true(process_id, 'gz_sent_to_bucket')
         return jsonify({"msg": "Raw to storage was successfully transfered."}), 200
-    
+
     return jsonify({"error": "Something went wrong."}), 400
 
 @upload_bp.route('/unzipraw', methods=['POST'])
 @login_required
 def unzip_raw():
     app.logger.info('unzip file starts')
-    
+
     # in order to continue on the same process, lets get the id from the form
     process_id = request.form["process_id"]
 
@@ -196,14 +196,14 @@ def unzip_raw():
     uploads_folder = upload.uploads_folder
     path = Path("uploads", uploads_folder)
     filename = upload.gz_filename
-    save_path = path / filename   
-    
+    save_path = path / filename
+
     extract_directory = Path("processing", uploads_folder)
     gunzip_result = extract_uploaded_gzip(save_path, extract_directory)
 
     if (gunzip_result):
         Upload.mark_field_as_true(process_id, 'gz_unziped')
-        
+
         # count the files ending with fastq.gz
         file_names = os.listdir(extract_directory)
         matching_files = [filename for filename in file_names if filename.endswith('.fastq.gz')]
@@ -213,17 +213,17 @@ def unzip_raw():
             # Convert the list to a dictionary with empty parameters
             matching_files_dict = {filename: {'new_filename': '', 'fastqc': ''} for filename in matching_files}
             Upload.update_files_json(process_id, matching_files_dict)
-        
+
         return jsonify({"msg": "Raw unzipped successfully.", "nr_files": nr_files, "matching_files":matching_files}), 200
-    
+
     return jsonify({"error": "Something went wrong."}), 400
-    
-    
+
+
 @upload_bp.route('/renamefiles', methods=['POST'])
 @login_required
 def renamefiles():
     app.logger.info('renaming files starts')
-    
+
     # in order to continue on the same process, lets get the id from the form
     process_id = request.form["process_id"]
 
@@ -232,25 +232,25 @@ def renamefiles():
     path = Path("uploads", uploads_folder)
     csv_filepath = path / upload.csv_filename
     filename = upload.gz_filename
-    save_path = path / filename   
-    
+    save_path = path / filename
+
     extract_directory = Path("processing", uploads_folder)
     rename_results, not_found, files_dict = rename_files(csv_filepath, extract_directory, upload.files_json)
     Upload.update_files_json(process_id, files_dict)
 
     to_render = '<br>'.join(rename_results)
-    
+
     if rename_results:
         Upload.mark_field_as_true(process_id, 'files_renamed')
         return jsonify({"msg": "Raw unzipped successfully.", "results":rename_results, "not_found":not_found, "files_dict": files_dict}), 200
     return jsonify({"error": "Something went wrong."}), 400
-    
+
 
 @upload_bp.route('/fastqcfiles', methods=['POST'])
 @login_required
 def fastqcfiles():
     app.logger.info('fastqc of files starts')
-    
+
     # in order to continue on the same process, lets get the id from the form
     process_id = request.form["process_id"]
 
@@ -269,13 +269,13 @@ def testunzip_raw():
     uploads_folder = upload.uploads_folder
     path = Path("uploads", uploads_folder)
     filename = upload.gz_filename
-    save_path = path / filename   
-    
+    save_path = path / filename
+
     extract_directory = Path("processing", uploads_folder)
     gunzip_result = extract_uploaded_gzip(save_path, extract_directory)
     app.logger.info(gunzip_result)
     return 'Done'
-    
+
 @upload_bp.route('/test3', methods=['GET'])
 def test_fastqc_files():
     process_id = 49

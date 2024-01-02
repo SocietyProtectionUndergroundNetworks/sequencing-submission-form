@@ -50,9 +50,9 @@
         <div id="step_3_msg" class="text-success">GZ file successfully sent to google storage</div>
       {% else %}
         <div>
-          <form 
-              id="step_3_form" 
-              method="POST" 
+          <form
+              id="step_3_form"
+              method="POST"
               action="/sendrawtostorage"
               {% if ((not gz_uploaded) or (gz_sent_to_bucket)) %} style="display: none;" {% endif %}
           >
@@ -61,7 +61,7 @@
             <input type="submit" class="btn btn-primary" id="step_3_button">
           </form>
         </div>
-        <div id="bucketProgress">Bucket Transfer Progress: 0%</div> 
+        <div id="bucketProgress">Bucket Transfer Progress: 0%</div>
         <div id="step_3_msg"></div>
       {% endif %}
     </div>
@@ -70,10 +70,10 @@
       {% if gz_unziped %}
         <div id="step_4_msg" class="text-success">File successfully unzipped</div>
       {% else %}
-        <div> 
-          <form 
-              id="step_4_form" 
-              method="POST" 
+        <div>
+          <form
+              id="step_4_form"
+              method="POST"
               action="/unzipraw"
               {% if ((not gz_uploaded) or (gz_unziped)) %} style="display: none;" {% endif %}
           >
@@ -83,19 +83,19 @@
         </div>
         <div id="step_4_msg"></div>
       {% endif %}
-    </div>  
+    </div>
     <div id="step5" {% if not gz_unziped %} style="opacity: 0.5;" {% endif %}>
       <h3> Step 5: Rename files</h3>
       {% if files_renamed %}
         <div id="step_5_msg" class="text-success">Files renamed</div>
-      {% else %}      
-        <div> 
-          <form 
-              id="step_5_form" 
-              method="POST" 
+      {% else %}
+        <div>
+          <form
+              id="step_5_form"
+              method="POST"
               action="/renamefiles"
               {% if ((not gz_unziped) or (files_renamed)) %} style="display: none;" {% endif %}
-          >          
+          >
             <input type="hidden" name="process_id" value="{{ process_id }}">
             <input type="submit" class="btn btn-primary" id="step_5_button">
           </form>
@@ -103,25 +103,25 @@
         <div id="step_5_msg"></div>
         <div id="step_5_details"></div>
       {% endif %}
-    </div>  
+    </div>
 
     <div id="step6" {% if not files_renamed %} style="opacity: 0.5;" {% endif %}>
       <h3> Step 6: Run fastqc</h3>
-      <div> 
-        <form 
-            id="step_6_form" 
-            method="POST" 
+      <div>
+        <form
+            id="step_6_form"
+            method="POST"
             action="/runfastqc"
             {% if ((not files_renamed) or (fastqc_run)) %} style="display: none;" {% endif %}
-        >          
+        >
           <input type="hidden" name="process_id" value="{{ process_id }}">
           <input type="submit" class="btn btn-primary" id="step_6_button">
         </form>
       </div>
       <div id="step_6_msg"></div>
       <div id="step_6_details"></div>
-    </div>  
-    
+    </div>
+
     <div id="files_table">
       <table class="table">
         <thead>
@@ -140,15 +140,15 @@
                 <td></td>
             </tr>
           {% endfor %}
-          
-        {% endif %}  
+
+        {% endif %}
         </thead>
         <tbody id="files_body">
         </tbody>
       </table>
-    </div>      
+    </div>
     <script type="application/javascript">
-        let process_id = {{ process_id | default('0') }}; // To track the process from start to end. 
+        let process_id = {{ process_id | default('0') }}; // To track the process from start to end.
         let progressTrackers = {}; // To track progress for each file
         Dropzone.options.csvDropper = {
             paramName: "file",
@@ -159,34 +159,34 @@
                 this.on("error", function (file, errorMessage, xhr) {
                     if (xhr && xhr.responseText) {
                         var response = JSON.parse(xhr.responseText);
-                        $("#step_1_msg").html('<span class="text-danger">' + response.error + '</span>');
+                        $("#step_1_msg").html('<span class="text-danger">' + response.error + response.mismatch + '</span>');
                     } else {
                         $("#step_1_msg").html('<span class="text-danger">' + errorMessage + '</span>');
                     }
                 });
-                
+
                 this.on("success", function (file, response) {
                     $("#step_1_msg").html('<span class="text-success">' + response.msg + '</span>');
-                    
+
                     // Access and use the process ID
                     process_id = response.process_id;
 
                     // Update the hidden input field within the specific forms
                     var form3 = $("#step_3_form");
-                    form3.find('input[name="process_id"]').val(process_id);                    
+                    form3.find('input[name="process_id"]').val(process_id);
                     var form4 = $("#step_4_form");
                     form4.find('input[name="process_id"]').val(process_id);
                     var form5 = $("#step_5_form");
                     form5.find('input[name="process_id"]').val(process_id);
                     var form6 = $("#step_6_form");
                     form6.find('input[name="process_id"]').val(process_id);
-                    
+
                     $('#step2').css('opacity', '1');
-                    $('#otherDropper').show(); // Show the dropzone area                    
+                    $('#otherDropper').show(); // Show the dropzone area
                 });
             }
         };
-        
+
         Dropzone.options.otherDropper = {
             paramName: "file",
             chunking: true,
@@ -200,16 +200,16 @@
             sending: function(file, xhr, formData) {
                 let file_uuid = file.upload.uuid;
                 var form = $("#step_3_form");
-                form.find('input[name="file_uuid"]').val(file_uuid);  
+                form.find('input[name="file_uuid"]').val(file_uuid);
                 if (file_uuid && !progressTrackers[file_uuid]) {
                     progressTrackers[file_uuid] = true;
                 }
                 formData.append("process_id", process_id);
             },
-            
+
             init: function () {
-              
-               
+
+
                 this.on("error", function (file, errorMessage, xhr) {
                     if (xhr && xhr.responseText) {
                         var response = JSON.parse(xhr.responseText);
@@ -218,14 +218,14 @@
                         $("#step_2_msg").html(errorMessage).addClass('text-danger').removeClass('text-success');
                     }
                 });
-                
+
                 this.on("success", function (file, response) {
                     $("#step_2_msg").html(response.msg).addClass('text-success').removeClass('text-danger');
                     $('#step_3_form').show();
                     $('#step_3_button').prop("disabled", false);
                     $('#step3').css('opacity', '1');
                 });
-            }            
+            }
         }
 
         let intervals = {}; // To store interval IDs for each file upload
@@ -266,10 +266,10 @@
                 $('#step_3_button').prop("disabled", true);
                 // Get form data
                 var formData = $(this).serialize();
-                
+
                 var file_uuid = $(this).find('input[name="file_uuid"]').val();
                 updateProgress(file_uuid);
-                
+
                 $.ajax({
                     type: 'POST',
                     url: '/sendrawtostorage',
@@ -292,7 +292,7 @@
                 $('#step_4_button').prop("disabled", true);
                 // Get form data
                 var formData = $(this).serialize();
-                
+
                 $.ajax({
                     type: 'POST',
                     url: '/unzipraw',
@@ -301,13 +301,13 @@
                         // Handle success
                         console.log('Form data submitted via AJAX successfully');
                         $('#step_4_msg').text('Raw file successfully unzipped. Nr of fastq.gz files: ' + response.nr_files).addClass('text-success');
-                        
+
                         let table_row = ''
                         for (key in response.matching_files) {
                           table_row = '<tr><th scope="row">' + (key+1) + '</th><td>' + response.matching_files[key] + '</td><td></td><td></td></tr>';
                           $('#files_body').append( table_row );
-                        }              
-                        
+                        }
+
                         $('#step_5_form').show();
                         $('#step5').css('opacity', '1');
                     },
@@ -325,7 +325,7 @@
                 $('#step_5_button').prop("disabled", true);
                 // Get form data
                 var formData = $(this).serialize();
-                
+
                 $.ajax({
                     type: 'POST',
                     url: '/renamefiles',
@@ -336,12 +336,12 @@
                         $('#step_5_msg').text('File renaming process finished').addClass('text-success');
                         let results = response.results;
                         let $ul = $('<ul>'); // Create a new ul element
-                        
+
                         // Loop through the results array and create list items
                         $.each(results, function(index, text) {
                           $ul.append($('<li>').text(text)); // Create li with the text and append to ul
                         });
-                        
+
                         $.each(response.files_dict, function(oldFilename, fileDetails) {
                             // Iterate through table rows in the tbody with ID 'files_body'
                             $('#files_body tr').each(function() {
@@ -353,13 +353,13 @@
                                     }
                                 }
                             });
-                        });          
-                        
+                        });
+
                         // Append the ul with list items to the specified HTML element
                         $('#step_5_details').empty().append($ul);
-                        
+
                         $('#step_6_form').show();
-                        $('#step6').css('opacity', '1');                                                
+                        $('#step6').css('opacity', '1');
                     },
                     error: function (error) {
                         // Handle errors
@@ -375,7 +375,7 @@
                 $('#step_6_button').prop("disabled", true);
                 // Get form data
                 var formData = $(this).serialize();
-                
+
                 $.ajax({
                     type: 'POST',
                     url: '/fastqcfiles',
@@ -386,12 +386,12 @@
                         $('#step_5_msg').text('File renaming process finished').addClass('text-success');
                         let results = response.results;
                         let $ul = $('<ul>'); // Create a new ul element
-                        
+
                         // Loop through the results array and create list items
                         $.each(results, function(index, text) {
                           $ul.append($('<li>').text(text)); // Create li with the text and append to ul
                         });
-                        
+
                         $.each(response.files_dict, function(oldFilename, fileDetails) {
                             // Iterate through table rows in the tbody with ID 'files_body'
                             $('#files_body tr').each(function() {
@@ -403,10 +403,10 @@
                                     }
                                 }
                             });
-                        });          
-                        
+                        });
+
                         // Append the ul with list items to the specified HTML element
-                        $('#step_5_details').empty().append($ul);                        
+                        $('#step_5_details').empty().append($ul);
                     },
                     error: function (error) {
                         // Handle errors
@@ -414,7 +414,7 @@
                     }
                 });
             });
-        });        
+        });
     </script>
 </body>
 </html>
