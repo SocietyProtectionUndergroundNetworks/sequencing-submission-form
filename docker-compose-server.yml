@@ -7,7 +7,9 @@ services:
       dockerfile: Dockerfile-flask
     container_name: spun-flask
     depends_on:
-      - db    
+      - db  
+    environment:
+      - PORT=56733        
     expose:
       - 56733      
     volumes:
@@ -16,6 +18,28 @@ services:
       - .env
     networks:
       - flask      
+
+  celery-worker:
+    container_name: spun-celery-worker  # Unique name for the Celery worker container
+    build:
+      context: .
+      dockerfile: Dockerfile-flask
+    depends_on:
+      - db
+      - redis
+    expose:
+      - 56734
+    ports:
+      - "5001:5001"  # Example port mapping for Celery worker
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      - PORT=56734
+    networks:
+      - flask
+    entrypoint: celery -A app.celery worker --loglevel=info  # Celery worker command
 
   nginx:
     image: nginx:alpine
@@ -41,6 +65,13 @@ services:
     networks:
       - flask          
     restart: unless-stopped
+
+  redis:
+    image: "redis:latest"
+    ports:
+      - "6379:6379"
+    networks:
+      - flask
       
 networks:
   default:

@@ -88,7 +88,23 @@ class Upload():
             return True
         else:
             session.close()
-            return False   
+            return False
+
+    @classmethod
+    def update_fastqc_process_id(cls, upload_id, fastqc_process_id):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        upload = session.query(UploadTable).filter_by(id=upload_id).first()
+
+        if upload:
+            upload.fastqc_process_id = fastqc_process_id
+            session.commit()
+            session.close()
+            return True
+        else:
+            session.close()
+            return False
 
     @classmethod
     def update_gz_filename(cls, upload_id, gz_filename):

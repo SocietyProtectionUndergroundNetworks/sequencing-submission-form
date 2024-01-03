@@ -3,6 +3,7 @@ import random
 import string
 import os
 import json
+import logging
 from pathlib import Path
 from werkzeug.utils import secure_filename
 from flask import Blueprint, render_template, request, jsonify
@@ -17,9 +18,15 @@ from flask_login import (
 
 from helpers.csv import validate_csv_column_names
 from helpers.bucket_upload import chunked_upload, get_progress
+from helpers.fastqc import get_fastqc_progress
 from helpers.file_renaming import extract_uploaded_gzip, rename_files, fastqc_multiqc_files
 
 from models.upload import Upload
+
+
+# Get the logger instance from app.py
+logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
+
 
 upload_bp = Blueprint('upload', __name__)
 
@@ -255,33 +262,53 @@ def fastqcfiles():
     process_id = request.form["process_id"]
 
     upload = Upload.get(process_id)
-    fastqc_multiqc_files(upload.extract_directory)
+    # fastqc_multiqc_files(upload.extract_directory)
+    app.logger.info(upload.extract_directory)
+    from tasks import fastqc_multiqc_files_async
+    try:
+        result = fastqc_multiqc_files_async.delay(str(upload.extract_directory))
+        logger.info(f"Celery multiqc task called successfully! Task ID: {result.id}")
+        task_id = result.id
+        upload.update_fastqc_process_id(process_id, task_id)
+    except Exception as e:
+        logger.error("This is an error message from upload.py")
+        logger.error(e)
 
-    to_render = '<br>'.join(rename_results)
+
     return 'ok', 200
 
+@upload_bp.route('/fastqcprogress')
+@login_required
+def fastqc_progress():
+    process_id = request.args.get('process_id')
+    to_return = get_fastqc_progress(process_id)
+    return to_return
+
+
 @upload_bp.route('/test2', methods=['GET'])
-def testunzip_raw():
-    process_id = 49
-    file_uuid   = 'aaaaa'
+def check_process_id1():
+    process_id = 4
+    to_return = get_fastqc_progress(process_id)
+    return to_return
 
-    upload = Upload.get(process_id)
-    uploads_folder = upload.uploads_folder
-    path = Path("uploads", uploads_folder)
-    filename = upload.gz_filename
-    save_path = path / filename
-
-    extract_directory = Path("processing", uploads_folder)
-    gunzip_result = extract_uploaded_gzip(save_path, extract_directory)
-    app.logger.info(gunzip_result)
-    return 'Done'
 
 @upload_bp.route('/test3', methods=['GET'])
 def test_fastqc_files():
-    process_id = 49
+    process_id = 4
+
+    app.logger.info('fastqc of files starts')
 
     upload = Upload.get(process_id)
-    files_dict = fastqc_files(upload.extract_directory, upload.files_json)
-    #files_dict = multiqc_files(upload.extract_directory)
+    # fastqc_multiqc_files(upload.extract_directory)
+    app.logger.info(upload.extract_directory)
+    from tasks import fastqc_multiqc_files_async
+    try:
+        result = fastqc_multiqc_files_async.delay(str(upload.extract_directory))
+        task_id = result.id
+        upload.update_fastqc_process_id(process_id, task_id)
 
-    return '<br>'.join(files_dict)
+    except Exception as e:
+        logger.error("This is an error message from upload.py")
+        logger.error(e)
+
+    return 'ok', 200

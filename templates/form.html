@@ -368,6 +368,39 @@
                 });
             });
         });
+        
+        function updateProgressFastq(process_id) {
+            console.log('We will now start calling for updates for fastqc');
+
+            let interval_id = 'fastq_' + process_id
+            // Clear any existing interval for the same file upload
+            clearInterval(intervals[interval_id]);
+
+            intervals[interval_id] = setInterval(function () {
+                $.ajax({
+                    url: `/fastqcprogress?process_id=${process_id}`,
+                    type: 'GET',
+                    success: function(data) {
+                        let process_finished = data.process_finished;
+                        // $('#bucketProgress').text(`Bucket Transfer Progress: ${progress}%`);
+
+                        if (process_finished == 1) {
+                            clearInterval(intervals[interval_id]); // Stop updating when progress reaches 100%
+                            console.log('We will now stop calling for updates');
+                            $('#step_6_msg').text('Creation of fastqc and multiqc reports finished').addClass('text-success').removeClass('text-info');
+                            //$('#step_4_form').show();
+                            //$('#step4').css('opacity', '1');
+                        } else {
+                            $('#step_6_msg').text('Files done: ' + data.files_done + ' / ' +  data.files_main).addClass('text-info').removeClass('text-success');
+                        }
+                    },
+                    error: function() {
+                        // Handle error situations
+                    }
+                });
+            }, 5000); // Update progress every 5 seconds (adjust timing as needed)
+        }
+        
         $(document).ready(function () {
             $('#step_6_form').submit(function (event) {
                 // Prevent the default form submission
@@ -375,7 +408,9 @@
                 $('#step_6_button').prop("disabled", true);
                 // Get form data
                 var formData = $(this).serialize();
-
+                var process_id = $(this).find('input[name="process_id"]').val();
+                updateProgressFastq(process_id)  
+                
                 $.ajax({
                     type: 'POST',
                     url: '/fastqcfiles',
@@ -383,30 +418,8 @@
                     success: function (response) {
                         // Handle success
                         console.log('Form data submitted via AJAX successfully');
-                        $('#step_5_msg').text('File renaming process finished').addClass('text-success');
-                        let results = response.results;
-                        let $ul = $('<ul>'); // Create a new ul element
-
-                        // Loop through the results array and create list items
-                        $.each(results, function(index, text) {
-                          $ul.append($('<li>').text(text)); // Create li with the text and append to ul
-                        });
-
-                        $.each(response.files_dict, function(oldFilename, fileDetails) {
-                            // Iterate through table rows in the tbody with ID 'files_body'
-                            $('#files_body tr').each(function() {
-                                var currentFilename = $(this).find('td:nth-child(2)').text(); // Get the filename from the second cell
-                                if (currentFilename === oldFilename) {
-                                    // Update the third cell with new_filename if it exists in fileDetails
-                                    if ('new_filename' in fileDetails) {
-                                        $(this).find('td:nth-child(3)').text(fileDetails.new_filename);
-                                    }
-                                }
-                            });
-                        });
-
-                        // Append the ul with list items to the specified HTML element
-                        $('#step_5_details').empty().append($ul);
+                        
+                        $('#step_6_msg').text('Fastqc process started').addClass('text-info');
                     },
                     error: function (error) {
                         // Handle errors
