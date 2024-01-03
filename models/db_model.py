@@ -38,3 +38,4 @@ class UploadTable(Base):
     files_json = Column(JSON(none_as_null=True))
     files_renamed = Column(Boolean, default=False)
     fastqc_run = Column(Boolean, default=False)
+    fastqc_process_id = Column(String(255), nullable=True, index=True)
