@@ -36,7 +36,8 @@ def fastqc_multiqc_files_async(input_folder):
         if not os.path.basename(individual_fastqc_file).startswith('.') and os.path.exists(individual_fastqc_file):
             os.remove(individual_fastqc_file)
         zip_file = os.path.join(output_folder, fastq_file.replace('.fastq.gz', '_fastqc.zip'))
-        os.remove(zip_file)
+        if not os.path.basename(zip_file).startswith('.') and os.path.exists(zip_file):
+            os.remove(zip_file)
     
     results.append("Finished") 
     return results 

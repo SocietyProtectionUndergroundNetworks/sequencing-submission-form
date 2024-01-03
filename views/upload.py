@@ -267,6 +267,7 @@ def fastqcfiles():
     from tasks import fastqc_multiqc_files_async
     try:
         result = fastqc_multiqc_files_async.delay(str(upload.extract_directory))
+        logger.info(f"Celery multiqc task called successfully! Task ID: {result.id}")
         task_id = result.id
         upload.update_fastqc_process_id(process_id, task_id)
     except Exception as e:
