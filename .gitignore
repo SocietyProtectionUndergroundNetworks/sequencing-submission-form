@@ -20,3 +20,5 @@ uploads/
 processing
 
 upload_progress.json
+
+app.log

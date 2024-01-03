@@ -3,6 +3,7 @@ import random
 import string
 import os
 import json
+import logging
 from pathlib import Path
 from werkzeug.utils import secure_filename
 from flask import Blueprint, render_template, request, jsonify
@@ -20,6 +21,10 @@ from helpers.bucket_upload import chunked_upload, get_progress
 from helpers.file_renaming import extract_uploaded_gzip, rename_files, fastqc_multiqc_files
 
 from models.upload import Upload
+
+# Get the logger instance from app.py
+logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
+
 
 upload_bp = Blueprint('upload', __name__)
 
@@ -88,6 +93,15 @@ def upload_csv():
     file = request.files.get('file')
     if not file:
         return jsonify({"error": "No file uploaded"}), 400
+
+
+    from tasks import your_task_name
+    try:
+        result = your_task_name.delay()
+        # Additional processing or handling of the result
+    except Exception as e:
+        logger.error("This is an error message from upload.py")
+        logger.error(e)
 
     # lets create a directory only for this process.
     uploads_folder = datetime.datetime.now().strftime("%Y%m%d") + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))

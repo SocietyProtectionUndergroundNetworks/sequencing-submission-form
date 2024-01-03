@@ -20,4 +20,7 @@ mysqlclient==2.2.1
 
 multiqc==1.19
 
+celery==5.3.6
+redis==5.0.1
+
 debugpy # Required for debugging.
