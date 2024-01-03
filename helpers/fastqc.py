@@ -43,7 +43,8 @@ def get_fastqc_progress(process_id):
         'process_finished': process_finished,
         'files_main': count_fastq_gz,
         'files_done': count_fastqc_html,
-        'multiqc_report_exists': multiqc_report_exists
+        'multiqc_report_exists': multiqc_report_exists,
+        'multiqc_report_path': fastqc_path
     }
 
     return to_return

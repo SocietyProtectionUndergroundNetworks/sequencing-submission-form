@@ -6,7 +6,7 @@ import json
 import logging
 from pathlib import Path
 from werkzeug.utils import secure_filename
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, send_from_directory
 from flask import current_app as app  # Import the 'app' instance
 from flask_login import (
     LoginManager,
@@ -282,6 +282,17 @@ def fastqcfiles():
 def fastqc_progress():
     process_id = request.args.get('process_id')
     to_return = get_fastqc_progress(process_id)
+    return to_return
+
+@upload_bp.route('/multiqc', methods=['GET'])
+@login_required
+def show_multiqc_report():
+    process_id = request.args.get('process_id')
+    multiqc_progress = get_fastqc_progress(process_id)
+    logger.info(multiqc_progress)
+    if multiqc_progress['multiqc_report_exists']:
+        return send_from_directory(multiqc_progress['multiqc_report_path'], 'multiqc_report.html')
+
     return to_return
 
 
