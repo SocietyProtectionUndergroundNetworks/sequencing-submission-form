@@ -42,7 +42,13 @@
               <td>{{ upload.gz_sent_to_bucket }}</td>
               <td>{{ upload.gz_unziped }}</td>
               <td>{{ upload.files_renamed }}</td>
-              <td>{{ upload.fastqc_run }}</td>                            
+              <td>
+                {% if upload.fastqc_run > 0 %}
+                  <a href="/multiqc?process_id={{ upload.id }}" target="_blank">{{ upload.fastqc_run }}</a>
+                {% else %}
+                  {{ upload.fastqc_run }}
+                {% endif %}
+              </td>                               
           </tr>
         {% endfor %}        
       </tbody>
