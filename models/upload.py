@@ -137,4 +137,23 @@ class Upload():
             return True
         else:
             session.close()
-            return False         
+            return False   
+            
+    @classmethod
+    def get_uploads_by_user(cls, user_id):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+        
+        uploads = session.query(UploadTable).filter_by(user_id=user_id).all()
+        
+        session.close()
+        
+        if not uploads:
+            return []
+        
+        uploads_list = [
+            cls(**{key: getattr(upload, key) for key in upload.__dict__.keys() if not key.startswith('_')})
+            for upload in uploads
+        ]
+        
+        return uploads_list   

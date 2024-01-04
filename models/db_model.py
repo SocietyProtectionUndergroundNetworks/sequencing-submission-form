@@ -1,8 +1,8 @@
 # helpers/db_model.py
-
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, BigInteger
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, BigInteger, ForeignKey
 from sqlalchemy.dialects.mysql import JSON
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 
 Base = declarative_base()
 
@@ -14,13 +14,14 @@ class UserTable(Base):
     email = Column(String(255), nullable=False)
     profile_pic = Column(String(255), nullable=False)
     admin = Column(Boolean, default=False)
+    uploads = relationship("UploadTable", backref="user")
 
         
 class UploadTable(Base):
     __tablename__ = 'uploads'
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(String(36), default=lambda: str(uuid.uuid4()), index=True)
+    user_id = Column(String(36), ForeignKey('users.id', ondelete='CASCADE'))
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(
         DateTime, 

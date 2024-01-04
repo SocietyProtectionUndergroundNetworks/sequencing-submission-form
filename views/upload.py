@@ -296,6 +296,14 @@ def show_multiqc_report():
     return to_return
 
 
+@upload_bp.route('/user_uploads', methods=['GET'])
+@login_required
+def user_uploads():
+    user_id = request.args.get('user_id')
+    user_uploads = Upload.get_uploads_by_user(user_id)
+    return render_template('user_uploads.html', user_uploads=user_uploads)
+
+
 @upload_bp.route('/test2', methods=['GET'])
 def check_process_id1():
     process_id = 4

@@ -129,3 +129,9 @@ def logout():
 def custom_unauthorized():
     # Customize the unauthorized page
     return render_template('custom_unauthorized.html')
+    
+@user_bp.route('/users')
+@login_required
+def users():
+    all_users = User.get_all()
+    return render_template('users.html', all_users=all_users)
