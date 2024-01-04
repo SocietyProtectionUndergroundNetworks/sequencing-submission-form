@@ -37,6 +37,9 @@ logger = logging.getLogger("my_app_logger")  # Use the same name when retrieving
 celery = make_celery(app)
 # logger.info("Celery initialized successfully!")
 
+
+from tasks import your_task_name, fastqc_multiqc_files_async
+
     
 if __name__ == '__main__':
     server_port = os.environ.get('PORT', '8080')

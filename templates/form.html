@@ -32,19 +32,19 @@
     </div>
     <div id="step2" {% if not csv_uploaded %} style="opacity: 0.5;" {% endif %}>
       <h3> Step 2: upload gz/tar/zip file with sample data </h3>
+      <form
+        method="POST"
+        action="/upload"
+        id="step_2_form"
+        enctype="multipart/form-data"
+        {% if ((not csv_uploaded) and (not gz_uploaded)) %} style="display: none;" {% endif %}
+      >
+        <input type="file" id="step_2_button" name="file" />
+        <input type="hidden" name="process_id" value="{{ process_id }}">
+      </form>      
       {% if gz_uploaded %}
         <div id="step_2_msg" class="text-success">GZ file already uploaded: {{ gz_filename }}</div>
       {% else %}
-        <form
-          method="POST"
-          action="/upload"
-          id="step_2_form"
-          enctype="multipart/form-data"
-          {% if ((not csv_uploaded) and (not gz_uploaded)) %} style="display: none;" {% endif %}
-        >
-          <input type="file" id="step_2_button" name="file" />
-          <input type="hidden" name="process_id" value="{{ process_id }}">
-        </form>
         <div id="step_2_msg"></div>
       {% endif %}
     </div>
