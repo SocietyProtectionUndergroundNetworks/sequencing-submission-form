@@ -5,9 +5,11 @@
     <meta charset="UTF-8">
     <script src="/static/js/dropzone.min.js"></script>
     <link href="/static/css/dropzone.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/resumable.js/1.1.0/resumable.min.js"></script>    
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/spark-md5/3.0.0/spark-md5.min.js"></script>
     <title>Upload data</title>
 </head>
 <body>
@@ -34,13 +36,14 @@
         <div id="step_2_msg" class="text-success">GZ file already uploaded: {{ gz_filename }}</div>
       {% else %}
         <form
-            method="POST"
-            action="/upload"
-            class="dropzone dz-clickable"
-            id="otherDropper"
-            enctype="multipart/form-data"
-            {% if ((not csv_uploaded) and (not gz_uploaded)) %} style="display: none;" {% endif %}
+          method="POST"
+          action="/upload"
+          id="step_2_form"
+          enctype="multipart/form-data"
+          {% if ((not csv_uploaded) and (not gz_uploaded)) %} style="display: none;" {% endif %}
         >
+          <input type="file" id="step_2_button" name="file" />
+          <input type="hidden" name="process_id" value="{{ process_id }}">
         </form>
         <div id="step_2_msg"></div>
       {% endif %}
@@ -48,7 +51,7 @@
     <div id="step3" {% if not gz_uploaded %} style="opacity: 0.5;" {% endif %}>
       <h3> Step 3: Raw files uploaded to google storage </h3>
 
-      {% if gz_uploaded %}
+      {% if gz_sent_to_bucket %}
         <div id="step_3_msg" class="text-success">GZ file successfully sent to google storage</div>
       {% else %}
         <div>
@@ -56,10 +59,11 @@
               id="step_3_form"
               method="POST"
               action="/sendrawtostorage"
-              {% if ((not gz_uploaded) or (gz_sent_to_bucket)) %} style="display: none;" {% endif %}
+              {% if ((not gz_sent_to_bucket) and (not gz_uploaded)) %} style="display: none;" {% endif %}
           >
             <input type="hidden" name="process_id" value="{{ process_id }}">
             <input type="hidden" name="file_uuid">
+            <input type="hidden" name="totalChunks"> 
             <input type="submit" class="btn btn-primary" id="step_3_button">
           </form>
         </div>
@@ -67,7 +71,7 @@
         <div id="step_3_msg"></div>
       {% endif %}
     </div>
-    <div id="step4" {% if not gz_uploaded %} style="opacity: 0.5;" {% endif %}>
+    <div id="step4" {% if not gz_sent_to_bucket %} style="opacity: 0.5;" {% endif %}>
       <h3> Step 4: Unzip Raw files</h3>
       {% if gz_unziped %}
         <div id="step_4_msg" class="text-success">File successfully unzipped</div>
@@ -106,7 +110,6 @@
         <div id="step_5_details"></div>
       {% endif %}
     </div>
-
     <div id="step6" {% if not files_renamed %} style="opacity: 0.5;" {% endif %}>
       <h3> Step 6: Run fastqc</h3>
       <div>
@@ -150,6 +153,18 @@
       </table>
     </div>
     <script type="application/javascript">
+        function calculateMD5(file, callback) {
+            var reader = new FileReader();
+            var spark = new SparkMD5.ArrayBuffer();
+          
+            reader.onload = function (event) {
+                spark.append(event.target.result);
+                callback(spark.end());
+            };
+          
+            reader.readAsArrayBuffer(file);
+        }
+    
         let process_id = {{ process_id | default('0') }}; // To track the process from start to end.
         let progressTrackers = {}; // To track progress for each file
         Dropzone.options.csvDropper = {
@@ -174,6 +189,8 @@
                     process_id = response.process_id;
 
                     // Update the hidden input field within the specific forms
+                    var form2 = $("#step_2_form");
+                    form2.find('input[name="process_id"]').val(process_id);                    
                     var form3 = $("#step_3_form");
                     form3.find('input[name="process_id"]').val(process_id);
                     var form4 = $("#step_4_form");
@@ -189,50 +206,66 @@
             }
         };
 
-        Dropzone.options.otherDropper = {
-            paramName: "file",
-            chunking: true,
-            forceChunking: true,
-            acceptedFiles : ".tar,.gz,.zip",
-            url: "/upload",
-            maxFilesize: 25025, // megabytes
-            chunkSize: 1000000, // bytes
-            maxFiles: 1, // Restrict to accept only one file
 
-            sending: function(file, xhr, formData) {
-                let file_uuid = file.upload.uuid;
-                var form = $("#step_3_form");
-                form.find('input[name="file_uuid"]').val(file_uuid);
-                if (file_uuid && !progressTrackers[file_uuid]) {
-                    progressTrackers[file_uuid] = true;
-                }
-                formData.append("process_id", process_id);
-            },
+        // Initialize Resumable.js
+        var r = new Resumable({
+            target: '/upload', // Your upload URL
+            chunkSize: 10 * 1024 * 1024, // Chunk size (10 MB in this example)
+            testChunks: true,
+            uploadMethod: 'POST',
+            query: {
+                process_id: process_id // Pass process_id as a query parameter
+            },            
+            // Add any other configuration options as needed
+        });
 
-            init: function () {
+        // Assign file input to Resumable.js
+        r.assignBrowse(document.getElementById('step_2_button'));
 
+        // Listen to events
+        r.on('fileAdded', function(file) {
+            console.log('file added to resumamle');
+            // Calculate MD5 hash of the file and include it in the Resumable.js query
+            $('#step_2_button').prop("disabled", true);
+            $("#step_2_msg").html('Calculating md5. Please wait').addClass('text-info').removeClass('text-danger').removeClass('text-success');
+            calculateMD5(file.file, function (md5) {
+                r.opts.query.md5 = md5; // Add MD5 hash to the query parameters
+                $("#step_2_msg").html('Md5 calculated:' + md5).addClass('text-info').removeClass('text-danger').removeClass('text-success');
+                r.upload();
+            });            
+        });
 
-                this.on("error", function (file, errorMessage, xhr) {
-                    if (xhr && xhr.responseText) {
-                        var response = JSON.parse(xhr.responseText);
-                        $("#step_2_msg").html(response.error).addClass('text-danger').removeClass('text-success');
-                    } else {
-                        $("#step_2_msg").html(errorMessage).addClass('text-danger').removeClass('text-success');
-                    }
-                });
+        r.on('progress', function(file) {
+            let progress =Math.round(r.progress() * 10000)/100
+            $("#step_2_msg").html(`Progress ${progress} %`).addClass('text-info').removeClass('text-danger').removeClass('text-success');
+        });
 
-                this.on("success", function (file, response) {
-                    $("#step_2_msg").html(response.msg).addClass('text-success').removeClass('text-danger');
-                    $('#step_3_form').show();
-                    $('#step_3_button').prop("disabled", false);
-                    $('#step3').css('opacity', '1');
-                });
-            }
-        }
+        r.on('error', function(file, message) {
+            console.log('Upload error:', message);
+        });
+
+        r.on('pause', function(file) {
+            let progress =Math.round(r.progress() * 10000)/100
+            $("#step_2_msg").html(`Process paused. Progress ${progress} %`).addClass('text-info').removeClass('text-danger').removeClass('text-success');
+        });
+
+        r.on('fileSuccess', function(file, message) {
+          const parsedMessage = JSON.parse(message);
+          $("#step_2_msg").html(parsedMessage.message).addClass('text-success').removeClass('text-danger').removeClass('text-info');
+          $('#step_3_form').show();
+          $('#step_3_button').prop("disabled", false);
+          $('#step3').css('opacity', '1');
+        });
+
+        r.on('fileError', function(file, message) {
+          const parsedMessage = JSON.parse(message);
+            $("#step_2_msg").html(parsedMessage.message).addClass('text-danger').removeClass('text-success').removeClass('text-info');
+        });
+
 
         let intervals = {}; // To store interval IDs for each file upload
 
-        function updateProgress(file_uuid) {
+        function updateProgressRawFileBucket(file_uuid) {
             console.log('We will now start calling for updates');
 
             // Clear any existing interval for the same file upload
@@ -270,7 +303,7 @@
                 var formData = $(this).serialize();
 
                 var file_uuid = $(this).find('input[name="file_uuid"]').val();
-                updateProgress(file_uuid);
+                updateProgressRawFileBucket(file_uuid);
 
                 $.ajax({
                     type: 'POST',

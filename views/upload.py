@@ -19,7 +19,7 @@ from flask_login import (
 from helpers.csv import validate_csv_column_names
 from helpers.bucket_upload import chunked_upload, get_progress
 from helpers.fastqc import get_fastqc_progress
-from helpers.file_renaming import extract_uploaded_gzip, rename_files, fastqc_multiqc_files
+from helpers.file_renaming import extract_uploaded_gzip, rename_files, fastqc_multiqc_files, calculate_md5
 
 from models.upload import Upload
 
@@ -48,7 +48,7 @@ def upload_form_resume():
         return render_template("form.html", msg='We could not find an unfinished process to resume')
     else:
 
-        app.logger.info('upload id ' + str(upload.id))
+        logger.info('upload id ' + str(upload.id))
         matching_files_filesystem = []
         matching_files_dict = []
         nr_files = 0
@@ -128,44 +128,86 @@ def api_progress():
     }
 
 @upload_bp.route('/upload', methods=['POST'])
-@login_required
-def upload_chunked():
-    # app.logger.info('upload starts')
-    file = request.files["file"]
-    file_uuid = request.form["dzuuid"]
+def handle_upload():
+    file = request.files.get('file')
+    if file:
+        process_id = request.args.get('process_id')
+        upload = Upload.get(process_id)
+        uploads_folder = upload.uploads_folder
 
-    # in order to continue on the same process, lets get the id from the form
-    process_id = request.form["process_id"]
+        # Extract Resumable.js headers
+        resumable_chunk_number = request.args.get('resumableChunkNumber')
+        resumable_total_chunks = request.args.get('resumableTotalChunks')
+        resumable_chunk_size = request.args.get('resumableChunkSize')
+        resumable_total_size = request.args.get('resumableTotalSize')
+        expected_md5 = request.args.get('md5')
+
+        # logger.info('resumable_chunk_number ' + str(resumable_chunk_number))
+        # logger.info('resumable_total_chunks ' + str(resumable_total_chunks))
+        # logger.info('resumable_chunk_size ' + str(resumable_chunk_size))
+        # logger.info('resumable_total_size ' + str(resumable_total_size))
+
+        # Handle file chunks or combine chunks into a complete file
+        chunk_number = int(resumable_chunk_number) if resumable_chunk_number else 1
+        total_chunks = int(resumable_total_chunks) if resumable_total_chunks else 1
+
+        # Save or process the chunk (for demonstration, just save it)
+        save_path = f'uploads/{uploads_folder}/{file.filename}.part{chunk_number}'
+        file.save(save_path)
+
+        # Check if all chunks have been uploaded
+        if chunk_number == total_chunks:
+            # Perform actions for the complete file
+            # Combine the chunks, save to final location, etc.
+            final_file_path = f'uploads/{uploads_folder}/{file.filename}'
+            with open(final_file_path, 'ab') as final_file:
+                for i in range(1, total_chunks + 1):
+                    chunk_path = f'uploads/{uploads_folder}/{file.filename}.part{i}'
+                    with open(chunk_path, 'rb') as chunk_file:
+                        final_file.write(chunk_file.read())
+                    # Delete individual chunks after combining, if needed
+                    os.remove(chunk_path)
+
+            # Perform MD5 hash check
+            expected_md5 = request.args.get('md5')  # Get the expected MD5 hash from the request
+            actual_md5 = calculate_md5(final_file_path)
+            # logger.info('expected_md5 ' + str(expected_md5))
+            # logger.info('actual_md5 ' + str(actual_md5))
+
+            # Compare MD5 hashes
+            if expected_md5 == actual_md5:
+                # MD5 hashes match, file integrity verified
+                Upload.mark_field_as_true(process_id, 'gz_uploaded')
+                Upload.update_gz_filename(process_id, file.filename)
+                return jsonify({'message': 'File upload complete and verified'})
+
+            # MD5 hashes don't match, handle accordingly (e.g., delete the incomplete file, return an error)
+            # os.remove(final_file_path)
+            return jsonify({'message': 'MD5 hash verification failed'}), 400
+
+
+        return jsonify({'message': f'Chunk {chunk_number} uploaded'}), 200
+
+    return jsonify({'message': 'No file received'}), 400
+
+@upload_bp.route('/upload', methods=['GET'])
+def check_chunk():
+    process_id = request.args.get('process_id')
+    chunk_number = request.args.get('resumableChunkNumber')
+
+    resumable_filename = request.args.get('resumableFilename')
     upload = Upload.get(process_id)
     uploads_folder = upload.uploads_folder
+    # logger.info('checking if chunk exists. Chunk nr: ' + str(chunk_number))
 
-    # app.logger.info('process_id is ' + str(process_id))
-    # Generate a unique filename to avoid overwriting using 8 chars of uuid before filename.
-    filename = secure_filename(file.filename)
+    chunk_path = f'uploads/{uploads_folder}/{resumable_filename}.part{chunk_number}'
 
-    path = Path("uploads", uploads_folder)
-    save_path = path / filename
-    current_chunk = int(request.form["dzchunkindex"])
-
-    try:
-        with open(save_path, "ab") as f:
-            f.seek(int(request.form["dzchunkbyteoffset"]))
-            f.write(file.stream.read())
-    except OSError:
-        return "Error saving file.", 500
-
-    total_chunks = int(request.form["dztotalchunkcount"])
-
-    if current_chunk + 1 == total_chunks:
-        # This was the last chunk, the file should be complete and the size we expect
-        if os.path.getsize(save_path) != int(request.form["dztotalfilesize"]):
-            return "Size mismatch.", 500
-        else:
-            print('upload finished')
-            Upload.mark_field_as_true(process_id, 'gz_uploaded')
-            Upload.update_gz_filename(process_id, filename)
-
-    return jsonify({"msg": "Chunk upload successful."}), 200
+    logger.info('chunk_path: ' + str(chunk_path))
+    if os.path.exists(chunk_path):
+        # logger.info('chunk exists')
+        return '', 200  # Chunk already uploaded, return 200
+    # logger.info('chunk doesnt exist ')
+    return '', 204  # Chunk not found, return 204
 
 @upload_bp.route('/sendrawtostorage', methods=['POST'])
 @login_required

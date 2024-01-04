@@ -8,6 +8,7 @@ import pandas as pd
 import subprocess
 import json
 import multiqc
+import hashlib
 from flask import current_app as app  # Import the 'app' instance
 
 def extract_tar(tar_file, extract_path):
@@ -144,4 +145,9 @@ def rename_files(csv_file_path, directory_path, files_json):
             
     return results, not_found, matching_files_dict
 
-
+def calculate_md5(file_path):
+    md5 = hashlib.md5()
+    with open(file_path, 'rb') as f:
+        for chunk in iter(lambda: f.read(4096), b''):
+            md5.update(chunk)
+    return md5.hexdigest()

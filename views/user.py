@@ -38,11 +38,6 @@ def load_user(user_id):
 def get_google_provider_cfg():
     return requests.get(GOOGLE_DISCOVERY_URL).json()
 
-@user_bp.route('/upload')
-def upload():
-    pass  # Your upload logic here
-    
-
 @user_bp.route('/login')
 def login():
     # Find out what URL to hit for Google login

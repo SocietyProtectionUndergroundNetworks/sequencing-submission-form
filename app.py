@@ -33,19 +33,10 @@ logging.basicConfig(
 logger = logging.getLogger("my_app_logger")  # Use the same name when retrieving the logger
 
 # Initialize Celery
-logger.info("Initializing Celery...")
+# logger.info("Initializing Celery...")
 celery = make_celery(app)
-logger.info("Celery initialized successfully!")
+# logger.info("Celery initialized successfully!")
 
-
-from tasks import your_task_name
-# Call the Celery task immediately after initialization
-try:
-    logger.info("Calling the Celery task...")
-    result = your_task_name.delay()
-    logger.info(f"Celery task called successfully! Task ID: {result.id}")
-except Exception as e:
-    logger.error(f"Error calling Celery task: {e}")
     
 if __name__ == '__main__':
     server_port = os.environ.get('PORT', '8080')

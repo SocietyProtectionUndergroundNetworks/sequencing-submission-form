@@ -3,6 +3,7 @@ events {
 }
 
 http {
+    client_max_body_size 20M; # Increase the allowed size (e.g., 20MB)
     server {
         listen 80;
 
