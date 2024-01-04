@@ -9,7 +9,7 @@
     <title>Upload data</title>
 </head>
 <body>
-  <h1>Users list</h1>
+  <h1>Uploads list for user</h1>
   <div>
     <table class="table">      
       <thead>
@@ -43,7 +43,7 @@
               <td>{{ upload.gz_unziped }}</td>
               <td>{{ upload.files_renamed }}</td>
               <td>
-                {% if upload.fastqc_run > 0 %}
+                {% if upload.fastqc_run is not none and upload.fastqc_run > 0 %}
                   <a href="/multiqc?process_id={{ upload.id }}" target="_blank">{{ upload.fastqc_run }}</a>
                 {% else %}
                   {{ upload.fastqc_run }}
