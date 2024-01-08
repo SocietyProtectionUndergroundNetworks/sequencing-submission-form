@@ -70,3 +70,10 @@ def bucket_chunked_upload(local_file_path, destination_upload_directory, destina
         update_progress(file_uuid, 100)
         return True
         #print(f"File {local_file_path} uploaded to {destination_blob_name} in {bucket_name} bucket.", flush=True)
+
+def bucket_upload_folder(folder_path, destination_upload_directory, file_uuid):
+    for root, _, files in os.walk(folder_path):
+        for file_name in files:
+            file_path = os.path.join(root, file_name)
+            destination_blob_name = os.path.relpath(file_path, folder_path)
+            bucket_chunked_upload(file_path, destination_upload_directory, destination_blob_name, file_uuid)

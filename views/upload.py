@@ -307,7 +307,7 @@ def fastqcfiles():
     app.logger.info(upload.extract_directory)
     from tasks import fastqc_multiqc_files_async
     try:
-        result = fastqc_multiqc_files_async.delay(str(upload.extract_directory))
+        result = fastqc_multiqc_files_async.delay(str(upload.extract_directory), process_id)
         logger.info(f"Celery multiqc task called successfully! Task ID: {result.id}")
         task_id = result.id
         upload.update_fastqc_process_id(process_id, task_id)
@@ -350,24 +350,3 @@ def check_process_id1():
     process_id = 4
     to_return = get_fastqc_progress(process_id)
     return to_return
-
-
-@upload_bp.route('/test3', methods=['GET'])
-def test_fastqc_files():
-    process_id = 4
-
-    app.logger.info('fastqc of files starts')
-
-    upload = Upload.get(process_id)
-    app.logger.info(upload.extract_directory)
-    from tasks import fastqc_multiqc_files_async
-    try:
-        result = fastqc_multiqc_files_async.delay(str(upload.extract_directory))
-        task_id = result.id
-        upload.update_fastqc_process_id(process_id, task_id)
-
-    except Exception as e:
-        logger.error("This is an error message from upload.py")
-        logger.error(e)
-
-    return 'ok', 200

@@ -3,6 +3,8 @@ import subprocess
 import json
 import multiqc
 from celery import current_app as celery_app
+from helpers.bucket_upload import bucket_upload_folder
+from models.upload import Upload
 
 @celery_app.task
 def your_task_name():
@@ -10,17 +12,17 @@ def your_task_name():
     pass
 
 @celery_app.task    
-def fastqc_multiqc_files_async(input_folder):
-    print('Inside celery function fastqc_multiqc_files_async')
-    print('input_folder is ' + str(input_folder))
+def fastqc_multiqc_files_async(input_folder, process_id):
+    parent_folder = os.path.split(input_folder)
+
+    uploads_folder = parent_folder[1]
 
     results=[]
-    print('input_folder is ' + str(input_folder))
     output_folder = os.path.join(input_folder, 'fastqc')
     os.makedirs(output_folder, exist_ok=True)
     
     # Run fastqc on all raw fastq.gz files within the 'fastqc' conda environment
-    fastq_files = [f for f in os.listdir(input_folder) if f.endswith('.fastq.gz')]
+    fastq_files = [f for f in os.listdir(input_folder) if f.endswith('.fastq.gz') and not f.startswith('.')]
     for fastq_file in fastq_files:
         print('file we will try is ' + str(fastq_file))
         input_file = os.path.join(input_folder, fastq_file)
@@ -38,6 +40,10 @@ def fastqc_multiqc_files_async(input_folder):
         zip_file = os.path.join(output_folder, fastq_file.replace('.fastq.gz', '_fastqc.zip'))
         if not os.path.basename(zip_file).startswith('.') and os.path.exists(zip_file):
             os.remove(zip_file)
+    
+    fastqc_path = os.path.join(input_folder , 'fastqc')
+    bucket_upload_folder(fastqc_path, uploads_folder, 'no_uuid')
+    Upload.mark_field_as_true(process_id, 'fastqc_sent_to_bucket')
     
     results.append("Finished") 
     return results 
