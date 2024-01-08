@@ -1,5 +1,3 @@
-
-
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -153,16 +151,41 @@
       </table>
     </div>
     <script type="application/javascript">
-        function calculateMD5(file, callback) {
-            var reader = new FileReader();
+        function calculateMD5(file, callback, updateCallback) {
+            var chunkSize = 2097152; // 2 MB chunks
             var spark = new SparkMD5.ArrayBuffer();
-          
-            reader.onload = function (event) {
-                spark.append(event.target.result);
-                callback(spark.end());
+            var fileReader = new FileReader();
+            var startTime = performance.now(); // Start timer
+            var totalChunks = Math.ceil(file.size / chunkSize);
+            var chunksProcessed = 0;
+
+            fileReader.onload = function (event) {
+                spark.append(event.target.result); // Append chunk to MD5 calculation
+                chunksProcessed++;
+                if (chunksProcessed < totalChunks) {
+                    loadNext();
+                } else {
+                    var endTime = performance.now(); // End timer
+                    var duration = endTime - startTime; // Calculate duration
+                    console.log('MD5 calculated in ' + duration.toFixed(2) + ' milliseconds'); // Log duration
+                    callback(spark.end());
+                }
+                updateCallback((chunksProcessed / totalChunks) * 100); // Update progress
             };
-          
-            reader.readAsArrayBuffer(file);
+
+            fileReader.onerror = function () {
+                console.warn('Error reading file');
+                callback(null);
+            };
+
+            function loadNext() {
+                var start = fileReader.loaded || 0;
+                var end = Math.min(start + chunkSize, file.size);
+                fileReader.readAsArrayBuffer(file.slice(start, end));
+                fileReader.loaded = end; // Update loaded bytes
+            }
+
+            loadNext();
         }
     
         let process_id = {{ process_id | default('0') }}; // To track the process from start to end.
@@ -208,6 +231,7 @@
 
 
         // Initialize Resumable.js
+        var allowedExtensions = ['gz', 'tar', 'zip']; // Define allowed file extensions
         var r = new Resumable({
             target: '/upload', // Your upload URL
             chunkSize: 10 * 1024 * 1024, // Chunk size (10 MB in this example)
@@ -215,7 +239,16 @@
             uploadMethod: 'POST',
             query: {
                 process_id: process_id // Pass process_id as a query parameter
-            },            
+            },
+            fileType: allowedExtensions,
+            fileTypeErrorCallback: function(file, errorCount) {
+                // Check if the file extension is allowed
+                var fileExtension = file.name.split('.').pop().toLowerCase();
+                if (!allowedExtensions.includes(fileExtension)) {
+                    alert('File type not allowed! Please select a .gz, .tar, or .zip file.');
+                    return false; // Cancel the file upload
+                }
+            },                      
             // Add any other configuration options as needed
         });
 
@@ -224,20 +257,28 @@
 
         // Listen to events
         r.on('fileAdded', function(file) {
-            console.log('file added to resumamle');
+            console.log('file added to resumable');
             // Calculate MD5 hash of the file and include it in the Resumable.js query
             $('#step_2_button').prop("disabled", true);
             $("#step_2_msg").html('Calculating md5. Please wait').addClass('text-info').removeClass('text-danger').removeClass('text-success');
-            calculateMD5(file.file, function (md5) {
-                r.opts.query.md5 = md5; // Add MD5 hash to the query parameters
-                $("#step_2_msg").html('Md5 calculated:' + md5).addClass('text-info').removeClass('text-danger').removeClass('text-success');
-                r.upload();
-            });            
+
+            calculateMD5(file.file, 
+                function (md5) {
+                    r.opts.query.md5 = md5; // Add MD5 hash to the query parameters
+                    $("#step_2_msg").html('Md5 calculated:' + md5).addClass('text-info').removeClass('text-danger').removeClass('text-success');
+                    // Enable the button after calculation is completed
+                    $('#step_2_button').prop("disabled", false);
+                    r.upload();
+                },
+                function (progress) {
+                    $("#step_2_msg").html('Calculating md5. Progress: ' + progress.toFixed(2) + '%').addClass('text-info').removeClass('text-danger').removeClass('text-success');
+                }
+            );
         });
 
         r.on('progress', function(file) {
             let progress =Math.round(r.progress() * 10000)/100
-            $("#step_2_msg").html(`Progress ${progress} %`).addClass('text-info').removeClass('text-danger').removeClass('text-success');
+            $("#step_2_msg").html(`Uploading. Progress ${progress} %`).addClass('text-info').removeClass('text-danger').removeClass('text-success');
         });
 
         r.on('error', function(file, message) {
