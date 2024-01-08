@@ -121,6 +121,22 @@ class Upload():
         else:
             session.close()
             return False
+
+    @classmethod
+    def update_gz_sent_to_bucket_progress(cls, upload_id, progress):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        upload = session.query(UploadTable).filter_by(id=upload_id).first()
+
+        if upload:
+            upload.gz_sent_to_bucket_progress = progress
+            session.commit()
+            session.close()
+            return True
+        else:
+            session.close()
+            return False
             
     @classmethod
     def update_files_json(cls, upload_id, files_dict):

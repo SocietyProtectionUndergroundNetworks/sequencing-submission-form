@@ -42,7 +42,7 @@ def fastqc_multiqc_files_async(input_folder, process_id):
             os.remove(zip_file)
     
     fastqc_path = os.path.join(input_folder , 'fastqc')
-    bucket_upload_folder(fastqc_path, uploads_folder, 'no_uuid')
+    bucket_upload_folder(fastqc_path, uploads_folder, process_id, 'fastqc_files')
     Upload.mark_field_as_true(process_id, 'fastqc_sent_to_bucket')
     
     results.append("Finished") 

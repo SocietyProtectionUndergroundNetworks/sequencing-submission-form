@@ -17,7 +17,7 @@ from flask_login import (
 )
 
 from helpers.csv import validate_csv_column_names
-from helpers.bucket_upload import bucket_chunked_upload, get_progress
+from helpers.bucket_upload import bucket_chunked_upload, get_progress_db
 from helpers.fastqc import get_fastqc_progress
 from helpers.file_renaming import extract_uploaded_gzip, rename_files, calculate_md5
 
@@ -110,10 +110,10 @@ def upload_csv():
 
     structure_compare = validate_csv_column_names(save_path)
     if structure_compare is True:
-        bucket_chunked_upload(save_path, uploads_folder, filename, file_uuid='temp_csv')
-        new_id = Upload.create(user_id=current_user.id, csv_filename=filename, uploads_folder=uploads_folder)
+        process_id = Upload.create(user_id=current_user.id, csv_filename=filename, uploads_folder=uploads_folder)
+        bucket_chunked_upload(save_path, uploads_folder, filename, process_id, 'csv_file')
         # app.logger.info('new_id is ' + str(new_id))
-        return jsonify({"msg": "CSV file uploaded successfully. Fields match", "process_id": new_id}), 200
+        return jsonify({"msg": "CSV file uploaded successfully. Fields match", "process_id": process_id}), 200
     else:
         return jsonify({"error": "CSV file fields don't match expected structure", "mismatch": structure_compare}), 400
 
@@ -121,8 +121,8 @@ def upload_csv():
 @upload_bp.route('/uploadprogress')
 @login_required
 def api_progress():
-    file_uuid = request.args.get('file_uuid')
-    progress = get_progress(file_uuid)
+    process_id = request.args.get('process_id')
+    progress = get_progress_db(process_id, 'gz_raw')
     return {
         "progress": progress
     }
@@ -216,16 +216,13 @@ def send_raw_to_storage():
 
     # in order to continue on the same process, lets get the id from the form
     process_id = request.form["process_id"]
-    file_uuid   = request.form["file_uuid"]
-    #app.logger.info('process_id is ' + str(process_id))
-    #app.logger.info('file_uuid is ' + str(file_uuid))
 
     upload = Upload.get(process_id)
     uploads_folder = upload.uploads_folder
     path = Path("uploads", uploads_folder)
     filename = upload.gz_filename
     save_path = path / filename
-    raw_uploaded = bucket_chunked_upload(save_path, uploads_folder, filename, file_uuid)
+    raw_uploaded = bucket_chunked_upload(save_path, uploads_folder, filename, process_id, 'gz_raw')
     #Upload.mark_field_as_true(process_id, 'gz_sent_to_bucket')
     if (raw_uploaded):
         Upload.mark_field_as_true(process_id, 'gz_sent_to_bucket')

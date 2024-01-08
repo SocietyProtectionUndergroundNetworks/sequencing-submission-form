@@ -60,7 +60,6 @@
               {% if ((not gz_sent_to_bucket) and (not gz_uploaded)) %} style="display: none;" {% endif %}
           >
             <input type="hidden" name="process_id" value="{{ process_id }}">
-            <input type="hidden" name="file_uuid">
             <input type="hidden" name="totalChunks"> 
             <input type="submit" class="btn btn-primary" id="step_3_button">
           </form>
@@ -208,14 +207,15 @@
                 this.on("error", function (file, errorMessage, xhr) {
                     if (xhr && xhr.responseText) {
                         var response = JSON.parse(xhr.responseText);
-                        $("#step_1_msg").html('<span class="text-danger">' + response.error + response.mismatch + '</span>');
+                        $("#step_1_msg").html(response.error + ' ' + response.mismatch).addClass('text-danger').removeClass('text-info').removeClass('text-success');
                     } else {
-                        $("#step_1_msg").html('<span class="text-danger">' + errorMessage + '</span>');
+                        $("#step_1_msg").html(errorMessage).addClass('text-danger').removeClass('text-info').removeClass('text-success');
                     }
                 });
 
                 this.on("success", function (file, response) {
-                    $("#step_1_msg").html('<span class="text-success">' + response.msg + '</span>');
+                    console.log(response)
+                    $("#step_1_msg").html(response.msg).addClass('text-success').removeClass('text-info').removeClass('text-danger');
 
                     // Access and use the process ID
                     process_id = response.process_id;
@@ -316,22 +316,22 @@
 
         let intervals = {}; // To store interval IDs for each file upload
 
-        function updateProgressRawFileBucket(file_uuid) {
+        function updateProgressRawFileBucket(process_id) {
             console.log('We will now start calling for updates');
 
             // Clear any existing interval for the same file upload
-            clearInterval(intervals[file_uuid]);
+            clearInterval(intervals[process_id]);
 
-            intervals[file_uuid] = setInterval(function () {
+            intervals[process_id] = setInterval(function () {
                 $.ajax({
-                    url: `/uploadprogress?file_uuid=${file_uuid}`,
+                    url: `/uploadprogress?process_id=${process_id}`,
                     type: 'GET',
                     success: function(data) {
                         let progress = data.progress;
                         $('#bucketProgress').text(`Bucket Transfer Progress: ${progress}%`);
 
                         if (progress >= 100) {
-                            clearInterval(intervals[file_uuid]); // Stop updating when progress reaches 100%
+                            clearInterval(intervals[process_id]); // Stop updating when progress reaches 100%
                             console.log('We will now stop calling for updates');
                             $('#step_3_msg').text('Raw file successfully uploaded to google storage').addClass('text-success');
                             $('#step_4_form').show();
@@ -353,8 +353,8 @@
                 // Get form data
                 var formData = $(this).serialize();
 
-                var file_uuid = $(this).find('input[name="file_uuid"]').val();
-                updateProgressRawFileBucket(file_uuid);
+                var process_id = $(this).find('input[name="process_id"]').val();
+                updateProgressRawFileBucket(process_id);
 
                 $.ajax({
                     type: 'POST',
