@@ -110,20 +110,45 @@
     </div>
     <div id="step6" {% if not files_renamed %} style="opacity: 0.5;" {% endif %}>
       <h3> Step 6: Run fastqc</h3>
-      <div>
-        <form
-            id="step_6_form"
-            method="POST"
-            action="/runfastqc"
-            {% if ((not files_renamed) or (fastqc_run)) %} style="display: none;" {% endif %}
-        >
-          <input type="hidden" name="process_id" value="{{ process_id }}">
-          <input type="submit" class="btn btn-primary" id="step_6_button">
-        </form>
-      </div>
-      <div id="step_6_msg"></div>
-      <div id="step_6_details"></div>
+      {% if fastqc_run %}
+        <div id="step_6_msg">Fastqc and multiqc processes run</div>
+      {% else %}
+        <div>
+          <form
+              id="step_6_form"
+              method="POST"
+              action="/runfastqc"
+              {% if ((not files_renamed) or (fastqc_run)) %} style="display: none;" {% endif %}
+          >
+            <input type="hidden" name="process_id" value="{{ process_id }}">
+            <input type="submit" class="btn btn-primary" id="step_6_button">
+          </form>
+        </div>
+        <div id="step_6_msg"></div>
+        <div id="step_6_details"></div>
+      {% endif %}
     </div>
+    <div id="step7" {% if not fastqc_run %} style="opacity: 0.5;" {% endif %}>
+      <h3> Step 7: Upload fastqc and multiqc files to bucket</h3>
+      {% if fastqc_sent_to_bucket %}
+        <div id="step_7_msg" class="text-success">Files renamed</div>
+      {% else %}
+        <div>
+          <form
+              id="step_7_form"
+              method="POST"
+              action="/renamefiles"
+              {% if ((not fastqc_run) or (fastqc_sent_to_bucket)) %} style="display: none;" {% endif %}
+          >
+            <input type="hidden" name="process_id" value="{{ process_id }}">
+            <input type="submit" class="btn btn-primary" id="step_7_button">
+          </form>
+        </div>
+        <div id="step_7_msg"></div>
+        <div id="step_7_details"></div>
+      {% endif %}
+    </div>
+
 
     <div id="files_table">
       <table class="table">
@@ -258,6 +283,7 @@
         // Listen to events
         r.on('fileAdded', function(file) {
             console.log('file added to resumable');
+            r.opts.query.process_id = process_id;
             // Calculate MD5 hash of the file and include it in the Resumable.js query
             $('#step_2_button').prop("disabled", true);
             $("#step_2_msg").html('Calculating md5. Please wait').addClass('text-info').removeClass('text-danger').removeClass('text-success');

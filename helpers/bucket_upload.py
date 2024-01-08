@@ -24,8 +24,8 @@ def get_progress(file_uuid):
             return progress_data.get(file_uuid, 0)
     except FileNotFoundError:
         return 0  
-    
-def chunked_upload(local_file_path, destination_upload_directory, destination_blob_name, file_uuid):
+
+def bucket_chunked_upload(local_file_path, destination_upload_directory, destination_blob_name, file_uuid):
     # Configure Google Cloud Storage
     bucket_name = os.environ.get('GOOGLE_STORAGE_BUCKET_NAME')
     project_id = os.environ.get('GOOGLE_STORAGE_PROJECT_ID')
@@ -70,4 +70,3 @@ def chunked_upload(local_file_path, destination_upload_directory, destination_bl
         update_progress(file_uuid, 100)
         return True
         #print(f"File {local_file_path} uploaded to {destination_blob_name} in {bucket_name} bucket.", flush=True)
-        

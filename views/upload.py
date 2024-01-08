@@ -17,9 +17,9 @@ from flask_login import (
 )
 
 from helpers.csv import validate_csv_column_names
-from helpers.bucket_upload import chunked_upload, get_progress
+from helpers.bucket_upload import bucket_chunked_upload, get_progress
 from helpers.fastqc import get_fastqc_progress
-from helpers.file_renaming import extract_uploaded_gzip, rename_files, fastqc_multiqc_files, calculate_md5
+from helpers.file_renaming import extract_uploaded_gzip, rename_files, calculate_md5
 
 from models.upload import Upload
 
@@ -110,7 +110,7 @@ def upload_csv():
 
     structure_compare = validate_csv_column_names(save_path)
     if structure_compare is True:
-        chunked_upload(save_path, uploads_folder, filename, file_uuid='temp_csv')
+        bucket_chunked_upload(save_path, uploads_folder, filename, file_uuid='temp_csv')
         new_id = Upload.create(user_id=current_user.id, csv_filename=filename, uploads_folder=uploads_folder)
         # app.logger.info('new_id is ' + str(new_id))
         return jsonify({"msg": "CSV file uploaded successfully. Fields match", "process_id": new_id}), 200
@@ -225,7 +225,7 @@ def send_raw_to_storage():
     path = Path("uploads", uploads_folder)
     filename = upload.gz_filename
     save_path = path / filename
-    raw_uploaded = chunked_upload(save_path, uploads_folder, filename, file_uuid)
+    raw_uploaded = bucket_chunked_upload(save_path, uploads_folder, filename, file_uuid)
     #Upload.mark_field_as_true(process_id, 'gz_sent_to_bucket')
     if (raw_uploaded):
         Upload.mark_field_as_true(process_id, 'gz_sent_to_bucket')
@@ -304,7 +304,6 @@ def fastqcfiles():
     process_id = request.form["process_id"]
 
     upload = Upload.get(process_id)
-    # fastqc_multiqc_files(upload.extract_directory)
     app.logger.info(upload.extract_directory)
     from tasks import fastqc_multiqc_files_async
     try:
@@ -360,7 +359,6 @@ def test_fastqc_files():
     app.logger.info('fastqc of files starts')
 
     upload = Upload.get(process_id)
-    # fastqc_multiqc_files(upload.extract_directory)
     app.logger.info(upload.extract_directory)
     from tasks import fastqc_multiqc_files_async
     try:

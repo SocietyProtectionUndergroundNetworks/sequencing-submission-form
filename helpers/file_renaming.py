@@ -56,33 +56,6 @@ def extract_uploaded_gzip(uploaded_file_path, extract_directory):
     
     return True
 
-def fastqc_multiqc_files(input_folder):
-    results=[]
-    app.logger.info('input_folder is ' + str(input_folder))
-    output_folder = os.path.join(input_folder, 'fastqc')
-    os.makedirs(output_folder, exist_ok=True)
-    
-    # Run fastqc on all raw fastq.gz files within the 'fastqc' conda environment
-    fastq_files = [f for f in os.listdir(input_folder) if f.endswith('.fastq.gz')]
-    for fastq_file in fastq_files:
-        app.logger.info('file we will try is ' + str(fastq_file))
-        input_file = os.path.join(input_folder, fastq_file)
-        output_file = os.path.join(output_folder, fastq_file.replace('.fastq.gz', '_fastqc.zip'))
-        fastqc_cmd = f'/usr/local/bin/FastQC/fastqc -o {output_folder} {input_file}'
-        subprocess.run(fastqc_cmd, shell=True, executable='/bin/bash')
-    
-    multiqc.run(output_folder, outdir=output_folder)
-
-    # Delete individual fastqc.html files and fastq.zip files
-    for fastq_file in fastq_files:
-        individual_fastqc_file = os.path.join(output_folder, fastq_file.replace('.fastq.gz', '_fastqc.html'))
-        os.remove(individual_fastqc_file)
-        zip_file = os.path.join(output_folder, fastq_file.replace('.fastq.gz', '_fastqc.zip'))
-        os.remove(zip_file)
-    
-    results.append("Finished")
-    return results 
-
 def rename_files(csv_file_path, directory_path, files_json):
     matching_files_dict = json.loads(files_json)
     # Load the Excel file
