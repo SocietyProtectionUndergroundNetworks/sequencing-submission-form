@@ -36,25 +36,31 @@ def bucket_chunked_upload(local_file_path, destination_upload_directory, destina
     bucket_name = os.environ.get('GOOGLE_STORAGE_BUCKET_NAME')
     project_id = os.environ.get('GOOGLE_STORAGE_PROJECT_ID')
     bucket_location = os.environ.get('GOOGLE_STORAGE_BUCKET_LOCATION')
-    
-    chunk_nr_mb = os.environ.get('GOOGLE_STORAGE_CHUNK_SIZE_MB', 20)
-    
-    chunk_size = chunk_nr_mb * 1024 * 1024  # 20 MB chunk size
 
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
 
-    blob = bucket.blob(f'uploads/{destination_upload_directory}/{destination_blob_name}')
-
-
     total_size = os.path.getsize(local_file_path)
-    uploaded_bytes = 0
+
+    # If the file is smaller than 30 MB, upload it directly
+    if total_size <= 30 * 1024 * 1024:
+        blob = bucket.blob(f'uploads/{destination_upload_directory}/{destination_blob_name}')
+        blob.upload_from_filename(local_file_path)
+        update_progress_db(process_id, upload_type, 100)
+        return True
+
+    # If the file is between 30 MB and 700 MB, do chunks of 30 MB each
+    if 30 * 1024 * 1024 < total_size <= 700 * 1024 * 1024:
+        chunk_size = 30 * 1024 * 1024
+
+    # If the file is larger than 700 MB, separate it into 32 chunks
+    else:
+        chunk_size = total_size // 32
+
+    chunk_num = 0
+    chunks = []
 
     with open(local_file_path, 'rb') as file:
-        blob.chunk_size = chunk_size
-        chunk_num = 0
-        chunks = []
-
         while True:
             data = file.read(chunk_size)
             if not data:
@@ -65,11 +71,10 @@ def bucket_chunked_upload(local_file_path, destination_upload_directory, destina
             chunks.append(temp_blob)
             chunk_num += 1
 
-            uploaded_bytes += len(data)
-            percentage = (uploaded_bytes / total_size) * 100
-            update_progress_db(process_id, upload_type, percentage)
-            print(f"Bytes uploaded: {uploaded_bytes} / {total_size} ({percentage:.2f}%)", flush=True)
+            update_progress_db(process_id, upload_type, (file.tell() / total_size) * 100)
+            print(f"Bytes uploaded: {file.tell()} / {total_size}", flush=True)
 
+        blob = bucket.blob(f'uploads/{destination_upload_directory}/{destination_blob_name}')
         blob.compose(chunks)
 
         for temp_blob in chunks:
@@ -77,7 +82,6 @@ def bucket_chunked_upload(local_file_path, destination_upload_directory, destina
 
         update_progress_db(process_id, upload_type, 100)
         return True
-        #print(f"File {local_file_path} uploaded to {destination_blob_name} in {bucket_name} bucket.", flush=True)
 
 def bucket_upload_folder(folder_path, destination_upload_directory, process_id, upload_type):
     for root, _, files in os.walk(folder_path):

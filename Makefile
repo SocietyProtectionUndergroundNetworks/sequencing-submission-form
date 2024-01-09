@@ -34,7 +34,10 @@ bashnginx:
 	docker-compose run --rm nginx /bin/sh
 
 logsflask:
-	docker-compose logs flask
+	docker-compose logs -f --tail=200 flask
+
+logscelery:
+	docker-compose logs -f --tail=200 celery-worker
 
 migration:
 	docker-compose exec flask alembic revision --autogenerate -m "${description}"
