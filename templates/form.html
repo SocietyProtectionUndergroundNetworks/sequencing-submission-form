@@ -64,7 +64,7 @@
             <input type="submit" class="btn btn-primary" id="step_3_button">
           </form>
         </div>
-        <div id="bucketProgress">Bucket Transfer Progress: 0%</div>
+        <div id="step_3_progress">Bucket Transfer Progress: 0%</div>
         <div id="step_3_msg"></div>
       {% endif %}
     </div>
@@ -84,6 +84,7 @@
             <input type="submit" class="btn btn-primary" id="step_4_button">
           </form>
         </div>
+        <div id="step_4_progress">Unzip Progress: 0%</div>
         <div id="step_4_msg"></div>
       {% endif %}
     </div>
@@ -348,7 +349,7 @@
                     type: 'GET',
                     success: function(data) {
                         let progress = data.progress;
-                        $('#bucketProgress').text(`Bucket Transfer Progress: ${progress}%`);
+                        $('#step_3_progress').text(`Bucket Transfer Progress: ${progress}%`);
 
                         if (progress >= 100) {
                             clearInterval(intervals[process_id]); // Stop updating when progress reaches 100%
@@ -373,6 +374,42 @@
             && (gz_uploaded == 1)
             ) {
           updateProgressRawFileBucket(process_id);
+        }
+
+
+        function updateProgressUnZip(process_id) {
+            console.log('We will now start calling for updates');
+
+            // Clear any existing interval for the same file upload
+            clearInterval(intervals[process_id]);
+
+            intervals[process_id] = setInterval(function () {
+                $.ajax({
+                    url: `/unzipprogress?process_id=${process_id}`,
+                    type: 'GET',
+                    success: function(data) {
+                        let progress = data.progress;
+                        $('#step_4_progress').text(`Unzip Progress: ${progress}%`);
+
+                        if (progress >= 100) {
+                            clearInterval(intervals[process_id]); // Stop updating when progress reaches 100%
+                            console.log('We will now stop calling for updates');
+                            $('#step_4_msg').text('Files successfully unzipped').addClass('text-success');
+                            $('#step_5_form').show();
+                            $('#step5').css('opacity', '1');
+                            
+                            let table_row = ''
+                            for (key in data.matching_files) {
+                              table_row = '<tr><th scope="row">' + (key+1) + '</th><td>' + data.matching_files[key] + '</td><td></td><td></td></tr>';
+                              $('#files_body').append( table_row );
+                            }                            
+                        }
+                    },
+                    error: function() {
+                        // Handle error situations
+                    }
+                });
+            }, 5000); // Update progress every 5 seconds (adjust timing as needed)
         }
 
         $(document).ready(function () {
@@ -416,16 +453,8 @@
                     success: function (response) {
                         // Handle success
                         console.log('Form data submitted via AJAX successfully');
-                        $('#step_4_msg').text('Raw file successfully unzipped. Nr of fastq.gz files: ' + response.nr_files).addClass('text-success');
-
-                        let table_row = ''
-                        for (key in response.matching_files) {
-                          table_row = '<tr><th scope="row">' + (key+1) + '</th><td>' + response.matching_files[key] + '</td><td></td><td></td></tr>';
-                          $('#files_body').append( table_row );
-                        }
-
-                        $('#step_5_form').show();
-                        $('#step5').css('opacity', '1');
+                        updateProgressUnZip(process_id);
+                        $('#step_4_msg').text('Unzip process started').addClass('text-info');
                     },
                     error: function (error) {
                         // Handle errors
@@ -498,7 +527,6 @@
                     type: 'GET',
                     success: function(data) {
                         let process_finished = data.process_finished;
-                        // $('#bucketProgress').text(`Bucket Transfer Progress: ${progress}%`);
 
                         if (process_finished == 1) {
                             clearInterval(intervals[interval_id]); // Stop updating when progress reaches 100%

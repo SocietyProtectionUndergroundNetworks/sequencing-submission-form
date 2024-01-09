@@ -24,7 +24,7 @@ def update_progress_db(process_id, upload_type, percentage):
     if (upload_type=='gz_raw'):
         Upload.update_gz_sent_to_bucket_progress(process_id, round(percentage))
 
-def get_progress_db(process_id, upload_type):
+def get_progress_db_bucket(process_id, upload_type):
     progress = 0
     if (upload_type=='gz_raw'):
         upload = Upload.get(process_id)

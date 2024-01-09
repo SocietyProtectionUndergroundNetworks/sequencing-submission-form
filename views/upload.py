@@ -17,9 +17,10 @@ from flask_login import (
 )
 
 from helpers.csv import validate_csv_column_names
-from helpers.bucket_upload import bucket_chunked_upload, get_progress_db
+from helpers.bucket_upload import bucket_chunked_upload, get_progress_db_bucket
+from helpers.unzip import get_progress_db_unzip
 from helpers.fastqc import get_fastqc_progress
-from helpers.file_renaming import extract_uploaded_gzip, rename_files, calculate_md5
+from helpers.file_renaming import rename_files, calculate_md5
 
 from models.upload import Upload
 
@@ -118,12 +119,40 @@ def upload_csv():
     else:
         return jsonify({"error": "CSV file fields don't match expected structure", "mismatch": structure_compare}), 400
 
+@upload_bp.route('/unzipprogress')
+@login_required
+def unzip_progress():
+    process_id = request.args.get('process_id')
+    progress = get_progress_db_unzip(process_id)
+
+    if (progress==100):
+
+        upload = Upload.get(process_id)
+        uploads_folder = upload.uploads_folder
+        extract_directory = Path("processing", uploads_folder)
+
+        # count the files ending with fastq.gz
+        file_names = os.listdir(extract_directory)
+        matching_files = [filename for filename in file_names if filename.endswith('.fastq.gz')]
+        nr_files = 0
+        if (matching_files):
+            nr_files=len(matching_files)
+            # Convert the list to a dictionary with empty parameters
+            matching_files_dict = {filename: {'new_filename': '', 'fastqc': ''} for filename in matching_files}
+            Upload.update_files_json(process_id, matching_files_dict)
+
+        return jsonify({"progress": progress, "msg": "Raw unzipped successfully.", "nr_files": nr_files, "matching_files":matching_files}), 200
+    
+    return {
+        "progress": progress
+    }
+
 
 @upload_bp.route('/uploadprogress')
 @login_required
 def api_progress():
     process_id = request.args.get('process_id')
-    progress = get_progress_db(process_id, 'gz_raw')
+    progress = get_progress_db_bucket(process_id, 'gz_raw')
     return {
         "progress": progress
     }
@@ -234,35 +263,19 @@ def send_raw_to_storage():
 @login_required
 def unzip_raw():
     app.logger.info('unzip file starts')
-
-    # in order to continue on the same process, lets get the id from the form
     process_id = request.form["process_id"]
 
-    upload = Upload.get(process_id)
-    uploads_folder = upload.uploads_folder
-    path = Path("uploads", uploads_folder)
-    filename = upload.gz_filename
-    save_path = path / filename
+    from tasks import unzip_raw_file_async
+    try:
+        result = unzip_raw_file_async.delay(process_id)
+        logger.info(f"Celery unzip_raw_file_async task called successfully! Task ID: {result.id}")
+        task_id = result.id
+        #upload.update_fastqc_process_id(process_id, task_id)
+    except Exception as e:
+        logger.error("This is an error message from upload.py while trying to unzip_raw_file_async")
+        logger.error(e)
 
-    extract_directory = Path("processing", uploads_folder)
-    gunzip_result = extract_uploaded_gzip(save_path, extract_directory)
-
-    if (gunzip_result):
-        Upload.mark_field_as_true(process_id, 'gz_unziped')
-
-        # count the files ending with fastq.gz
-        file_names = os.listdir(extract_directory)
-        matching_files = [filename for filename in file_names if filename.endswith('.fastq.gz')]
-        nr_files = 0
-        if (matching_files):
-            nr_files=len(matching_files)
-            # Convert the list to a dictionary with empty parameters
-            matching_files_dict = {filename: {'new_filename': '', 'fastqc': ''} for filename in matching_files}
-            Upload.update_files_json(process_id, matching_files_dict)
-
-        return jsonify({"msg": "Raw unzipped successfully.", "nr_files": nr_files, "matching_files":matching_files}), 200
-
-    return jsonify({"error": "Something went wrong."}), 400
+    return jsonify({"msg": "Process initiated"}), 200
 
 
 @upload_bp.route('/renamefiles', methods=['POST'])

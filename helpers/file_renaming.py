@@ -1,60 +1,13 @@
 # Script for renaming fastq files received from Scripps Research.  Requires a sample key with file name string matches and desired name changes to be specified in-script. Takes a directory containing the files to be changed as an argument. 
 
 import os
-import gzip
 import csv
-import tarfile
 import pandas as pd
 import subprocess
 import json
 import multiqc
 import hashlib
 from flask import current_app as app  # Import the 'app' instance
-
-def extract_tar(tar_file, extract_path):
-    with tarfile.open(tar_file, 'r') as tar:
-        tar.extractall(path=extract_path)
-
-def extract_tar_without_structure(tar_file, extract_path):
-    with tarfile.open(tar_file, 'r') as tar:
-        for member in tar.getmembers():
-            member.name = os.path.basename(member.name)
-            tar.extract(member, path=extract_path)
-
-def extract_uploaded_gzip(uploaded_file_path, extract_directory):
-
-    # Create the directory if it doesn't exist
-    os.makedirs(extract_directory, exist_ok=True)
-
-    # Get the file name from the full path
-    uploaded_file_name = os.path.basename(uploaded_file_path)
-
-    # Check if the uploaded file name ends with '.tar'
-    if uploaded_file_name.endswith('.tar'):
-        extract_tar_without_structure(uploaded_file_path, extract_directory)
-        #os.remove(uploaded_file_name)
-    else:
-        # Check if the uploaded file name ends with '.gz'
-        if not uploaded_file_name.endswith('.gz'):
-            raise ValueError("The uploaded file is not a gzip file.")
-
-        # Get the file name without the '.gz' extension
-        file_name = os.path.splitext(uploaded_file_name)[0]
-
-        # Path to extract the file to
-        extract_path = os.path.join(extract_directory, file_name)
-
-        # Extract the gzip file
-        with gzip.open(uploaded_file_path, 'rb') as f_in:
-            with open(extract_path, 'wb') as f_out:
-                f_out.write(f_in.read())
-
-        # check if the file is a tar, in which case we have more to do
-        if file_name.endswith('.tar'):
-            extract_tar_without_structure(extract_path, extract_directory)
-            os.remove(extract_path)
-    
-    return True
 
 def rename_files(csv_file_path, directory_path, files_json):
     matching_files_dict = json.loads(files_json)

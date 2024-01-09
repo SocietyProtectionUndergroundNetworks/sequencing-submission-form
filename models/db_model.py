@@ -37,6 +37,7 @@ class UploadTable(Base):
     gz_sent_to_bucket = Column(Boolean, default=False)
     gz_sent_to_bucket_progress = Column(Integer, default=0)
     gz_unziped = Column(Boolean, default=False)
+    gz_unziped_progress = Column(Integer, default=0)
     files_json = Column(JSON(none_as_null=True))
     files_renamed = Column(Boolean, default=False)
     fastqc_run = Column(Boolean, default=False)

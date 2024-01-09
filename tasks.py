@@ -4,11 +4,16 @@ import json
 import multiqc
 from celery import current_app as celery_app
 from helpers.bucket_upload import bucket_upload_folder, upload_raw_file_to_storage
+from helpers.unzip import unzip_raw_file
 from models.upload import Upload
 
 @celery_app.task
 def upload_raw_file_to_storage_async(process_id):
     upload_raw_file_to_storage(process_id)
+
+@celery_app.task
+def unzip_raw_file_async(process_id):
+    unzip_raw_file(process_id)
 
 @celery_app.task    
 def fastqc_multiqc_files_async(input_folder, process_id):
