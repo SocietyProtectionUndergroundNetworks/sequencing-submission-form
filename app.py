@@ -38,7 +38,7 @@ celery = make_celery(app)
 # logger.info("Celery initialized successfully!")
 
 
-from tasks import your_task_name, fastqc_multiqc_files_async
+from tasks import fastqc_multiqc_files_async, upload_raw_file_to_storage_async
 
     
 if __name__ == '__main__':

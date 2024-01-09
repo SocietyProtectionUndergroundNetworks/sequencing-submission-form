@@ -3,8 +3,22 @@ import json
 
 # Library about google cloud storage
 from google.cloud import storage
+from pathlib import Path
 from models.upload import Upload
 
+def upload_raw_file_to_storage(process_id):
+    #app.logger.info('raw to storage starts')
+
+    # in order to continue on the same process, lets get the id from the form
+    upload = Upload.get(process_id)
+    uploads_folder = upload.uploads_folder
+    path = Path("uploads", uploads_folder)
+    filename = upload.gz_filename
+    save_path = path / filename
+    raw_uploaded = bucket_chunked_upload(save_path, uploads_folder, filename, process_id, 'gz_raw')
+    #Upload.mark_field_as_true(process_id, 'gz_sent_to_bucket')
+    if (raw_uploaded):
+        Upload.mark_field_as_true(process_id, 'gz_sent_to_bucket')
 
 def update_progress_db(process_id, upload_type, percentage):
     if (upload_type=='gz_raw'):
