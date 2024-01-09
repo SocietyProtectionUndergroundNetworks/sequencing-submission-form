@@ -37,7 +37,9 @@ def bucket_chunked_upload(local_file_path, destination_upload_directory, destina
     project_id = os.environ.get('GOOGLE_STORAGE_PROJECT_ID')
     bucket_location = os.environ.get('GOOGLE_STORAGE_BUCKET_LOCATION')
     
-    chunk_size = 20 * 1024 * 1024  # 20 MB chunk size
+    chunk_nr_mb = os.environ.get('GOOGLE_STORAGE_CHUNK_SIZE_MB', 20)
+    
+    chunk_size = chunk_nr_mb * 1024 * 1024  # 20 MB chunk size
 
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)

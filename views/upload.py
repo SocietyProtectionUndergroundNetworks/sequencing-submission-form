@@ -227,6 +227,8 @@ def send_raw_to_storage():
         logger.error("This is an error message from upload.py while trying to upload_raw_file_to_storage_async")
         logger.error(e)
 
+    return jsonify({"msg": "Process initiated"}), 200
+
 @upload_bp.route('/unzipraw', methods=['POST'])
 @login_required
 def unzip_raw():
