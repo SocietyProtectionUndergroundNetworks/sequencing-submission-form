@@ -165,7 +165,7 @@
       {% if gz_sent_to_bucket_progress is none %}
         let gz_sent_to_bucket_progress = '0';
       {% else %}
-        let gz_sent_to_bucket_progress = {{ gz_sent_to_bucket_progress }};
+        let gz_sent_to_bucket_progress = {{ gz_sent_to_bucket_progress  | default('0') }};
       {% endif %}
       
       {% if gz_sent_to_bucket %}
@@ -394,7 +394,7 @@
                         if (progress >= 100) {
                             clearInterval(intervals[process_id]); // Stop updating when progress reaches 100%
                             console.log('We will now stop calling for updates');
-                            $('#step_4_msg').text('Files successfully unzipped').addClass('text-success');
+                            $('#step_4_msg').text('Files successfully unzipped').addClass('text-success').removeClass('text-info');
                             $('#step_5_form').show();
                             $('#step5').css('opacity', '1');
                             

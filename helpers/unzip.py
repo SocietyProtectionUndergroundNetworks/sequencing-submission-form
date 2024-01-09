@@ -43,7 +43,7 @@ def extract_tar_without_structure(process_id, tar_file, extract_path):
             tar.extract(member, path=extract_path)
             current_size += member.size
             track_progress(process_id, current_size, total_size)
-            time.sleep(0.5)
+            # time.sleep(0.5)
 
 def extract_tar(tar_file, extract_path):
     with tarfile.open(tar_file, 'r') as tar:

@@ -30,6 +30,9 @@ rebuild: stop build run
 bashflask:
 	docker-compose run --rm --entrypoint "" flask /bin/bash
 
+bashcelery:
+	docker-compose run --rm --entrypoint "" celery-worker /bin/bash
+
 bashnginx:
 	docker-compose run --rm nginx /bin/sh
 
