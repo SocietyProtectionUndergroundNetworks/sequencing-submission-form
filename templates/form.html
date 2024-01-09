@@ -159,6 +159,27 @@
       </table>
     </div>
     <script type="application/javascript">
+      let process_id = {{ process_id | default('0') }}; // To track the process from start to end.
+      let progressTrackers = {}; // To track progress for each file    
+      {% if gz_sent_to_bucket_progress is none %}
+        let gz_sent_to_bucket_progress = '0';
+      {% else %}
+        let gz_sent_to_bucket_progress = {{ gz_sent_to_bucket_progress }};
+      {% endif %}
+      
+      {% if gz_sent_to_bucket %}
+        let gz_sent_to_bucket = 1;
+      {% else %}
+        let gz_sent_to_bucket = 0;
+      {% endif %}
+      
+      {% if gz_uploaded %}
+        let gz_uploaded = 1;
+      {% else %}
+        let gz_uploaded = 0;
+      {% endif %}
+      
+    
         function calculateMD5(file, callback, updateCallback) {
             var chunkSize = 2097152; // 2 MB chunks
             var spark = new SparkMD5.ArrayBuffer();
@@ -196,8 +217,7 @@
             loadNext();
         }
     
-        let process_id = {{ process_id | default('0') }}; // To track the process from start to end.
-        let progressTrackers = {}; // To track progress for each file
+
         Dropzone.options.csvDropper = {
             paramName: "file",
             url: "/uploadcsv", // Set the specific endpoint for CSV
@@ -343,6 +363,16 @@
                     }
                 });
             }, 5000); // Update progress every 5 seconds (adjust timing as needed)
+        }
+        
+        if (
+            (gz_sent_to_bucket_progress > 0) 
+            && (gz_sent_to_bucket_progress<100) 
+            && (process_id >0)
+            && (gz_sent_to_bucket == 0)
+            && (gz_uploaded == 1)
+            ) {
+          updateProgressRawFileBucket(process_id);
         }
 
         $(document).ready(function () {

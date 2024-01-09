@@ -79,7 +79,8 @@ def upload_form_resume():
                                 nr_files=nr_files,
                                 matching_files=matching_files_filesystem,
                                 matching_files_db=matching_files_dict,
-                                fastqc_run=upload.fastqc_run
+                                fastqc_run=upload.fastqc_run,
+                                gz_sent_to_bucket_progress=upload.gz_sent_to_bucket_progress
                                 )
 
 @upload_bp.route('/form')

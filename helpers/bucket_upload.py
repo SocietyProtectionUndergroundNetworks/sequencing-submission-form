@@ -55,7 +55,7 @@ def bucket_chunked_upload(local_file_path, destination_upload_directory, destina
 
     # If the file is larger than 700 MB, separate it into 32 chunks
     else:
-        chunk_size = total_size // 32
+        chunk_size = total_size // 30
 
     chunk_num = 0
     chunks = []
