@@ -67,6 +67,8 @@ services:
       - MYSQL_DATABASE=flask
       - MYSQL_USER=flask
       - MYSQL_PASSWORD=flask
+    volumes:
+      - ./mysql:/var/lib/mysql      
     networks:
       - database
       - flask

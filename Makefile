@@ -36,6 +36,9 @@ bashcelery:
 bashnginx:
 	docker-compose run --rm nginx /bin/sh
 
+bashdb:
+	docker-compose run --rm db /bin/sh
+
 logsflask:
 	docker-compose logs -f --tail=200 flask
 

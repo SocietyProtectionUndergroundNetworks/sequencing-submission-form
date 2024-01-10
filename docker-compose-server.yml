@@ -58,6 +58,8 @@ services:
 
   db:
     image: mysql:5.7
+    volumes:
+      - ./mysql:/var/lib/mysql    
     environment:
       - flask
     env_file:

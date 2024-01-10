@@ -19,6 +19,8 @@ uploads/
 
 backup/
 
+mysql/
+
 processing
 
 upload_progress.json
