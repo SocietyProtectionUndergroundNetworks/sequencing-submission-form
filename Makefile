@@ -51,5 +51,13 @@ migrate:
 mysql:
 	docker-compose run --rm db mysql -h${MYSQL_HOST} -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE}	
 
+dbimport:
+	docker-compose run --rm -T db mysql -h${MYSQL_HOST} -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} < backup/backup.sql
+
+dbexport:
+	docker-compose run --rm db mysqldump -h${MYSQL_HOST} -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} > backup/backup.sql
+	ls -l backup/backup.sql
+
+
 echo:
 	echo $${GOOGLE_APPLICATION_CREDENTIALS_PATH}
