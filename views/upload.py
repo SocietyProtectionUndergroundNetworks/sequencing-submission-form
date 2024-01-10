@@ -7,7 +7,6 @@ import logging
 from pathlib import Path
 from werkzeug.utils import secure_filename
 from flask import Blueprint, render_template, request, jsonify, send_from_directory
-from flask import current_app as app  # Import the 'app' instance
 from flask_login import (
     LoginManager,
     current_user,
@@ -102,7 +101,7 @@ def upload_form_resume():
 @upload_bp.route('/form')
 @login_required
 def upload_form():
-    # app.logger.info('form requested')
+    # logger.info('form requested')
     return render_template("form.html")
 
 @upload_bp.route('/uploadcsv', methods=['POST'])
@@ -131,7 +130,7 @@ def upload_csv():
     if cvs_results is True:
         process_id = Upload.create(user_id=current_user.id, csv_filename=filename, uploads_folder=uploads_folder)
         bucket_chunked_upload(save_path, uploads_folder, filename, process_id, 'csv_file')
-        # app.logger.info('new_id is ' + str(new_id))
+        # logger.info('new_id is ' + str(new_id))
         return jsonify({"msg": "CSV file uploaded successfully. Checks passed", "process_id": process_id}), 200
     else:
         return jsonify({"error": "CSV file problems: ", "results": cvs_results}), 400
@@ -259,7 +258,7 @@ def check_chunk():
 @upload_bp.route('/sendrawtostorage', methods=['POST'])
 @login_required
 def send_raw_to_storage():
-    #app.logger.info('raw to storage starts')
+    #logger.info('raw to storage starts')
 
     # in order to continue on the same process, lets get the id from the form
     process_id = request.form["process_id"]
@@ -279,7 +278,7 @@ def send_raw_to_storage():
 @upload_bp.route('/unzipraw', methods=['POST'])
 @login_required
 def unzip_raw():
-    app.logger.info('unzip file starts')
+    logger.info('unzip file starts')
     process_id = request.form["process_id"]
 
     from tasks import unzip_raw_file_async
@@ -298,7 +297,7 @@ def unzip_raw():
 @upload_bp.route('/renamefiles', methods=['POST'])
 @login_required
 def renamefiles():
-    app.logger.info('renaming files starts')
+    logger.info('renaming files starts')
 
     # in order to continue on the same process, lets get the id from the form
     process_id = request.form["process_id"]
@@ -325,13 +324,13 @@ def renamefiles():
 @upload_bp.route('/fastqcfiles', methods=['POST'])
 @login_required
 def fastqcfiles():
-    app.logger.info('fastqc of files starts')
+    logger.info('fastqc of files starts')
 
     # in order to continue on the same process, lets get the id from the form
     process_id = request.form["process_id"]
 
     upload = Upload.get(process_id)
-    app.logger.info(upload.extract_directory)
+    logger.info(upload.extract_directory)
     from tasks import fastqc_multiqc_files_async
     try:
         result = fastqc_multiqc_files_async.delay(str(upload.extract_directory), process_id)
