@@ -400,7 +400,7 @@
                             
                             let table_row = ''
                             for (key in data.matching_files) {
-                              table_row = '<tr><th scope="row">' + (key+1) + '</th><td>' + data.matching_files[key] + '</td><td></td><td></td></tr>';
+                              table_row = '<tr><th scope="row">' + (parseInt(key)+1) + '</th><td>' + data.matching_files[key] + '</td><td></td><td></td></tr>';
                               $('#files_body').append( table_row );
                             }                            
                         }
