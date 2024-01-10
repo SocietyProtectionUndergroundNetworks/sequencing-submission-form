@@ -6,6 +6,18 @@ from google.cloud import storage
 from pathlib import Path
 from models.upload import Upload
 
+def list_buckets():
+    # Instantiates a client
+    storage_client = storage.Client()
+
+    # List the buckets in the project
+    buckets = list(storage_client.list_buckets())
+
+    # Create a dictionary with bucket names as keys and their regions as values
+    bucket_info = {bucket.name: bucket.location for bucket in buckets}
+
+    return bucket_info
+
 def upload_raw_file_to_storage(process_id):
     #app.logger.info('raw to storage starts')
 

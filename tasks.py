@@ -3,7 +3,7 @@ import subprocess
 import json
 import multiqc
 from celery import current_app as celery_app
-from helpers.bucket_upload import bucket_upload_folder, upload_raw_file_to_storage
+from helpers.bucket import bucket_upload_folder, upload_raw_file_to_storage
 from helpers.unzip import unzip_raw_file
 from models.upload import Upload
 

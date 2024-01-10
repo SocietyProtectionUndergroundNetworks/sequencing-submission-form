@@ -229,7 +229,7 @@
                 this.on("error", function (file, errorMessage, xhr) {
                     if (xhr && xhr.responseText) {
                         var response = JSON.parse(xhr.responseText);
-                        $("#step_1_msg").html(response.error + ' ' + response.mismatch).addClass('text-danger').removeClass('text-info').removeClass('text-success');
+                        $("#step_1_msg").html(response.error + ' ' + response.results).addClass('text-danger').removeClass('text-info').removeClass('text-success');
                     } else {
                         $("#step_1_msg").html(errorMessage).addClass('text-danger').removeClass('text-info').removeClass('text-success');
                     }

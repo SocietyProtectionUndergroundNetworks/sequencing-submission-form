@@ -16,8 +16,8 @@ from flask_login import (
     logout_user,
 )
 
-from helpers.csv import validate_csv_column_names
-from helpers.bucket_upload import bucket_chunked_upload, get_progress_db_bucket
+from helpers.csv import validate_csv
+from helpers.bucket import bucket_chunked_upload, get_progress_db_bucket
 from helpers.unzip import get_progress_db_unzip
 from helpers.fastqc import get_fastqc_progress
 from helpers.file_renaming import rename_files, calculate_md5
@@ -125,14 +125,16 @@ def upload_csv():
     #save_path = Path("uploads", filename)
     file.save(save_path)  # Save the CSV file to a specific location
 
-    structure_compare = validate_csv_column_names(save_path)
-    if structure_compare is True:
+    cvs_results = validate_csv(save_path)
+    logger.info('cvs_results')
+    logger.info(cvs_results)
+    if cvs_results is True:
         process_id = Upload.create(user_id=current_user.id, csv_filename=filename, uploads_folder=uploads_folder)
         bucket_chunked_upload(save_path, uploads_folder, filename, process_id, 'csv_file')
         # app.logger.info('new_id is ' + str(new_id))
-        return jsonify({"msg": "CSV file uploaded successfully. Fields match", "process_id": process_id}), 200
+        return jsonify({"msg": "CSV file uploaded successfully. Checks passed", "process_id": process_id}), 200
     else:
-        return jsonify({"error": "CSV file fields don't match expected structure", "mismatch": structure_compare}), 400
+        return jsonify({"error": "CSV file problems: ", "results": cvs_results}), 400
 
 @upload_bp.route('/unzipprogress')
 @login_required

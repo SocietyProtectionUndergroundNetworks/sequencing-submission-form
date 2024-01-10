@@ -2,7 +2,6 @@
 
 import os
 import csv
-import pandas as pd
 import subprocess
 import json
 import multiqc
