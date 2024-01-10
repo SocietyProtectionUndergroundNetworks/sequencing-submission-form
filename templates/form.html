@@ -47,7 +47,7 @@
       {% endif %}
     </div>
     <div id="step3" {% if not gz_uploaded %} style="opacity: 0.5;" {% endif %}>
-      <h3> Step 3: Raw files uploaded to google storage </h3>
+      <h3> Step 3: Upload raw files to google storage </h3>
 
       {% if gz_sent_to_bucket %}
         <div id="step_3_msg" class="text-success">GZ file successfully sent to google storage</div>
@@ -480,12 +480,6 @@
                         console.log('Form data submitted via AJAX successfully');
                         $('#step_5_msg').text('File renaming process finished').addClass('text-success');
                         let results = response.results;
-                        let $ul = $('<ul>'); // Create a new ul element
-
-                        // Loop through the results array and create list items
-                        $.each(results, function(index, text) {
-                          $ul.append($('<li>').text(text)); // Create li with the text and append to ul
-                        });
 
                         $.each(response.files_dict, function(oldFilename, fileDetails) {
                             // Iterate through table rows in the tbody with ID 'files_body'
@@ -499,9 +493,6 @@
                                 }
                             });
                         });
-
-                        // Append the ul with list items to the specified HTML element
-                        $('#step_5_details').empty().append($ul);
 
                         $('#step_6_form').show();
                         $('#step6').css('opacity', '1');
