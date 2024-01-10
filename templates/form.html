@@ -12,6 +12,7 @@
 </head>
 <body>
     <div id="msg" class="text-info">{{ msg }}</div>
+    <div id="process_id_info">Process id: {{ process_id }}</div>
     <div id="step1">
       <h3> Step 1: upload key file (csv) </h3>
       {% if csv_uploaded %}
@@ -68,7 +69,7 @@
         <div id="step_3_msg"></div>
       {% endif %}
     </div>
-    <div id="step4" {% if not gz_sent_to_bucket %} style="opacity: 0.5;" {% endif %}>
+    <div id="step4" {% if not gz_uploaded %} style="opacity: 0.5;" {% endif %}>
       <h3> Step 4: Unzip Raw files</h3>
       {% if gz_unziped %}
         <div id="step_4_msg" class="text-success">File successfully unzipped</div>
@@ -132,8 +133,8 @@
       <h3> Step 7: Upload fastqc and multiqc files to bucket</h3>
       <div id="step_7_msg" class="text-success"></div>
     </div>
-
-
+    
+    <h3> Files in the uploaded file </h3>
     <div id="files_table">
       <table class="table">
         <thead>
@@ -141,7 +142,7 @@
             <th scope="col">#</th>
             <th scope="col">Original filename</th>
             <th scope="col">Renamed to</th>
-            <th scope="col">Fastqc</th>
+            <th scope="col">Found in CSV</th>
           </tr>
         {% if gz_unziped %}
           {% for filename, data in matching_files_db.items() %}
@@ -252,6 +253,8 @@
                     form5.find('input[name="process_id"]').val(process_id);
                     var form6 = $("#step_6_form");
                     form6.find('input[name="process_id"]').val(process_id);
+                    $('#process_id_info').html('Process ID: ' + process_id);
+                    
 
                     $('#step2').css('opacity', '1');
                     $('#step_2_form').show(); // Show the dropzone area
@@ -324,9 +327,14 @@
         r.on('fileSuccess', function(file, message) {
           const parsedMessage = JSON.parse(message);
           $("#step_2_msg").html(parsedMessage.message).addClass('text-success').removeClass('text-danger').removeClass('text-info');
+          
           $('#step_3_form').show();
           $('#step_3_button').prop("disabled", false);
           $('#step3').css('opacity', '1');
+          
+          $('#step_4_form').show();
+          $('#step_4_button').prop("disabled", false);
+          $('#step4').css('opacity', '1');
         });
 
         r.on('fileError', function(file, message) {

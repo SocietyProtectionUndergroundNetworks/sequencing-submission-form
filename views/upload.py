@@ -41,7 +41,22 @@ def index():
 @upload_bp.route('/form_resume')
 @login_required
 def upload_form_resume():
-    upload = Upload.get_latest_unfinished_process(current_user.id)
+    default_process_id = 0
+    process_id = request.args.get('process_id', default_process_id)
+
+    try:
+        process_id = int(process_id)
+    except (ValueError, TypeError):
+        # Handle the case where process_id is not a valid integer or convertible to an integer
+        process_id = default_process_id
+
+    if (isinstance(process_id, int) and (process_id !=0)):
+        upload = Upload.get(process_id)
+
+        # TODO : When we have admins and users, check that either the current_user is an admin, or that they look
+        # at a form that belongs to them
+    else:
+        upload = Upload.get_latest_unfinished_process(current_user.id)
 
     if upload is None:
         # Handle the case where no data is returned
@@ -49,7 +64,7 @@ def upload_form_resume():
         return render_template("form.html", msg='We could not find an unfinished process to resume')
     else:
 
-        logger.info('upload id ' + str(upload.id))
+
         matching_files_filesystem = []
         matching_files_dict = []
         nr_files = 0
@@ -142,7 +157,7 @@ def unzip_progress():
             Upload.update_files_json(process_id, matching_files_dict)
 
         return jsonify({"progress": progress, "msg": "Raw unzipped successfully.", "nr_files": nr_files, "matching_files":matching_files}), 200
-    
+
     return {
         "progress": progress
     }

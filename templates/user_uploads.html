@@ -31,7 +31,11 @@
       <tbody id="files_body">
         {% for upload in user_uploads %}
           <tr>
-              <th scope="row"></th>
+              <td scope="row">
+                <a href="/form_resume?process_id={{ upload.id }}">
+                  {{ upload.id }}
+                </a>
+              </td>
               <td>{{ upload.created_at }}</td>
               <td>{{ upload.updated_at }}</td>
               <td>{{ upload.uploads_folder }}</td>
