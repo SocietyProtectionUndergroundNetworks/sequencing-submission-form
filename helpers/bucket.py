@@ -1,10 +1,13 @@
 import os
 import json
+import logging
 
 # Library about google cloud storage
 from google.cloud import storage
 from pathlib import Path
 from models.upload import Upload
+
+logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
 def list_buckets():
     # Instantiates a client
@@ -101,3 +104,18 @@ def bucket_upload_folder(folder_path, destination_upload_directory, process_id, 
             file_path = os.path.join(root, file_name)
             destination_blob_name = os.path.relpath(file_path, folder_path)
             bucket_chunked_upload(file_path, destination_upload_directory, destination_blob_name, process_id, upload_type)
+
+
+def send_raw_to_storage(process_id):
+
+    from tasks import upload_raw_file_to_storage_async
+    try:
+        result = upload_raw_file_to_storage_async.delay(process_id)
+        logger.info(f"Celery upload_raw_file_to_storage_async task called successfully! Task ID: {result.id}")
+        task_id = result.id
+        #upload.update_fastqc_process_id(process_id, task_id)
+    except Exception as e:
+        logger.error("This is an error message from upload.py while trying to upload_raw_file_to_storage_async")
+        logger.error(e)
+
+    return {"msg": "Process initiated"}  

@@ -16,10 +16,10 @@ from flask_login import (
 )
 
 from helpers.csv import validate_csv
-from helpers.bucket import bucket_chunked_upload, get_progress_db_bucket
-from helpers.unzip import get_progress_db_unzip
+from helpers.bucket import bucket_chunked_upload, get_progress_db_bucket, send_raw_to_storage
+from helpers.unzip import get_progress_db_unzip, unzip_raw
 from helpers.fastqc import get_fastqc_progress
-from helpers.file_renaming import rename_files, calculate_md5
+from helpers.file_renaming import calculate_md5, rename_all_files
 
 from models.upload import Upload
 
@@ -166,7 +166,7 @@ def unzip_progress():
 
 @upload_bp.route('/uploadprogress')
 @login_required
-def api_progress():
+def upload_progress():
     process_id = request.args.get('process_id')
     progress = get_progress_db_bucket(process_id, 'gz_raw')
     return {
@@ -225,7 +225,9 @@ def handle_upload():
                 # MD5 hashes match, file integrity verified
                 Upload.mark_field_as_true(process_id, 'gz_uploaded')
                 Upload.update_gz_filename(process_id, file.filename)
-                return jsonify({'message': 'File upload complete and verified'})
+                result = send_raw_to_storage(process_id)
+                result2 = unzip_raw(process_id)
+                return jsonify({'message': 'File upload complete and verified. Sending raw to storage initiated. Unzipping initiated'})
 
             # MD5 hashes don't match, handle accordingly (e.g., delete the incomplete file, return an error)
             # os.remove(final_file_path)
@@ -255,45 +257,6 @@ def check_chunk():
     # logger.info('chunk doesnt exist ')
     return '', 204  # Chunk not found, return 204
 
-@upload_bp.route('/sendrawtostorage', methods=['POST'])
-@login_required
-def send_raw_to_storage():
-    #logger.info('raw to storage starts')
-
-    # in order to continue on the same process, lets get the id from the form
-    process_id = request.form["process_id"]
-
-    from tasks import upload_raw_file_to_storage_async
-    try:
-        result = upload_raw_file_to_storage_async.delay(process_id)
-        logger.info(f"Celery upload_raw_file_to_storage_async task called successfully! Task ID: {result.id}")
-        task_id = result.id
-        #upload.update_fastqc_process_id(process_id, task_id)
-    except Exception as e:
-        logger.error("This is an error message from upload.py while trying to upload_raw_file_to_storage_async")
-        logger.error(e)
-
-    return jsonify({"msg": "Process initiated"}), 200
-
-@upload_bp.route('/unzipraw', methods=['POST'])
-@login_required
-def unzip_raw():
-    logger.info('unzip file starts')
-    process_id = request.form["process_id"]
-
-    from tasks import unzip_raw_file_async
-    try:
-        result = unzip_raw_file_async.delay(process_id)
-        logger.info(f"Celery unzip_raw_file_async task called successfully! Task ID: {result.id}")
-        task_id = result.id
-        #upload.update_fastqc_process_id(process_id, task_id)
-    except Exception as e:
-        logger.error("This is an error message from upload.py while trying to unzip_raw_file_async")
-        logger.error(e)
-
-    return jsonify({"msg": "Process initiated"}), 200
-
-
 @upload_bp.route('/renamefiles', methods=['POST'])
 @login_required
 def renamefiles():
@@ -302,23 +265,9 @@ def renamefiles():
     # in order to continue on the same process, lets get the id from the form
     process_id = request.form["process_id"]
 
-    upload = Upload.get(process_id)
-    uploads_folder = upload.uploads_folder
-    path = Path("uploads", uploads_folder)
-    csv_filepath = path / upload.csv_filename
-    filename = upload.gz_filename
-    save_path = path / filename
-
-    extract_directory = Path("processing", uploads_folder)
-    rename_results, not_found, files_dict = rename_files(csv_filepath, extract_directory, upload.files_json)
-    Upload.update_files_json(process_id, files_dict)
-
-    to_render = '<br>'.join(rename_results)
-
-    if rename_results:
-        Upload.mark_field_as_true(process_id, 'files_renamed')
-        return jsonify({"msg": "Raw unzipped successfully.", "results":rename_results, "not_found":not_found, "files_dict": files_dict}), 200
-    return jsonify({"error": "Something went wrong."}), 400
+    # TODO: return 200 or 400 depending on the actul result.
+    result = rename_all_files(process_id)
+    return jsonify(result), 200
 
 
 @upload_bp.route('/fastqcfiles', methods=['POST'])

@@ -53,18 +53,6 @@
       {% if gz_sent_to_bucket %}
         <div id="step_3_msg" class="text-success">GZ file successfully sent to google storage</div>
       {% else %}
-        <div>
-          <form
-              id="step_3_form"
-              method="POST"
-              action="/sendrawtostorage"
-              {% if ((not gz_sent_to_bucket) and (not gz_uploaded)) %} style="display: none;" {% endif %}
-          >
-            <input type="hidden" name="process_id" value="{{ process_id }}">
-            <input type="hidden" name="totalChunks"> 
-            <input type="submit" class="btn btn-primary" id="step_3_button">
-          </form>
-        </div>
         <div id="step_3_progress">Bucket Transfer Progress: 0%</div>
         <div id="step_3_msg"></div>
       {% endif %}
@@ -74,17 +62,6 @@
       {% if gz_unziped %}
         <div id="step_4_msg" class="text-success">File successfully unzipped</div>
       {% else %}
-        <div>
-          <form
-              id="step_4_form"
-              method="POST"
-              action="/unzipraw"
-              {% if ((not gz_uploaded) or (gz_unziped)) %} style="display: none;" {% endif %}
-          >
-            <input type="hidden" name="process_id" value="{{ process_id }}">
-            <input type="submit" class="btn btn-primary" id="step_4_button">
-          </form>
-        </div>
         <div id="step_4_progress">Unzip Progress: 0%</div>
         <div id="step_4_msg"></div>
       {% endif %}
@@ -133,6 +110,11 @@
       <h3> Step 7: Upload fastqc and multiqc files to bucket</h3>
       <div id="step_7_msg" class="text-success"></div>
     </div>
+    <div id="step8" {% if not fastqc_run %} style="opacity: 0.5;" {% endif %}>
+      <h3> Step 8: Upload renamed fastq.gz files to project backet</h3>
+      <div id="step_8_msg" class="text-success"></div>
+    </div>
+
     
     <h3> Files in the uploaded file </h3>
     <div id="files_table">
@@ -244,11 +226,7 @@
 
                     // Update the hidden input field within the specific forms
                     var form2 = $("#step_2_form");
-                    form2.find('input[name="process_id"]').val(process_id);                    
-                    var form3 = $("#step_3_form");
-                    form3.find('input[name="process_id"]').val(process_id);
-                    var form4 = $("#step_4_form");
-                    form4.find('input[name="process_id"]').val(process_id);
+                    form2.find('input[name="process_id"]').val(process_id);
                     var form5 = $("#step_5_form");
                     form5.find('input[name="process_id"]').val(process_id);
                     var form6 = $("#step_6_form");
@@ -328,13 +306,14 @@
           const parsedMessage = JSON.parse(message);
           $("#step_2_msg").html(parsedMessage.message).addClass('text-success').removeClass('text-danger').removeClass('text-info');
           
-          $('#step_3_form').show();
-          $('#step_3_button').prop("disabled", false);
           $('#step3').css('opacity', '1');
           
-          $('#step_4_form').show();
-          $('#step_4_button').prop("disabled", false);
           $('#step4').css('opacity', '1');
+          
+          // We automatically will start step 3 on the server, so lets start getting updates
+          updateProgressRawFileBucket(process_id);
+          // We automatically will start step 4 on the server, so lets start getting updates
+          updateProgressUnZip(process_id);
         });
 
         r.on('fileError', function(file, message) {
@@ -346,12 +325,13 @@
         let intervals = {}; // To store interval IDs for each file upload
 
         function updateProgressRawFileBucket(process_id) {
-            console.log('We will now start calling for updates');
+            console.log('We will now start calling for updates for ProgressRawFileBucket');
 
+            let interval_id = 'rawtobucket_' + process_id
             // Clear any existing interval for the same file upload
-            clearInterval(intervals[process_id]);
+            clearInterval(intervals[interval_id]);
 
-            intervals[process_id] = setInterval(function () {
+            intervals[interval_id] = setInterval(function () {
                 $.ajax({
                     url: `/uploadprogress?process_id=${process_id}`,
                     type: 'GET',
@@ -360,11 +340,9 @@
                         $('#step_3_progress').text(`Bucket Transfer Progress: ${progress}%`);
 
                         if (progress >= 100) {
-                            clearInterval(intervals[process_id]); // Stop updating when progress reaches 100%
+                            clearInterval(intervals[interval_id]); // Stop updating when progress reaches 100%
                             console.log('We will now stop calling for updates');
                             $('#step_3_msg').text('Raw file successfully uploaded to google storage').addClass('text-success');
-                            $('#step_4_form').show();
-                            $('#step4').css('opacity', '1');
                         }
                     },
                     error: function() {
@@ -386,12 +364,13 @@
 
 
         function updateProgressUnZip(process_id) {
-            console.log('We will now start calling for updates');
+            console.log('We will now start calling for updates for ProgressUnZip');
 
+            let interval_id = 'unzip_' + process_id
             // Clear any existing interval for the same file upload
-            clearInterval(intervals[process_id]);
+            clearInterval(intervals[interval_id]);
 
-            intervals[process_id] = setInterval(function () {
+            intervals[interval_id] = setInterval(function () {
                 $.ajax({
                     url: `/unzipprogress?process_id=${process_id}`,
                     type: 'GET',
@@ -400,17 +379,20 @@
                         $('#step_4_progress').text(`Unzip Progress: ${progress}%`);
 
                         if (progress >= 100) {
-                            clearInterval(intervals[process_id]); // Stop updating when progress reaches 100%
+                            clearInterval(intervals[interval_id]); // Stop updating when progress reaches 100%
                             console.log('We will now stop calling for updates');
                             $('#step_4_msg').text('Files successfully unzipped').addClass('text-success').removeClass('text-info');
-                            $('#step_5_form').show();
-                            $('#step5').css('opacity', '1');
                             
                             let table_row = ''
                             for (key in data.matching_files) {
                               table_row = '<tr><th scope="row">' + (parseInt(key)+1) + '</th><td>' + data.matching_files[key] + '</td><td></td><td></td></tr>';
                               $('#files_body').append( table_row );
-                            }                            
+                            }
+                            
+                            // We will try to initiate the renaming step (5)
+                            $('#step_5_form').show();
+                            $('#step5').css('opacity', '1');
+                            $("#step_5_form").submit();
                         }
                     },
                     error: function() {
@@ -420,57 +402,6 @@
             }, 5000); // Update progress every 5 seconds (adjust timing as needed)
         }
 
-        $(document).ready(function () {
-            $('#step_3_form').submit(function (event) {
-                // Prevent the default form submission
-                event.preventDefault();
-                $('#step_3_button').prop("disabled", true);
-                // Get form data
-                var formData = $(this).serialize();
-
-                var process_id = $(this).find('input[name="process_id"]').val();
-                updateProgressRawFileBucket(process_id);
-
-                $.ajax({
-                    type: 'POST',
-                    url: '/sendrawtostorage',
-                    data: formData,
-                    success: function (response) {
-                        // Handle success
-                        console.log('Form data submitted via AJAX successfully');
-                    },
-                    error: function (error) {
-                        // Handle errors
-                        console.error('Error submitting form data via AJAX', error);
-                    }
-                });
-            });
-        });
-        $(document).ready(function () {
-            $('#step_4_form').submit(function (event) {
-                // Prevent the default form submission
-                event.preventDefault();
-                $('#step_4_button').prop("disabled", true);
-                // Get form data
-                var formData = $(this).serialize();
-
-                $.ajax({
-                    type: 'POST',
-                    url: '/unzipraw',
-                    data: formData,
-                    success: function (response) {
-                        // Handle success
-                        console.log('Form data submitted via AJAX successfully');
-                        updateProgressUnZip(process_id);
-                        $('#step_4_msg').text('Unzip process started').addClass('text-info');
-                    },
-                    error: function (error) {
-                        // Handle errors
-                        console.error('Error submitting form data via AJAX', error);
-                    }
-                });
-            });
-        });
         $(document).ready(function () {
             $('#step_5_form').submit(function (event) {
                 // Prevent the default form submission
@@ -501,9 +432,10 @@
                                 }
                             });
                         });
-
+                        $('#step_5_button').hide();
                         $('#step_6_form').show();
                         $('#step6').css('opacity', '1');
+                        $("#step_6_form").submit();
                     },
                     error: function (error) {
                         // Handle errors
@@ -513,7 +445,7 @@
             });
         });
         
-        function updateProgressFastq(process_id) {
+        function updateProgressMultiqc(process_id) {
             console.log('We will now start calling for updates for fastqc');
 
             let interval_id = 'fastq_' + process_id
@@ -532,10 +464,40 @@
                             console.log('We will now stop calling for updates');
                             $('#step_6_msg').text('Creation of fastqc and multiqc reports finished').addClass('text-success').removeClass('text-info');
                             $('#step_6_details').html(`<a href="/multiqc?process_id=${process_id}" target="_blank">Open multiqc report</a>`);
+                            $('#step_6_button').hide();
                             $('#step7').css('opacity', '1');
                             $('#step_7_msg').text('Fastqc and multiqc files transfered to bucket');
                         } else {
                             $('#step_6_msg').text('Files done: ' + data.files_done + ' / ' +  data.files_main).addClass('text-info').removeClass('text-success');
+                        }
+                    },
+                    error: function() {
+                        // Handle error situations
+                    }
+                });
+            }, 5000); // Update progress every 5 seconds (adjust timing as needed)
+        }
+
+        function updateProgressRenamedToBucket(process_id) {
+            console.log('We will now start calling for updates for moving renamed files to bucket');
+
+            let interval_id = 'moverenamed_' + process_id
+            // Clear any existing interval for the same file upload
+            clearInterval(intervals[interval_id]);
+
+            intervals[interval_id] = setInterval(function () {
+                $.ajax({
+                    url: `/moverenamedprogress?process_id=${process_id}`,
+                    type: 'GET',
+                    success: function(data) {
+                        let process_finished = data.process_finished;
+
+                        if (process_finished == 1) {
+                            clearInterval(intervals[interval_id]); // Stop updating when progress reaches 100%
+                            console.log('We will now stop calling for updates');
+                            $('#step_8_msg').text('Fastqc and multiqc files transfered to bucket');
+                        } else {
+                            $('#step_8_msg').text('Moved files progress: ').addClass('text-info').removeClass('text-success');
                         }
                     },
                     error: function() {
@@ -553,7 +515,7 @@
                 // Get form data
                 var formData = $(this).serialize();
                 var process_id = $(this).find('input[name="process_id"]').val();
-                updateProgressFastq(process_id)  
+                updateProgressMultiqc(process_id)  
                 
                 $.ajax({
                     type: 'POST',

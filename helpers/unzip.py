@@ -3,6 +3,9 @@ from pathlib import Path
 import gzip
 import tarfile
 import os
+import logging
+
+logger = logging.getLogger("my_app_logger")
 
 # for debug reasons only
 import time 
@@ -92,3 +95,17 @@ def get_progress_db_unzip(process_id):
     upload = Upload.get(process_id)
     progress = upload.gz_unziped_progress if upload.gz_unziped_progress not in [None] else 0
     return progress
+    
+def unzip_raw(process_id):
+
+    from tasks import unzip_raw_file_async
+    try:
+        result = unzip_raw_file_async.delay(process_id)
+        logger.info(f"Celery unzip_raw_file_async task called successfully! Task ID: {result.id}")
+        task_id = result.id
+        #upload.update_fastqc_process_id(process_id, task_id)
+    except Exception as e:
+        logger.error("This is an error message from upload.py while trying to unzip_raw_file_async")
+        logger.error(e)
+
+    return {"msg": "Process initiated"} 
