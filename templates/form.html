@@ -89,7 +89,7 @@
     <div id="step6" {% if not files_renamed %} style="opacity: 0.5;" {% endif %}>
       <h3> Step 6: Run fastqc</h3>
       {% if fastqc_run %}
-        <div id="step_6_msg">Fastqc and multiqc processes run</div>
+        <div id="step_6_msg" class="text-success">Fastqc and multiqc processes run</div>
       {% else %}
         <div>
           <form
@@ -108,11 +108,29 @@
     </div>
     <div id="step7" {% if not fastqc_run %} style="opacity: 0.5;" {% endif %}>
       <h3> Step 7: Upload fastqc and multiqc files to bucket</h3>
-      <div id="step_7_msg" class="text-success"></div>
+      {% if fastqc_run %}
+        <div id="step_7_msg" class="text-success">Multiqc report uploaded to bucket</div>
+      {% else %}
+        <div id="step_7_msg" class="text-success"></div>
+      {% endif %}
     </div>
-    <div id="step8" {% if not fastqc_run %} style="opacity: 0.5;" {% endif %}>
-      <h3> Step 8: Upload renamed fastq.gz files to project backet</h3>
-      <div id="step_8_msg" class="text-success"></div>
+    <div id="step8" {% if not files_renamed %} style="opacity: 0.5;" {% endif %}>
+      <h3> Step 8: Upload renamed fastq.gz files to project backets</h3>
+      {% if renamed_sent_to_bucket %}
+        <div id="step_8_msg" class="text-success">Renamed files sent to buckets</div>
+      {% else %}
+        <div>
+          <form
+              id="step_8_form"
+              method="POST"
+              action="/uploadrenamed"
+          >
+            <input type="hidden" name="process_id" value="{{ process_id }}">
+            <input type="submit" class="btn btn-primary" id="step_8_button">
+          </form>
+        </div>
+        <div id="step_8_msg"></div>
+      {% endif %}
     </div>
 
     
@@ -495,9 +513,9 @@
                         if (process_finished == 1) {
                             clearInterval(intervals[interval_id]); // Stop updating when progress reaches 100%
                             console.log('We will now stop calling for updates');
-                            $('#step_8_msg').text('Fastqc and multiqc files transfered to bucket');
+                            $('#step_8_msg').text('All renamed files moved to project buckets');
                         } else {
-                            $('#step_8_msg').text('Moved files progress: ').addClass('text-info').removeClass('text-success');
+                            $('#step_8_msg').text('Files done: ' + data.files_done + ' / ' +  data.files_main).addClass('text-info').removeClass('text-success');
                         }
                     },
                     error: function() {
@@ -534,6 +552,35 @@
                 });
             });
         });
+        
+        $(document).ready(function () {
+            $('#step_8_form').submit(function (event) {
+                // Prevent the default form submission
+                event.preventDefault();
+                $('#step_8_button').prop("disabled", true);
+                // Get form data
+                var formData = $(this).serialize();
+                var process_id = $(this).find('input[name="process_id"]').val();
+                updateProgressRenamedToBucket(process_id)  
+                console.log(formData);
+                
+                $.ajax({
+                    type: 'POST',
+                    url: '/uploadrenamed',
+                    data: formData,
+                    success: function (response) {
+                        // Handle success
+                        console.log('Form data for upload renamed files submitted via AJAX successfully');
+                        
+                        $('#step_8_msg').text('Upload renamed files process started').addClass('text-info');
+                    },
+                    error: function (error) {
+                        // Handle errors
+                        console.error('Error submitting form data via AJAX', error);
+                    }
+                });
+            });
+        });        
     </script>
 </body>
 </html>

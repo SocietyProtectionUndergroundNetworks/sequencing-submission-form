@@ -16,7 +16,7 @@ from flask_login import (
 )
 
 from helpers.csv import validate_csv
-from helpers.bucket import bucket_chunked_upload, get_progress_db_bucket, send_raw_to_storage
+from helpers.bucket import bucket_chunked_upload, get_progress_db_bucket, init_send_raw_to_storage, get_renamed_files_to_storage_progress, init_send_renamed_to_storage
 from helpers.unzip import get_progress_db_unzip, unzip_raw
 from helpers.fastqc import get_fastqc_progress
 from helpers.file_renaming import calculate_md5, rename_all_files
@@ -95,7 +95,8 @@ def upload_form_resume():
                                 matching_files=matching_files_filesystem,
                                 matching_files_db=matching_files_dict,
                                 fastqc_run=upload.fastqc_run,
-                                gz_sent_to_bucket_progress=upload.gz_sent_to_bucket_progress
+                                gz_sent_to_bucket_progress=upload.gz_sent_to_bucket_progress,
+                                renamed_sent_to_bucket=upload.renamed_sent_to_bucket
                                 )
 
 @upload_bp.route('/form')
@@ -129,7 +130,7 @@ def upload_csv():
     logger.info(cvs_results)
     if cvs_results is True:
         process_id = Upload.create(user_id=current_user.id, csv_filename=filename, uploads_folder=uploads_folder)
-        bucket_chunked_upload(save_path, uploads_folder, filename, process_id, 'csv_file')
+        bucket_chunked_upload(save_path, "uploads/" + uploads_folder, filename, process_id, 'csv_file')
         # logger.info('new_id is ' + str(new_id))
         return jsonify({"msg": "CSV file uploaded successfully. Checks passed", "process_id": process_id}), 200
     else:
@@ -225,7 +226,7 @@ def handle_upload():
                 # MD5 hashes match, file integrity verified
                 Upload.mark_field_as_true(process_id, 'gz_uploaded')
                 Upload.update_gz_filename(process_id, file.filename)
-                result = send_raw_to_storage(process_id)
+                result = init_send_raw_to_storage(process_id)
                 result2 = unzip_raw(process_id)
                 return jsonify({'message': 'File upload complete and verified. Sending raw to storage initiated. Unzipping initiated'})
 
@@ -311,6 +312,12 @@ def show_multiqc_report():
 
     return to_return
 
+@upload_bp.route('/uploadrenamed', methods=['POST'])
+@login_required
+def upload_renamed_files_route():
+    process_id = request.form["process_id"]
+    init_send_renamed_to_storage(process_id)
+    return jsonify({'message': 'Process initiated'})
 
 @upload_bp.route('/user_uploads', methods=['GET'])
 @login_required
@@ -319,9 +326,16 @@ def user_uploads():
     user_uploads = Upload.get_uploads_by_user(user_id)
     return render_template('user_uploads.html', user_uploads=user_uploads)
 
+@upload_bp.route('/moverenamedprogress', methods=['GET'])
+@login_required
+def get_renamed_files_to_storage_progress_route():
+    process_id = request.args.get('process_id')
+    to_return = get_renamed_files_to_storage_progress(process_id)
+    return to_return
 
-@upload_bp.route('/test2', methods=['GET'])
+@upload_bp.route('/test', methods=['GET'])
 def check_process_id1():
-    process_id = 4
-    to_return = get_fastqc_progress(process_id)
+    from helpers.bucket import upload_renamed_files_to_storage
+    process_id = 42
+    to_return = upload_renamed_files_to_storage(process_id)
     return to_return

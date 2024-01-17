@@ -27,11 +27,15 @@ def rename_files(csv_file_path, directory_path, files_json):
         # Find the indices of the required columns
         sequencer_id_index = headers.index('Sequencer_ID')
         sample_id_index = headers.index('Sample_ID')
+        bucket_index = headers.index('Project')
+        bucket_folder_index = headers.index('Region')
         
         # Iterate through each row in the CSV file
         for row in csv_reader:
             sampleid = str(row[sequencer_id_index])
             name = str(row[sample_id_index])
+            bucket = str(row[bucket_index])
+            bucket_folder = str(row[bucket_folder_index])
 
             # Get a list of all file names in the directory
             file_names = os.listdir(directory_path)
@@ -73,6 +77,8 @@ def rename_files(csv_file_path, directory_path, files_json):
                     #results.append(f"Renamed {matching_file} to {new_file_name}")
                     results[matching_file] = f"Renamed to {new_file_name}"
                     matching_files_dict[matching_file]['new_filename'] = new_file_name
+                    matching_files_dict[matching_file]['bucket'] = bucket
+                    matching_files_dict[matching_file]['folder'] = bucket_folder
 
             if not matching_files:
                 not_found.append(sampleid)

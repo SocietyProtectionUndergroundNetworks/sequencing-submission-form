@@ -43,3 +43,5 @@ class UploadTable(Base):
     fastqc_run = Column(Boolean, default=False)
     fastqc_process_id = Column(String(255), nullable=True, index=True)
     fastqc_sent_to_bucket = Column(Boolean, default=False)
+    renamed_sent_to_bucket = Column(Boolean, default=False)
+    renamed_sent_to_bucket_progress = Column(Integer, default=0)

@@ -43,8 +43,8 @@ class Upload():
             .filter(
                 UploadTable.user_id == user_id,
                 or_(
-                    UploadTable.fastqc_run == False,
-                    UploadTable.fastqc_run.is_(None)
+                    UploadTable.renamed_sent_to_bucket == False,
+                    UploadTable.renamed_sent_to_bucket.is_(None)
                 )
             )
             .order_by(desc(UploadTable.updated_at))  # Get the latest based on updated_at
@@ -147,6 +147,22 @@ class Upload():
 
         if upload:
             upload.gz_unziped_progress = progress
+            session.commit()
+            session.close()
+            return True
+        else:
+            session.close()
+            return False
+            
+    @classmethod
+    def update_renamed_sent_to_bucket_progress(cls, upload_id, progress):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        upload = session.query(UploadTable).filter_by(id=upload_id).first()
+
+        if upload:
+            upload.renamed_sent_to_bucket_progress = progress
             session.commit()
             session.close()
             return True
