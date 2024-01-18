@@ -11,7 +11,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2.4.0  # Update to the latest version that supports Node.js 16
+        uses: actions/checkout@v4.1.1
+
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2.0.1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v2.0.1
