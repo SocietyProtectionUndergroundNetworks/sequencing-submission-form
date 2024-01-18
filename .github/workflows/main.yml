@@ -45,3 +45,7 @@ jobs:
             --zone=${{ secrets.GCP_ZONE }} \
             --project=${{ secrets.GCP_PROJECT_ID }} \
             --command="sudo chown -R runner:runner "~/${{ github.event.repository.name }}/*" ; sudo cp -a "~/${{ github.event.repository.name }}/." ${{ secrets.GCP_PROJECT_DIRECTORY }}"
+
+      - name: Run alembic database migration
+        run: |
+          gcloud compute ssh ${{ secrets.GCP_VM_INSTANCE }} --zone=${{ secrets.GCP_ZONE }} --command="cd ${{ secrets.GCP_PROJECT_DIRECTORY }} && make migrate"
