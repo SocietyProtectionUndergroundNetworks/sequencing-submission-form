@@ -24,7 +24,7 @@ jobs:
 
       - name: Test access of runner user after os Login
         run: |
-          gcloud compute ssh ${{ secrets.GCP_VM_INSTANCE }} --zone=${{ secrets.GCP_ZONE }} --command="cd ${{ secrets.GCP_PROJECT_DIRECTORY }} && ls -l"
+          gcloud compute ssh ${{ secrets.GCP_VM_INSTANCE }} --zone=${{ secrets.GCP_ZONE }} --command="ls -l"
 
       - name: Deploy code to Google Cloud VM
         run: |
