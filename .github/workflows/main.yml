@@ -26,13 +26,6 @@ jobs:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           service_account_key: ${{ secrets.GCP_SA_KEY }}
 
-      - name: Test access of runner user after OS Login
-        run: |
-          gcloud compute ssh ${{ secrets.GCP_VM_INSTANCE }} \
-            --zone=${{ secrets.GCP_ZONE }} \
-            --project=${{ secrets.GCP_PROJECT_ID }} \
-            --command="ls -l"
-
       - name: Delete checked out directory before copying code over
         run: |
           gcloud compute ssh ${{ secrets.GCP_VM_INSTANCE }} \
