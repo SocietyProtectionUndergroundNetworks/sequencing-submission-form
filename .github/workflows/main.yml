@@ -31,6 +31,9 @@ jobs:
             --project=${{ secrets.GCP_PROJECT_ID }} \
             --command="ls -l"
 
+      - name: Check if the code of this repo is here
+        run: ls -l
+
       - name: Copy code to VM
         run: |
           gcloud compute scp --zone=${{ secrets.GCP_ZONE }} \
