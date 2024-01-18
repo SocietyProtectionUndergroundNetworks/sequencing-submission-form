@@ -31,8 +31,12 @@ jobs:
             --project=${{ secrets.GCP_PROJECT_ID }} \
             --command="ls -l"
 
-      - name: Check current path
-        run: pwd
+      - name: Check who the current user is
+        run: |
+          gcloud compute ssh ${{ secrets.GCP_VM_INSTANCE }} \
+            --zone=${{ secrets.GCP_ZONE }} \
+            --project=${{ secrets.GCP_PROJECT_ID }} \
+            --command="who"
 
       - name: Check if the code of this repo is here
         run: ls -l
