@@ -38,9 +38,6 @@ jobs:
             --project=${{ secrets.GCP_PROJECT_ID }} \
             --command="who"
 
-      - name: Check if the code of this repo is here
-        run: ls -l
-
       - name: Copy code to VM
         run: |
           gcloud compute scp --zone=${{ secrets.GCP_ZONE }} \
@@ -52,7 +49,7 @@ jobs:
           gcloud compute ssh ${{ secrets.GCP_VM_INSTANCE }} \
             --zone=${{ secrets.GCP_ZONE }} \
             --project=${{ secrets.GCP_PROJECT_ID }} \
-            --command="sudo chown -R runner:runner /home/runner/spun-web-form2/*"
+            --command="sudo chown -R runner:runner /home/runner/spun-web-form2/* ; sudo mv /home/runner/spun-web-form2/sequencing-submission-form/* /home/runner/spun-web-form2/"
 
 
       - name: Test access of runner user after OS Login
