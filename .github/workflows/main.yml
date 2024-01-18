@@ -13,8 +13,42 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2.4.0  # Update to the latest version that supports Node.js 16
 
-      - name: Update Google Cloud SDK
-        run: gcloud components update
+      - name: Update Google Cloud SDK components
+        run: |
+          sudo apt-get update
+          sudo apt-get --only-upgrade install \
+            google-cloud-sdk-skaffold \
+            google-cloud-sdk-config-connector \
+            google-cloud-sdk-spanner-migration-tool \
+            google-cloud-sdk \
+            google-cloud-sdk-harbourbridge \
+            google-cloud-sdk-app-engine-python-extras \
+            google-cloud-sdk-local-extract \
+            google-cloud-sdk-istioctl \
+            google-cloud-sdk-minikube \
+            google-cloud-cli-docker-credential-gcr \
+            google-cloud-sdk-cloud-run-proxy \
+            google-cloud-sdk-bigtable-emulator \
+            google-cloud-sdk-pubsub-emulator \
+            google-cloud-sdk-firestore-emulator \
+            google-cloud-sdk-cbt \
+            google-cloud-sdk-kubectl-oidc \
+            google-cloud-sdk-app-engine-grpc \
+            google-cloud-sdk-gke-gcloud-auth-plugin \
+            google-cloud-sdk-cloud-build-local \
+            google-cloud-sdk-app-engine-python \
+            google-cloud-sdk-app-engine-java \
+            google-cloud-sdk-spanner-emulator \
+            google-cloud-sdk-terraform-tools \
+            google-cloud-sdk-kpt \
+            google-cloud-sdk-enterprise-certificate-proxy \
+            google-cloud-sdk-log-streaming \
+            google-cloud-sdk-nomos \
+            google-cloud-sdk-anthos-auth \
+            kubectl \
+            google-cloud-sdk-datastore-emulator \
+            google-cloud-sdk-package-go-module \
+            google-cloud-sdk-app-engine-go
 
       - name: Authenticate with Google Cloud
         run: |
