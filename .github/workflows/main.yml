@@ -51,7 +51,7 @@ jobs:
           gcloud compute ssh ${{ secrets.GCP_VM_INSTANCE }} \
             --zone=${{ secrets.GCP_ZONE }} \
             --project=${{ secrets.GCP_PROJECT_ID }} \
-            --command="sudo chown -R runner:runner "~/${{ github.event.repository.name }}/*" ; sudo mv "~/${{ github.event.repository.name }}/*" /home/runner/spun-web-form2/"
+            --command="sudo chown -R runner:runner "~/${{ github.event.repository.name }}/*" ; sudo cp -r "~/${{ github.event.repository.name }}/" /home/runner/spun-web-form2/"
 
 
       - name: Test access of runner user after OS Login
