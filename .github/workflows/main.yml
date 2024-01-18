@@ -33,12 +33,12 @@ jobs:
             --project=${{ secrets.GCP_PROJECT_ID }} \
             --command="ls -l"
 
-      - name: Check who the current user is
+      - name: Delete checked out directory before copying code over
         run: |
           gcloud compute ssh ${{ secrets.GCP_VM_INSTANCE }} \
             --zone=${{ secrets.GCP_ZONE }} \
             --project=${{ secrets.GCP_PROJECT_ID }} \
-            --command="who"
+            --command="sudo rm -r "~/${{ github.event.repository.name }}""
 
       - name: Copy code to VM
         run: |
@@ -52,10 +52,3 @@ jobs:
             --zone=${{ secrets.GCP_ZONE }} \
             --project=${{ secrets.GCP_PROJECT_ID }} \
             --command="sudo chown -R runner:runner "~/${{ github.event.repository.name }}/*" ; sudo cp -a "~/${{ github.event.repository.name }}/." ${{ secrets.GCP_PROJECT_DIRECTORY }}"
-
-      - name: Test access of runner user after OS Login
-        run: |
-          gcloud compute ssh ${{ secrets.GCP_VM_INSTANCE }} \
-            --zone=${{ secrets.GCP_ZONE }} \
-            --project=${{ secrets.GCP_PROJECT_ID }} \
-            --command="ls -l /home/runner/spun-web-form2"
