@@ -31,6 +31,9 @@ jobs:
             --project=${{ secrets.GCP_PROJECT_ID }} \
             --command="ls -l"
 
+      - name: Check current path
+        run: pwd
+
       - name: Check if the code of this repo is here
         run: ls -l
 
@@ -38,7 +41,7 @@ jobs:
         run: |
           gcloud compute scp --zone=${{ secrets.GCP_ZONE }} \
             --project=${{ secrets.GCP_PROJECT_ID }} \
-            --recurse . ${{ secrets.GCP_VM_INSTANCE }}:/home/runner/spun-web-form2
+            --recurse ${GITHUB_WORKSPACE} ${{ secrets.GCP_VM_INSTANCE }}:/home/runner/spun-web-form2
 
       - name: Test access of runner user after OS Login
         run: |
