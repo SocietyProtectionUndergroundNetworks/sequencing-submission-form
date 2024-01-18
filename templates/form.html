@@ -95,7 +95,7 @@
           <form
               id="step_6_form"
               method="POST"
-              action="/runfastqc"
+              action="/fastqcfiles"
               {% if ((not files_renamed) or (fastqc_run)) %} style="display: none;" {% endif %}
           >
             <input type="hidden" name="process_id" value="{{ process_id }}">

@@ -113,14 +113,14 @@ def bucket_chunked_upload(local_file_path, destination_upload_directory, destina
         update_progress_db(process_id, upload_type, 100)
         return True
 
-def bucket_upload_folder(folder_path, destination_upload_directory, process_id, upload_type):
+def bucket_upload_folder(folder_path, destination_upload_directory, process_id, upload_type, bucket):
     for root, _, files in os.walk(folder_path):
         for file_name in files:
             file_path = os.path.join(root, file_name)
             destination_blob_name = os.path.relpath(file_path, folder_path)
-            bucket_chunked_upload(file_path, destination_upload_directory, destination_blob_name, process_id, upload_type)
+            bucket_chunked_upload(file_path, destination_upload_directory, destination_blob_name, process_id, upload_type, bucket)
 
-def init_send_renamed_to_storage(process_id):
+def init_upload_renamed_files_to_storage(process_id):
 
     from tasks import upload_renamed_files_to_storage_async
     try:

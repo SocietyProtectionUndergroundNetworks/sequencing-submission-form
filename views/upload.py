@@ -16,9 +16,9 @@ from flask_login import (
 )
 
 from helpers.csv import validate_csv
-from helpers.bucket import bucket_chunked_upload, get_progress_db_bucket, init_send_raw_to_storage, get_renamed_files_to_storage_progress, init_send_renamed_to_storage
+from helpers.bucket import bucket_chunked_upload, get_progress_db_bucket, init_send_raw_to_storage, get_renamed_files_to_storage_progress, init_upload_renamed_files_to_storage
 from helpers.unzip import get_progress_db_unzip, unzip_raw
-from helpers.fastqc import get_fastqc_progress
+from helpers.fastqc import get_fastqc_progress, init_fastqc_multiqc_files
 from helpers.file_renaming import calculate_md5, rename_all_files
 
 from models.upload import Upload
@@ -274,24 +274,8 @@ def renamefiles():
 @upload_bp.route('/fastqcfiles', methods=['POST'])
 @login_required
 def fastqcfiles():
-    logger.info('fastqc of files starts')
-
-    # in order to continue on the same process, lets get the id from the form
     process_id = request.form["process_id"]
-
-    upload = Upload.get(process_id)
-    logger.info(upload.extract_directory)
-    from tasks import fastqc_multiqc_files_async
-    try:
-        result = fastqc_multiqc_files_async.delay(str(upload.extract_directory), process_id)
-        logger.info(f"Celery multiqc task called successfully! Task ID: {result.id}")
-        task_id = result.id
-        upload.update_fastqc_process_id(process_id, task_id)
-    except Exception as e:
-        logger.error("This is an error message from upload.py")
-        logger.error(e)
-
-
+    init_fastqc_multiqc_files(process_id)
     return 'ok', 200
 
 @upload_bp.route('/fastqcprogress')
@@ -316,7 +300,7 @@ def show_multiqc_report():
 @login_required
 def upload_renamed_files_route():
     process_id = request.form["process_id"]
-    init_send_renamed_to_storage(process_id)
+    init_upload_renamed_files_to_storage(process_id)
     return jsonify({'message': 'Process initiated'})
 
 @upload_bp.route('/user_uploads', methods=['GET'])

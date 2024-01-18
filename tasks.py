@@ -12,8 +12,8 @@ def unzip_raw_file_async(process_id):
     unzip_raw_file(process_id)
 
 @celery_app.task    
-def fastqc_multiqc_files_async(input_folder, process_id):
-    fastqc_multiqc_files(input_folder, process_id)
+def fastqc_multiqc_files_async(process_id):
+    fastqc_multiqc_files(process_id)
     
 @celery_app.task
 def upload_renamed_files_to_storage_async(process_id):
