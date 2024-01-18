@@ -46,7 +46,7 @@ jobs:
             --project=${{ secrets.GCP_PROJECT_ID }} \
             --recurse ${GITHUB_WORKSPACE} ${{ secrets.GCP_VM_INSTANCE }}:~/${{ github.event.repository.name }}
 
-      - name: Chown the code to the correct user
+      - name: Chown the code to the correct user and copy it to correct folder
         run: |
           gcloud compute ssh ${{ secrets.GCP_VM_INSTANCE }} \
             --zone=${{ secrets.GCP_ZONE }} \
