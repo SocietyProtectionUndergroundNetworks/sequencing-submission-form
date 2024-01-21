@@ -31,7 +31,7 @@ jobs:
           gcloud compute ssh ${{ secrets.GCP_VM_INSTANCE }} \
             --zone=${{ secrets.GCP_ZONE }} \
             --project=${{ secrets.GCP_PROJECT_ID }} \
-            --command="sudo rm -r "~/${{ github.event.repository.name }}""
+            --command="sudo rm -rf "~/${{ github.event.repository.name }}""
 
       - name: Copy code to VM
         run: |
