@@ -27,6 +27,11 @@ stop:
 
 rebuild: stop build run
 
+rebuildnginx:
+	docker-compose down nginx
+	docker-compose build --no-cache nginx
+	docker-compose up -d nginx
+
 bashflask:
 	docker-compose run --rm --entrypoint "" flask /bin/bash
 
@@ -44,6 +49,9 @@ logsflask:
 
 logscelery:
 	docker-compose logs -f --tail=200 celery-worker
+
+logsnginx:
+	docker-compose logs -f --tail=200 nginx
 
 migration:
 	docker-compose exec flask alembic revision --autogenerate -m "${description}"
