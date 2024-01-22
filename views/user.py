@@ -26,9 +26,19 @@ GOOGLE_DISCOVERY_URL = (
 # OAuth 2 client setup
 client = WebApplicationClient(GOOGLE_CLIENT_ID)
 
-
-
 user_bp = Blueprint('user', __name__)
+
+# Custom admin_required decorator
+def admin_required(view_func):
+    def decorated_view(*args, **kwargs):
+        if not current_user.is_authenticated:
+            # Redirect unauthenticated users to the login page
+            return redirect(url_for('user.login'))  # Adjust 'login' to your actual login route
+        elif not current_user.admin:
+            # Redirect non-admin users to some unauthorized page
+            return redirect(url_for('user.only_admins'))
+        return view_func(*args, **kwargs)
+    return decorated_view
 
 # Flask-Login helper to retrieve a user from our db
 @login_manager.user_loader
@@ -128,15 +138,21 @@ def custom_unauthorized():
 @user_bp.route('/only_admins')
 def only_admins():
     return render_template('only_admins.html')
+
+@user_bp.route('/only_approved')
+def only_approved():
+    return render_template('only_approved.html')
     
-@user_bp.route('/users')
+@user_bp.route('/users', endpoint='users')
 @login_required
+@admin_required
 def users():
     all_users = User.get_all()
     return render_template('users.html', all_users=all_users)
     
-@user_bp.route('/update_admin_status', methods=['POST'])
+@user_bp.route('/update_admin_status', methods=['POST'], endpoint='update_admin_status')
 @login_required
+@admin_required
 def update_admin_status():
     user_id = request.form.get('user_id')
     admin_status = request.form.get('admin') == 'on'  # Convert to boolean
@@ -144,8 +160,9 @@ def update_admin_status():
     User.update_admin_status(user_id, admin_status)
     return redirect('/users')
     
-@user_bp.route('/update_approved_status', methods=['POST'])
+@user_bp.route('/update_approved_status', methods=['POST'], endpoint='update_approved_status')
 @login_required
+@admin_required
 def update_approved_status():
     user_id = request.form.get('user_id')
     approved_status = request.form.get('approved') == 'on'  # Convert to boolean

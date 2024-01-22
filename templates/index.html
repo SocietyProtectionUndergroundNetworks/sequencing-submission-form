@@ -11,8 +11,10 @@
       with the email: {{email}}
   </div>
   <ul class="list-group">
-    <li class="list-group-item"><a href="/form_resume">Resume Form</a></li>
-    <li class="list-group-item"><a href="/form">Form</a></li>
+    {% if current_user.is_authenticated and current_user.approved %}
+      <li class="list-group-item"><a href="/form_resume">Resume Form</a></li>
+      <li class="list-group-item"><a href="/form">Form</a></li>
+    {% endif %}
     {% if current_user.is_authenticated and current_user.admin %}
       <li class="list-group-item"><a href="{{ url_for('user.users') }}">Users</a></li>
     {% endif %}

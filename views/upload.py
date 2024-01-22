@@ -6,7 +6,7 @@ import json
 import logging
 from pathlib import Path
 from werkzeug.utils import secure_filename
-from flask import Blueprint, render_template, request, jsonify, send_from_directory
+from flask import Blueprint, render_template, request, jsonify, send_from_directory, redirect, url_for
 from flask_login import (
     LoginManager,
     current_user,
@@ -30,6 +30,18 @@ logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
 upload_bp = Blueprint('upload', __name__)
 
+# Custom approved_required decorator
+def approved_required(view_func):
+    def decorated_approved_view(*args, **kwargs):
+        if not current_user.is_authenticated:
+            # Redirect unauthenticated users to the login page
+            return redirect(url_for('user.login'))  # Adjust 'login' to your actual login route
+        elif not current_user.approved:
+            # Redirect non-approved users to some unauthorized page
+            return redirect(url_for('user.only_approved'))
+        return view_func(*args, **kwargs)
+    return decorated_approved_view
+
 @upload_bp.route("/")
 def index():
     if current_user.is_authenticated:
@@ -37,8 +49,9 @@ def index():
     else:
         return '<a class="button" href="/login">Google Login</a>'
 
-@upload_bp.route('/form_resume')
+@upload_bp.route('/form_resume', endpoint='upload_form_resume')
 @login_required
+@approved_required
 def upload_form_resume():
     default_process_id = 0
     process_id = request.args.get('process_id', default_process_id)
@@ -99,14 +112,16 @@ def upload_form_resume():
                                 renamed_sent_to_bucket=upload.renamed_sent_to_bucket
                                 )
 
-@upload_bp.route('/form')
+@upload_bp.route('/form', endpoint='upload_form')
 @login_required
+@approved_required
 def upload_form():
     # logger.info('form requested')
     return render_template("form.html")
 
-@upload_bp.route('/uploadcsv', methods=['POST'])
+@upload_bp.route('/uploadcsv', methods=['POST'], endpoint='upload_csv')
 @login_required
+@approved_required
 def upload_csv():
     # Handle CSV file uploads separately
     file = request.files.get('file')
@@ -136,8 +151,9 @@ def upload_csv():
     else:
         return jsonify({"error": "CSV file problems: ", "results": cvs_results}), 400
 
-@upload_bp.route('/unzipprogress')
+@upload_bp.route('/unzipprogress', endpoint='unzip_progress')
 @login_required
+@approved_required
 def unzip_progress():
     process_id = request.args.get('process_id')
     progress = get_progress_db_unzip(process_id)
@@ -165,8 +181,9 @@ def unzip_progress():
     }
 
 
-@upload_bp.route('/uploadprogress')
+@upload_bp.route('/uploadprogress', endpoint='upload_progress')
 @login_required
+@approved_required
 def upload_progress():
     process_id = request.args.get('process_id')
     progress = get_progress_db_bucket(process_id, 'gz_raw')
@@ -174,7 +191,9 @@ def upload_progress():
         "progress": progress
     }
 
-@upload_bp.route('/upload', methods=['POST'])
+@upload_bp.route('/upload', methods=['POST'], endpoint='handle_upload')
+@login_required
+@approved_required
 def handle_upload():
     file = request.files.get('file')
     if file:
@@ -239,7 +258,9 @@ def handle_upload():
 
     return jsonify({'message': 'No file received'}), 400
 
-@upload_bp.route('/upload', methods=['GET'])
+@upload_bp.route('/upload', methods=['GET'], endpoint='check_chunk')
+@login_required
+@approved_required
 def check_chunk():
     process_id = request.args.get('process_id')
     chunk_number = request.args.get('resumableChunkNumber')
@@ -258,8 +279,9 @@ def check_chunk():
     # logger.info('chunk doesnt exist ')
     return '', 204  # Chunk not found, return 204
 
-@upload_bp.route('/renamefiles', methods=['POST'])
+@upload_bp.route('/renamefiles', methods=['POST'], endpoint='renamefiles')
 @login_required
+@approved_required
 def renamefiles():
     logger.info('renaming files starts')
 
@@ -271,22 +293,25 @@ def renamefiles():
     return jsonify(result), 200
 
 
-@upload_bp.route('/fastqcfiles', methods=['POST'])
+@upload_bp.route('/fastqcfiles', methods=['POST'], endpoint='fastqcfiles')
 @login_required
+@approved_required
 def fastqcfiles():
     process_id = request.form["process_id"]
     init_fastqc_multiqc_files(process_id)
     return 'ok', 200
 
-@upload_bp.route('/fastqcprogress')
+@upload_bp.route('/fastqcprogress', endpoint='fastqc_progress')
 @login_required
+@approved_required
 def fastqc_progress():
     process_id = request.args.get('process_id')
     to_return = get_fastqc_progress(process_id)
     return to_return
 
-@upload_bp.route('/multiqc', methods=['GET'])
+@upload_bp.route('/multiqc', methods=['GET'], endpoint='show_multiqc_report')
 @login_required
+@approved_required
 def show_multiqc_report():
     process_id = request.args.get('process_id')
     multiqc_progress = get_fastqc_progress(process_id)
@@ -296,30 +321,26 @@ def show_multiqc_report():
 
     return to_return
 
-@upload_bp.route('/uploadrenamed', methods=['POST'])
+@upload_bp.route('/uploadrenamed', methods=['POST'], endpoint='upload_renamed_files_route')
 @login_required
+@approved_required
 def upload_renamed_files_route():
     process_id = request.form["process_id"]
     init_upload_renamed_files_to_storage(process_id)
     return jsonify({'message': 'Process initiated'})
 
-@upload_bp.route('/user_uploads', methods=['GET'])
+@upload_bp.route('/user_uploads', methods=['GET'], endpoint='user_uploads')
 @login_required
+@approved_required
 def user_uploads():
     user_id = request.args.get('user_id')
     user_uploads = Upload.get_uploads_by_user(user_id)
     return render_template('user_uploads.html', user_uploads=user_uploads)
 
-@upload_bp.route('/moverenamedprogress', methods=['GET'])
+@upload_bp.route('/moverenamedprogress', methods=['GET'], endpoint='get_renamed_files_to_storage_progress_route')
 @login_required
+@approved_required
 def get_renamed_files_to_storage_progress_route():
     process_id = request.args.get('process_id')
     to_return = get_renamed_files_to_storage_progress(process_id)
-    return to_return
-
-@upload_bp.route('/test', methods=['GET'])
-def check_process_id1():
-    from helpers.bucket import upload_renamed_files_to_storage
-    process_id = 42
-    to_return = upload_renamed_files_to_storage(process_id)
     return to_return
