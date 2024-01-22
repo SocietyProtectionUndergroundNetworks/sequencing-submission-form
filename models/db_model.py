@@ -15,6 +15,7 @@ class UserTable(Base):
     profile_pic = Column(String(255), nullable=False)
     admin = Column(Boolean, default=False)
     uploads = relationship("UploadTable", backref="user")
+    approved = Column(Boolean, default=False)
 
         
 class UploadTable(Base):

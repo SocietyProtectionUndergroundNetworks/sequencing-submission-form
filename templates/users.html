@@ -19,12 +19,13 @@
           <th scope="col">Name</th>
           <th scope="col">Files uploaded</th>
           <th scope="col">Is Admin</th>
+          <th scope="col">Is Approved</th>
         </tr>
       </thead>
       <tbody id="files_body">
         {% for user in all_users %}
           <tr>
-              <th scope="row"></th>
+              <td scope="row"></td>
               <td>{{ user.user.email }}</td>
               <td>{{ user.user.name }}</td>
               <td>
@@ -34,11 +35,34 @@
                   {{ user.uploads_count }}
                 {% endif %}              
               </td>
-              <td></td>
+              <td>
+                <form action="/update_admin_status" method="post" class="admin-form">
+                  <input type="hidden" name="user_id" value="{{ user.user.id }}">
+                  <div class="form-check">
+                    <input class="form-check-input admin-checkbox" type="checkbox" name="admin" {% if user.user.admin %} checked {% endif %} {% if user.user.id == current_user.id %} disabled {% endif %}>
+                  </div>
+                </form>
+              </td>
+              <td>
+                <form action="/update_approved_status" method="post" class="approved-form">
+                  <input type="hidden" name="user_id" value="{{ user.user.id }}">
+                  <div class="form-check">
+                    <input class="form-check-input approved-checkbox" type="checkbox" name="approved" {% if user.user.approved %} checked {% endif %}>
+                  </div>
+                </form>                
+              </td>
           </tr>
         {% endfor %}        
       </tbody>
     </table>    
   </div>
+  <script>
+    $('.admin-checkbox').on('change', function() {
+      $(this).closest('.admin-form').submit();
+    });
+    $('.approved-checkbox').on('change', function() {
+      $(this).closest('.approved-form').submit();
+    });    
+  </script>  
 </body>
 </html>

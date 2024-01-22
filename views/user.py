@@ -101,12 +101,12 @@ def callback():
     # Create a user in our db with the information provided
     # by Google
     user = User(
-        id_=unique_id, name=users_name, email=users_email, profile_pic=picture, admin=False
+        id_=unique_id, name=users_name, email=users_email, profile_pic=picture, admin=False, approved=False
     )
 
     # Doesn't exist? Add to database
     if not User.get(unique_id):
-        User.create(id_=unique_id, name=users_name, email=users_email, profile_pic=picture, admin=False)
+        User.create(id_=unique_id, name=users_name, email=users_email, profile_pic=picture, admin=False, approved=False)
 
     # Begin user session by logging the user in
     login_user(user, remember=True)
@@ -124,9 +124,31 @@ def logout():
 def custom_unauthorized():
     # Customize the unauthorized page
     return render_template('custom_unauthorized.html')
+
+@user_bp.route('/only_admins')
+def only_admins():
+    return render_template('only_admins.html')
     
 @user_bp.route('/users')
 @login_required
 def users():
     all_users = User.get_all()
     return render_template('users.html', all_users=all_users)
+    
+@user_bp.route('/update_admin_status', methods=['POST'])
+@login_required
+def update_admin_status():
+    user_id = request.form.get('user_id')
+    admin_status = request.form.get('admin') == 'on'  # Convert to boolean
+    # Update the admin status in the database based on user_id and admin_status
+    User.update_admin_status(user_id, admin_status)
+    return redirect('/users')
+    
+@user_bp.route('/update_approved_status', methods=['POST'])
+@login_required
+def update_approved_status():
+    user_id = request.form.get('user_id')
+    approved_status = request.form.get('approved') == 'on'  # Convert to boolean
+    # Update the admin status in the database based on user_id and admin_status
+    User.update_approved_status(user_id, approved_status)
+    return redirect('/users')   
