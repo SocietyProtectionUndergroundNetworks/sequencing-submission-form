@@ -19,7 +19,7 @@ def rename_files(csv_file_path, directory_path, files_json):
     not_found=[]
 
     # Open the CSV file using csv.reader
-    with open(csv_file_path, 'r') as csv_file:
+    with open(csv_file_path, 'r', newline='', encoding='utf-8-sig') as csv_file:
         csv_reader = csv.reader(csv_file)
         # Assuming the first row contains headers
         headers = next(csv_reader)
