@@ -103,7 +103,7 @@ def bucket_chunked_upload(local_file_path, destination_upload_directory, destina
             update_progress_db(process_id, upload_type, (file.tell() / total_size) * 100)
             print(f"Bytes uploaded: {file.tell()} / {total_size}", flush=True)
 
-        blob = bucket.blob(f'uploads/{destination_upload_directory}/{destination_blob_name}')
+        blob = bucket.blob(f'{destination_upload_directory}/{destination_blob_name}')
         blob.compose(chunks)
 
         for temp_blob in chunks:
