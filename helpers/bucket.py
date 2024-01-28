@@ -95,7 +95,7 @@ def bucket_chunked_upload(local_file_path, destination_upload_directory, destina
             if not data:
                 break
 
-            temp_blob = bucket.blob(f'uploads/{destination_upload_directory}/{destination_blob_name}.part{chunk_num}')
+            temp_blob = bucket.blob(f'{destination_upload_directory}/{destination_blob_name}.part{chunk_num}')
             temp_blob.upload_from_string(data, content_type='application/octet-stream')
             chunks.append(temp_blob)
             chunk_num += 1
