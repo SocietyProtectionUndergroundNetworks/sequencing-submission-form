@@ -36,7 +36,6 @@ def init_send_raw_to_storage(process_id):
     return {"msg": "Process initiated"}  
 
 def upload_raw_file_to_storage(process_id):
-    #app.logger.info('raw to storage starts')
 
     # in order to continue on the same process, lets get the id from the form
     upload = Upload.get(process_id)
@@ -152,13 +151,19 @@ def upload_renamed_files_to_storage(process_id):
         folder = None
         if 'folder' in value:
             folder = value['folder']
-        
         if ((bucket is not None) & (folder is not None)):
+            
             new_file_path = os.path.join(extract_directory, new_filename)
+            # logger.info('folder: ' + str(folder) +  ', new_filename: ' + str(new_filename))
             bucket_chunked_upload(new_file_path, folder, new_filename, process_id, 'renamed_files', bucket)
+            files_json[key]['target_bucket'] = bucket
+            files_json[key]['target_folder'] = folder
+                
             files_done = files_done + 1
+            Upload.update_files_json(process_id, files_json)
             Upload.update_renamed_sent_to_bucket_progress(process_id, files_done)
     Upload.mark_field_as_true(process_id, 'renamed_sent_to_bucket')
+    
     return "ok"
     
 def get_renamed_files_to_storage_progress(process_id):
@@ -167,11 +172,13 @@ def get_renamed_files_to_storage_progress(process_id):
     total_count = len(files_json)
     files_done = upload.renamed_sent_to_bucket_progress
     process_finished = upload.renamed_sent_to_bucket
+    files_dict = json.loads(upload.files_json)
 
     to_return = {
         'process_finished': process_finished,
         'files_main': total_count,
-        'files_done': files_done
+        'files_done': files_done, 
+        'files_dict': files_dict
     }
 
     return to_return

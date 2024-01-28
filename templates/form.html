@@ -142,21 +142,23 @@
             <th scope="col">#</th>
             <th scope="col">Original filename</th>
             <th scope="col">Renamed to</th>
-            <th scope="col">Found in CSV</th>
+            <th scope="col">Moved to Bucket</th>
+            <th scope="col">Moved to folder</th>
           </tr>
-        {% if gz_unziped %}
-          {% for filename, data in matching_files_db.items() %}
-            <tr>
-                <th scope="row">{{ loop.index }}</th>
-                <td>{{ filename }}</td>
-                <td>{{ data.new_filename }}</td>
-                <td></td>
-            </tr>
-          {% endfor %}
-
-        {% endif %}
         </thead>
         <tbody id="files_body">
+          {% if gz_unziped %}
+            {% for filename, data in matching_files_db.items() %}
+              <tr>
+                  <th scope="row">{{ loop.index }}</th>
+                  <td>{{ filename }}</td>
+                  <td>{{ data.new_filename }}</td>
+                  <td></td>
+                  <td></td>
+              </tr>
+            {% endfor %}
+
+          {% endif %}          
         </tbody>
       </table>
     </div>
@@ -405,7 +407,7 @@
                             
                             let table_row = ''
                             for (key in data.matching_files) {
-                              table_row = '<tr><th scope="row">' + (parseInt(key)+1) + '</th><td>' + data.matching_files[key] + '</td><td></td><td></td></tr>';
+                              table_row = '<tr><td scope="row">' + (parseInt(key)+1) + '</td><td>' + data.matching_files[key] + '</td><td></td><td></td><td></td></tr>';
                               $('#files_body').append( table_row );
                             }
                             
@@ -419,7 +421,7 @@
                         // Handle error situations
                     }
                 });
-            }, 5000); // Update progress every 5 seconds (adjust timing as needed)
+            }, 10000); // Update progress every 10 seconds (adjust timing as needed)
         }
 
         $(document).ready(function () {
@@ -511,13 +513,28 @@
                     type: 'GET',
                     success: function(data) {
                         let process_finished = data.process_finished;
-
                         if (process_finished == 1) {
                             clearInterval(intervals[interval_id]); // Stop updating when progress reaches 100%
                             console.log('We will now stop calling for updates');
                             $('#step_8_msg').text('All renamed files moved to project buckets');
                         } else {
                             $('#step_8_msg').text('Files done: ' + data.files_done + ' / ' +  data.files_main).addClass('text-info').removeClass('text-success');
+                            
+                            $.each(data.files_dict, function(oldFilename, fileDetails) {
+                                // Iterate through table rows in the tbody with ID 'files_body'
+                                $('#files_body tr').each(function() {
+                                    var currentFilename = $(this).find('td:nth-child(2)').text(); // Get the filename from the second cell
+                                    if (currentFilename === oldFilename) {
+                                        // Update the third cell with new_filename if it exists in fileDetails
+                                        if ('target_bucket' in fileDetails) {
+                                            $(this).find('td:nth-child(4)').text(fileDetails.target_bucket);
+                                        }
+                                        if ('target_folder' in fileDetails) {
+                                            $(this).find('td:nth-child(5)').text(fileDetails.target_folder);
+                                        }                                        
+                                    }
+                                });
+                            });                            
                         }
                     },
                     error: function() {
