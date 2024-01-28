@@ -58,9 +58,9 @@ migration:
 
 migrate:
 	docker-compose exec flask alembic upgrade head
-	
-mysql:
-	docker-compose run --rm db mysql -h${MYSQL_HOST} -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE}	
+
+runmysql:
+	docker-compose run --rm db mysql -h${MYSQL_HOST} -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE}
 
 dbimport:
 	docker-compose run --rm -T db mysql -h${MYSQL_HOST} -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} < backup/backup.sql
