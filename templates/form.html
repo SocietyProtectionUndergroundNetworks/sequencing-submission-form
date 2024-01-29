@@ -21,6 +21,7 @@
             action="/uploadcsv"
             class="dropzone dz-clickable"
             enctype="multipart/form-data"
+            id="step_1_form"
         >
         <input type="file" id="step_1_button" accept=".csv">
         </form>
@@ -267,7 +268,26 @@
               processData: false,
               success: function (response) {
                   console.log(response);
+                  // Access and use the process ID
+                  process_id = response.process_id;
+
+                  // Update the hidden input field within the specific forms
+                  var form2 = $("#step_2_form");
+                  form2.find('input[name="process_id"]').val(process_id);
+                  var form5 = $("#step_5_form");
+                  form5.find('input[name="process_id"]').val(process_id);
+                  var form6 = $("#step_6_form");
+                  form6.find('input[name="process_id"]').val(process_id);
+                  var form8 = $("#step_8_form");
+                  form8.find('input[name="process_id"]').val(process_id);                    
+                  $('#process_id_info').html('Process ID: ' + process_id);
+                                    
                   $('#step_1_msg').html(response.msg).removeClass('text-danger').addClass('text-success');
+                  $('#step_1_button').prop('disabled', true);
+                  
+                  $('#step2').css('opacity', '1');
+                  $('#step_2_form').show();    
+                  $('#step_2_button').prop('disabled', false);         
               },
               error: function (xhr) {
                 if (xhr && xhr.responseText) {
