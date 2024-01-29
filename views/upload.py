@@ -60,7 +60,11 @@ def index():
                                     email=current_user.email,
                                     gz_filedata=gz_filedata)
     else:
-        return '<a class="button" href="/login">Google Login</a>'
+        return render_template('public_homepage.html')
+
+@upload_bp.route('/privacy_and_terms', endpoint='privacy_and_terms')
+def privacy_and_terms():
+    return render_template('privacy_and_terms.html')
 
 @upload_bp.route('/form_resume', endpoint='upload_form_resume')
 @login_required

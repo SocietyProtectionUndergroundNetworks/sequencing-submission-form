@@ -133,8 +133,8 @@ def logout():
 @login_manager.unauthorized_handler
 def custom_unauthorized():
     # Customize the unauthorized page
-    return render_template('custom_unauthorized.html')
-
+    return render_template('public_homepage.html')
+    
 @user_bp.route('/only_admins')
 def only_admins():
     return render_template('only_admins.html')

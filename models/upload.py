@@ -150,25 +150,27 @@ class Upload():
 
         uploads_folder = upload.uploads_folder
 
-        gz_filedata = json.loads(upload.gz_filedata)
-        form_filename = ''
-        if 'form_filename' in gz_filedata:
-            form_filename = gz_filedata['form_filename']
-        form_filechunks = 0
-        if 'form_filechunks' in gz_filedata:
-            form_filechunks = gz_filedata['form_filechunks']
+        gz_filedata = {}
+        if upload.gz_filedata:
+            gz_filedata = json.loads(upload.gz_filedata)
+            form_filename = ''
+            if 'form_filename' in gz_filedata:
+                form_filename = gz_filedata['form_filename']
+            form_filechunks = 0
+            if 'form_filechunks' in gz_filedata:
+                form_filechunks = gz_filedata['form_filechunks']
 
-        # count how many parts are already uploaded:
-        pattern = f"{form_filename}.part*"
-        upload_fullpath = Path("uploads", uploads_folder)
-        files_in_upload_dir = os.listdir(upload_fullpath)
-        part_files = [file for file in files_in_upload_dir if fnmatch(file, pattern)]
-        nr_parts = len(part_files)
-        percent_uploaded = 0
-        if form_filechunks:
-            percent_uploaded = round(int(nr_parts) / int(form_filechunks) * 100, 2)
-        gz_filedata['nr_parts'] = nr_parts
-        gz_filedata['percent_uploaded'] = percent_uploaded
+            # count how many parts are already uploaded:
+            pattern = f"{form_filename}.part*"
+            upload_fullpath = Path("uploads", uploads_folder)
+            files_in_upload_dir = os.listdir(upload_fullpath)
+            part_files = [file for file in files_in_upload_dir if fnmatch(file, pattern)]
+            nr_parts = len(part_files)
+            percent_uploaded = 0
+            if form_filechunks:
+                percent_uploaded = round(int(nr_parts) / int(form_filechunks) * 100, 2)
+            gz_filedata['nr_parts'] = nr_parts
+            gz_filedata['percent_uploaded'] = percent_uploaded
 
         return gz_filedata
 
