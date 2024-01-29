@@ -35,6 +35,7 @@ class UploadTable(Base):
     csv_filename = Column(String(255), nullable=True)
     gz_uploaded = Column(Boolean, default=False)
     gz_filename = Column(String(255), nullable=True)
+    gz_filedata = Column(JSON(none_as_null=True))
     gz_sent_to_bucket = Column(Boolean, default=False)
     gz_sent_to_bucket_progress = Column(Integer, default=0)
     gz_unziped = Column(Boolean, default=False)

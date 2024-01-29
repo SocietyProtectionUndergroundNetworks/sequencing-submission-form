@@ -45,7 +45,20 @@ def approved_required(view_func):
 @upload_bp.route("/")
 def index():
     if current_user.is_authenticated:
-        return render_template("index.html", name=current_user.name, email=current_user.email)
+        upload = Upload.get_latest_unfinished_process(current_user.id)
+        if upload is None:
+            # Handle the case where no data is returned
+            print("No data found.")
+            return render_template("form.html", msg='We could not find an unfinished process to resume')
+        else:
+            gz_filedata = {}
+            if (upload.csv_uploaded and not upload.gz_uploaded):
+                gz_filedata = Upload.get_gz_filedata(upload.id)
+
+            return render_template("index.html",
+                                    name=current_user.name,
+                                    email=current_user.email,
+                                    gz_filedata=gz_filedata)
     else:
         return '<a class="button" href="/login">Google Login</a>'
 
@@ -76,13 +89,12 @@ def upload_form_resume():
         return render_template("form.html", msg='We could not find an unfinished process to resume')
     else:
 
-
         matching_files_filesystem = []
         matching_files_dict = []
+        gz_filedata = {}
         nr_files = 0
+        uploads_folder = upload.uploads_folder
         if (upload.gz_unziped):
-
-            uploads_folder = upload.uploads_folder
             extract_directory = Path("processing", uploads_folder)
 
             # count the files ending with fastq.gz
@@ -93,6 +105,8 @@ def upload_form_resume():
                 nr_files=len(matching_files_filesystem)
 
             matching_files_dict = json.loads(upload.files_json)
+        elif (upload.csv_uploaded and not upload.gz_uploaded):
+            gz_filedata = Upload.get_gz_filedata(upload.id)
 
         return render_template(
                                 "form.html",
@@ -101,6 +115,7 @@ def upload_form_resume():
                                 csv_filename=upload.csv_filename,
                                 gz_uploaded=upload.gz_uploaded,
                                 gz_filename=upload.gz_filename,
+                                gz_filedata=gz_filedata,
                                 gz_sent_to_bucket=upload.gz_sent_to_bucket,
                                 gz_unziped=upload.gz_unziped,
                                 files_renamed=upload.files_renamed,
@@ -200,6 +215,18 @@ def handle_upload():
         process_id = request.args.get('process_id')
         upload = Upload.get(process_id)
         uploads_folder = upload.uploads_folder
+
+        #fields to know which file we are uploading
+        form_filename   = request.args.get('filename')
+        form_filesize   = request.args.get('filesize')
+        form_filechunks = request.args.get('filechunks')
+
+        gz_filedata = {
+            'form_filename': form_filename,
+            'form_filesize': form_filesize,
+            'form_filechunks': form_filechunks
+        }
+        Upload.update_gz_filedata(process_id, gz_filedata)
 
         # Extract Resumable.js headers
         resumable_chunk_number = request.args.get('resumableChunkNumber')

@@ -39,11 +39,24 @@
         {% if (gz_uploaded) %} style="display: none;" {% endif %}
       >
         <input type="file" id="step_2_button" name="file" />
-        <input type="hidden" name="process_id" value="{{ process_id }}">
-      </form>      
+        <input type="hidden" name="process_id" value="{{ process_id }}">    
+      </form>
       {% if gz_uploaded %}
         <div id="step_2_msg" class="text-success">GZ file already uploaded: {{ gz_filename }}</div>
-      {% else %}
+      {% elif csv_uploaded and not gz_uploaded %}
+        <div id="step_2_msg" class="text-primary">
+          {% if 'form_filename' in gz_filedata %}
+            You have previously started uploading a file: <br>
+            Filename: {{ gz_filedata.form_filename }}<br>
+          {% endif %}
+          {% if 'percent_uploaded' in gz_filedata %}
+            Already uploaded: {{ gz_filedata.percent_uploaded }}%<br>
+          {% endif %}
+          {% if 'form_filename' in gz_filedata %}
+            Please select the same file to resume uploading
+          {% endif %}
+        </div>        
+      {% else  %}
         <div id="step_2_msg"></div>
       {% endif %}
     </div>
@@ -153,8 +166,16 @@
                   <th scope="row">{{ loop.index }}</th>
                   <td>{{ filename }}</td>
                   <td>{{ data.new_filename }}</td>
-                  <td></td>
-                  <td></td>
+                  <td>
+                    {% if 'target_bucket' in data %}
+                        {{ data.target_bucket }}
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if 'target_folder' in data %}
+                        {{ data.target_folder }}
+                    {% endif %}                  
+                  </td>
               </tr>
             {% endfor %}
 
@@ -271,7 +292,10 @@
             testChunks: true,
             uploadMethod: 'POST',
             query: {
-                process_id: process_id // Pass process_id as a query parameter
+                process_id: process_id,
+                filename: '',
+                filesize: '',
+                filechunks: ''
             },
             fileType: allowedExtensions,
             fileTypeErrorCallback: function(file, errorCount) {
@@ -291,7 +315,13 @@
         // Listen to events
         r.on('fileAdded', function(file) {
             console.log('file added to resumable');
+
+            
             r.opts.query.process_id = process_id;
+            r.opts.query.filename = file.file.name;
+            r.opts.query.filesize = file.file.size;
+            r.opts.query.filechunks = Math.ceil(file.file.size / r.opts.chunkSize);
+            
             // Calculate MD5 hash of the file and include it in the Resumable.js query
             $('#step_2_button').prop("disabled", true);
             $("#step_2_msg").html('Calculating md5. Please wait').addClass('text-info').removeClass('text-danger').removeClass('text-success');

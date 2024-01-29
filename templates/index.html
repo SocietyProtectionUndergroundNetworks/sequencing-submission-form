@@ -12,8 +12,21 @@
   </div>
   <ul class="list-group">
     {% if current_user.is_authenticated and current_user.approved %}
-      <li class="list-group-item"><a href="/form_resume">Resume Form</a></li>
-      <li class="list-group-item"><a href="/form">Form</a></li>
+      <li class="list-group-item">
+        {% if 'form_filename' in gz_filedata %}
+          You have previously started uploading a file: <br>
+          Filename: {{ gz_filedata.form_filename }}<br>
+        {% endif %}
+        {% if 'percent_uploaded' in gz_filedata %}
+          Already uploaded: {{ gz_filedata.percent_uploaded }}%<br>
+        {% endif %}
+        {% if 'form_filename' in gz_filedata %}
+          You can resume uploading the same file <br>
+        {% endif %}
+        
+        <a href="/form_resume">Resume Upload</a>
+      </li>
+      <li class="list-group-item"><a href="/form">Start a new upload</a></li>
     {% endif %}
     {% if current_user.is_authenticated and current_user.admin %}
       <li class="list-group-item"><a href="{{ url_for('user.users') }}">Users</a></li>

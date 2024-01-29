@@ -1,8 +1,10 @@
 import json
+import os
 from helpers.dbm import connect_db, get_session
 from models.db_model import UploadTable
 from sqlalchemy import desc, or_
 from pathlib import Path
+from fnmatch import fnmatch
 
 class Upload():
     def __init__(self, **kwargs):
@@ -121,6 +123,54 @@ class Upload():
         else:
             session.close()
             return False
+
+    @classmethod
+    def update_gz_filedata(cls, upload_id, gz_filedata):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+        file_data = json.dumps(gz_filedata)
+
+        upload = session.query(UploadTable).filter_by(id=upload_id).first()
+
+        if upload:
+            upload.gz_filedata = file_data
+            session.commit()
+            session.close()
+            return True
+        else:
+            session.close()
+            return False  
+
+    @classmethod
+    def get_gz_filedata(cls, upload_id):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        upload = session.query(UploadTable).filter_by(id=upload_id).first()
+
+        uploads_folder = upload.uploads_folder
+
+        gz_filedata = json.loads(upload.gz_filedata)
+        form_filename = ''
+        if 'form_filename' in gz_filedata:
+            form_filename = gz_filedata['form_filename']
+        form_filechunks = 0
+        if 'form_filechunks' in gz_filedata:
+            form_filechunks = gz_filedata['form_filechunks']
+
+        # count how many parts are already uploaded:
+        pattern = f"{form_filename}.part*"
+        upload_fullpath = Path("uploads", uploads_folder)
+        files_in_upload_dir = os.listdir(upload_fullpath)
+        part_files = [file for file in files_in_upload_dir if fnmatch(file, pattern)]
+        nr_parts = len(part_files)
+        percent_uploaded = 0
+        if form_filechunks:
+            percent_uploaded = round(int(nr_parts) / int(form_filechunks) * 100, 2)
+        gz_filedata['nr_parts'] = nr_parts
+        gz_filedata['percent_uploaded'] = percent_uploaded
+
+        return gz_filedata
 
     @classmethod
     def update_gz_sent_to_bucket_progress(cls, upload_id, progress):
