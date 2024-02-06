@@ -1,6 +1,7 @@
 import os
 import requests
 import json
+import logging
 from flask import Blueprint
 from flask import request, redirect, url_for, render_template
 from oauthlib.oauth2 import WebApplicationClient
@@ -15,9 +16,13 @@ from flask_login import (
 
 from models.user import User
 
+# Get the logger instance from app.py
+logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
+
 # Configure login via google
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", None)
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", None)
+GOOGLE_CLIENT_CALLBACK_URL = os.environ.get("GOOGLE_CLIENT_CALLBACK_URL", None)
 GOOGLE_DISCOVERY_URL = (
     "https://accounts.google.com/.well-known/openid-configuration"
 )
@@ -58,7 +63,7 @@ def login():
     # scopes that let you retrieve user's profile from Google
     request_uri = client.prepare_request_uri(
         authorization_endpoint,
-        redirect_uri=request.base_url + "/callback",
+        redirect_uri=GOOGLE_CLIENT_CALLBACK_URL,
         scope=["openid", "email", "profile"],
     )
     return redirect(request_uri)
@@ -77,7 +82,7 @@ def callback():
     token_url, headers, body = client.prepare_token_request(
         token_endpoint,
         authorization_response=request.url,
-        redirect_url=request.base_url,
+        redirect_url=GOOGLE_CLIENT_CALLBACK_URL,
         code=code,
     )
     token_response = requests.post(
