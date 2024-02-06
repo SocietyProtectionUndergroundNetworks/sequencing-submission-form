@@ -45,6 +45,9 @@ def approved_required(view_func):
 @upload_bp.route("/")
 def index():
     if current_user.is_authenticated:
+        if not current_user.approved:
+            # Redirect non-approved users to some unauthorized page
+            return redirect(url_for('user.only_approved'))
         upload = Upload.get_latest_unfinished_process(current_user.id)
         if upload is None:
             # Handle the case where no data is returned
