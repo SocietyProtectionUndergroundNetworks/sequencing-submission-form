@@ -4,6 +4,7 @@ import string
 import os
 import json
 import logging
+from collections import OrderedDict
 from pathlib import Path
 from werkzeug.utils import secure_filename
 from flask import Blueprint, render_template, request, jsonify, send_from_directory, redirect, url_for
@@ -112,6 +113,25 @@ def upload_form_resume():
                 nr_files=len(matching_files_filesystem)
 
             matching_files_dict = json.loads(upload.files_json)
+            # Sort the dictionary based on 'bucket' and 'folder'
+            matching_files_dict = OrderedDict(sorted(matching_files_dict.items(), key=lambda x: (x[1].get('bucket', ''), x[1].get('folder', ''))))
+            rowspan_counts = {}
+            for filename, data in matching_files_dict.items():
+                if 'bucket' in data and 'folder' in data:
+                    key = data['bucket'] + '_' + data['folder']
+                    if (key in rowspan_counts):
+                        rowspan_counts[key] = rowspan_counts[key] + 1
+                    else:
+                        rowspan_counts[key] = 1
+
+            lastkey = ''
+            for filename, data in matching_files_dict.items():
+                if 'bucket' in data and 'folder' in data:
+                    key = data['bucket'] + '_' + data['folder']
+                    if key != lastkey:
+                        data['rowspan'] = rowspan_counts[key]
+                    lastkey = key
+
         elif (upload.csv_uploaded and not upload.gz_uploaded):
             gz_filedata = Upload.get_gz_filedata(upload.id)
 
@@ -208,7 +228,8 @@ def unzip_progress():
 @approved_required
 def upload_progress():
     process_id = request.args.get('process_id')
-    progress = get_progress_db_bucket(process_id, 'gz_raw')
+    file_id = request.args.get('file_id')
+    progress = get_progress_db_bucket(process_id, 'gz_raw', file_id)
     return {
         "progress": progress
     }
@@ -218,22 +239,32 @@ def upload_progress():
 @approved_required
 def handle_upload():
     file = request.files.get('file')
+    logger.info(file)
     if file:
         process_id = request.args.get('process_id')
+        #fields to know which file we are uploading
+        form_filename       = request.args.get('filename')
+        form_filesize       = request.args.get('filesize')
+        form_filechunks     = request.args.get('filechunks')
+        form_fileidentifier = request.args.get('fileindex')
+
+
         upload = Upload.get(process_id)
         uploads_folder = upload.uploads_folder
+        gz_filedata = Upload.get_gz_filedata(upload.id)
+        logger.info('############### 00000000 ############')
+        logger.info('We are uploading the file with identifier: ' + str(form_fileidentifier) )
 
-        #fields to know which file we are uploading
-        form_filename   = request.args.get('filename')
-        form_filesize   = request.args.get('filesize')
-        form_filechunks = request.args.get('filechunks')
-
-        gz_filedata = {
-            'form_filename': form_filename,
-            'form_filesize': form_filesize,
-            'form_filechunks': form_filechunks
+        one_filedata = {
+            'form_filename'         : form_filename,
+            'form_filesize'         : form_filesize,
+            'form_filechunks'       : form_filechunks,
+            'form_fileidentifier'   : form_fileidentifier
         }
-        Upload.update_gz_filedata(process_id, gz_filedata)
+        logger.info('0. we will update it with :')
+        logger.info(one_filedata)
+        logger.info('############### 11111111 ############')
+        Upload.update_gz_filedata(process_id, one_filedata)
 
         # Extract Resumable.js headers
         resumable_chunk_number = request.args.get('resumableChunkNumber')
@@ -277,10 +308,12 @@ def handle_upload():
             # Compare MD5 hashes
             if expected_md5 == actual_md5:
                 # MD5 hashes match, file integrity verified
-                Upload.mark_field_as_true(process_id, 'gz_uploaded')
-                Upload.update_gz_filename(process_id, file.filename)
-                result = init_send_raw_to_storage(process_id)
-                result2 = unzip_raw(process_id)
+                # Upload.mark_field_as_true(process_id, 'gz_uploaded')
+                # Upload.update_gz_filename(process_id, file.filename)
+
+                # TODO: UNCOMMENT THE FOLLOWING TWO LINES
+                result = init_send_raw_to_storage(process_id, file.filename)
+                # result2 = unzip_raw(process_id)
                 return jsonify({'message': 'File upload complete and verified. Sending raw to storage initiated. Unzipping initiated'})
 
             # MD5 hashes don't match, handle accordingly (e.g., delete the incomplete file, return an error)

@@ -4,8 +4,8 @@ from helpers.unzip import unzip_raw_file
 from helpers.fastqc import fastqc_multiqc_files
 
 @celery_app.task
-def upload_raw_file_to_storage_async(process_id):
-    upload_raw_file_to_storage(process_id)
+def upload_raw_file_to_storage_async(process_id, filename):
+    upload_raw_file_to_storage(process_id, filename)
 
 @celery_app.task
 def unzip_raw_file_async(process_id):

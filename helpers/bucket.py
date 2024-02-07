@@ -21,11 +21,11 @@ def list_buckets():
 
     return bucket_info
 
-def init_send_raw_to_storage(process_id):
+def init_send_raw_to_storage(process_id, filename):
 
     from tasks import upload_raw_file_to_storage_async
     try:
-        result = upload_raw_file_to_storage_async.delay(process_id)
+        result = upload_raw_file_to_storage_async.delay(process_id, filename)
         logger.info(f"Celery upload_raw_file_to_storage_async task called successfully! Task ID: {result.id}")
         task_id = result.id
         #upload.update_fastqc_process_id(process_id, task_id)
@@ -35,28 +35,34 @@ def init_send_raw_to_storage(process_id):
 
     return {"msg": "Process initiated"}  
 
-def upload_raw_file_to_storage(process_id):
+def upload_raw_file_to_storage(process_id, filename):
 
     # in order to continue on the same process, lets get the id from the form
     upload = Upload.get(process_id)
     uploads_folder = upload.uploads_folder
     path = Path("uploads", uploads_folder)
-    filename = upload.gz_filename
+    # filename = upload.gz_filename
     save_path = path / filename
     raw_uploaded = bucket_chunked_upload(save_path, "uploads/" + uploads_folder, filename, process_id, 'gz_raw')
     #Upload.mark_field_as_true(process_id, 'gz_sent_to_bucket')
     if (raw_uploaded):
         Upload.mark_field_as_true(process_id, 'gz_sent_to_bucket')
 
-def update_progress_db(process_id, upload_type, percentage):
+def update_progress_db(process_id, upload_type, percentage, filename):
     if (upload_type=='gz_raw'):
-        Upload.update_gz_sent_to_bucket_progress(process_id, round(percentage))
+        Upload.update_gz_sent_to_bucket_progress(process_id, round(percentage), filename)
 
-def get_progress_db_bucket(process_id, upload_type):
+def get_progress_db_bucket(process_id, upload_type, file_id=''):
     progress = 0
     if (upload_type=='gz_raw'):
         upload = Upload.get(process_id)
-        progress = upload.gz_sent_to_bucket_progress if upload.gz_sent_to_bucket_progress not in [None] else 0
+        
+        gz_filedata = json.loads(upload.gz_filedata)
+        for filename, file_data in gz_filedata.items():
+            if 'form_fileidentifier' in file_data:
+                if (file_data['form_fileidentifier'] == file_id):
+                    if ('gz_sent_to_bucket_progress' in file_data):
+                        progress = file_data['gz_sent_to_bucket_progress']
     return progress
     
 def bucket_chunked_upload(local_file_path, destination_upload_directory, destination_blob_name, process_id, upload_type, bucket_name=None):
@@ -75,7 +81,7 @@ def bucket_chunked_upload(local_file_path, destination_upload_directory, destina
     if total_size <= 30 * 1024 * 1024:
         blob = bucket.blob(f'{destination_upload_directory}/{destination_blob_name}')
         blob.upload_from_filename(local_file_path)
-        update_progress_db(process_id, upload_type, 100)
+        update_progress_db(process_id, upload_type, 100, destination_blob_name)
         return True
 
     # If the file is between 30 MB and 700 MB, do chunks of 30 MB each
@@ -100,7 +106,7 @@ def bucket_chunked_upload(local_file_path, destination_upload_directory, destina
             chunks.append(temp_blob)
             chunk_num += 1
 
-            update_progress_db(process_id, upload_type, (file.tell() / total_size) * 100)
+            update_progress_db(process_id, upload_type, (file.tell() / total_size) * 100, destination_blob_name)
             print(f"Bytes uploaded: {file.tell()} / {total_size}", flush=True)
 
         blob = bucket.blob(f'{destination_upload_directory}/{destination_blob_name}')
@@ -109,7 +115,7 @@ def bucket_chunked_upload(local_file_path, destination_upload_directory, destina
         for temp_blob in chunks:
             temp_blob.delete()
 
-        update_progress_db(process_id, upload_type, 100)
+        update_progress_db(process_id, upload_type, 100, destination_blob_name)
         return True
 
 def bucket_upload_folder(folder_path, destination_upload_directory, process_id, upload_type, bucket):
@@ -156,8 +162,7 @@ def upload_renamed_files_to_storage(process_id):
             new_file_path = os.path.join(extract_directory, new_filename)
             # logger.info('folder: ' + str(folder) +  ', new_filename: ' + str(new_filename))
             bucket_chunked_upload(new_file_path, folder, new_filename, process_id, 'renamed_files', bucket)
-            files_json[key]['target_bucket'] = bucket
-            files_json[key]['target_folder'] = folder
+            files_json[key]['uploaded'] = 'Done'
                 
             files_done = files_done + 1
             Upload.update_files_json(process_id, files_json)
@@ -172,7 +177,8 @@ def get_renamed_files_to_storage_progress(process_id):
     total_count = len(files_json)
     files_done = upload.renamed_sent_to_bucket_progress
     process_finished = upload.renamed_sent_to_bucket
-    files_dict = json.loads(upload.files_json)
+    matching_files_dict = json.loads(upload.files_json)
+    files_dict = OrderedDict(sorted(matching_files_dict.items(), key=lambda x: (x[1].get('bucket', ''), x[1].get('folder', ''))))
 
     to_return = {
         'process_finished': process_finished,
