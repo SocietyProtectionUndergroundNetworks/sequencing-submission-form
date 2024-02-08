@@ -50,19 +50,21 @@ def index():
             # Redirect non-approved users to some unauthorized page
             return redirect(url_for('user.only_approved'))
         upload = Upload.get_latest_unfinished_process(current_user.id)
+        gz_filedata = {}
+
         if upload is None:
             # Handle the case where no data is returned
             print("No data found.")
-            return render_template("form.html", msg='We could not find an unfinished process to resume')
+            if not current_user.admin:
+                return render_template("form.html", msg='We could not find an unfinished process to resume')
         else:
-            gz_filedata = {}
-            if (upload.csv_uploaded and not upload.gz_uploaded):
+            if (upload.csv_uploaded):
                 gz_filedata = Upload.get_gz_filedata(upload.id)
 
-            return render_template("index.html",
-                                    name=current_user.name,
-                                    email=current_user.email,
-                                    gz_filedata=gz_filedata)
+        return render_template("index.html",
+                                name=current_user.name,
+                                email=current_user.email,
+                                gz_filedata=gz_filedata)
     else:
         return render_template('public_homepage.html')
 
@@ -102,7 +104,20 @@ def upload_form_resume():
         gz_filedata = {}
         nr_files = 0
         uploads_folder = upload.uploads_folder
-        if (upload.gz_unziped):
+
+        if (upload.csv_uploaded):
+            gz_filedata = Upload.get_gz_filedata(upload.id)
+
+        any_unzipped = False
+
+        if gz_filedata:
+            logger.info(gz_filedata)
+            for filename, file_data in gz_filedata.items():
+                if 'gz_sent_to_bucket_progress' in file_data:
+                    if file_data['gz_sent_to_bucket_progress'] == 100:
+                        any_unzipped = True
+
+        if (any_unzipped):
             extract_directory = Path("processing", uploads_folder)
 
             # count the files ending with fastq.gz
@@ -132,25 +147,18 @@ def upload_form_resume():
                         data['rowspan'] = rowspan_counts[key]
                     lastkey = key
 
-        elif (upload.csv_uploaded and not upload.gz_uploaded):
-            gz_filedata = Upload.get_gz_filedata(upload.id)
 
         return render_template(
                                 "form.html",
                                 process_id=upload.id,
                                 csv_uploaded=upload.csv_uploaded,
                                 csv_filename=upload.csv_filename,
-                                gz_uploaded=upload.gz_uploaded,
-                                gz_filename=upload.gz_filename,
-                                gz_filedata=gz_filedata,
-                                gz_sent_to_bucket=upload.gz_sent_to_bucket,
-                                gz_unziped=upload.gz_unziped,
+                                gz_filedata=gz_filedata if gz_filedata else {},
                                 files_renamed=upload.files_renamed,
                                 nr_files=nr_files,
                                 matching_files=matching_files_filesystem,
                                 matching_files_db=matching_files_dict,
                                 fastqc_run=upload.fastqc_run,
-                                gz_sent_to_bucket_progress=upload.gz_sent_to_bucket_progress,
                                 renamed_sent_to_bucket=upload.renamed_sent_to_bucket
                                 )
 
@@ -198,7 +206,9 @@ def upload_csv():
 @approved_required
 def unzip_progress():
     process_id = request.args.get('process_id')
-    progress = get_progress_db_unzip(process_id)
+    file_id = request.args.get('file_id')
+    progress = get_progress_db_unzip(process_id, file_id)
+    gz_filedata = Upload.get_gz_filedata(process_id)
 
     if (progress==100):
 
@@ -216,10 +226,10 @@ def unzip_progress():
             matching_files_dict = {filename: {'new_filename': '', 'fastqc': ''} for filename in matching_files}
             Upload.update_files_json(process_id, matching_files_dict)
 
-        return jsonify({"progress": progress, "msg": "Raw unzipped successfully.", "nr_files": nr_files, "matching_files":matching_files}), 200
+        return jsonify({"progress": progress, "msg": "Raw unzipped successfully.", "nr_files": nr_files, "matching_files":matching_files, 'gz_filedata': gz_filedata}), 200
 
     return {
-        "progress": progress
+        "progress": progress, 'gz_filedata': gz_filedata
     }
 
 
@@ -230,8 +240,9 @@ def upload_progress():
     process_id = request.args.get('process_id')
     file_id = request.args.get('file_id')
     progress = get_progress_db_bucket(process_id, 'gz_raw', file_id)
+    gz_filedata = Upload.get_gz_filedata(process_id)
     return {
-        "progress": progress
+        "progress": progress, 'gz_filedata': gz_filedata
     }
 
 @upload_bp.route('/upload', methods=['POST'], endpoint='handle_upload')
@@ -252,19 +263,7 @@ def handle_upload():
         upload = Upload.get(process_id)
         uploads_folder = upload.uploads_folder
         gz_filedata = Upload.get_gz_filedata(upload.id)
-        logger.info('############### 00000000 ############')
-        logger.info('We are uploading the file with identifier: ' + str(form_fileidentifier) )
 
-        one_filedata = {
-            'form_filename'         : form_filename,
-            'form_filesize'         : form_filesize,
-            'form_filechunks'       : form_filechunks,
-            'form_fileidentifier'   : form_fileidentifier
-        }
-        logger.info('0. we will update it with :')
-        logger.info(one_filedata)
-        logger.info('############### 11111111 ############')
-        Upload.update_gz_filedata(process_id, one_filedata)
 
         # Extract Resumable.js headers
         resumable_chunk_number = request.args.get('resumableChunkNumber')
@@ -281,6 +280,25 @@ def handle_upload():
         # Handle file chunks or combine chunks into a complete file
         chunk_number = int(resumable_chunk_number) if resumable_chunk_number else 1
         total_chunks = int(resumable_total_chunks) if resumable_total_chunks else 1
+
+        # Calculate the percentage completion
+        percentage = int((chunk_number / total_chunks) * 100)
+
+        logger.info('############### 00000000 ############')
+        logger.info('We are uploading the file with identifier: ' + str(form_fileidentifier) )
+
+        one_filedata = {
+            'form_filename'         : form_filename,
+            'form_filesize'         : form_filesize,
+            'form_filechunks'       : form_filechunks,
+            'form_fileidentifier'   : form_fileidentifier,
+            'chunk_number_uploaded' : chunk_number,
+            'percent_uploaded'      : percentage
+        }
+        logger.info('0. we will update it with :')
+        logger.info(one_filedata)
+        logger.info('############### 11111111 ############')
+        Upload.update_gz_filedata(process_id, one_filedata)
 
         # Save or process the chunk (for demonstration, just save it)
         save_path = f'uploads/{uploads_folder}/{file.filename}.part{chunk_number}'
@@ -308,13 +326,12 @@ def handle_upload():
             # Compare MD5 hashes
             if expected_md5 == actual_md5:
                 # MD5 hashes match, file integrity verified
-                # Upload.mark_field_as_true(process_id, 'gz_uploaded')
-                # Upload.update_gz_filename(process_id, file.filename)
 
                 # TODO: UNCOMMENT THE FOLLOWING TWO LINES
                 result = init_send_raw_to_storage(process_id, file.filename)
-                # result2 = unzip_raw(process_id)
-                return jsonify({'message': 'File upload complete and verified. Sending raw to storage initiated. Unzipping initiated'})
+                result2 = unzip_raw(process_id, file.filename)
+                gz_filedata = Upload.get_gz_filedata(upload.id)
+                return jsonify({'message': 'File upload complete and verified', 'gz_filedata': gz_filedata})
 
             # MD5 hashes don't match, handle accordingly (e.g., delete the incomplete file, return an error)
             # os.remove(final_file_path)

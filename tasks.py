@@ -8,8 +8,8 @@ def upload_raw_file_to_storage_async(process_id, filename):
     upload_raw_file_to_storage(process_id, filename)
 
 @celery_app.task
-def unzip_raw_file_async(process_id):
-    unzip_raw_file(process_id)
+def unzip_raw_file_async(process_id, filename):
+    unzip_raw_file(process_id, filename)
 
 @celery_app.task    
 def fastqc_multiqc_files_async(process_id):

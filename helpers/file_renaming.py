@@ -101,8 +101,6 @@ def rename_all_files(process_id):
     uploads_folder = upload.uploads_folder
     path = Path("uploads", uploads_folder)
     csv_filepath = path / upload.csv_filename
-    filename = upload.gz_filename
-    save_path = path / filename
     logger.info('The files_json is')
 
     logger.info(upload.files_json)

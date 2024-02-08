@@ -27,7 +27,7 @@ def get_fastqc_progress(process_id):
     if not task.ready():
         # count the files we should have
         files_main = os.listdir(extract_directory)
-        count_fastq_gz = sum(1 for file in files_main if file.endswith('.fastq.gz'))
+        count_fastq_gz = sum(1 for file in files_main if (file.endswith('.fastq.gz') or file.endswith('.fastq')))
 
         # Get how many are done
         files_done = upload.fastqc_files_progress
@@ -83,7 +83,7 @@ def fastqc_multiqc_files(process_id):
     output_folders = {}
     files_done = 0
     # Run fastqc on all raw fastq.gz files within the 'fastqc' conda environment
-    fastq_files = [f for f in os.listdir(input_folder) if f.endswith('.fastq.gz') and not f.startswith('.')]
+    fastq_files = [f for f in os.listdir(input_folder) if ((f.endswith('.fastq.gz') or f.endswith('.fastq')) and not f.startswith('.'))]
     for fastq_file in fastq_files:
         # check that the file exists in our files_json
         if (fastq_file in new_files_json):

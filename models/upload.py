@@ -113,23 +113,6 @@ class Upload():
             return False
 
     @classmethod
-    def update_gz_filename(cls, upload_id, gz_filename):
-        db_engine = connect_db()
-        session = get_session(db_engine)
-
-        upload = session.query(UploadTable).filter_by(id=upload_id).first()
-
-        if upload:
-            upload.gz_filename = gz_filename
-            session.commit()
-            session.close()
-            return True
-        else:
-            session.close()
-            return False
-
-
-    @classmethod
     def update_gz_filedata(cls, upload_id, gz_filedata):
         logger.info('############### 222222222 ############')
         logger.info('2. We should add the gz_filedata for upload id ' + str(upload_id))
@@ -169,29 +152,10 @@ class Upload():
 
         upload = session.query(UploadTable).filter_by(id=upload_id).first()
 
-        uploads_folder = upload.uploads_folder
-        upload_fullpath = Path("uploads", uploads_folder)
         gz_filedata = {}
+        
         if upload.gz_filedata:
             gz_filedata = json.loads(upload.gz_filedata)
-            for form_filename, file_data in gz_filedata.items():
-                
-                form_filechunks = 0
-                if 'form_filechunks' in file_data:
-                    form_filechunks = file_data['form_filechunks']
-
-                # count how many parts are already uploaded:
-                pattern = f"{form_filename}.part*"
-                
-                files_in_upload_dir = os.listdir(upload_fullpath)
-                part_files = [file for file in files_in_upload_dir if fnmatch(file, pattern)]
-                nr_parts = len(part_files)
-                percent_uploaded = 0
-                if form_filechunks:
-                    percent_uploaded = round(int(nr_parts) / int(form_filechunks) * 100, 2)
-                    
-            gz_filedata[form_filename]['nr_parts'] = nr_parts
-            gz_filedata[form_filename]['percent_uploaded'] = percent_uploaded
 
         return gz_filedata
 
@@ -199,7 +163,6 @@ class Upload():
     def update_gz_sent_to_bucket_progress(cls, upload_id, progress, filename):
         db_engine = connect_db()
         session = get_session(db_engine)
-
         upload = session.query(UploadTable).filter_by(id=upload_id).first()
 
         if upload:
@@ -217,14 +180,18 @@ class Upload():
             return False
 
     @classmethod
-    def update_gz_unziped_progress(cls, upload_id, progress):
+    def update_gz_unziped_progress(cls, upload_id, progress, filename):
         db_engine = connect_db()
         session = get_session(db_engine)
-
         upload = session.query(UploadTable).filter_by(id=upload_id).first()
 
         if upload:
-            upload.gz_unziped_progress = progress
+            if upload.gz_filedata:
+                gz_filedata = json.loads(upload.gz_filedata)
+                if filename in gz_filedata:
+                    gz_filedata[filename]['gz_unziped_progress']=progress
+                    upload.gz_filedata = json.dumps(gz_filedata)
+            
             session.commit()
             session.close()
             return True
@@ -266,8 +233,6 @@ class Upload():
             
     @classmethod
     def update_files_json(cls, upload_id, files_dict):
-        logger.info('Inside update_files_json we will try to update with the files_dict:')
-        logger.info(files_dict)
         db_engine = connect_db()
         session = get_session(db_engine)
         files_json = json.dumps(files_dict)

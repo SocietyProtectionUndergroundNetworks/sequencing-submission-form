@@ -41,12 +41,8 @@ def upload_raw_file_to_storage(process_id, filename):
     upload = Upload.get(process_id)
     uploads_folder = upload.uploads_folder
     path = Path("uploads", uploads_folder)
-    # filename = upload.gz_filename
     save_path = path / filename
     raw_uploaded = bucket_chunked_upload(save_path, "uploads/" + uploads_folder, filename, process_id, 'gz_raw')
-    #Upload.mark_field_as_true(process_id, 'gz_sent_to_bucket')
-    if (raw_uploaded):
-        Upload.mark_field_as_true(process_id, 'gz_sent_to_bucket')
 
 def update_progress_db(process_id, upload_type, percentage, filename):
     if (upload_type=='gz_raw'):
