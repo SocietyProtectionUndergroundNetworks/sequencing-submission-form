@@ -8,10 +8,31 @@ from helpers.bucket import bucket_upload_folder
 import logging
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
-def get_fastqc_progress(process_id):
+def get_multiqc_report(process_id, bucket, folder):
     upload = Upload.get(process_id)
     uploads_folder = upload.uploads_folder
 
+
+    extract_directory = upload.extract_directory
+
+    fastqc_path = os.path.join(extract_directory, 'fastqc', bucket, folder)
+
+    multiqc_report_exists = os.path.exists(os.path.join(fastqc_path, 'multiqc_report.html'))
+    logger.info('Does the report exist?')
+    logger.info(multiqc_report_exists)
+    logger.info(fastqc_path)
+    to_return = {
+        'multiqc_report_exists': multiqc_report_exists,
+        'multiqc_report_path': fastqc_path
+    }
+
+    return to_return
+
+def get_fastqc_progress(process_id):
+    upload = Upload.get(process_id)
+    uploads_folder = upload.uploads_folder
+    files_dict_db = Upload.get_files_json(process_id)
+    
     count_fastq_gz = 0
     files_done = 0
     process_finished = 0
@@ -42,7 +63,8 @@ def get_fastqc_progress(process_id):
         'files_main': count_fastq_gz,
         'files_done': files_done,
         'multiqc_report_exists': multiqc_report_exists,
-        'multiqc_report_path': fastqc_path
+        'multiqc_report_path': fastqc_path, 
+        'files_dict_db': files_dict_db
     }
 
     return to_return

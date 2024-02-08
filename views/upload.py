@@ -4,7 +4,6 @@ import string
 import os
 import json
 import logging
-from collections import OrderedDict
 from pathlib import Path
 from werkzeug.utils import secure_filename
 from flask import Blueprint, render_template, request, jsonify, send_from_directory, redirect, url_for
@@ -19,7 +18,7 @@ from flask_login import (
 from helpers.csv import validate_csv
 from helpers.bucket import bucket_chunked_upload, get_progress_db_bucket, init_send_raw_to_storage, get_renamed_files_to_storage_progress, init_upload_renamed_files_to_storage
 from helpers.unzip import get_progress_db_unzip, unzip_raw
-from helpers.fastqc import get_fastqc_progress, init_fastqc_multiqc_files
+from helpers.fastqc import get_fastqc_progress, init_fastqc_multiqc_files, get_multiqc_report
 from helpers.file_renaming import calculate_md5, rename_all_files
 
 from models.upload import Upload
@@ -127,26 +126,7 @@ def upload_form_resume():
             if (matching_files_filesystem):
                 nr_files=len(matching_files_filesystem)
 
-            matching_files_dict = json.loads(upload.files_json)
-            # Sort the dictionary based on 'bucket' and 'folder'
-            matching_files_dict = OrderedDict(sorted(matching_files_dict.items(), key=lambda x: (x[1].get('bucket', ''), x[1].get('folder', ''))))
-            rowspan_counts = {}
-            for filename, data in matching_files_dict.items():
-                if 'bucket' in data and 'folder' in data:
-                    key = data['bucket'] + '_' + data['folder']
-                    if (key in rowspan_counts):
-                        rowspan_counts[key] = rowspan_counts[key] + 1
-                    else:
-                        rowspan_counts[key] = 1
-
-            lastkey = ''
-            for filename, data in matching_files_dict.items():
-                if 'bucket' in data and 'folder' in data:
-                    key = data['bucket'] + '_' + data['folder']
-                    if key != lastkey:
-                        data['rowspan'] = rowspan_counts[key]
-                    lastkey = key
-
+            matching_files_dict = Upload.get_files_json(upload.id)
 
         return render_template(
                                 "form.html",
@@ -398,12 +378,14 @@ def fastqc_progress():
 @approved_required
 def show_multiqc_report():
     process_id = request.args.get('process_id')
-    multiqc_progress = get_fastqc_progress(process_id)
-    logger.info(multiqc_progress)
-    if multiqc_progress['multiqc_report_exists']:
-        return send_from_directory(multiqc_progress['multiqc_report_path'], 'multiqc_report.html')
+    bucket = request.args.get('bucket')
+    folder = request.args.get('folder')
+    multiqc_report = get_multiqc_report(process_id, bucket, folder)
+    logger.info(multiqc_report)
+    if multiqc_report['multiqc_report_exists']:
+        return send_from_directory(multiqc_report['multiqc_report_path'], 'multiqc_report.html')
 
-    return to_return
+    return ''
 
 @upload_bp.route('/uploadrenamed', methods=['POST'], endpoint='upload_renamed_files_route')
 @login_required

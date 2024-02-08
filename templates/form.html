@@ -178,11 +178,11 @@
           </tr>
         </thead>
         <tbody id="files_body">
-          {% if gz_unziped %}
+          {% if matching_files_db %}
 
             {% set rowspan_counts = {} %}
             {% for filename, data in matching_files_db.items() %}
-            {% set rowspan = data.get('rowspan', 0) %}
+              {% set rowspan = data.get('rowspan', 0) %}
               <tr>
                   <th scope="row">{{ loop.index }}</th>
                   <td>{{ filename }}</td>
@@ -190,10 +190,14 @@
                   <td>{{ data.get('bucket', '') }}</td>
                   <td>{{ data.get('folder', '') }}</td>
                   <td>{{ data.get('uploaded', '') }}</td>
-                  {% if rowspan > 1 %}
-                    <td rowspan="{{ rowspan }}">
-                        <a href="#">MultiQC report</a> <!-- Replace "#" with actual link -->
-                    </td>
+                  {% if fastqc_run %}
+                    {% if rowspan > 1 %}
+                      <td rowspan="{{ rowspan }}">
+                          <a href="/multiqc?process_id={{ process_id }}&bucket={{ data.get('bucket', '') }}&folder={{ data.get('folder', '') }}" target="_blank">Open multiqc report</a>
+                      </td>
+                    {% endif %}
+                  {% else %}
+                    <td></td>
                   {% endif %}
               </tr>
               {% if rowspan > 1 %}
@@ -614,11 +618,10 @@
   
         // Function to redraw the HTML table based on the updated dictionary
         function redrawTable(filesDict) {
+          console.log('Re drawing the whole table');
+          console.log(filesDict);
             var tableBody = $('#files_body');
             tableBody.empty(); // Clear existing table rows
-
-            // Create a dictionary to store rowspan counts for each bucket/folder combination
-            var rowspanCounts = {};
 
             // Iterate over the dictionary to populate the table and calculate rowspan counts
             $.each(filesDict, function(oldFilename, fileDetails) {
@@ -629,29 +632,14 @@
                                 '<td>' + (fileDetails.bucket || '') + '</td>' +
                                 '<td>' + (fileDetails.folder || '') + '</td>' +
                                 '<td>' + '</td>' +
-                                '<td>' + '</td>' +
+                                '<td>';
+                if (fileDetails.rowspan > 1) {
+                  newRow +=         '<a href="/multiqc?process_id=' + process_id + '&bucket=' + (fileDetails.bucket || '') + '&folder=' + (fileDetails.folder || '') + '" target="_blank">Open multiqc report</a>';
+                }
+                newRow +=       '</td>' +
                             '</tr>';
 
-                // Update rowspanCounts based on bucket and folder
-                var key = fileDetails.bucket + '_' + fileDetails.folder;
-                if (rowspanCounts.hasOwnProperty(key)) {
-                    rowspanCounts[key]++;
-                } else {
-                    rowspanCounts[key] = 1;
-                }
-
                 tableBody.append(newRow);
-            });
-
-            // Update the rowspan for "MultiQC report" cell
-            tableBody.find('td:nth-child(7)').each(function() {
-                var bucket = $(this).prev().prev().text(); // Get bucket from the preceding cell
-                var folder = $(this).prev().text(); // Get folder from the preceding cell
-                var key = bucket + '_' + folder;
-                $(this).attr('rowspan', rowspanCounts[key]);
-                // Add the link to MultiQC report
-                var multiQCReportLink = '<a href="#">MultiQC report</a>'; // Replace "#" with actual link
-                $(this).html(multiQCReportLink);
             });
 
             // Update the row numbers in the first column
@@ -673,12 +661,13 @@
                     type: 'GET',
                     success: function(data) {
                         let process_finished = data.process_finished;
+                        let filesDict = data.files_dict_db;
 
                         if (process_finished == 1) {
                             clearInterval(intervals[interval_id]); // Stop updating when progress reaches 100%
+                            redrawTable(filesDict);
                             console.log('We will now stop calling for updates');
                             $('#step_6_msg').text('Creation of fastqc and multiqc reports finished').addClass('text-success').removeClass('text-info');
-                            $('#step_6_details').html(`<a href="/multiqc?process_id=${process_id}" target="_blank">Open multiqc report</a>`);
                             $('#step_6_button').hide();
                             $('#step7').css('opacity', '1');
                             $('#step_7_msg').text('Fastqc and multiqc files transfered to bucket');
@@ -690,7 +679,7 @@
                         // Handle error situations
                     }
                 });
-            }, 5000); // Update progress every 5 seconds (adjust timing as needed)
+            }, 3000); // Update progress every 5 seconds (adjust timing as needed)
         }
 
         function updateProgressRenamedToBucket(process_id) {

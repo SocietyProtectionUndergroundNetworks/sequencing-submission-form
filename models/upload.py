@@ -1,6 +1,7 @@
 import json
 import os
 import logging
+from collections import OrderedDict
 from helpers.dbm import connect_db, get_session
 from models.db_model import UploadTable
 from sqlalchemy import desc, or_
@@ -247,7 +248,39 @@ class Upload():
         else:
             session.close()
             return False   
-            
+
+    @classmethod
+    def get_files_json(cls, upload_id):
+        logger.info(upload_id)
+        db_engine = connect_db()
+        session = get_session(db_engine)
+        upload = session.query(UploadTable).filter_by(id=upload_id).first()
+        logger.info(upload)
+        matching_files_dict = json.loads(upload.files_json)
+        session.commit()
+        session.close()
+        
+        # Sort the dictionary based on 'bucket' and 'folder'
+        matching_files_dict = OrderedDict(sorted(matching_files_dict.items(), key=lambda x: (x[1].get('bucket', ''), x[1].get('folder', ''))))
+        rowspan_counts = {}
+        for filename, data in matching_files_dict.items():
+            if 'bucket' in data and 'folder' in data:
+                key = data['bucket'] + '_' + data['folder']
+                if (key in rowspan_counts):
+                    rowspan_counts[key] = rowspan_counts[key] + 1
+                else:
+                    rowspan_counts[key] = 1
+
+        lastkey = ''
+        for filename, data in matching_files_dict.items():
+            if 'bucket' in data and 'folder' in data:
+                key = data['bucket'] + '_' + data['folder']
+                if key != lastkey:
+                    data['rowspan'] = rowspan_counts[key]
+                lastkey = key        
+        return matching_files_dict
+        
+        
     @classmethod
     def get_uploads_by_user(cls, user_id):
         db_engine = connect_db()
