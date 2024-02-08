@@ -8,10 +8,31 @@ from helpers.bucket import bucket_upload_folder
 import logging
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
-def get_fastqc_progress(process_id):
+def get_multiqc_report(process_id, bucket, folder):
     upload = Upload.get(process_id)
     uploads_folder = upload.uploads_folder
 
+
+    extract_directory = upload.extract_directory
+
+    fastqc_path = os.path.join(extract_directory, 'fastqc', bucket, folder)
+
+    multiqc_report_exists = os.path.exists(os.path.join(fastqc_path, 'multiqc_report.html'))
+    logger.info('Does the report exist?')
+    logger.info(multiqc_report_exists)
+    logger.info(fastqc_path)
+    to_return = {
+        'multiqc_report_exists': multiqc_report_exists,
+        'multiqc_report_path': fastqc_path
+    }
+
+    return to_return
+
+def get_fastqc_progress(process_id):
+    upload = Upload.get(process_id)
+    uploads_folder = upload.uploads_folder
+    files_dict_db = Upload.get_files_json(process_id)
+    
     count_fastq_gz = 0
     files_done = 0
     process_finished = 0
@@ -27,7 +48,7 @@ def get_fastqc_progress(process_id):
     if not task.ready():
         # count the files we should have
         files_main = os.listdir(extract_directory)
-        count_fastq_gz = sum(1 for file in files_main if file.endswith('.fastq.gz'))
+        count_fastq_gz = sum(1 for file in files_main if (file.endswith('.fastq.gz') or file.endswith('.fastq')))
 
         # Get how many are done
         files_done = upload.fastqc_files_progress
@@ -42,7 +63,8 @@ def get_fastqc_progress(process_id):
         'files_main': count_fastq_gz,
         'files_done': files_done,
         'multiqc_report_exists': multiqc_report_exists,
-        'multiqc_report_path': fastqc_path
+        'multiqc_report_path': fastqc_path, 
+        'files_dict_db': files_dict_db
     }
 
     return to_return
@@ -83,7 +105,7 @@ def fastqc_multiqc_files(process_id):
     output_folders = {}
     files_done = 0
     # Run fastqc on all raw fastq.gz files within the 'fastqc' conda environment
-    fastq_files = [f for f in os.listdir(input_folder) if f.endswith('.fastq.gz') and not f.startswith('.')]
+    fastq_files = [f for f in os.listdir(input_folder) if ((f.endswith('.fastq.gz') or f.endswith('.fastq')) and not f.startswith('.'))]
     for fastq_file in fastq_files:
         # check that the file exists in our files_json
         if (fastq_file in new_files_json):

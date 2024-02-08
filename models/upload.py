@@ -1,10 +1,15 @@
 import json
 import os
+import logging
+from collections import OrderedDict
 from helpers.dbm import connect_db, get_session
 from models.db_model import UploadTable
 from sqlalchemy import desc, or_
 from pathlib import Path
 from fnmatch import fnmatch
+
+# Get the logger instance from app.py
+logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
 class Upload():
     def __init__(self, **kwargs):
@@ -109,37 +114,37 @@ class Upload():
             return False
 
     @classmethod
-    def update_gz_filename(cls, upload_id, gz_filename):
+    def update_gz_filedata(cls, upload_id, gz_filedata):
+        logger.info('############### 222222222 ############')
+        logger.info('2. We should add the gz_filedata for upload id ' + str(upload_id))
+        
+        logger.info(gz_filedata)
+        
         db_engine = connect_db()
         session = get_session(db_engine)
-
         upload = session.query(UploadTable).filter_by(id=upload_id).first()
+        # one_file_json_data = json.dumps(one_filedata)
+        filename = gz_filedata['form_filename']
 
         if upload:
-            upload.gz_filename = gz_filename
+            existing_gz_filedata_db = upload.gz_filedata
+            if (existing_gz_filedata_db):
+                new_gz_filedata = json.loads(existing_gz_filedata_db)
+            else:
+                new_gz_filedata = {}
+            new_gz_filedata[filename] = gz_filedata
+                
+            upload.gz_filedata = json.dumps(new_gz_filedata)
+            logger.info('And now it is')
+            logger.info(upload.gz_filedata)
             session.commit()
             session.close()
+            logger.info('############### 333333333 ############')
             return True
         else:
             session.close()
             return False
-
-    @classmethod
-    def update_gz_filedata(cls, upload_id, gz_filedata):
-        db_engine = connect_db()
-        session = get_session(db_engine)
-        file_data = json.dumps(gz_filedata)
-
-        upload = session.query(UploadTable).filter_by(id=upload_id).first()
-
-        if upload:
-            upload.gz_filedata = file_data
-            session.commit()
-            session.close()
-            return True
-        else:
-            session.close()
-            return False  
+        
 
     @classmethod
     def get_gz_filedata(cls, upload_id):
@@ -148,41 +153,26 @@ class Upload():
 
         upload = session.query(UploadTable).filter_by(id=upload_id).first()
 
-        uploads_folder = upload.uploads_folder
-
         gz_filedata = {}
+        
         if upload.gz_filedata:
             gz_filedata = json.loads(upload.gz_filedata)
-            form_filename = ''
-            if 'form_filename' in gz_filedata:
-                form_filename = gz_filedata['form_filename']
-            form_filechunks = 0
-            if 'form_filechunks' in gz_filedata:
-                form_filechunks = gz_filedata['form_filechunks']
-
-            # count how many parts are already uploaded:
-            pattern = f"{form_filename}.part*"
-            upload_fullpath = Path("uploads", uploads_folder)
-            files_in_upload_dir = os.listdir(upload_fullpath)
-            part_files = [file for file in files_in_upload_dir if fnmatch(file, pattern)]
-            nr_parts = len(part_files)
-            percent_uploaded = 0
-            if form_filechunks:
-                percent_uploaded = round(int(nr_parts) / int(form_filechunks) * 100, 2)
-            gz_filedata['nr_parts'] = nr_parts
-            gz_filedata['percent_uploaded'] = percent_uploaded
 
         return gz_filedata
 
     @classmethod
-    def update_gz_sent_to_bucket_progress(cls, upload_id, progress):
+    def update_gz_sent_to_bucket_progress(cls, upload_id, progress, filename):
         db_engine = connect_db()
         session = get_session(db_engine)
-
         upload = session.query(UploadTable).filter_by(id=upload_id).first()
 
         if upload:
-            upload.gz_sent_to_bucket_progress = progress
+            if upload.gz_filedata:
+                gz_filedata = json.loads(upload.gz_filedata)
+                if filename in gz_filedata:
+                    gz_filedata[filename]['gz_sent_to_bucket_progress']=progress
+                    upload.gz_filedata = json.dumps(gz_filedata)
+            
             session.commit()
             session.close()
             return True
@@ -191,14 +181,18 @@ class Upload():
             return False
 
     @classmethod
-    def update_gz_unziped_progress(cls, upload_id, progress):
+    def update_gz_unziped_progress(cls, upload_id, progress, filename):
         db_engine = connect_db()
         session = get_session(db_engine)
-
         upload = session.query(UploadTable).filter_by(id=upload_id).first()
 
         if upload:
-            upload.gz_unziped_progress = progress
+            if upload.gz_filedata:
+                gz_filedata = json.loads(upload.gz_filedata)
+                if filename in gz_filedata:
+                    gz_filedata[filename]['gz_unziped_progress']=progress
+                    upload.gz_filedata = json.dumps(gz_filedata)
+            
             session.commit()
             session.close()
             return True
@@ -254,7 +248,39 @@ class Upload():
         else:
             session.close()
             return False   
-            
+
+    @classmethod
+    def get_files_json(cls, upload_id):
+        logger.info(upload_id)
+        db_engine = connect_db()
+        session = get_session(db_engine)
+        upload = session.query(UploadTable).filter_by(id=upload_id).first()
+        logger.info(upload)
+        matching_files_dict = json.loads(upload.files_json)
+        session.commit()
+        session.close()
+        
+        # Sort the dictionary based on 'bucket' and 'folder'
+        matching_files_dict = OrderedDict(sorted(matching_files_dict.items(), key=lambda x: (x[1].get('bucket', ''), x[1].get('folder', ''))))
+        rowspan_counts = {}
+        for filename, data in matching_files_dict.items():
+            if 'bucket' in data and 'folder' in data:
+                key = data['bucket'] + '_' + data['folder']
+                if (key in rowspan_counts):
+                    rowspan_counts[key] = rowspan_counts[key] + 1
+                else:
+                    rowspan_counts[key] = 1
+
+        lastkey = ''
+        for filename, data in matching_files_dict.items():
+            if 'bucket' in data and 'folder' in data:
+                key = data['bucket'] + '_' + data['folder']
+                if key != lastkey:
+                    data['rowspan'] = rowspan_counts[key]
+                lastkey = key        
+        return matching_files_dict
+        
+        
     @classmethod
     def get_uploads_by_user(cls, user_id):
         db_engine = connect_db()

@@ -6,7 +6,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/spark-md5/3.0.0/spark-md5.min.js"></script>
-    <title>Upload data</title>
+    <title>Upload data</title>  
 </head>
 <body>
     <div id="msg" class="text-info">{{ msg }}</div>
@@ -35,60 +35,77 @@
         action="/upload"
         id="step_2_form"
         enctype="multipart/form-data"
-        {% if (gz_uploaded) %} style="display: none;" {% endif %}
       >
-        <input type="file" id="step_2_button" name="file" />
+        <input type="file" id="step_2_button" name="file" multiple />
         <input type="hidden" name="process_id" value="{{ process_id }}">    
       </form>
-      {% if gz_uploaded %}
-        <div id="step_2_msg" class="text-success">GZ file already uploaded: {{ gz_filename }}</div>
-      {% elif csv_uploaded and not gz_uploaded %}
+      {% if csv_uploaded %}
         <div id="step_2_msg" class="text-primary">
-          {% if 'form_filename' in gz_filedata %}
-            You have previously started uploading a file: <br>
-            Filename: {{ gz_filedata.form_filename }}<br>
-          {% endif %}
-          {% if 'percent_uploaded' in gz_filedata %}
-            Already uploaded: {{ gz_filedata.percent_uploaded }}%<br>
-          {% endif %}
-          {% if 'form_filename' in gz_filedata %}
-            Please select the same file to resume uploading
-          {% endif %}
-        </div>        
+          {% if gz_filedata %}
+              {% for filename, file_data in gz_filedata.items() %}
+                  {% if 'percent_uploaded' in file_data %}
+                      {% if file_data.percent_uploaded == 100 %}
+                          You have uploaded the file {{ filename }}<br>
+                      {% else %}
+                          {% if file_data.percent_uploaded > 0 %}
+                              You have previously started uploading a file: {{ filename }}<br>
+                              Already uploaded: {{ file_data.percent_uploaded }}%<br>
+                              Please select the same file to resume uploading<br>
+                          {% endif %}
+                      {% endif %}
+                  {% endif %}
+              {% endfor %}
+          {% endif %}         
+        </div>          
       {% else  %}
         <div id="step_2_msg"></div>
       {% endif %}
     </div>
-    <div id="step3" {% if not gz_uploaded %} style="opacity: 0.5;" {% endif %}>
+    <div id="step3">
       <h3> Step 3: Upload raw files to google storage </h3>
 
-      {% if gz_sent_to_bucket %}
-        <div id="step_3_msg" class="text-success">GZ file successfully sent to google storage</div>
-      {% else %}
-        <div id="step_3_progress">Bucket Transfer Progress: 0%</div>
-        <div id="step_3_msg"></div>
-      {% endif %}
+      <div id="step_3_progress">
+        {% if gz_filedata %}
+            {% for filename, file_data in gz_filedata.items() %}
+                {% if 'gz_sent_to_bucket_progress' in file_data %}
+                    {% if file_data.gz_sent_to_bucket_progress == 100 %}
+                        <p class="text-success">File {{ filename }} has been sent to google bucket<p>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+        {% endif %}       
+      </div>
+      <div id="step_3_msg"></div>
+
     </div>
-    <div id="step4" {% if not gz_uploaded %} style="opacity: 0.5;" {% endif %}>
+    <div id="step4">
       <h3> Step 4: Unzip Raw files</h3>
-      {% if gz_unziped %}
-        <div id="step_4_msg" class="text-success">File successfully unzipped</div>
-      {% else %}
-        <div id="step_4_progress">Unzip Progress: 0%</div>
-        <div id="step_4_msg"></div>
-      {% endif %}
+      <div id="step_4_progress">
+        {% if gz_filedata %}
+            {% for filename, file_data in gz_filedata.items() %}
+                {% if 'gz_unziped_progress' in file_data %}
+                    {% if file_data.gz_unziped_progress == 100 %}
+                        <p class="text-success">File {{ filename }} has been unzipped<p>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+        {% endif %}  
+      </div>
+      <div id="step_4_msg"></div>
     </div>
-    <div id="step5" {% if not gz_unziped %} style="opacity: 0.5;" {% endif %}>
+    <div id="step5">
       <h3> Step 5: Rename files</h3>
       {% if files_renamed %}
         <div id="step_5_msg" class="text-success">Files renamed</div>
+        <h4 id="step_5_warning" class="text-warning"></h4>      
       {% else %}
+        <h4 id="step_5_warning" class="text-warning"> ONLY start this when you have uploaded successfully all your files and the unzip process has finished for all your files</h4>
         <div>
           <form
               id="step_5_form"
               method="POST"
               action="/renamefiles"
-              {% if ((not gz_unziped) or (files_renamed)) %} style="display: none;" {% endif %}
+              {% if files_renamed %} style="display: none;" {% endif %}
           >
             <input type="hidden" name="process_id" value="{{ process_id }}">
             <input type="submit" class="btn btn-primary" id="step_5_button">
@@ -154,55 +171,66 @@
             <th scope="col">#</th>
             <th scope="col">Original filename</th>
             <th scope="col">Renamed to</th>
-            <th scope="col">Moved to Bucket</th>
-            <th scope="col">Moved to folder</th>
+            <th scope="col">Bucket</th>
+            <th scope="col">Folder</th>
+            <th scope="col">Moved to bucket</th>
+            <th scope="col">MultiQC report</th>
           </tr>
         </thead>
         <tbody id="files_body">
-          {% if gz_unziped %}
+          {% if matching_files_db %}
+
+            {% set rowspan_counts = {} %}
             {% for filename, data in matching_files_db.items() %}
+              {% set rowspan = data.get('rowspan', 0) %}
               <tr>
                   <th scope="row">{{ loop.index }}</th>
                   <td>{{ filename }}</td>
-                  <td>{{ data.new_filename }}</td>
-                  <td>
-                    {% if 'target_bucket' in data %}
-                        {{ data.target_bucket }}
+                  <td>{{ data.get('new_filename', '') }}</td>
+                  <td>{{ data.get('bucket', '') }}</td>
+                  <td>{{ data.get('folder', '') }}</td>
+                  <td>{{ data.get('uploaded', '') }}</td>
+                  {% if fastqc_run %}
+                    {% if rowspan > 1 %}
+                      <td rowspan="{{ rowspan }}">
+                          <a href="/multiqc?process_id={{ process_id }}&bucket={{ data.get('bucket', '') }}&folder={{ data.get('folder', '') }}" target="_blank">Open multiqc report</a>
+                      </td>
                     {% endif %}
-                  </td>
-                  <td>
-                    {% if 'target_folder' in data %}
-                        {{ data.target_folder }}
-                    {% endif %}                  
-                  </td>
+                  {% else %}
+                    <td></td>
+                  {% endif %}
               </tr>
+              {% if rowspan > 1 %}
+                {% set _ = rowspan_counts.update({key: rowspan - 1}) %}
+              {% endif %}
             {% endfor %}
+
 
           {% endif %}          
         </tbody>
       </table>
     </div>
     <script type="application/javascript">
-      let process_id = {{ process_id | default('0') }}; // To track the process from start to end.
-      let progressTrackers = {}; // To track progress for each file    
-      {% if gz_sent_to_bucket_progress is none %}
-        let gz_sent_to_bucket_progress = '0';
-      {% else %}
-        let gz_sent_to_bucket_progress = {{ gz_sent_to_bucket_progress  | default('0') }};
-      {% endif %}
-      
-      {% if gz_sent_to_bucket %}
-        let gz_sent_to_bucket = 1;
-      {% else %}
-        let gz_sent_to_bucket = 0;
-      {% endif %}
-      
-      {% if gz_uploaded %}
-        let gz_uploaded = 1;
-      {% else %}
-        let gz_uploaded = 0;
-      {% endif %}
-      
+        let process_id = {{ process_id | default('0') }}; // To track the process from start to end.
+        let gz_filedata = {{ gz_filedata|tojson if gz_filedata else '{}' }};
+        
+        function hide_form_5() {
+          $('#step_5_button').hide();
+          $('#step_5_warning').hide();
+          $('#step5').css('opacity', '0.5');          
+        }
+        
+        function show_form_5() {
+          $('#step_5_button').show();
+          $('#step_5_warning').show();
+          $('#step5').css('opacity', '1');          
+        }        
+        
+        $(document).ready(function () {
+          if (!gz_filedata || Object.keys(gz_filedata).length === 0) {
+            hide_form_5();
+          }
+        });        
     
         function calculateMD5(file, callback, updateCallback) {
             var chunkSize = 2097152; // 2 MB chunks
@@ -240,7 +268,6 @@
 
             loadNext();
         }
-    
 
         $(document).ready(function () {
             $('#step_1_button').on('change', function () {
@@ -302,17 +329,11 @@
 
         // Initialize Resumable.js
         var allowedExtensions = ['gz', 'tar', 'zip']; // Define allowed file extensions
-        var r = new Resumable({
-            target: '/upload', // Your upload URL
-            chunkSize: 10 * 1024 * 1024, // Chunk size (10 MB in this example)
+        var commonOptions = {
+            target: '/upload', 
+            chunkSize: 10 * 1024 * 1024, 
             testChunks: true,
             uploadMethod: 'POST',
-            query: {
-                process_id: process_id,
-                filename: '',
-                filesize: '',
-                filechunks: ''
-            },
             fileType: allowedExtensions,
             fileTypeErrorCallback: function(file, errorCount) {
                 // Check if the file extension is allowed
@@ -321,96 +342,143 @@
                     alert('File type not allowed! Please select a .gz, .tar, or .zip file.');
                     return false; // Cancel the file upload
                 }
-            },                      
-            // Add any other configuration options as needed
+            },
+        };        
+  
+        // Initialize Resumable.js with common options
+        var r = new Resumable(commonOptions);
+
+        // Event listener for when files are added
+        r.on('filesAdded', function(files) {
+            var file_index = 0;
+            hide_form_5();
+            files.forEach(function(file) {
+                file_index = file_index +1;
+                // Handle each file individually
+                console.log('file added to resumable:', file);
+                console.log('Unique Identifier for file:', file.uniqueIdentifier);
+
+                var file_msg_id = 'step_2_file_' + file.uniqueIdentifier;
+                var file_name = file.file.name;
+                var file_row = '<div id="' + file_msg_id + '">Calculating md5 for: ' + file_name + '</div>';
+                $('#step_2_msg').append( file_row );
+                
+                //Add lines for third step
+                var step3_msg_id = 'step_3_file_' + file.uniqueIdentifier;
+                var step3_file_row = '<div id="' + step3_msg_id + '"></div>';
+                $('#step_3_progress').append( step3_file_row );
+
+                //Add lines for fourth step
+                var step4_msg_id = 'step_4_file_' + file.uniqueIdentifier;
+                var step4_file_row = '<div id="' + step4_msg_id + '"></div>';
+                $('#step_4_progress').append( step4_file_row );
+
+                // Customize options for each file
+                var fileOptions = {
+                    query: {
+                        process_id: process_id,
+                        filename: file.file.name,
+                        filesize: file.file.size,
+                        filechunks: Math.ceil(file.file.size / r.opts.chunkSize),
+                        fileindex: file.uniqueIdentifier
+                    },
+                };
+
+                // Create a new Resumable instance for each file with merged options
+                var resumableFile = new Resumable(Object.assign({}, commonOptions, fileOptions));
+
+                // Assign the current file to the Resumable instance
+                resumableFile.addFile(file.file);
+
+                // Listen to events for each file
+                resumableFile.on('progress', function(file) {
+                  let progress =Math.round(resumableFile.progress() * 10000)/100
+                  var file_msg_id = 'step_2_file_' + resumableFile.files[0].uniqueIdentifier;
+                  $("#" + file_msg_id).html('Upload progress: ' + progress.toFixed(2) + '%');
+                });
+
+                resumableFile.on('fileSuccess', function(file, message) {
+                  const parsedMessage = JSON.parse(message);
+                  gz_filedata = parsedMessage.gz_filedata;
+                  var file_id = resumableFile.files[0].uniqueIdentifier;
+                  var file_msg_id = 'step_2_file_' + file_id; 
+                  var file_name = file.file.name;
+                  $("#" + file_msg_id).html('Upload of file ' + file_name + ' finished').addClass('text-success').removeClass('text-danger').removeClass('text-info');
+
+                  //$('#step3').css('opacity', '1');
+                  
+                  //$('#step4').css('opacity', '1');
+                  
+                  // We automatically will start step 3 on the server, so lets start getting updates
+                  updateProgressRawFileBucket(process_id, file_id, file_name);
+                  // We automatically will start step 4 on the server, so lets start getting updates
+                  updateProgressUnZip(process_id, file_id, file_name);
+                });
+
+                // Assign file input to the Resumable instance
+                resumableFile.assignBrowse(document.getElementById('step_2_button'));
+
+                // Start upload for each file
+                setTimeout(function() {
+                  calculateMD5(file.file, 
+                      function (md5) {
+                          resumableFile.opts.query.md5 = md5; // Add MD5 hash to the query parameters
+                          $("#" + file_msg_id).html('Md5 for file ' + file_name + ' calculated:' + md5).addClass('text-info').removeClass('text-danger').removeClass('text-success');
+
+                          // Enable the button after calculation is completed
+                          $('#step_2_button').prop("disabled", false);
+                          //console.log('We will start upload');
+                          //console.log(resumableFile);
+                          resumableFile.upload();
+                          //console.log('we started the upload');
+                      },
+                      function (progress) {
+                        if (progress<100) {
+                          $("#" + file_msg_id).html('Calculating md5 for file ' + file_name + '. Progress: ' + progress.toFixed(2) + '%').addClass('text-info').removeClass('text-danger').removeClass('text-success');
+                        }
+                      }
+                  );
+                }, (file_index* 500));                
+            });
         });
 
-        // Assign file input to Resumable.js
+        // Assign file input to the main Resumable instance
         r.assignBrowse(document.getElementById('step_2_button'));
-
-        // Listen to events
-        r.on('fileAdded', function(file) {
-            console.log('file added to resumable');
-
-            
-            r.opts.query.process_id = process_id;
-            r.opts.query.filename = file.file.name;
-            r.opts.query.filesize = file.file.size;
-            r.opts.query.filechunks = Math.ceil(file.file.size / r.opts.chunkSize);
-            
-            // Calculate MD5 hash of the file and include it in the Resumable.js query
-            $('#step_2_button').prop("disabled", true);
-            $("#step_2_msg").html('Calculating md5. Please wait').addClass('text-info').removeClass('text-danger').removeClass('text-success');
-
-            calculateMD5(file.file, 
-                function (md5) {
-                    r.opts.query.md5 = md5; // Add MD5 hash to the query parameters
-                    $("#step_2_msg").html('Md5 calculated:' + md5).addClass('text-info').removeClass('text-danger').removeClass('text-success');
-                    // Enable the button after calculation is completed
-                    $('#step_2_button').prop("disabled", false);
-                    r.upload();
-                },
-                function (progress) {
-                    $("#step_2_msg").html('Calculating md5. Progress: ' + progress.toFixed(2) + '%').addClass('text-info').removeClass('text-danger').removeClass('text-success');
-                }
-            );
-        });
-
-        r.on('progress', function(file) {
-            let progress =Math.round(r.progress() * 10000)/100
-            $("#step_2_msg").html(`Uploading. Progress ${progress} %`).addClass('text-info').removeClass('text-danger').removeClass('text-success');
-        });
-
-        r.on('error', function(file, message) {
-            console.log('Upload error:', message);
-        });
-
-        r.on('pause', function(file) {
-            let progress =Math.round(r.progress() * 10000)/100
-            $("#step_2_msg").html(`Process paused. Progress ${progress} %`).addClass('text-info').removeClass('text-danger').removeClass('text-success');
-        });
-
-        r.on('fileSuccess', function(file, message) {
-          const parsedMessage = JSON.parse(message);
-          $("#step_2_msg").html(parsedMessage.message).addClass('text-success').removeClass('text-danger').removeClass('text-info');
-          
-          $('#step3').css('opacity', '1');
-          
-          $('#step4').css('opacity', '1');
-          
-          // We automatically will start step 3 on the server, so lets start getting updates
-          updateProgressRawFileBucket(process_id);
-          // We automatically will start step 4 on the server, so lets start getting updates
-          updateProgressUnZip(process_id);
-        });
-
-        r.on('fileError', function(file, message) {
-          const parsedMessage = JSON.parse(message);
-            $("#step_2_msg").html(parsedMessage.message).addClass('text-danger').removeClass('text-success').removeClass('text-info');
-        });
-
 
         let intervals = {}; // To store interval IDs for each file upload
 
-        function updateProgressRawFileBucket(process_id) {
-            console.log('We will now start calling for updates for ProgressRawFileBucket');
+        function updateProgressRawFileBucket(process_id, file_id, file_name) {
+            console.log('We will now start calling for updates for ProgressRawFileBucket for file id ' + file_id);
 
-            let interval_id = 'rawtobucket_' + process_id
+            let interval_id = 'rawtobucket_' + process_id + '_' + file_id;
             // Clear any existing interval for the same file upload
             clearInterval(intervals[interval_id]);
 
             intervals[interval_id] = setInterval(function () {
                 $.ajax({
-                    url: `/uploadprogress?process_id=${process_id}`,
+                    url: `/uploadprogress?process_id=${process_id}&file_id=${file_id}`,
                     type: 'GET',
                     success: function(data) {
                         let progress = data.progress;
-                        $('#step_3_progress').text(`Bucket Transfer Progress: ${progress}%`);
+                        gz_filedata = data.gz_filedata;
+                 
+                        var step3_msg_id = 'step_3_file_' + file_id;
+                        // Check if the element with id step3_msg_id exists
+
+                        if ($('#' + step3_msg_id).length === 0) {
+                            // If it doesn't exist, create it
+                            var step3_file_row = $('<div id="' + step3_msg_id + '"></div>');
+                            // Append it to the parent element with id step_3_progress
+                            $('#step_3_progress').append(step3_file_row);
+                            console.log('added the element');
+                        }
+                        $('#'+step3_msg_id).text(`Bucket Transfer Progress of file ${file_name}: ${progress}%`);
 
                         if (progress >= 100) {
+                            $('#'+step3_msg_id).addClass('text-success').removeClass('text-info');
                             clearInterval(intervals[interval_id]); // Stop updating when progress reaches 100%
-                            console.log('We will now stop calling for updates');
-                            $('#step_3_msg').text('Raw file successfully uploaded to google storage').addClass('text-success');
+                            console.log('We will now stop calling for updates in updateProgressRawFileBucket');
+
                         }
                     },
                     error: function() {
@@ -420,47 +488,90 @@
             }, 5000); // Update progress every 5 seconds (adjust timing as needed)
         }
         
-        if (
-            (gz_sent_to_bucket_progress > 0) 
-            && (gz_sent_to_bucket_progress<100) 
-            && (process_id >0)
-            && (gz_sent_to_bucket == 0)
-            && (gz_uploaded == 1)
-            ) {
-          updateProgressRawFileBucket(process_id);
+        function updateProgressAllRawFilesBucket(process_id) {
+            // Get all the filenames for this process_id
+            let filenames = Object.keys(gz_filedata);
+            
+            // Iterate over each filename
+            filenames.forEach(filename => {
+                let fileData = gz_filedata[filename];
+                
+                // Check if the fileData object has the key gz_sent_to_bucket_progress
+                if (fileData.hasOwnProperty('gz_sent_to_bucket_progress')) {
+                    // Check if the progress is >0 and <100
+                    if (fileData.gz_sent_to_bucket_progress > 0 && fileData.gz_sent_to_bucket_progress < 100) {
+                        // Call updateProgressRawFileBucket function
+                        updateProgressRawFileBucket(process_id, fileData.form_fileidentifier, fileData.form_filename);
+                    }
+                }
+            });
+        }
+        
+        updateProgressAllRawFilesBucket(process_id);
+
+        function areAllFilesUnzipped(gz_filedata) {
+            // Iterate over each filename and its corresponding data
+            for (const filename in gz_filedata) {
+                if (gz_filedata.hasOwnProperty(filename)) {
+                    const fileData = gz_filedata[filename];
+                    // Check if gz_unziped_progress is not equal to 100
+                    if (fileData.gz_unziped_progress !== 100) {
+                        // If any file is not unzipped, return false
+                        return false;
+                    }
+                }
+            }
+            // If all files are unzipped, return true
+            return true;
         }
 
 
-        function updateProgressUnZip(process_id) {
-            console.log('We will now start calling for updates for ProgressUnZip');
+        function updateProgressUnZip(process_id, file_id, file_name) {
+            console.log('We will now start calling for updates for ProgressUnZip for file ' + file_name);
 
-            let interval_id = 'unzip_' + process_id
+            let interval_id = 'unzip_' + process_id + '_' + file_id;
             // Clear any existing interval for the same file upload
             clearInterval(intervals[interval_id]);
 
             intervals[interval_id] = setInterval(function () {
                 $.ajax({
-                    url: `/unzipprogress?process_id=${process_id}`,
+                    url: `/unzipprogress?process_id=${process_id}&file_id=${file_id}`,
                     type: 'GET',
                     success: function(data) {
                         let progress = data.progress;
-                        $('#step_4_progress').text(`Unzip Progress: ${progress}%`);
+                        gz_filedata = data.gz_filedata;
+                        var step4_msg_id = 'step_4_file_' + file_id;
+                        // Check if the element with id step3_msg_id exists
+
+                        if ($('#' + step4_msg_id).length === 0) {
+                            // If it doesn't exist, create it
+                            var step4_file_row = $('<div id="' + step4_msg_id + '"></div>');
+                            // Append it to the parent element with id step_4_progress
+                            $('#step_4_progress').append(step3_file_row);
+                        }
+                        $('#'+step4_msg_id).text(`Unzip Progress of file ${file_name}: ${progress}%`);
+                        
 
                         if (progress >= 100) {
                             clearInterval(intervals[interval_id]); // Stop updating when progress reaches 100%
-                            console.log('We will now stop calling for updates');
-                            $('#step_4_msg').text('Files successfully unzipped').addClass('text-success').removeClass('text-info');
+                            console.log('We will now stop calling for updates for ProgressUnZip for file ' + file_name);
+                            $('#'+step4_msg_id).text(`File ${file_name}: ${progress}% successfully unziped`).addClass('text-success').removeClass('text-info');
                             
                             let table_row = ''
                             for (key in data.matching_files) {
-                              table_row = '<tr><td scope="row">' + (parseInt(key)+1) + '</td><td>' + data.matching_files[key] + '</td><td></td><td></td><td></td></tr>';
+                              table_row = '<tr><td scope="row">' + (parseInt(key)+1) + '</td><td>' + data.matching_files[key] + '</td><td></td><td></td><td></td><td></td><td></td></tr>';
                               $('#files_body').append( table_row );
                             }
                             
-                            // We will try to initiate the renaming step (5)
-                            $('#step_5_form').show();
-                            $('#step5').css('opacity', '1');
-                            $("#step_5_form").submit();
+                            // We should check if all available files have been uzipped
+                            // and if yes, we should enable the next step 
+                            if (areAllFilesUnzipped(gz_filedata)) {
+                              show_form_5();                                                       
+                            } else {
+                              hide_form_5();
+                            }
+
+                            //$("#step_5_form").submit();
                         }
                     },
                     error: function() {
@@ -475,6 +586,7 @@
                 // Prevent the default form submission
                 event.preventDefault();
                 $('#step_5_button').prop("disabled", true);
+                $('#step_5_warning').hide();
                 // Get form data
                 var formData = $(this).serialize();
 
@@ -487,19 +599,10 @@
                         console.log('Form data submitted via AJAX successfully');
                         $('#step_5_msg').text('File renaming process finished').addClass('text-success');
                         let results = response.results;
-
-                        $.each(response.files_dict, function(oldFilename, fileDetails) {
-                            // Iterate through table rows in the tbody with ID 'files_body'
-                            $('#files_body tr').each(function() {
-                                var currentFilename = $(this).find('td:nth-child(2)').text(); // Get the filename from the second cell
-                                if (currentFilename === oldFilename) {
-                                    // Update the third cell with new_filename if it exists in fileDetails
-                                    if ('new_filename' in fileDetails) {
-                                        $(this).find('td:nth-child(3)').text(fileDetails.new_filename);
-                                    }
-                                }
-                            });
-                        });
+                        let filesDict = response.files_dict;
+                        // Redraw the HTML table
+                        redrawTable(filesDict);
+                        
                         $('#step_5_button').hide();
                         $('#step_6_form').show();
                         $('#step6').css('opacity', '1');
@@ -512,6 +615,38 @@
                 });
             });
         });
+  
+        // Function to redraw the HTML table based on the updated dictionary
+        function redrawTable(filesDict) {
+          console.log('Re drawing the whole table');
+          console.log(filesDict);
+            var tableBody = $('#files_body');
+            tableBody.empty(); // Clear existing table rows
+
+            // Iterate over the dictionary to populate the table and calculate rowspan counts
+            $.each(filesDict, function(oldFilename, fileDetails) {
+                var newRow = '<tr>' +
+                                '<th scope="row">' + '</th>' +
+                                '<td>' + oldFilename + '</td>' +
+                                '<td>' + (fileDetails.new_filename || '') + '</td>' +
+                                '<td>' + (fileDetails.bucket || '') + '</td>' +
+                                '<td>' + (fileDetails.folder || '') + '</td>' +
+                                '<td>' + '</td>' +
+                                '<td>';
+                if (fileDetails.rowspan > 1) {
+                  newRow +=         '<a href="/multiqc?process_id=' + process_id + '&bucket=' + (fileDetails.bucket || '') + '&folder=' + (fileDetails.folder || '') + '" target="_blank">Open multiqc report</a>';
+                }
+                newRow +=       '</td>' +
+                            '</tr>';
+
+                tableBody.append(newRow);
+            });
+
+            // Update the row numbers in the first column
+            tableBody.find('tr').each(function(index) {
+                $(this).find('th').text(index + 1);
+            });
+        }
         
         function updateProgressMultiqc(process_id) {
             console.log('We will now start calling for updates for fastqc');
@@ -526,12 +661,13 @@
                     type: 'GET',
                     success: function(data) {
                         let process_finished = data.process_finished;
+                        let filesDict = data.files_dict_db;
 
                         if (process_finished == 1) {
                             clearInterval(intervals[interval_id]); // Stop updating when progress reaches 100%
+                            redrawTable(filesDict);
                             console.log('We will now stop calling for updates');
                             $('#step_6_msg').text('Creation of fastqc and multiqc reports finished').addClass('text-success').removeClass('text-info');
-                            $('#step_6_details').html(`<a href="/multiqc?process_id=${process_id}" target="_blank">Open multiqc report</a>`);
                             $('#step_6_button').hide();
                             $('#step7').css('opacity', '1');
                             $('#step_7_msg').text('Fastqc and multiqc files transfered to bucket');
@@ -543,7 +679,7 @@
                         // Handle error situations
                     }
                 });
-            }, 5000); // Update progress every 5 seconds (adjust timing as needed)
+            }, 3000); // Update progress every 5 seconds (adjust timing as needed)
         }
 
         function updateProgressRenamedToBucket(process_id) {
@@ -572,12 +708,9 @@
                                     var currentFilename = $(this).find('td:nth-child(2)').text(); // Get the filename from the second cell
                                     if (currentFilename === oldFilename) {
                                         // Update the third cell with new_filename if it exists in fileDetails
-                                        if ('target_bucket' in fileDetails) {
-                                            $(this).find('td:nth-child(4)').text(fileDetails.target_bucket);
-                                        }
-                                        if ('target_folder' in fileDetails) {
-                                            $(this).find('td:nth-child(5)').text(fileDetails.target_folder);
-                                        }                                        
+                                        if ('uploaded' in fileDetails) {
+                                            $(this).find('td:nth-child(6)').text(fileDetails.uploaded);
+                                        }                                      
                                     }
                                 });
                             });                            

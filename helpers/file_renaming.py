@@ -6,9 +6,13 @@ import subprocess
 import json
 import multiqc
 import hashlib
+import logging
 from pathlib import Path
 from flask import current_app as app  # Import the 'app' instance
 from models.upload import Upload
+
+# Get the logger instance from app.py
+logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
 def rename_files(csv_file_path, directory_path, files_json):
     matching_files_dict = json.loads(files_json)
@@ -97,9 +101,10 @@ def rename_all_files(process_id):
     uploads_folder = upload.uploads_folder
     path = Path("uploads", uploads_folder)
     csv_filepath = path / upload.csv_filename
-    filename = upload.gz_filename
-    save_path = path / filename
+    logger.info('The files_json is')
 
+    logger.info(upload.files_json)
+    
     extract_directory = Path("processing", uploads_folder)
     rename_results, not_found, files_dict = rename_files(csv_filepath, extract_directory, upload.files_json)
     Upload.update_files_json(process_id, files_dict)
