@@ -18,9 +18,6 @@ def get_multiqc_report(process_id, bucket, folder):
     fastqc_path = os.path.join(extract_directory, 'fastqc', bucket, folder)
 
     multiqc_report_exists = os.path.exists(os.path.join(fastqc_path, 'multiqc_report.html'))
-    logger.info('Does the report exist?')
-    logger.info(multiqc_report_exists)
-    logger.info(fastqc_path)
     to_return = {
         'multiqc_report_exists': multiqc_report_exists,
         'multiqc_report_path': fastqc_path
@@ -32,7 +29,7 @@ def get_fastqc_progress(process_id):
     upload = Upload.get(process_id)
     uploads_folder = upload.uploads_folder
     files_dict_db = Upload.get_files_json(process_id)
-    
+
     count_fastq_gz = 0
     files_done = 0
     process_finished = 0
@@ -48,7 +45,7 @@ def get_fastqc_progress(process_id):
     if not task.ready():
         # count the files we should have
         files_main = os.listdir(extract_directory)
-        count_fastq_gz = sum(1 for file in files_main if (file.endswith('.fastq.gz') or file.endswith('.fastq')))
+        count_fastq_gz = sum(1 for file in files_main if ((file.endswith('.fastq.gz') or file.endswith('.fastq')) and not (file.startswith('._'))))
 
         # Get how many are done
         files_done = upload.fastqc_files_progress
@@ -63,7 +60,7 @@ def get_fastqc_progress(process_id):
         'files_main': count_fastq_gz,
         'files_done': files_done,
         'multiqc_report_exists': multiqc_report_exists,
-        'multiqc_report_path': fastqc_path, 
+        'multiqc_report_path': fastqc_path,
         'files_dict_db': files_dict_db
     }
 
@@ -72,7 +69,6 @@ def get_fastqc_progress(process_id):
 def init_fastqc_multiqc_files(process_id):
 
     upload = Upload.get(process_id)
-    logger.info(upload.extract_directory)
     from tasks import fastqc_multiqc_files_async
     try:
         result = fastqc_multiqc_files_async.delay(process_id)
@@ -82,13 +78,13 @@ def init_fastqc_multiqc_files(process_id):
     except Exception as e:
         logger.error("This is an error message from upload.py")
         logger.error(e)
-            
+
 def fastqc_multiqc_files(process_id):
     upload = Upload.get(process_id)
     uploads_folder = upload.uploads_folder
     input_folder = str(upload.extract_directory)
     files_json = json.loads(upload.files_json)
-    
+
     new_files_json = {
         data["new_filename"]: {
             "bucket": data.get("bucket"),
@@ -98,7 +94,7 @@ def fastqc_multiqc_files(process_id):
         for key, data in files_json.items()
         if "bucket" in data and "folder" in data
     }
-        
+
     results=[]
     output_folder = os.path.join(input_folder, 'fastqc')
     os.makedirs(output_folder, exist_ok=True)
@@ -111,15 +107,15 @@ def fastqc_multiqc_files(process_id):
         if (fastq_file in new_files_json):
             bucket = new_files_json[fastq_file]["bucket"]
             folder = new_files_json[fastq_file]["folder"]
-            
+
             if (bucket not in output_folders):
                 output_folders[bucket] = {}
-            
+
             if (folder not in output_folders[bucket]):
                 output_folders[bucket][folder] = True
-            
+
             print('file we will try is ' + str(fastq_file))
-            
+
             output_folder_of_file = os.path.join(output_folder, bucket, folder)
             Path(output_folder_of_file).mkdir(parents=True, exist_ok=True)
             input_file = os.path.join(input_folder, fastq_file)
@@ -128,8 +124,8 @@ def fastqc_multiqc_files(process_id):
             subprocess.run(fastqc_cmd, shell=True, executable='/bin/bash')
             files_done = files_done + 1
             Upload.update_fastqc_files_progress(process_id, files_done)
-    
-    # Run the multiqc process differently for each project. 
+
+    # Run the multiqc process differently for each project.
     for bucket, folders in output_folders.items():
         for folder in folders:
             multiqc_folder = os.path.join(output_folder, bucket, folder)
@@ -141,9 +137,9 @@ def fastqc_multiqc_files(process_id):
 
             # upload the multiqc files to the project bucket
             bucket_upload_folder(multiqc_folder, folder+'/'+uploads_folder, process_id, 'fastqc_files', bucket)
-            
+
     fastqc_path = os.path.join(input_folder , 'fastqc')
     Upload.mark_field_as_true(process_id, 'fastqc_sent_to_bucket')
-    
-    results.append("Finished") 
-    return results     
+
+    results.append("Finished")
+    return results

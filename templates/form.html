@@ -1,12 +1,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/resumable.js/1.1.0/resumable.min.js"></script>    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/resumable.js/1.1.0/resumable.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/spark-md5/3.0.0/spark-md5.min.js"></script>
-    <title>Upload data</title>  
+    <title>Upload data</title>
 </head>
 <body>
     <div id="msg" class="text-info">{{ msg }}</div>
@@ -37,7 +37,7 @@
         enctype="multipart/form-data"
       >
         <input type="file" id="step_2_button" name="file" multiple />
-        <input type="hidden" name="process_id" value="{{ process_id }}">    
+        <input type="hidden" name="process_id" value="{{ process_id }}">
       </form>
       {% if csv_uploaded %}
         <div id="step_2_msg" class="text-primary">
@@ -55,8 +55,8 @@
                       {% endif %}
                   {% endif %}
               {% endfor %}
-          {% endif %}         
-        </div>          
+          {% endif %}
+        </div>
       {% else  %}
         <div id="step_2_msg"></div>
       {% endif %}
@@ -73,7 +73,7 @@
                     {% endif %}
                 {% endif %}
             {% endfor %}
-        {% endif %}       
+        {% endif %}
       </div>
       <div id="step_3_msg"></div>
 
@@ -89,7 +89,7 @@
                     {% endif %}
                 {% endif %}
             {% endfor %}
-        {% endif %}  
+        {% endif %}
       </div>
       <div id="step_4_msg"></div>
     </div>
@@ -97,7 +97,7 @@
       <h3> Step 5: Rename files</h3>
       {% if files_renamed %}
         <div id="step_5_msg" class="text-success">Files renamed</div>
-        <h4 id="step_5_warning" class="text-warning"></h4>      
+        <h4 id="step_5_warning" class="text-warning"></h4>
       {% else %}
         <h4 id="step_5_warning" class="text-warning"> ONLY start this when you have uploaded successfully all your files and the unzip process has finished for all your files</h4>
         <div>
@@ -162,7 +162,7 @@
       {% endif %}
     </div>
 
-    
+
     <h3> Files in the uploaded file </h3>
     <div id="files_table">
       <table class="table">
@@ -206,32 +206,115 @@
             {% endfor %}
 
 
-          {% endif %}          
+          {% endif %}
         </tbody>
       </table>
     </div>
     <script type="application/javascript">
         let process_id = {{ process_id | default('0') }}; // To track the process from start to end.
         let gz_filedata = {{ gz_filedata|tojson if gz_filedata else '{}' }};
-        
+        let matching_files_db = {{ matching_files_db|tojson if matching_files_db else '{}' }};
+
+
+        function reorderByBucketFolderAndRowspan(originalObject) {
+          // Extract keys and sort based on bucket, folder, and rowspan
+          const sortedKeys = Object.keys(originalObject).sort((a, b) => {
+            // Check if bucket key exists in both objects
+            const bucketA = originalObject[a].bucket || '';
+            const bucketB = originalObject[b].bucket || '';
+
+            // Compare buckets
+            const bucketComparison = bucketA.localeCompare(bucketB);
+            if (bucketComparison !== 0) {
+              return bucketComparison;
+            }
+
+            // Check if folder key exists in both objects
+            const folderA = originalObject[a].folder || '';
+            const folderB = originalObject[b].folder || '';
+
+            // Compare folders
+            const folderComparison = folderA.localeCompare(folderB);
+            if (folderComparison !== 0) {
+              return folderComparison;
+            }
+
+            // Check if rowspan key exists in both objects
+            const rowspanA = originalObject[a].rowspan || 0;
+            const rowspanB = originalObject[b].rowspan || 0;
+
+            // Compare rowspan, prioritize rows with rowspan
+            if (rowspanA !== rowspanB) {
+              return rowspanB - rowspanA;
+            }
+
+            return 0; // If everything is equal, maintain current order
+          });
+
+          // Reconstruct the object with sorted keys
+          const sortedObject = sortedKeys.reduce((acc, key) => {
+            acc[key] = originalObject[key];
+            return acc;
+          }, {});
+
+          return sortedObject;
+        }
+
+        // Function to redraw the HTML table based on the updated dictionary
+        function redrawTable(filesDict) {
+            var filesDict = reorderByBucketFolderAndRowspan(filesDict);
+            var tableBody = $('#files_body');
+            tableBody.empty(); // Clear existing table rows
+
+            // Iterate over the dictionary to populate the table and calculate rowspan counts
+            $.each(filesDict, function(oldFilename, fileDetails) {
+                var newRow = '<tr>' +
+                                '<th scope="row">' + '</th>' +
+                                '<td>' + oldFilename + '</td>' +
+                                '<td>' + (fileDetails.new_filename || '') + '</td>' +
+                                '<td>' + (fileDetails.bucket || '') + '</td>' +
+                                '<td>' + (fileDetails.folder || '') + '</td>' +
+                                '<td>' + '</td>';
+
+                if (fileDetails.rowspan > 1) {
+                  newRow +=         '<td rowspan="' + (fileDetails.rowspan) + '">';
+                  newRow +=         '<a href="/multiqc?process_id=' + process_id + '&bucket=' + (fileDetails.bucket || '') + '&folder=' + (fileDetails.folder || '') + '" target="_blank">Open multiqc report</a>';
+                  newRow +=         '</td>';
+                }
+                newRow +=      '</tr>';
+
+                tableBody.append(newRow);
+            });
+
+            // Update the row numbers in the first column
+            tableBody.find('tr').each(function(index) {
+                $(this).find('th').text(index + 1);
+            });
+        }
+
+
+        $(document).ready(function () {
+          redrawTable(matching_files_db);
+        });
+
         function hide_form_5() {
           $('#step_5_button').hide();
           $('#step_5_warning').hide();
-          $('#step5').css('opacity', '0.5');          
+          $('#step5').css('opacity', '0.5');
         }
-        
+
         function show_form_5() {
           $('#step_5_button').show();
           $('#step_5_warning').show();
-          $('#step5').css('opacity', '1');          
-        }        
-        
+          $('#step5').css('opacity', '1');
+        }
+
         $(document).ready(function () {
           if (!gz_filedata || Object.keys(gz_filedata).length === 0) {
             hide_form_5();
           }
-        });        
-    
+        });
+
         function calculateMD5(file, callback, updateCallback) {
             var chunkSize = 2097152; // 2 MB chunks
             var spark = new SparkMD5.ArrayBuffer();
@@ -294,7 +377,6 @@
               contentType: false,
               processData: false,
               success: function (response) {
-                  console.log(response);
                   // Access and use the process ID
                   process_id = response.process_id;
 
@@ -306,15 +388,15 @@
                   var form6 = $("#step_6_form");
                   form6.find('input[name="process_id"]').val(process_id);
                   var form8 = $("#step_8_form");
-                  form8.find('input[name="process_id"]').val(process_id);                    
+                  form8.find('input[name="process_id"]').val(process_id);
                   $('#process_id_info').html('Process ID: ' + process_id);
-                                    
+
                   $('#step_1_msg').html(response.msg).removeClass('text-danger').addClass('text-success');
                   $('#step_1_button').prop('disabled', true);
-                  
+
                   $('#step2').css('opacity', '1');
-                  $('#step_2_form').show();    
-                  $('#step_2_button').prop('disabled', false);         
+                  $('#step_2_form').show();
+                  $('#step_2_button').prop('disabled', false);
               },
               error: function (xhr) {
                 if (xhr && xhr.responseText) {
@@ -330,8 +412,8 @@
         // Initialize Resumable.js
         var allowedExtensions = ['gz', 'tar', 'zip']; // Define allowed file extensions
         var commonOptions = {
-            target: '/upload', 
-            chunkSize: 10 * 1024 * 1024, 
+            target: '/upload',
+            chunkSize: 10 * 1024 * 1024,
             testChunks: true,
             uploadMethod: 'POST',
             fileType: allowedExtensions,
@@ -343,8 +425,8 @@
                     return false; // Cancel the file upload
                 }
             },
-        };        
-  
+        };
+        var uploading = false;
         // Initialize Resumable.js with common options
         var r = new Resumable(commonOptions);
 
@@ -362,7 +444,7 @@
                 var file_name = file.file.name;
                 var file_row = '<div id="' + file_msg_id + '">Calculating md5 for: ' + file_name + '</div>';
                 $('#step_2_msg').append( file_row );
-                
+
                 //Add lines for third step
                 var step3_msg_id = 'step_3_file_' + file.uniqueIdentifier;
                 var step3_file_row = '<div id="' + step3_msg_id + '"></div>';
@@ -395,24 +477,28 @@
                   let progress =Math.round(resumableFile.progress() * 10000)/100
                   var file_msg_id = 'step_2_file_' + resumableFile.files[0].uniqueIdentifier;
                   $("#" + file_msg_id).html('Upload progress: ' + progress.toFixed(2) + '%');
+                  if (progress < 100) {
+                    uploading = true;
+                  }
                 });
 
                 resumableFile.on('fileSuccess', function(file, message) {
                   const parsedMessage = JSON.parse(message);
                   gz_filedata = parsedMessage.gz_filedata;
                   var file_id = resumableFile.files[0].uniqueIdentifier;
-                  var file_msg_id = 'step_2_file_' + file_id; 
+                  var file_msg_id = 'step_2_file_' + file_id;
                   var file_name = file.file.name;
                   $("#" + file_msg_id).html('Upload of file ' + file_name + ' finished').addClass('text-success').removeClass('text-danger').removeClass('text-info');
 
                   //$('#step3').css('opacity', '1');
-                  
+
                   //$('#step4').css('opacity', '1');
-                  
+
                   // We automatically will start step 3 on the server, so lets start getting updates
                   updateProgressRawFileBucket(process_id, file_id, file_name);
                   // We automatically will start step 4 on the server, so lets start getting updates
                   updateProgressUnZip(process_id, file_id, file_name);
+                  uploading = false;
                 });
 
                 // Assign file input to the Resumable instance
@@ -420,17 +506,16 @@
 
                 // Start upload for each file
                 setTimeout(function() {
-                  calculateMD5(file.file, 
+                  calculateMD5(file.file,
                       function (md5) {
                           resumableFile.opts.query.md5 = md5; // Add MD5 hash to the query parameters
                           $("#" + file_msg_id).html('Md5 for file ' + file_name + ' calculated:' + md5).addClass('text-info').removeClass('text-danger').removeClass('text-success');
 
                           // Enable the button after calculation is completed
                           $('#step_2_button').prop("disabled", false);
-                          //console.log('We will start upload');
-                          //console.log(resumableFile);
+
                           resumableFile.upload();
-                          //console.log('we started the upload');
+
                       },
                       function (progress) {
                         if (progress<100) {
@@ -438,7 +523,7 @@
                         }
                       }
                   );
-                }, (file_index* 500));                
+                }, (file_index* 500));
             });
         });
 
@@ -461,7 +546,7 @@
                     success: function(data) {
                         let progress = data.progress;
                         gz_filedata = data.gz_filedata;
-                 
+
                         var step3_msg_id = 'step_3_file_' + file_id;
                         // Check if the element with id step3_msg_id exists
 
@@ -470,7 +555,6 @@
                             var step3_file_row = $('<div id="' + step3_msg_id + '"></div>');
                             // Append it to the parent element with id step_3_progress
                             $('#step_3_progress').append(step3_file_row);
-                            console.log('added the element');
                         }
                         $('#'+step3_msg_id).text(`Bucket Transfer Progress of file ${file_name}: ${progress}%`);
 
@@ -487,15 +571,15 @@
                 });
             }, 5000); // Update progress every 5 seconds (adjust timing as needed)
         }
-        
+
         function updateProgressAllRawFilesBucket(process_id) {
             // Get all the filenames for this process_id
             let filenames = Object.keys(gz_filedata);
-            
+
             // Iterate over each filename
             filenames.forEach(filename => {
                 let fileData = gz_filedata[filename];
-                
+
                 // Check if the fileData object has the key gz_sent_to_bucket_progress
                 if (fileData.hasOwnProperty('gz_sent_to_bucket_progress')) {
                     // Check if the progress is >0 and <100
@@ -506,7 +590,7 @@
                 }
             });
         }
-        
+
         updateProgressAllRawFilesBucket(process_id);
 
         function areAllFilesUnzipped(gz_filedata) {
@@ -550,23 +634,22 @@
                             $('#step_4_progress').append(step3_file_row);
                         }
                         $('#'+step4_msg_id).text(`Unzip Progress of file ${file_name}: ${progress}%`);
-                        
+
 
                         if (progress >= 100) {
                             clearInterval(intervals[interval_id]); // Stop updating when progress reaches 100%
                             console.log('We will now stop calling for updates for ProgressUnZip for file ' + file_name);
                             $('#'+step4_msg_id).text(`File ${file_name}: ${progress}% successfully unziped`).addClass('text-success').removeClass('text-info');
-                            
-                            let table_row = ''
-                            for (key in data.matching_files) {
-                              table_row = '<tr><td scope="row">' + (parseInt(key)+1) + '</td><td>' + data.matching_files[key] + '</td><td></td><td></td><td></td><td></td><td></td></tr>';
-                              $('#files_body').append( table_row );
-                            }
-                            
+
+                            let filesDict = data.files_dict_db;
+                            redrawTable(filesDict);
+
                             // We should check if all available files have been uzipped
-                            // and if yes, we should enable the next step 
+                            // and if yes, we should enable the next step
                             if (areAllFilesUnzipped(gz_filedata)) {
-                              show_form_5();                                                       
+                              if (!uploading) {
+                                show_form_5();
+                              }
                             } else {
                               hide_form_5();
                             }
@@ -602,7 +685,7 @@
                         let filesDict = response.files_dict;
                         // Redraw the HTML table
                         redrawTable(filesDict);
-                        
+
                         $('#step_5_button').hide();
                         $('#step_6_form').show();
                         $('#step6').css('opacity', '1');
@@ -615,39 +698,8 @@
                 });
             });
         });
-  
-        // Function to redraw the HTML table based on the updated dictionary
-        function redrawTable(filesDict) {
-          console.log('Re drawing the whole table');
-          console.log(filesDict);
-            var tableBody = $('#files_body');
-            tableBody.empty(); // Clear existing table rows
 
-            // Iterate over the dictionary to populate the table and calculate rowspan counts
-            $.each(filesDict, function(oldFilename, fileDetails) {
-                var newRow = '<tr>' +
-                                '<th scope="row">' + '</th>' +
-                                '<td>' + oldFilename + '</td>' +
-                                '<td>' + (fileDetails.new_filename || '') + '</td>' +
-                                '<td>' + (fileDetails.bucket || '') + '</td>' +
-                                '<td>' + (fileDetails.folder || '') + '</td>' +
-                                '<td>' + '</td>' +
-                                '<td>';
-                if (fileDetails.rowspan > 1) {
-                  newRow +=         '<a href="/multiqc?process_id=' + process_id + '&bucket=' + (fileDetails.bucket || '') + '&folder=' + (fileDetails.folder || '') + '" target="_blank">Open multiqc report</a>';
-                }
-                newRow +=       '</td>' +
-                            '</tr>';
 
-                tableBody.append(newRow);
-            });
-
-            // Update the row numbers in the first column
-            tableBody.find('tr').each(function(index) {
-                $(this).find('th').text(index + 1);
-            });
-        }
-        
         function updateProgressMultiqc(process_id) {
             console.log('We will now start calling for updates for fastqc');
 
@@ -701,7 +753,7 @@
                             $('#step_8_msg').text('All renamed files moved to project buckets');
                         } else {
                             $('#step_8_msg').text('Files done: ' + data.files_done + ' / ' +  data.files_main).addClass('text-info').removeClass('text-success');
-                            
+
                             $.each(data.files_dict, function(oldFilename, fileDetails) {
                                 // Iterate through table rows in the tbody with ID 'files_body'
                                 $('#files_body tr').each(function() {
@@ -710,10 +762,10 @@
                                         // Update the third cell with new_filename if it exists in fileDetails
                                         if ('uploaded' in fileDetails) {
                                             $(this).find('td:nth-child(6)').text(fileDetails.uploaded);
-                                        }                                      
+                                        }
                                     }
                                 });
-                            });                            
+                            });
                         }
                     },
                     error: function() {
@@ -722,17 +774,19 @@
                 });
             }, 5000); // Update progress every 5 seconds (adjust timing as needed)
         }
-        
+
         $(document).ready(function () {
             $('#step_6_form').submit(function (event) {
                 // Prevent the default form submission
                 event.preventDefault();
                 $('#step_6_button').prop("disabled", true);
+                $('#step_2_form').hide();
+
                 // Get form data
                 var formData = $(this).serialize();
                 var process_id = $(this).find('input[name="process_id"]').val();
-                updateProgressMultiqc(process_id)  
-                
+                updateProgressMultiqc(process_id)
+
                 $.ajax({
                     type: 'POST',
                     url: '/fastqcfiles',
@@ -740,7 +794,7 @@
                     success: function (response) {
                         // Handle success
                         console.log('Form data submitted via AJAX successfully');
-                        
+
                         $('#step_6_msg').text('Fastqc process started').addClass('text-info');
                     },
                     error: function (error) {
@@ -750,7 +804,7 @@
                 });
             });
         });
-        
+
         $(document).ready(function () {
             $('#step_8_form').submit(function (event) {
                 // Prevent the default form submission
@@ -759,9 +813,9 @@
                 // Get form data
                 var formData = $(this).serialize();
                 var process_id = $(this).find('input[name="process_id"]').val();
-                updateProgressRenamedToBucket(process_id)  
+                updateProgressRenamedToBucket(process_id)
                 console.log(formData);
-                
+
                 $.ajax({
                     type: 'POST',
                     url: '/uploadrenamed',
@@ -769,7 +823,7 @@
                     success: function (response) {
                         // Handle success
                         console.log('Form data for upload renamed files submitted via AJAX successfully');
-                        
+
                         $('#step_8_msg').text('Upload renamed files process started').addClass('text-info');
                     },
                     error: function (error) {
@@ -778,7 +832,7 @@
                     }
                 });
             });
-        });        
+        });
     </script>
 </body>
 </html>

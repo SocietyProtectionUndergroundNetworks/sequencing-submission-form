@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-
+from collections import OrderedDict
 # Library about google cloud storage
 from google.cloud import storage
 from pathlib import Path
@@ -33,7 +33,7 @@ def init_send_raw_to_storage(process_id, filename):
         logger.error("This is an error message from helpers/bucket.py while trying to upload_raw_file_to_storage_async")
         logger.error(e)
 
-    return {"msg": "Process initiated"}  
+    return {"msg": "Process initiated"}
 
 def upload_raw_file_to_storage(process_id, filename):
 
@@ -52,7 +52,7 @@ def get_progress_db_bucket(process_id, upload_type, file_id=''):
     progress = 0
     if (upload_type=='gz_raw'):
         upload = Upload.get(process_id)
-        
+
         gz_filedata = json.loads(upload.gz_filedata)
         for filename, file_data in gz_filedata.items():
             if 'form_fileidentifier' in file_data:
@@ -60,7 +60,7 @@ def get_progress_db_bucket(process_id, upload_type, file_id=''):
                     if ('gz_sent_to_bucket_progress' in file_data):
                         progress = file_data['gz_sent_to_bucket_progress']
     return progress
-    
+
 def bucket_chunked_upload(local_file_path, destination_upload_directory, destination_blob_name, process_id, upload_type, bucket_name=None):
     # Configure Google Cloud Storage
     if bucket_name is None:
@@ -134,14 +134,14 @@ def init_upload_renamed_files_to_storage(process_id):
         logger.error("This is an error message from helpers/bucket.py while trying to upload_renamed_files_to_storage_async")
         logger.error(e)
 
-    return {"msg": "Process initiated"}  
-    
+    return {"msg": "Process initiated"}
+
 def upload_renamed_files_to_storage(process_id):
     upload = Upload.get(process_id)
     uploads_folder = upload.uploads_folder
     extract_directory = Path("processing", uploads_folder)
     files_json = json.loads(upload.files_json)
-    
+
     total_count = len(files_json)
     files_done = 0
     #lets iterate it again, this time doing the actual move
@@ -154,22 +154,22 @@ def upload_renamed_files_to_storage(process_id):
         if 'folder' in value:
             folder = value['folder']
         if ((bucket is not None) & (folder is not None)):
-            
+
             new_file_path = os.path.join(extract_directory, new_filename)
             # logger.info('folder: ' + str(folder) +  ', new_filename: ' + str(new_filename))
             bucket_chunked_upload(new_file_path, folder, new_filename, process_id, 'renamed_files', bucket)
             files_json[key]['uploaded'] = 'Done'
-                
+
             files_done = files_done + 1
             Upload.update_files_json(process_id, files_json)
             Upload.update_renamed_sent_to_bucket_progress(process_id, files_done)
     Upload.mark_field_as_true(process_id, 'renamed_sent_to_bucket')
-    
+
     return "ok"
-    
+
 def get_renamed_files_to_storage_progress(process_id):
     upload = Upload.get(process_id)
-    files_json = json.loads(upload.files_json)    
+    files_json = json.loads(upload.files_json)
     total_count = len(files_json)
     files_done = upload.renamed_sent_to_bucket_progress
     process_finished = upload.renamed_sent_to_bucket
@@ -179,7 +179,7 @@ def get_renamed_files_to_storage_progress(process_id):
     to_return = {
         'process_finished': process_finished,
         'files_main': total_count,
-        'files_done': files_done, 
+        'files_done': files_done,
         'files_dict': files_dict
     }
 

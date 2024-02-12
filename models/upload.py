@@ -21,11 +21,11 @@ class Upload():
     def get(self, id):
         db_engine = connect_db()
         session = get_session(db_engine)
-        
+
         upload_db = session.query(UploadTable).filter_by(id=id).first()
-        
+
         session.close()
-        
+
         if not upload_db:
             return None
 
@@ -37,7 +37,7 @@ class Upload():
 
         # Create an instance of YourClass using the dictionary
         upload = Upload(**filtered_dict)
-        
+
         return upload
 
     @classmethod
@@ -66,19 +66,19 @@ class Upload():
     def create(self, user_id, csv_filename, uploads_folder):
         db_engine = connect_db()
         session = get_session(db_engine)
-        
+
         new_upload = UploadTable(user_id=user_id, csv_filename=csv_filename, csv_uploaded=True, uploads_folder=uploads_folder)
-        
+
         session.add(new_upload)
         session.commit()
-        
+
         # Refresh the object to get the updated ID
         session.refresh(new_upload)
-        
+
         new_upload_id = new_upload.id
-        
+
         session.close()
-        
+
         return new_upload_id
 
     @classmethod
@@ -117,9 +117,9 @@ class Upload():
     def update_gz_filedata(cls, upload_id, gz_filedata):
         logger.info('############### 222222222 ############')
         logger.info('2. We should add the gz_filedata for upload id ' + str(upload_id))
-        
+
         logger.info(gz_filedata)
-        
+
         db_engine = connect_db()
         session = get_session(db_engine)
         upload = session.query(UploadTable).filter_by(id=upload_id).first()
@@ -133,7 +133,7 @@ class Upload():
             else:
                 new_gz_filedata = {}
             new_gz_filedata[filename] = gz_filedata
-                
+
             upload.gz_filedata = json.dumps(new_gz_filedata)
             logger.info('And now it is')
             logger.info(upload.gz_filedata)
@@ -144,7 +144,7 @@ class Upload():
         else:
             session.close()
             return False
-        
+
 
     @classmethod
     def get_gz_filedata(cls, upload_id):
@@ -154,7 +154,7 @@ class Upload():
         upload = session.query(UploadTable).filter_by(id=upload_id).first()
 
         gz_filedata = {}
-        
+
         if upload.gz_filedata:
             gz_filedata = json.loads(upload.gz_filedata)
 
@@ -172,7 +172,7 @@ class Upload():
                 if filename in gz_filedata:
                     gz_filedata[filename]['gz_sent_to_bucket_progress']=progress
                     upload.gz_filedata = json.dumps(gz_filedata)
-            
+
             session.commit()
             session.close()
             return True
@@ -192,14 +192,14 @@ class Upload():
                 if filename in gz_filedata:
                     gz_filedata[filename]['gz_unziped_progress']=progress
                     upload.gz_filedata = json.dumps(gz_filedata)
-            
+
             session.commit()
             session.close()
             return True
         else:
             session.close()
             return False
-            
+
     @classmethod
     def update_fastqc_files_progress(cls, upload_id, progress):
         db_engine = connect_db()
@@ -214,8 +214,8 @@ class Upload():
             return True
         else:
             session.close()
-            return False        
-                
+            return False
+
     @classmethod
     def update_renamed_sent_to_bucket_progress(cls, upload_id, progress):
         db_engine = connect_db()
@@ -231,7 +231,7 @@ class Upload():
         else:
             session.close()
             return False
-            
+
     @classmethod
     def update_files_json(cls, upload_id, files_dict):
         db_engine = connect_db()
@@ -247,7 +247,7 @@ class Upload():
             return True
         else:
             session.close()
-            return False   
+            return False
 
     @classmethod
     def get_files_json(cls, upload_id):
@@ -259,7 +259,10 @@ class Upload():
         matching_files_dict = json.loads(upload.files_json)
         session.commit()
         session.close()
-        
+
+        # remove files where the name starts with '._' (non real files, artifacts of zip process)
+        matching_files_dict = {key: value for key, value in matching_files_dict.items() if not key.startswith('._')}
+
         # Sort the dictionary based on 'bucket' and 'folder'
         matching_files_dict = OrderedDict(sorted(matching_files_dict.items(), key=lambda x: (x[1].get('bucket', ''), x[1].get('folder', ''))))
         rowspan_counts = {}
@@ -277,25 +280,26 @@ class Upload():
                 key = data['bucket'] + '_' + data['folder']
                 if key != lastkey:
                     data['rowspan'] = rowspan_counts[key]
-                lastkey = key        
+                lastkey = key
+
         return matching_files_dict
-        
-        
+
+
     @classmethod
     def get_uploads_by_user(cls, user_id):
         db_engine = connect_db()
         session = get_session(db_engine)
-        
+
         uploads = session.query(UploadTable).filter_by(user_id=user_id).all()
-        
+
         session.close()
-        
+
         if not uploads:
             return []
-        
+
         uploads_list = [
             cls(**{key: getattr(upload, key) for key in upload.__dict__.keys() if not key.startswith('_')})
             for upload in uploads
         ]
-        
-        return uploads_list   
+
+        return uploads_list

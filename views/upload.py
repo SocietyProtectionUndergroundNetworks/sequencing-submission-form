@@ -110,7 +110,6 @@ def upload_form_resume():
         any_unzipped = False
 
         if gz_filedata:
-            logger.info(gz_filedata)
             for filename, file_data in gz_filedata.items():
                 if 'gz_sent_to_bucket_progress' in file_data:
                     if file_data['gz_sent_to_bucket_progress'] == 100:
@@ -146,7 +145,6 @@ def upload_form_resume():
 @login_required
 @approved_required
 def upload_form():
-    # logger.info('form requested')
     return render_template("form.html")
 
 @upload_bp.route('/uploadcsv', methods=['POST'], endpoint='upload_csv')
@@ -171,12 +169,9 @@ def upload_csv():
     file.save(save_path)  # Save the CSV file to a specific location
 
     cvs_results = validate_csv(save_path)
-    logger.info('cvs_results')
-    logger.info(cvs_results)
     if cvs_results is True:
         process_id = Upload.create(user_id=current_user.id, csv_filename=filename, uploads_folder=uploads_folder)
         bucket_chunked_upload(save_path, "uploads/" + uploads_folder, filename, process_id, 'csv_file')
-        # logger.info('new_id is ' + str(new_id))
         return jsonify({"msg": "CSV file uploaded successfully. Checks passed", "process_id": process_id}), 200
     else:
         return jsonify({"error": "CSV file problems: ", "results": cvs_results}), 400
@@ -206,10 +201,13 @@ def unzip_progress():
             matching_files_dict = {filename: {'new_filename': '', 'fastqc': ''} for filename in matching_files}
             Upload.update_files_json(process_id, matching_files_dict)
 
-        return jsonify({"progress": progress, "msg": "Raw unzipped successfully.", "nr_files": nr_files, "matching_files":matching_files, 'gz_filedata': gz_filedata}), 200
+        files_dict_db = Upload.get_files_json(process_id)
 
+        return jsonify({"progress": progress, "msg": "Raw unzipped successfully.", "nr_files": nr_files, "files_dict_db":files_dict_db, 'gz_filedata': gz_filedata}), 200
+
+    files_dict_db = Upload.get_files_json(process_id)
     return {
-        "progress": progress, 'gz_filedata': gz_filedata
+        "progress": progress, 'gz_filedata': gz_filedata, "files_dict_db":files_dict_db
     }
 
 
@@ -230,7 +228,6 @@ def upload_progress():
 @approved_required
 def handle_upload():
     file = request.files.get('file')
-    logger.info(file)
     if file:
         process_id = request.args.get('process_id')
         #fields to know which file we are uploading
@@ -252,10 +249,6 @@ def handle_upload():
         resumable_total_size = request.args.get('resumableTotalSize')
         expected_md5 = request.args.get('md5')
 
-        # logger.info('resumable_chunk_number ' + str(resumable_chunk_number))
-        # logger.info('resumable_total_chunks ' + str(resumable_total_chunks))
-        # logger.info('resumable_chunk_size ' + str(resumable_chunk_size))
-        # logger.info('resumable_total_size ' + str(resumable_total_size))
 
         # Handle file chunks or combine chunks into a complete file
         chunk_number = int(resumable_chunk_number) if resumable_chunk_number else 1
@@ -264,8 +257,6 @@ def handle_upload():
         # Calculate the percentage completion
         percentage = int((chunk_number / total_chunks) * 100)
 
-        logger.info('############### 00000000 ############')
-        logger.info('We are uploading the file with identifier: ' + str(form_fileidentifier) )
 
         one_filedata = {
             'form_filename'         : form_filename,
@@ -275,9 +266,7 @@ def handle_upload():
             'chunk_number_uploaded' : chunk_number,
             'percent_uploaded'      : percentage
         }
-        logger.info('0. we will update it with :')
-        logger.info(one_filedata)
-        logger.info('############### 11111111 ############')
+
         Upload.update_gz_filedata(process_id, one_filedata)
 
         # Save or process the chunk (for demonstration, just save it)
@@ -300,8 +289,6 @@ def handle_upload():
             # Perform MD5 hash check
             expected_md5 = request.args.get('md5')  # Get the expected MD5 hash from the request
             actual_md5 = calculate_md5(final_file_path)
-            # logger.info('expected_md5 ' + str(expected_md5))
-            # logger.info('actual_md5 ' + str(actual_md5))
 
             # Compare MD5 hashes
             if expected_md5 == actual_md5:
@@ -332,15 +319,11 @@ def check_chunk():
     resumable_filename = request.args.get('resumableFilename')
     upload = Upload.get(process_id)
     uploads_folder = upload.uploads_folder
-    # logger.info('checking if chunk exists. Chunk nr: ' + str(chunk_number))
 
     chunk_path = f'uploads/{uploads_folder}/{resumable_filename}.part{chunk_number}'
 
-    logger.info('chunk_path: ' + str(chunk_path))
     if os.path.exists(chunk_path):
-        # logger.info('chunk exists')
         return '', 200  # Chunk already uploaded, return 200
-    # logger.info('chunk doesnt exist ')
     return '', 204  # Chunk not found, return 204
 
 @upload_bp.route('/renamefiles', methods=['POST'], endpoint='renamefiles')
@@ -381,7 +364,6 @@ def show_multiqc_report():
     bucket = request.args.get('bucket')
     folder = request.args.get('folder')
     multiqc_report = get_multiqc_report(process_id, bucket, folder)
-    logger.info(multiqc_report)
     if multiqc_report['multiqc_report_exists']:
         return send_from_directory(multiqc_report['multiqc_report_path'], 'multiqc_report.html')
 
