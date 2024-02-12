@@ -28,7 +28,7 @@ def validate_csv_column_names(file_path):
             'Project',
             'Region',
             'Index_1',
-            'Barcode_2'
+            'Index_2'
         ]
 
         # Compare column names and return a list of mismatched columns

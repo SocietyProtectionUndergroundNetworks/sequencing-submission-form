@@ -9,10 +9,11 @@
     <title>Upload data</title>
 </head>
 <body>
+    <h1> Sequencing Files Submission Form </h1>
     <div id="msg" class="text-info">{{ msg }}</div>
     <div id="process_id_info">Process id: {{ process_id }}</div>
     <div id="step1">
-      <h3> Step 1: upload key file (csv) </h3>
+      <h3> Step 1: upload Data File (csv) </h3>
       {% if csv_uploaded %}
         <div id="step_1_msg" class="text-success">CSV file already uploaded : {{ csv_filename }}</div>
       {% else %}
