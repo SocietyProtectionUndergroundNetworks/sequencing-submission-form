@@ -198,7 +198,7 @@ def unzip_progress():
 
         # count the files ending with fastq.gz
         file_names = os.listdir(extract_directory)
-        matching_files = [filename for filename in file_names if filename.endswith('.fastq.gz')]
+        matching_files = [filename for filename in file_names if (filename.endswith('.fastq.gz') or filename.endswith('.fastq'))]
         nr_files = 0
         if (matching_files):
             nr_files=len(matching_files)
