@@ -1,6 +1,8 @@
 # Python image to use.
 FROM python:3.11-alpine
 
+ARG FLASK_PROCESS_USER
+
 # Install Bash
 RUN apk update && \
     apk add --no-cache bash && \
@@ -23,11 +25,19 @@ RUN wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.
 # Set FastQC in the PATH  
 ENV PATH="/usr/local/bin/FastQC:${PATH}"    
 
+# Create a non-root user
+RUN adduser --disabled-password --gecos '' $FLASK_PROCESS_USER
+
 # Set the working directory to /app
 WORKDIR /app
 
+# Change ownership of the application directory to the non-root user
+RUN chown -R $FLASK_PROCESS_USER:$FLASK_PROCESS_USER /app
+
 # copy the requirements file used for dependencies
 COPY requirements.txt .
+
+USER $FLASK_PROCESS_USER
 
 # Install any needed packages specified in requirements.txt
 RUN pip install --trusted-host pypi.python.org -r requirements.txt
