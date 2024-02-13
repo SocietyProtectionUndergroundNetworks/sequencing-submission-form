@@ -17,7 +17,6 @@ SQLALCHEMY_DATABASE_URI = get_database_uri()
 app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
 db = SQLAlchemy(app)
 
-app.config["SESSION_PERMANENT"] = False
 app.config['SESSION_TYPE'] = 'sqlalchemy'
 app.config['SESSION_SQLALCHEMY'] = db
 Session(app)

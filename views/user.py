@@ -2,8 +2,7 @@ import os
 import requests
 import json
 import logging
-from flask import Blueprint
-from flask import request, redirect, url_for, render_template
+from flask import request, redirect, url_for, render_template, session, Blueprint
 from oauthlib.oauth2 import WebApplicationClient
 from extensions import login_manager
 from flask_login import (
@@ -55,6 +54,8 @@ def get_google_provider_cfg():
 
 @user_bp.route('/login')
 def login():
+    session['referrer_url'] = request.referrer
+    
     # Find out what URL to hit for Google login
     google_provider_cfg = get_google_provider_cfg()
     authorization_endpoint = google_provider_cfg["authorization_endpoint"]
@@ -126,8 +127,13 @@ def callback():
     # Begin user session by logging the user in
     login_user(user, remember=True)
 
-    # Send user back to homepage
-    return redirect(url_for("upload.index"))
+    # After successful login, check if there's a referrer URL stored in the session
+    if 'referrer_url' in session:
+        referrer_url = session.pop('referrer_url')
+        return redirect(referrer_url)
+    else:
+        # If there's no referrer URL stored, redirect to a default route
+        return redirect(url_for("upload.index"))
 
 @user_bp.route('/logout')
 @login_required
