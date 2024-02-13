@@ -28,26 +28,22 @@ RUN wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.
 ENV PATH="/usr/local/bin/FastQC:${PATH}"    
 
 # Create a non-root user
-RUN adduser --disabled-password --gecos '' --uid $FLASK_PROCESS_USER_ID $FLASK_PROCESS_USER
+RUN addgroup -g $FLASK_PROCESS_GROUP_ID $FLASK_PROCESS_USER
+RUN adduser -D -u $FLASK_PROCESS_USER_ID -G $FLASK_PROCESS_USER $FLASK_PROCESS_USER
 
-# TODO: Find the correct way to also make sure that the running user runs as the correct group.
-# STOPPED end of day 2024-02-12
-# RUN addgroup --gid $FLASK_PROCESS_GROUP_ID $FLASK_PROCESS_USER
-# RUN usermod -g $FLASK_PROCESS_GROUP_ID $FLASK_PROCESS_USER
-    
 # Set the working directory to /app
 WORKDIR /app
 
 # Change ownership of the application directory to the non-root user
-RUN chown -R $FLASK_PROCESS_USER:$FLASK_PROCESS_USER /app
+RUN chown -R $FLASK_PROCESS_USER:$FLASK_PROCESS_GROUP_ID /app
 
 # copy the requirements file used for dependencies
 COPY requirements.txt .
 
-USER $FLASK_PROCESS_USER
-
 # Install any needed packages specified in requirements.txt
 RUN pip install --trusted-host pypi.python.org -r requirements.txt
+
+USER $FLASK_PROCESS_USER
 
 # Copy the rest of the working directory contents into the container at /app
 COPY . .
