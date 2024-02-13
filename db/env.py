@@ -2,6 +2,7 @@ import os
 from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 from alembic import context
+from db.db_conn import get_database_uri
 
 # Add your SQLAlchemy models' Base here
 from models.db_model import Base  # Update the path as needed
@@ -10,14 +11,7 @@ from models.db_model import Base  # Update the path as needed
 config = context.config
 fileConfig(config.config_file_name)  # Interpret the config file for Python logging
 
-# You can set the URL directly here using the environment variables
-DB_USER = os.environ['MYSQL_USER']
-DB_PASSWORD =os.environ['MYSQL_PASSWORD']
-DB_HOST = os.environ['MYSQL_HOST']
-DB_PORT = os.environ['MYSQL_PORT']
-DB_NAME = os.environ['MYSQL_DATABASE']
-
-SQLALCHEMY_DATABASE_URI = f'mysql+mysqldb://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4'
+SQLALCHEMY_DATABASE_URI = get_database_uri()
 
 # Set the SQLAlchemy URL in the Alembic context
 config.set_main_option('sqlalchemy.url', SQLALCHEMY_DATABASE_URI)

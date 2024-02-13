@@ -2,13 +2,25 @@ import os
 import secrets
 import logging
 
-from flask import Flask
+from flask import Flask, session
 from views.user import user_bp
 from views.upload import upload_bp
 from extensions import login_manager
 from celery_config import make_celery
+from flask_session import Session
+from flask_sqlalchemy import SQLAlchemy
+from db.db_conn import get_database_uri
 
 app = Flask(__name__)
+SQLALCHEMY_DATABASE_URI = get_database_uri()
+
+app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
+db = SQLAlchemy(app)
+
+app.config["SESSION_PERMANENT"] = False
+app.config['SESSION_TYPE'] = 'sqlalchemy'
+app.config['SESSION_SQLALCHEMY'] = db
+Session(app)
 
 # Secret key generation
 foo = secrets.token_urlsafe(16)
