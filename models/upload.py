@@ -115,8 +115,6 @@ class Upload():
 
     @classmethod
     def update_gz_filedata(cls, upload_id, gz_filedata):
-        logger.info('############### 222222222 ############')
-        logger.info('2. We should add the gz_filedata for upload id ' + str(upload_id))
 
         logger.info(gz_filedata)
 
@@ -135,11 +133,8 @@ class Upload():
             new_gz_filedata[filename] = gz_filedata
 
             upload.gz_filedata = json.dumps(new_gz_filedata)
-            logger.info('And now it is')
-            logger.info(upload.gz_filedata)
             session.commit()
             session.close()
-            logger.info('############### 333333333 ############')
             return True
         else:
             session.close()
