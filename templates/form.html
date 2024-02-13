@@ -11,7 +11,10 @@
 <body>
     <h1> Sequencing Files Submission Form </h1>
     <div id="msg" class="text-info">{{ msg }}</div>
-    <div id="process_id_info">Process id: {{ process_id }}</div>
+    <div>
+      <span id="process_id_info">Process id: {{ process_id }}</span> -
+      <span id="upload_folder_info">Folder: {{ uploads_folder }}</span>
+    </div>
     <div id="step1">
       <h3> Step 1: upload Data File (csv) </h3>
       {% if csv_uploaded %}
@@ -380,6 +383,7 @@
               success: function (response) {
                   // Access and use the process ID
                   process_id = response.process_id;
+                  upload_folder = response.upload_folder;
 
                   // Update the hidden input field within the specific forms
                   var form2 = $("#step_2_form");
@@ -391,6 +395,7 @@
                   var form8 = $("#step_8_form");
                   form8.find('input[name="process_id"]').val(process_id);
                   $('#process_id_info').html('Process ID: ' + process_id);
+                  $('#upload_folder_info').html('Folder: ' + upload_folder)
 
                   $('#step_1_msg').html(response.msg).removeClass('text-danger').addClass('text-success');
                   $('#step_1_button').prop('disabled', true);

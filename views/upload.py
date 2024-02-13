@@ -77,6 +77,7 @@ def privacy_and_terms():
 def upload_form_resume():
     default_process_id = 0
     process_id = request.args.get('process_id', default_process_id)
+    uploads_folder = ''
 
     try:
         process_id = int(process_id)
@@ -138,7 +139,8 @@ def upload_form_resume():
                                 matching_files=matching_files_filesystem,
                                 matching_files_db=matching_files_dict,
                                 fastqc_run=upload.fastqc_run,
-                                renamed_sent_to_bucket=upload.renamed_sent_to_bucket
+                                renamed_sent_to_bucket=upload.renamed_sent_to_bucket,
+                                uploads_folder=uploads_folder
                                 )
 
 @upload_bp.route('/form', endpoint='upload_form')
@@ -172,7 +174,7 @@ def upload_csv():
     if cvs_results is True:
         process_id = Upload.create(user_id=current_user.id, csv_filename=filename, uploads_folder=uploads_folder)
         bucket_chunked_upload(save_path, "uploads/" + uploads_folder, filename, process_id, 'csv_file')
-        return jsonify({"msg": "CSV file uploaded successfully. Checks passed", "process_id": process_id}), 200
+        return jsonify({"msg": "CSV file uploaded successfully. Checks passed", "process_id": process_id, "upload_folder": uploads_folder}), 200
     else:
         return jsonify({"error": "CSV file problems: ", "results": cvs_results}), 400
 
