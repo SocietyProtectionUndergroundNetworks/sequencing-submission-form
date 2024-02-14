@@ -1,6 +1,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/resumable.js/1.1.0/resumable.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
@@ -9,14 +10,23 @@
     <title>Upload data</title>
 </head>
 <body>
+  <div class="app-navbar">
+    <a href="https://spun.earth" class="logo"></a>
+    <div class="menu">
+      <ul>
+        <li><a href="https://spun.earth">Spun Website</a></li>
+        <li><a href="/">App homepage</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="content" style="p-4">
     <h1> Sequencing Files Submission Form </h1>
-    <div><a href="/">Back to menu</a></div>
     <div id="msg" class="text-info">{{ msg }}</div>
     <div>
       <span id="process_id_info">Process id: {{ process_id }}</span> -
       <span id="upload_folder_info">Folder: {{ uploads_folder }}</span>
     </div>
-    <div id="step1">
+    <div id="step1" class="form-step-item">
       <h3> Step 1: upload Data File (csv) </h3>
       {% if csv_uploaded %}
         <div id="step_1_msg" class="text-success">CSV file already uploaded : {{ csv_filename }}</div>
@@ -33,7 +43,7 @@
         <div id="step_1_msg"></div>
       {% endif %}
     </div>
-    <div id="step2" {% if not csv_uploaded %} style="opacity: 0.5;" {% endif %}>
+    <div id="step2" {% if not csv_uploaded %} style="opacity: 0.5;" {% endif %} class="form-step-item">
       <h3> Step 2: upload gz/tar/zip file with sample data </h3>
       <form
         method="POST"
@@ -66,7 +76,7 @@
         <div id="step_2_msg"></div>
       {% endif %}
     </div>
-    <div id="step3">
+    <div id="step3" {% if not csv_uploaded %} style="opacity: 0.5;" {% endif %} class="form-step-item">
       <h3> Step 3: Upload raw files to google storage </h3>
 
       <div id="step_3_progress">
@@ -83,7 +93,7 @@
       <div id="step_3_msg"></div>
 
     </div>
-    <div id="step4">
+    <div id="step4" {% if not csv_uploaded %} style="opacity: 0.5;" {% endif %} class="form-step-item">
       <h3> Step 4: Unzip Raw files</h3>
       <div id="step_4_progress">
         {% if gz_filedata %}
@@ -98,7 +108,7 @@
       </div>
       <div id="step_4_msg"></div>
     </div>
-    <div id="step5">
+    <div id="step5" class="form-step-item">
       <h3> Step 5: Rename files</h3>
       {% if files_renamed %}
         <div id="step_5_msg" class="text-success">Files renamed</div>
@@ -120,7 +130,7 @@
         <div id="step_5_details"></div>
       {% endif %}
     </div>
-    <div id="step6" {% if not files_renamed %} style="opacity: 0.5;" {% endif %}>
+    <div id="step6" {% if not files_renamed %} style="opacity: 0.5;" {% endif %} class="form-step-item">
       <h3> Step 6: Run fastqc</h3>
       {% if fastqc_run %}
         <div id="step_6_msg" class="text-success">Fastqc and multiqc processes run</div>
@@ -140,7 +150,7 @@
         <div id="step_6_details"></div>
       {% endif %}
     </div>
-    <div id="step7" {% if not fastqc_run %} style="opacity: 0.5;" {% endif %}>
+    <div id="step7" {% if not fastqc_run %} style="opacity: 0.5;" {% endif %} class="form-step-item">
       <h3> Step 7: Upload fastqc and multiqc files to bucket</h3>
       {% if fastqc_run %}
         <div id="step_7_msg" class="text-success">Multiqc report uploaded to bucket</div>
@@ -148,7 +158,7 @@
         <div id="step_7_msg" class="text-success"></div>
       {% endif %}
     </div>
-    <div id="step8" {% if not files_renamed %} style="opacity: 0.5;" {% endif %}>
+    <div id="step8" {% if not files_renamed %} style="opacity: 0.5;" {% endif %} class="form-step-item">
       <h3> Step 8: Upload renamed fastq.gz files to project backets</h3>
       {% if renamed_sent_to_bucket %}
         <div id="step_8_msg" class="text-success">Renamed files sent to buckets</div>
@@ -215,10 +225,13 @@
         </tbody>
       </table>
     </div>
+  </div>
     <script type="application/javascript">
         let process_id = {{ process_id | default('0') }}; // To track the process from start to end.
         let gz_filedata = {{ gz_filedata|tojson if gz_filedata else '{}' }};
         let matching_files_db = {{ matching_files_db|tojson if matching_files_db else '{}' }};
+        let files_renamed = {{ files_renamed if files_renamed else 0 }};
+
 
 
         function reorderByBucketFolderAndRowspan(originalObject) {
@@ -300,6 +313,10 @@
 
         $(document).ready(function () {
           redrawTable(matching_files_db);
+          if (files_renamed==0) {
+            $('#step_8_form').hide();
+          }
+
         });
 
         function hide_form_5() {
@@ -404,6 +421,8 @@
                   $('#step2').css('opacity', '1');
                   $('#step_2_form').show();
                   $('#step_2_button').prop('disabled', false);
+                  $('#step3').css('opacity', '1');
+                  $('#step4').css('opacity', '1');
               },
               error: function (xhr) {
                 if (xhr && xhr.responseText) {
@@ -697,6 +716,10 @@
                         $('#step_6_form').show();
                         $('#step6').css('opacity', '1');
                         $("#step_6_form").submit();
+
+                        $('#step_8_form').show();
+                        $('#step8').css('opacity', '1');
+
                     },
                     error: function (error) {
                         // Handle errors

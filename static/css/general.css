@@ -1,0 +1,63 @@
+
+
+.app-navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: black;
+  padding-left: 5%;
+  padding-right: 5%;
+  
+  .logo {
+    background-image: url("/static/img/spun-logo.png");
+    width: 100px;
+    height: 60px;
+  }
+  
+  .menu {
+    a {
+      color: white;
+      text-decoration: none;
+    }
+  }
+}
+
+.content {
+  padding: 3rem;
+  h1 {
+    text-align: center;
+  }
+  a {
+    color: black;
+    text-decoration: none;
+  } 
+  
+  .page-menu-item, .form-step-item {
+    border-radius: 10px;
+    margin-bottom: 10px;
+    padding: 20px;
+    background-color: #EBEBEB;
+    color: black;
+    text-decoration: none;    
+    a {
+      color: black;
+      text-decoration: none;
+    }      
+  }
+
+  .form-step-item {
+    max-width: 900px;   
+  }
+
+  .page-menu-item {
+    max-width: 500px;    
+  }
+  
+  #files_body {
+    a {
+      color: blue;
+      text-decoration: underline;
+    }
+  }
+
+}

@@ -251,7 +251,13 @@ class Upload():
         session = get_session(db_engine)
         upload = session.query(UploadTable).filter_by(id=upload_id).first()
         logger.info(upload)
-        matching_files_dict = json.loads(upload.files_json)
+        
+        matching_files_dict = {}
+        files_json = upload.files_json
+        
+        if files_json is not None:
+            matching_files_dict = json.loads(upload.files_json)
+            
         session.commit()
         session.close()
 
