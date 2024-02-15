@@ -6,4 +6,4 @@ RUN apk update && \
     apk add --no-cache bash
 
 # copy the certificate files
-COPY ./certs /etc/nginx/certs
+# COPY ./certs /etc/nginx/certs
