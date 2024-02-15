@@ -41,8 +41,59 @@
         <input type="file" id="step_1_button" accept=".csv">
         </form>
         <div id="step_1_msg"></div>
-      {% endif %}
+      {% endif %}  
     </div>
+    
+    <div id="cvs_data">
+      <h3> Records in the csv file </h3>
+      <div id="cvs_table">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Sample ID</th>
+              <th scope="col">Sequencer ID</th>
+              <th scope="col">Sequencing Provider</th>
+              <th scope="col">Project</th>
+              <th scope="col">Region</th>
+              <th scope="col">Index_1</th>
+              <th scope="col">Index_2</th>
+              <th scope="col">Matched files</th>
+            </tr>
+          </thead>
+
+          <tbody id="cvs_records_body">
+            {% if cvs_records %}
+              {% for sample_id, data in cvs_records.items() %}
+                <tr id="cvs_sample_{{ data.get('sample_id_safe', '') }}">
+                    <td>{{ loop.index }}</td>
+                    <td>{{ data.get('sample_id', '') }}</td>
+                    <td>{{ data.get('sequencer_id', '') }}</td>
+                    <td>{{ data.get('sequencer_provider', '') }}</td>
+                    <td>{{ data.get('project', '') }}</td>
+                    <td>{{ data.get('region', '') }}</td>
+                    <td>{{ data.get('index_1', '') }}</td>
+                    <td>{{ data.get('index_2', '') }}</td>
+                    <td id="cvs_sample_files_{{ data.get('sample_id_safe', '') }}">
+                      {% if matching_files_db %}
+                        {% for filename, files_data in matching_files_db.items() %}
+                          {% if 'csv_sample_id' in files_data %}
+                            {% if filename.startswith(data['sequencer_id'].split('id', 1)[0] + 'id') %}
+                              {{ filename }} <br>
+                            {% endif %}
+                          {% endif %}
+                        {% endfor %}
+                      {% endif %}
+                    </td>
+                </tr>
+              {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+      <div id="showAllRows" class="text-info" style="cursor: pointer;">.</div>  
+    </div>
+    
     <div id="step2" {% if not csv_uploaded %} style="opacity: 0.5;" {% endif %} class="form-step-item">
       <h3> Step 2: upload gz/tar/zip file with sample data </h3>
       <form
@@ -219,8 +270,6 @@
                 {% set _ = rowspan_counts.update({key: rowspan - 1}) %}
               {% endif %}
             {% endfor %}
-
-
           {% endif %}
         </tbody>
       </table>
@@ -232,6 +281,46 @@
         let matching_files_db = {{ matching_files_db|tojson if matching_files_db else '{}' }};
         let files_renamed = {{ files_renamed if files_renamed else 0 }};
 
+        function redrawCsvTable(cvs_records) {
+          var tableBody = $('#cvs_records_body');
+          tableBody.empty();
+
+          if (cvs_records) {
+            $.each(cvs_records, function(sample_id, data) {
+              var newRow = $('<tr>').attr('id', 'cvs_sample_' + data.sample_id_safe);
+              newRow.append(
+                $('<td>').text(tableBody.children().length + 1),
+                $('<td>').text(data.sample_id),
+                $('<td>').text(data.sequencer_id),
+                $('<td>').text(data.sequencer_provider),
+                $('<td>').text(data.project),
+                $('<td>').text(data.region),
+                $('<td>').text(data.index_1),
+                $('<td>').text(data.index_2),
+                $('<td>').attr('id', 'cvs_sample_files_' + data.sample_id_safe)
+              );
+              tableBody.append(newRow);
+            });
+          }
+          cvsRowsHide();
+        }
+
+        function updateCsvTable(matching_files_db) {
+          $('#cvs_records_body tr').each(function() {
+            var sequencerId = $(this).find('td:eq(2)').text().trim();
+            var lastTd = $(this).find('td:last');
+            lastTd.empty();
+
+            if (matching_files_db) {
+              $.each(matching_files_db, function(filename, filesData) {
+                var filenameSequencerId = filename.split('id', 1)[0] + 'id';
+                if (filename.startsWith(sequencerId.split('id', 1)[0] + 'id')) {
+                  lastTd.append(filename + '<br>');
+                }
+              });
+            }
+          });
+        }
 
 
         function reorderByBucketFolderAndRowspan(originalObject) {
@@ -308,7 +397,45 @@
             tableBody.find('tr').each(function(index) {
                 $(this).find('th').text(index + 1);
             });
+            updateCsvTable(filesDict);
         }
+
+        function cvsRowsHide() {
+          // Define the number of rows to show
+          let cvs_rows_show = 4;
+          var totalRows = $('#cvs_records_body tr').length;
+          
+          // Hide all rows after the specified number of rows
+          $('#cvs_records_body tr:gt(' + (cvs_rows_show - 1) + ')').hide();
+          
+          // Check if excess rows are visible after toggling
+          var excessRowsVisible = $('#cvs_records_body tr:gt(' + (cvs_rows_show - 1) + ')').is(':visible');
+          if (totalRows > cvs_rows_show) {
+            $('#showAllRows').text(excessRowsVisible ? 'hide excess rows' : 'only ' + cvs_rows_show + ' rows shown, click here to see them all');
+          }         
+        }
+
+        function cvsRowsToggle() {
+          // Define the number of rows to show
+          let cvs_rows_show = 4;
+          
+          // Add a click event handler to the "+" symbol
+          $('#showAllRows').click(function() {
+            // Toggle visibility of all rows after the specified number of rows
+            $('#cvs_records_body tr:gt(' + (cvs_rows_show - 1) + ')').toggle();
+
+            // Check if excess rows are visible after toggling
+            var excessRowsVisible = $('#cvs_records_body tr:gt(' + (cvs_rows_show - 1) + ')').is(':visible');
+
+            // Change the text of the "+" symbol based on the visibility of excess rows
+            $('#showAllRows').text(excessRowsVisible ? 'hide excess rows' : 'only ' + cvs_rows_show + ' rows shown, click here to see them all');
+          });          
+        }
+
+        $(document).ready(function() {
+          cvsRowsHide();
+          cvsRowsToggle();
+        });
 
 
         $(document).ready(function () {
@@ -402,6 +529,8 @@
                   // Access and use the process ID
                   process_id = response.process_id;
                   upload_folder = response.upload_folder;
+                  
+                  redrawCsvTable(response.cvs_records)
 
                   // Update the hidden input field within the specific forms
                   var form2 = $("#step_2_form");

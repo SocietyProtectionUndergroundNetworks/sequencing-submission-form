@@ -250,7 +250,6 @@ class Upload():
         db_engine = connect_db()
         session = get_session(db_engine)
         upload = session.query(UploadTable).filter_by(id=upload_id).first()
-        logger.info(upload)
         
         matching_files_dict = {}
         files_json = upload.files_json

@@ -82,6 +82,8 @@ def rename_files(csv_file_path, directory_path, files_json):
                     matching_files_dict[matching_file]['new_filename'] = new_file_name
                     matching_files_dict[matching_file]['bucket'] = bucket
                     matching_files_dict[matching_file]['folder'] = bucket_folder
+                    matching_files_dict[matching_file]['csv_sample_id'] = name
+                    
 
             if not matching_files:
                 not_found.append(sampleid)

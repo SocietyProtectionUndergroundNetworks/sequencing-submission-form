@@ -16,7 +16,7 @@ from flask_login import (
     logout_user,
 )
 
-from helpers.csv import validate_csv
+from helpers.csv import validate_csv, get_csv_data
 from helpers.bucket import bucket_chunked_upload, get_progress_db_bucket, init_send_raw_to_storage, get_renamed_files_to_storage_progress, init_upload_renamed_files_to_storage
 from helpers.unzip import get_progress_db_unzip, unzip_raw
 from helpers.fastqc import get_fastqc_progress, init_fastqc_multiqc_files, get_multiqc_report
@@ -116,6 +116,10 @@ def upload_form_resume():
             gz_filedata = Upload.get_gz_filedata(upload.id)
 
         any_unzipped = False
+        
+        path = Path("uploads", upload.uploads_folder)
+        save_path = path / upload.csv_filename       
+        cvs_records = get_csv_data(save_path)
 
         if gz_filedata:
             for filename, file_data in gz_filedata.items():
@@ -148,7 +152,8 @@ def upload_form_resume():
                                 matching_files_db=matching_files_dict,
                                 fastqc_run=upload.fastqc_run,
                                 renamed_sent_to_bucket=upload.renamed_sent_to_bucket,
-                                uploads_folder=uploads_folder
+                                uploads_folder=uploads_folder,
+                                cvs_records=cvs_records
                                 )
 
 @upload_bp.route('/form', endpoint='upload_form')
@@ -179,10 +184,11 @@ def upload_csv():
     file.save(save_path)  # Save the CSV file to a specific location
 
     cvs_results = validate_csv(save_path)
+    cvs_records = get_csv_data(save_path)
     if cvs_results is True:
         process_id = Upload.create(user_id=current_user.id, csv_filename=filename, uploads_folder=uploads_folder)
         bucket_chunked_upload(save_path, "uploads/" + uploads_folder, filename, process_id, 'csv_file')
-        return jsonify({"msg": "CSV file uploaded successfully. Checks passed", "process_id": process_id, "upload_folder": uploads_folder}), 200
+        return jsonify({"msg": "CSV file uploaded successfully. Checks passed", "process_id": process_id, "upload_folder": uploads_folder, "cvs_records": cvs_records}), 200
     else:
         return jsonify({"error": "CSV file problems: ", "results": cvs_results}), 400
 

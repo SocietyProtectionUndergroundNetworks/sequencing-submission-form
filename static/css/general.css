@@ -59,5 +59,13 @@
       text-decoration: underline;
     }
   }
+  
+  #cvs_data {
+    padding-bottom: 30px;
+  }
+  #showAllRows {
+    cursor: pointer;
+    padding-left: 30px;
+  }
 
 }

@@ -1,4 +1,5 @@
 import csv
+import re
 from helpers.bucket import list_buckets
 
 def validate_csv(file_path):
@@ -13,8 +14,7 @@ def validate_csv(file_path):
         else:
             return valid_buckets
     else:
-        return valid_names
-    
+        return valid_names    
     
 def validate_csv_column_names(file_path):
     with open(file_path, 'r', newline='', encoding='utf-8-sig') as csvfile:
@@ -86,3 +86,44 @@ def validate_csv_buckets(file_path):
         return f"The following regions do not correspond to expected values: {wrong_regions_text}"        
         
     return True
+
+def make_safe_html_id(string, existing_ids=[]):
+    # Remove any characters that are not allowed in HTML id attributes
+    safe_string = re.sub(r'[^\w\s-]', '', string)
+    
+    # Replace spaces with underscores
+    safe_string = safe_string.replace(' ', '_')
+    
+    # Ensure the string is unique and does not conflict with existing ids
+    count = 1
+    new_id = safe_string
+    while new_id in existing_ids:
+        new_id = f"{safe_string}_{count}"
+        count += 1
+    
+    # Convert the string to lowercase
+    safe_html_id = new_id.lower()
+    
+    return safe_html_id
+
+def get_csv_data(file_path):
+    data = {}
+    existing_ids = []
+    with open(file_path, 'r') as file:
+        csv_reader = csv.DictReader(file)
+        # next(csv_reader)  # Skip the header row
+        for row in csv_reader:
+            sample_id_safe = make_safe_html_id(row['Sample_ID'], existing_ids)
+            existing_ids.append(sample_id_safe)
+            data[sample_id_safe] = {
+                'sample_id': row['Sample_ID'], 
+                'sequencer_id': row['Sequencer_ID'], 
+                'sequencer_provider': row['Sequencing_provider'], 
+                'project': row['Project'], 
+                'region': row['Region'], 
+                'index_1': row['Index_1'], 
+                'index_2': row['Index_2'], 
+                'sample_id_safe': sample_id_safe    
+            }
+    return data
+    
