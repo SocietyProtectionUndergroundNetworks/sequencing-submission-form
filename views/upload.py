@@ -4,6 +4,7 @@ import string
 import os
 import json
 import logging
+import psutil
 from pathlib import Path
 from werkzeug.utils import secure_filename
 from flask import Blueprint, render_template, request, jsonify, send_from_directory, redirect, url_for
@@ -59,11 +60,17 @@ def index():
         else:
             if (upload.csv_uploaded):
                 gz_filedata = Upload.get_gz_filedata(upload.id)
-
+        
+        sys_info = {}
+        if current_user.admin:
+            disk_usage = psutil.disk_usage('/app')
+            sys_info['disk_used_percent']=disk_usage.percent          
+        
         return render_template("index.html",
                                 name=current_user.name,
                                 email=current_user.email,
-                                gz_filedata=gz_filedata)
+                                gz_filedata=gz_filedata, 
+                                sys_info=sys_info)
     else:
         return render_template('public_homepage.html')
 
@@ -395,3 +402,17 @@ def get_renamed_files_to_storage_progress_route():
     process_id = request.args.get('process_id')
     to_return = get_renamed_files_to_storage_progress(process_id)
     return to_return
+    
+@upload_bp.route('/sysreport', methods=['GET'], endpoint='show_system_report')
+@login_required
+@approved_required
+def show_system_report():
+    if current_user.admin:
+        disk_usage = psutil.disk_usage('/app')
+        return jsonify({
+            'total': disk_usage.total,
+            'used': disk_usage.used,
+            'free': disk_usage.free,
+            'percent': disk_usage.percent
+        })
+    return {}

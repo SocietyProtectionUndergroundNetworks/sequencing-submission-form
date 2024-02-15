@@ -5,10 +5,17 @@ ARG FLASK_PROCESS_USER
 ARG FLASK_PROCESS_USER_ID
 ARG FLASK_PROCESS_GROUP_ID
 
-# Install Bash
+# Install necessary build dependencies
 RUN apk update && \
     apk add --no-cache bash && \
-    apk add --no-cache mysql-dev gcc musl-dev
+    apk add --no-cache \
+        build-base \
+        python3-dev \
+        linux-headers \
+        musl-dev \
+        mysql-dev \
+        openjdk8 \
+        perl
 
 # Install Java 8 and perl as it is required by fastqc to run 
 RUN apk add --no-cache openjdk8 && \

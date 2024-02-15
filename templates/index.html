@@ -60,6 +60,14 @@
           <h3>Logout</h3>
         </div>
       </a>
+      
+      {% if current_user.is_authenticated and current_user.admin %}
+        {% if sys_info and 'disk_used_percent' in sys_info %}
+          Hard disk usage: {{ sys_info['disk_used_percent'] }}%
+        
+        {% endif %}
+      {% endif %}
+      
 
   </div>
 </body>

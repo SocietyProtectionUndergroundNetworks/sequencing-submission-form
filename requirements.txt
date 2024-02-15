@@ -23,5 +23,6 @@ multiqc==1.19
 
 celery==5.3.6
 redis==5.0.1
+psutil==5.9.8
 
 debugpy # Required for debugging.
