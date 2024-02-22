@@ -43,6 +43,18 @@ def approved_required(view_func):
         return view_func(*args, **kwargs)
     return decorated_approved_view
 
+# Custom admin_required decorator
+def admin_required(view_func):
+    def decorated_view(*args, **kwargs):
+        if not current_user.is_authenticated:
+            # Redirect unauthenticated users to the login page
+            return redirect(url_for('user.login'))  # Adjust 'login' to your actual login route
+        elif not current_user.admin:
+            # Redirect non-admin users to some unauthorized page
+            return redirect(url_for('user.only_admins'))
+        return view_func(*args, **kwargs)
+    return decorated_view
+
 @upload_bp.route("/")
 def index():
     if current_user.is_authenticated:
@@ -398,10 +410,14 @@ def upload_renamed_files_route():
 @approved_required
 def user_uploads():
     user_id = request.args.get('user_id')
-    user_uploads = Upload.get_uploads_by_user(user_id)
-    return render_template('user_uploads.html', user_uploads=user_uploads, user_id=user_id)
+    if (current_user.admin) or (current_user.id == user_id) :
+        user_uploads = Upload.get_uploads_by_user(user_id)
+        return render_template('user_uploads.html', user_uploads=user_uploads, user_id=user_id)
+    else:
+        return redirect(url_for('user.only_admins'))
 
 @upload_bp.route('/deleterenamedfiles', methods=['GET'], endpoint='delete_renamed_files')
+@admin_required
 @login_required
 @approved_required
 def delete_renamed_files():

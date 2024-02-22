@@ -15,27 +15,31 @@ Optional (but really helpfull)
 
 ## Preparation:
 
-### The following three steps you can avoid by asking an other developer the json credentials of the existing service account used for development
+#### The following three steps you can avoid by asking an other developer the json credentials of the existing service account used for development
 - On your google cloud project, create a service account with necessary permissions to access the buckets. Or ask an other developer to give you access to an existing one. 
 - Download the json file with the credentials of the service account and store it
 
-### The following three steps you can avoid by asking an other developer for the necessary GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET used for development
+#### The following three steps you can avoid by asking an other developer for the necessary GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET used for development
 - In your google cloud project-> API & Services -> OAuth consent screen , create a concent screen to use for local development authentication 
 - In your google cloud project-> API & Services -> Credentials, create a OAuth 2.0 Client to use for local development authentication 
 - Note down the GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to use later
 
-### Setup your .env
-- Rename your .env.example file to .env
-- Fill in the variables. 
+#### Setup your .env
+- Copy your `.env.example` file to `.env`
+- Fill in the variables in the `.env` file. 
 - The variable GOOGLE_APPLICATION_CREDENTIALS_PATH is only used on the development environment. Point it to the json file you downloaded above with the credentials of the service account. This happens so that your application has access to the buckets. Note: This is not needed on the production environment. 
 - Set GOOGLE_CLIENT_CALLBACK_URL=http://127.0.0.1/login/callback
 - The GOOGLE_VM_PROPERTY is not needed for the application, only to create a shortcut for sshing to the virtual machine. You can safely ignore it.
 
 
-### Do docker things: 
-- Rename the docker-compose-dev.yml to docker-compose.yml
+#### Do docker things: 
+- Copy the `docker-compose-dev.yml` to `docker-compose.yml`
+- Copy the `nginx.conf-local-ssh` `nginx.conf`
 - Do `docker-compose up`
+- Access your application at http://127.0.0.1
 
+#### Give back
+Anything that was not in the above instructions and gave you pain, add it to the instructions. 
 
 # Deployment
 
