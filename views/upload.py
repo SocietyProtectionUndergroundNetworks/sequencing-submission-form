@@ -107,8 +107,6 @@ def upload_form_resume():
     if (isinstance(process_id, int) and (process_id !=0)):
         upload = Upload.get(process_id)
 
-        # TODO : When we have admins and users, check that either the current_user is an admin, or that they look
-        # at a form that belongs to them
     else:
         upload = Upload.get_latest_unfinished_process(current_user.id)
 
@@ -117,56 +115,60 @@ def upload_form_resume():
         print("No data found.")
         return render_template("form.html", msg='We could not find an unfinished process to resume')
     else:
+        #TODO: check if the current user is admin or owner of this upload. Else redirect them.
+        if (current_user.admin) or (current_user.id == upload.user_id) :
+            matching_files_filesystem = []
+            matching_files_dict = []
+            gz_filedata = {}
+            nr_files = 0
+            uploads_folder = upload.uploads_folder
 
-        matching_files_filesystem = []
-        matching_files_dict = []
-        gz_filedata = {}
-        nr_files = 0
-        uploads_folder = upload.uploads_folder
+            if (upload.csv_uploaded):
+                gz_filedata = Upload.get_gz_filedata(upload.id)
 
-        if (upload.csv_uploaded):
-            gz_filedata = Upload.get_gz_filedata(upload.id)
+            any_unzipped = False
+            
+            path = Path("uploads", upload.uploads_folder)
+            save_path = path / upload.csv_filename       
+            cvs_records = get_csv_data(save_path)
 
-        any_unzipped = False
-        
-        path = Path("uploads", upload.uploads_folder)
-        save_path = path / upload.csv_filename       
-        cvs_records = get_csv_data(save_path)
+            if gz_filedata:
+                for filename, file_data in gz_filedata.items():
+                    if 'gz_sent_to_bucket_progress' in file_data:
+                        if file_data['gz_sent_to_bucket_progress'] == 100:
+                            any_unzipped = True
 
-        if gz_filedata:
-            for filename, file_data in gz_filedata.items():
-                if 'gz_sent_to_bucket_progress' in file_data:
-                    if file_data['gz_sent_to_bucket_progress'] == 100:
-                        any_unzipped = True
+            if (any_unzipped):
+                extract_directory = Path("processing", uploads_folder)
 
-        if (any_unzipped):
-            extract_directory = Path("processing", uploads_folder)
+                if os.path.exists(extract_directory):
+                    # count the files ending with fastq.gz
+                    file_names = os.listdir(extract_directory)
+                    matching_files_filesystem = [filename for filename in file_names if filename.endswith('.fastq.gz')]
+                    nr_files = 0
+                    if (matching_files_filesystem):
+                        nr_files=len(matching_files_filesystem)
 
-            if os.path.exists(extract_directory):
-                # count the files ending with fastq.gz
-                file_names = os.listdir(extract_directory)
-                matching_files_filesystem = [filename for filename in file_names if filename.endswith('.fastq.gz')]
-                nr_files = 0
-                if (matching_files_filesystem):
-                    nr_files=len(matching_files_filesystem)
+                    matching_files_dict = upload.get_files_json()
 
-                matching_files_dict = upload.get_files_json()
+            return render_template(
+                                    "form.html",
+                                    process_id=upload.id,
+                                    csv_uploaded=upload.csv_uploaded,
+                                    csv_filename=upload.csv_filename,
+                                    gz_filedata=gz_filedata if gz_filedata else {},
+                                    files_renamed=upload.files_renamed,
+                                    nr_files=nr_files,
+                                    matching_files=matching_files_filesystem,
+                                    matching_files_db=matching_files_dict,
+                                    fastqc_run=upload.fastqc_run,
+                                    renamed_sent_to_bucket=upload.renamed_sent_to_bucket,
+                                    uploads_folder=uploads_folder,
+                                    cvs_records=cvs_records
+                                    )
+        else:
+            return redirect(url_for('user.only_admins'))        
 
-        return render_template(
-                                "form.html",
-                                process_id=upload.id,
-                                csv_uploaded=upload.csv_uploaded,
-                                csv_filename=upload.csv_filename,
-                                gz_filedata=gz_filedata if gz_filedata else {},
-                                files_renamed=upload.files_renamed,
-                                nr_files=nr_files,
-                                matching_files=matching_files_filesystem,
-                                matching_files_db=matching_files_dict,
-                                fastqc_run=upload.fastqc_run,
-                                renamed_sent_to_bucket=upload.renamed_sent_to_bucket,
-                                uploads_folder=uploads_folder,
-                                cvs_records=cvs_records
-                                )
 
 @upload_bp.route('/form', endpoint='upload_form')
 @login_required
