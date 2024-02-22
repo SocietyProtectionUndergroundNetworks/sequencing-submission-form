@@ -1,10 +1,41 @@
 # SPUN sequencing data submition and initial handling
 
-TODO
+The code and instructions for an app where SPUN colaborators can submit their sequencing data. 
+The application does an initial check of the data, renames the files according to rules, creates fastqc and multiqc reports
+and uploads the data to the correct google buckets. 
 
 # Development
 
-TODO
+To run the application locally, you will need: 
+- [Docker running](https://www.docker.com/products/docker-desktop/)
+- Access to a google cloud project with buckets. Do not use the production project and bucket for this!
+
+Optional (but really helpfull)
+- [Gnu Make](https://www.gnu.org/software/make/)  . (If you are using mac and homebrew: [Gnu Make For Mac](https://formulae.brew.sh/formula/make) )
+
+## Preparation:
+
+### The following three steps you can avoid by asking an other developer the json credentials of the existing service account used for development
+- On your google cloud project, create a service account with necessary permissions to access the buckets. Or ask an other developer to give you access to an existing one. 
+- Download the json file with the credentials of the service account and store it
+
+### The following three steps you can avoid by asking an other developer for the necessary GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET used for development
+- In your google cloud project-> API & Services -> OAuth consent screen , create a concent screen to use for local development authentication 
+- In your google cloud project-> API & Services -> Credentials, create a OAuth 2.0 Client to use for local development authentication 
+- Note down the GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to use later
+
+### Setup your .env
+- Rename your .env.example file to .env
+- Fill in the variables. 
+- The variable GOOGLE_APPLICATION_CREDENTIALS_PATH is only used on the development environment. Point it to the json file you downloaded above with the credentials of the service account. This happens so that your application has access to the buckets. Note: This is not needed on the production environment. 
+- Set GOOGLE_CLIENT_CALLBACK_URL=http://127.0.0.1/login/callback
+- The GOOGLE_VM_PROPERTY is not needed for the application, only to create a shortcut for sshing to the virtual machine. You can safely ignore it.
+
+
+### Do docker things: 
+- Rename the docker-compose-dev.yml to docker-compose.yml
+- Do `docker-compose up`
+
 
 # Deployment
 
