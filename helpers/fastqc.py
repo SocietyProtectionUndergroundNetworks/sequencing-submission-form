@@ -28,7 +28,7 @@ def get_multiqc_report(process_id, bucket, folder):
 def get_fastqc_progress(process_id):
     upload = Upload.get(process_id)
     uploads_folder = upload.uploads_folder
-    files_dict_db = Upload.get_files_json(process_id)
+    files_dict_db = upload.get_files_json()
 
     count_fastq_gz = 0
     files_done = 0

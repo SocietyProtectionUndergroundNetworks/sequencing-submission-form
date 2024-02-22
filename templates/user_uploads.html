@@ -20,9 +20,11 @@
           <th scope="col">Uploads folder</th>
           <th scope="col">CVS uploaded</th>
           <th scope="col">CVS filename</th>
-          <th scope="col">GZ/TAR unzipped</th>
           <th scope="col">Files renamed</th>
           <th scope="col">Fastqc/multiqc run</th>
+          <th scope="col">Files moved to bucket</th>
+          <th scope="col">Files still on server</th>
+          <th scope="col">Files size</th>
         </tr>
       </thead>
       <tbody id="files_body">
@@ -38,15 +40,28 @@
               <td>{{ upload.uploads_folder }}</td>
               <td>{{ upload.csv_uploaded }}</td>
               <td>{{ upload.csv_filename }}</td>
-              <td>{{ upload.gz_unziped }}</td>
               <td>{{ upload.files_renamed }}</td>
-              <td>
-                {% if upload.fastqc_run is not none and upload.fastqc_run > 0 %}
-                  <a href="/multiqc?process_id={{ upload.id }}" target="_blank">{{ upload.fastqc_run }}</a>
-                {% else %}
-                  {{ upload.fastqc_run }}
+              <td {% if upload.fastqc_run:  %} class="text-success" {% endif %}>
+                {{ upload.fastqc_run }}
+              </td>
+              <td {% if upload.renamed_sent_to_bucket:  %} class="text-success" {% endif %}>
+                {{ upload.renamed_sent_to_bucket }}
+              </td>
+              <td {% if upload.files_still_on_filesystem:  %} class="text-success" {% endif %}>
+                {% if upload.files_still_on_filesystem:  %}
+                  {{ upload.files_still_on_filesystem }}
+                  <a href="deleterenamedfiles?process_id={{ upload.id }}&user_id={{ user_id }}">
+                    Delete
+                  </a>
+                {% else: %}
+                  {{ upload.files_still_on_filesystem }}
                 {% endif %}
-              </td>                               
+              </td>
+              <td>
+                <td>
+                  {{ '%.1f' | format(upload.files_size / (1024*1024)) }} MB
+                </td>
+              </td>                          
           </tr>
         {% endfor %}        
       </tbody>

@@ -244,23 +244,14 @@ class Upload():
             session.close()
             return False
 
-    @classmethod
-    def get_files_json(cls, upload_id):
-        logger.info(upload_id)
-        db_engine = connect_db()
-        session = get_session(db_engine)
-        upload = session.query(UploadTable).filter_by(id=upload_id).first()
-        
+    def get_files_json(self):
         matching_files_dict = {}
-        files_json = upload.files_json
+        files_json = self.files_json
         
         if files_json is not None:
-            matching_files_dict = json.loads(upload.files_json)
+            matching_files_dict = json.loads(files_json)
             
-        session.commit()
-        session.close()
-
-        # remove files where the name starts with '._' (non real files, artifacts of zip process)
+        # Remove files where the name starts with '._' (non real files, artifacts of zip process)
         matching_files_dict = {key: value for key, value in matching_files_dict.items() if not key.startswith('._')}
 
         # Sort the dictionary based on 'bucket' and 'folder'
@@ -269,8 +260,8 @@ class Upload():
         for filename, data in matching_files_dict.items():
             if 'bucket' in data and 'folder' in data:
                 key = data['bucket'] + '_' + data['folder']
-                if (key in rowspan_counts):
-                    rowspan_counts[key] = rowspan_counts[key] + 1
+                if key in rowspan_counts:
+                    rowspan_counts[key] += 1
                 else:
                     rowspan_counts[key] = 1
 
@@ -284,7 +275,6 @@ class Upload():
 
         return matching_files_dict
 
-
     @classmethod
     def get_uploads_by_user(cls, user_id):
         db_engine = connect_db()
@@ -297,9 +287,60 @@ class Upload():
         if not uploads:
             return []
 
-        uploads_list = [
-            cls(**{key: getattr(upload, key) for key in upload.__dict__.keys() if not key.startswith('_')})
-            for upload in uploads
-        ]
+        uploads_list = []
+        for upload in uploads:
+            extract_directory = Path("processing", upload.uploads_folder)
+            files_still_on_filesystem = False
+            upload_instance = Upload.get(upload.id)
+            files_json = upload_instance.get_files_json()
+
+            # Calculate total size of files in extract_directory
+            extract_directory_size = sum(f.stat().st_size for f in extract_directory.glob('**/*') if f.is_file())
+
+
+            # Check if any of the files in files_json still exist on the filesystem
+            for filename in files_json.keys():
+                file_path = extract_directory / files_json[filename]['new_filename']
+                if file_path.exists():
+                    files_still_on_filesystem = True
+                    break
+
+            # Create a dictionary containing all fields including the calculated ones
+            upload_data = {key: getattr(upload, key) for key in upload.__dict__.keys() if not key.startswith('_')}
+
+            # Add files_still_on_filesystem and files_size to the dictionary
+            upload_data['files_still_on_filesystem'] = files_still_on_filesystem
+            upload_data['files_size'] = extract_directory_size
+
+            # Create an instance of the class with the modified data
+            upload_instance = cls(**upload_data)
+            
+            # Append the instance to the list
+            uploads_list.append(upload_instance)
 
         return uploads_list
+        
+    def delete_files_from_filesystem(self):
+        # Retrieve files_json data for the current instance
+        files_json_data = self.get_files_json()
+
+        # Define the extract directory
+        extract_directory = Path("processing", self.uploads_folder)
+
+        # Iterate over each filename in files_json
+        for filename, file_info in files_json_data.items():
+            # Check if 'new_filename' is not empty
+            if 'new_filename' in file_info and file_info['new_filename']:
+                # Construct the full path to the file
+                file_path = extract_directory / file_info['new_filename']
+                
+                # Check if the file exists and it is a file (not a directory)
+                if file_path.exists() and file_path.is_file():
+                    # If it exists and is a file, delete the file
+                    os.remove(str(file_path))
+                    logger.info(f"Deleted file: {file_path}")
+                else:
+                    logger.info(f"File not found or is not a file: {file_path}")
+            else:
+                logger.info("Skipping deletion: new_filename is empty or not provided")
+                

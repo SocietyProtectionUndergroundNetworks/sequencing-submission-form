@@ -138,7 +138,7 @@ def upload_form_resume():
                 if (matching_files_filesystem):
                     nr_files=len(matching_files_filesystem)
 
-                matching_files_dict = Upload.get_files_json(upload.id)
+                matching_files_dict = upload.get_files_json()
 
         return render_template(
                                 "form.html",
@@ -200,10 +200,10 @@ def unzip_progress():
     file_id = request.args.get('file_id')
     progress = get_progress_db_unzip(process_id, file_id)
     gz_filedata = Upload.get_gz_filedata(process_id)
-
+    upload = Upload.get(process_id)
     if (progress==100):
 
-        upload = Upload.get(process_id)
+        
         uploads_folder = upload.uploads_folder
         extract_directory = Path("processing", uploads_folder)
 
@@ -217,11 +217,11 @@ def unzip_progress():
             matching_files_dict = {filename: {'new_filename': '', 'fastqc': ''} for filename in matching_files}
             Upload.update_files_json(process_id, matching_files_dict)
 
-        files_dict_db = Upload.get_files_json(process_id)
+        files_dict_db = upload.get_files_json()
 
         return jsonify({"progress": progress, "msg": "Raw unzipped successfully.", "nr_files": nr_files, "files_dict_db":files_dict_db, 'gz_filedata': gz_filedata}), 200
 
-    files_dict_db = Upload.get_files_json(process_id)
+    files_dict_db = upload.get_files_json()
     return {
         "progress": progress, 'gz_filedata': gz_filedata, "files_dict_db":files_dict_db
     }
@@ -399,7 +399,17 @@ def upload_renamed_files_route():
 def user_uploads():
     user_id = request.args.get('user_id')
     user_uploads = Upload.get_uploads_by_user(user_id)
-    return render_template('user_uploads.html', user_uploads=user_uploads)
+    return render_template('user_uploads.html', user_uploads=user_uploads, user_id=user_id)
+
+@upload_bp.route('/deleterenamedfiles', methods=['GET'], endpoint='delete_renamed_files')
+@login_required
+@approved_required
+def delete_renamed_files():
+    process_id = request.args.get('process_id')
+    user_id = request.args.get('user_id')
+    upload = Upload.get(process_id)
+    upload.delete_files_from_filesystem()
+    return redirect(url_for('upload.user_uploads', user_id=user_id))
 
 @upload_bp.route('/moverenamedprogress', methods=['GET'], endpoint='get_renamed_files_to_storage_progress_route')
 @login_required
