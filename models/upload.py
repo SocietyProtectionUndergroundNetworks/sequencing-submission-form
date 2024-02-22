@@ -59,8 +59,10 @@ class Upload():
         )
 
         session.close()
+        
+        latest_upload_instance = cls.get(latest_upload.id)
 
-        return latest_upload
+        return latest_upload_instance
 
     @classmethod
     def create(self, user_id, csv_filename, uploads_folder):
