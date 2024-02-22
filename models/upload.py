@@ -299,11 +299,16 @@ class Upload():
 
 
             # Check if any of the files in files_json still exist on the filesystem
-            for filename in files_json.keys():
-                file_path = extract_directory / files_json[filename]['new_filename']
-                if file_path.exists():
-                    files_still_on_filesystem = True
-                    break
+            for filename, file_info in files_json.items():
+                # Check if 'new_filename' is not empty
+                if 'new_filename' in file_info and file_info['new_filename']:
+                    # Construct the full path to the file
+                    file_path = extract_directory / file_info['new_filename']
+                    
+                    # Check if the file exists and it is a file (not a directory)
+                    if file_path.exists() and file_path.is_file():
+                        files_still_on_filesystem = True
+                        break
 
             # Create a dictionary containing all fields including the calculated ones
             upload_data = {key: getattr(upload, key) for key in upload.__dict__.keys() if not key.startswith('_')}
@@ -322,13 +327,13 @@ class Upload():
         
     def delete_files_from_filesystem(self):
         # Retrieve files_json data for the current instance
-        files_json_data = self.get_files_json()
+        files_json = self.get_files_json()
 
         # Define the extract directory
         extract_directory = Path("processing", self.uploads_folder)
 
         # Iterate over each filename in files_json
-        for filename, file_info in files_json_data.items():
+        for filename, file_info in files_json.items():
             # Check if 'new_filename' is not empty
             if 'new_filename' in file_info and file_info['new_filename']:
                 # Construct the full path to the file
