@@ -65,6 +65,8 @@ def bucket_chunked_upload(local_file_path, destination_upload_directory, destina
     # Configure Google Cloud Storage
     if bucket_name is None:
         bucket_name = os.environ.get('GOOGLE_STORAGE_BUCKET_NAME')
+
+    bucket_name = bucket_name.lower()
     project_id = os.environ.get('GOOGLE_STORAGE_PROJECT_ID')
     bucket_location = os.environ.get('GOOGLE_STORAGE_BUCKET_LOCATION')
 

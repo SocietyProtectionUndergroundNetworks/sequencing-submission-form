@@ -66,7 +66,7 @@ def validate_csv_buckets(file_path):
             csv_bucket_value = row[3] if len(row) > 3 else None
             
             # Check if the CSV value exists as a key in the bucket_info dictionary
-            if csv_bucket_value not in bucket_info:
+            if csv_bucket_value.lower() not in bucket_info:
                 not_found.append(csv_bucket_value)
                 
             csv_region_value = row[4] if len(row) > 4 else None
