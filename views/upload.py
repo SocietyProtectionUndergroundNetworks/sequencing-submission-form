@@ -7,7 +7,7 @@ import logging
 import psutil
 from pathlib import Path
 from werkzeug.utils import secure_filename
-from flask import Blueprint, render_template, request, jsonify, send_from_directory, redirect, url_for
+from flask import Blueprint, render_template, request, jsonify, send_from_directory, redirect, url_for, send_file
 from flask_login import (
     LoginManager,
     current_user,
@@ -72,16 +72,16 @@ def index():
         else:
             if (upload.csv_uploaded):
                 gz_filedata = Upload.get_gz_filedata(upload.id)
-        
+
         sys_info = {}
         if current_user.admin:
             disk_usage = psutil.disk_usage('/app')
-            sys_info['disk_used_percent']=disk_usage.percent          
-        
+            sys_info['disk_used_percent']=disk_usage.percent
+
         return render_template("index.html",
                                 name=current_user.name,
                                 email=current_user.email,
-                                gz_filedata=gz_filedata, 
+                                gz_filedata=gz_filedata,
                                 sys_info=sys_info)
     else:
         return render_template('public_homepage.html')
@@ -89,6 +89,18 @@ def index():
 @upload_bp.route('/privacy_and_terms', endpoint='privacy_and_terms')
 def privacy_and_terms():
     return render_template('privacy_and_terms.html')
+
+@upload_bp.route('/csv_structure', endpoint='csv_structure')
+def csv_structure():
+    return render_template('csv_structure.html')
+
+@upload_bp.route('/csv_sample', endpoint='csv_sample')
+def csv_sample():
+    path = Path("static","csv")
+    csv_path = path / 'csv_structure.csv'
+    filename = 'csv_structure.csv'
+
+    return send_file(csv_path, as_attachment=True)
 
 @upload_bp.route('/form_resume', endpoint='upload_form_resume')
 @login_required
@@ -127,9 +139,9 @@ def upload_form_resume():
                 gz_filedata = Upload.get_gz_filedata(upload.id)
 
             any_unzipped = False
-            
+
             path = Path("uploads", upload.uploads_folder)
-            save_path = path / upload.csv_filename       
+            save_path = path / upload.csv_filename
             cvs_records = get_csv_data(save_path)
 
             if gz_filedata:
@@ -167,7 +179,7 @@ def upload_form_resume():
                                     cvs_records=cvs_records
                                     )
         else:
-            return redirect(url_for('user.only_admins'))        
+            return redirect(url_for('user.only_admins'))
 
 
 @upload_bp.route('/form', endpoint='upload_form')
@@ -217,7 +229,7 @@ def unzip_progress():
     upload = Upload.get(process_id)
     if (progress==100):
 
-        
+
         uploads_folder = upload.uploads_folder
         extract_directory = Path("processing", uploads_folder)
 
@@ -436,7 +448,7 @@ def get_renamed_files_to_storage_progress_route():
     process_id = request.args.get('process_id')
     to_return = get_renamed_files_to_storage_progress(process_id)
     return to_return
-    
+
 @upload_bp.route('/sysreport', methods=['GET'], endpoint='show_system_report')
 @login_required
 @approved_required

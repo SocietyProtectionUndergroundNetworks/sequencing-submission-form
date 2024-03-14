@@ -59,10 +59,11 @@ class Upload():
         )
 
         session.close()
-        
-        latest_upload_instance = cls.get(latest_upload.id)
+        if latest_upload is not None:
+            latest_upload_instance = cls.get(latest_upload.id)
 
-        return latest_upload_instance
+            return latest_upload_instance
+        return None
 
     @classmethod
     def create(self, user_id, csv_filename, uploads_folder):
@@ -249,10 +250,10 @@ class Upload():
     def get_files_json(self):
         matching_files_dict = {}
         files_json = self.files_json
-        
+
         if files_json is not None:
             matching_files_dict = json.loads(files_json)
-            
+
         # Remove files where the name starts with '._' (non real files, artifacts of zip process)
         matching_files_dict = {key: value for key, value in matching_files_dict.items() if not key.startswith('._')}
 
@@ -306,7 +307,7 @@ class Upload():
                 if 'new_filename' in file_info and file_info['new_filename']:
                     # Construct the full path to the file
                     file_path = extract_directory / file_info['new_filename']
-                    
+
                     # Check if the file exists and it is a file (not a directory)
                     if file_path.exists() and file_path.is_file():
                         files_still_on_filesystem = True
@@ -321,12 +322,12 @@ class Upload():
 
             # Create an instance of the class with the modified data
             upload_instance = cls(**upload_data)
-            
+
             # Append the instance to the list
             uploads_list.append(upload_instance)
 
         return uploads_list
-        
+
     def delete_files_from_filesystem(self):
         # Retrieve files_json data for the current instance
         files_json = self.get_files_json()
@@ -340,7 +341,7 @@ class Upload():
             if 'new_filename' in file_info and file_info['new_filename']:
                 # Construct the full path to the file
                 file_path = extract_directory / file_info['new_filename']
-                
+
                 # Check if the file exists and it is a file (not a directory)
                 if file_path.exists() and file_path.is_file():
                     # If it exists and is a file, delete the file
@@ -350,4 +351,3 @@ class Upload():
                     logger.info(f"File not found or is not a file: {file_path}")
             else:
                 logger.info("Skipping deletion: new_filename is empty or not provided")
-                

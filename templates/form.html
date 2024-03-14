@@ -32,6 +32,8 @@
       {% if csv_uploaded %}
         <div id="step_1_msg" class="text-success">CSV file already uploaded : {{ csv_filename }}</div>
       {% else %}
+        <p> <a href="/csv_structure" target="_blank" class="text-decoration-underline">Instructions for the csv file</a> </p>
+
         <form
             method="POST"
             action="/uploadcsv"
@@ -42,9 +44,9 @@
         <input type="file" id="step_1_button" accept=".csv">
         </form>
         <div id="step_1_msg"></div>
-      {% endif %}  
+      {% endif %}
     </div>
-    
+
     <div id="cvs_data">
       <h3> Records in the csv file </h3>
       <div id="cvs_table">
@@ -92,9 +94,9 @@
           </tbody>
         </table>
       </div>
-      <div id="showAllRows" class="text-info" style="cursor: pointer;">.</div>  
+      <div id="showAllRows" class="text-info" style="cursor: pointer;">.</div>
     </div>
-    
+
     <div id="step2" {% if not csv_uploaded %} style="opacity: 0.5;" {% endif %} class="form-step-item">
       <h3> Step 2: upload gz/tar/zip file with sample data </h3>
       <form
@@ -405,21 +407,21 @@
           // Define the number of rows to show
           let cvs_rows_show = 10;
           var totalRows = $('#cvs_records_body tr').length;
-          
+
           // Hide all rows after the specified number of rows
           $('#cvs_records_body tr:gt(' + (cvs_rows_show - 1) + ')').hide();
-          
+
           // Check if excess rows are visible after toggling
           var excessRowsVisible = $('#cvs_records_body tr:gt(' + (cvs_rows_show - 1) + ')').is(':visible');
           if (totalRows > cvs_rows_show) {
             $('#showAllRows').text(excessRowsVisible ? 'hide excess rows' : 'only ' + cvs_rows_show + ' rows shown, click here to see them all');
-          }         
+          }
         }
 
         function cvsRowsToggle() {
           // Define the number of rows to show
           let cvs_rows_show = 10;
-          
+
           // Add a click event handler to the "+" symbol
           $('#showAllRows').click(function() {
             // Toggle visibility of all rows after the specified number of rows
@@ -430,7 +432,7 @@
 
             // Change the text of the "+" symbol based on the visibility of excess rows
             $('#showAllRows').text(excessRowsVisible ? 'hide excess rows' : 'only ' + cvs_rows_show + ' rows shown, click here to see them all');
-          });          
+          });
         }
 
         $(document).ready(function() {
@@ -530,7 +532,7 @@
                   // Access and use the process ID
                   process_id = response.process_id;
                   upload_folder = response.upload_folder;
-                  
+
                   redrawCsvTable(response.cvs_records)
 
                   // Update the hidden input field within the specific forms

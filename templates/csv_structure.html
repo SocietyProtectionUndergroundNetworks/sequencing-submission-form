@@ -1,0 +1,56 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="/static/css/google_login.css" rel="stylesheet" type="text/css" />
+    <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <title>CSV file structure</title>
+
+</head>
+<body>
+  <div class="app-navbar">
+    <a href="https://spun.earth" class="logo"></a>
+    <div class="menu">
+      <ul>
+        <li><a href="https://spun.earth">Spun Website</a></li>
+        <li><a href="/">App homepage</a></li>
+        <li><a href="/logout">Logout</a></li>
+      </ul>
+    </div>
+  </div>  
+  <div class="p-4">
+    <h1>CSV file structure</h1>
+    <div class="p-3">
+      <div>
+        <h3>CSV file format</h3>
+        <p>We need a csv file to describe the sequencing files you will upload. 
+        <p>"CSV" stands for "Comma Seperated Values" and you can read more about it at the relevant <a href="https://en.wikipedia.org/wiki/Comma-separated_values">wikipedia article</a></p>
+        <p>You can open it on a text editor, or in a spreadsheet application (for example MS excel, OpenOffice Sheets, Google Sheets), as long as you save it at the end as ".csv"</p>
+        
+        <h3>Preparation of your data. </h3>
+        <ol>
+          <li> Download and use the <a href="/csv_sample">sample csv file</a> as template. </li>
+          <li> Fill in the csv for the files you want to upload. The column names are at explained bellow. </li>
+          <li> Please note that one line could refer to multiple of your files </li>
+        </ol>
+
+        <h3>Column names for the csv file </h3>
+        <ol>
+          <li> <span class="fw-bold">Sample_ID</span>: The number or name assigned to your sample, can be a number or a name used to indicate the identity of the sample. E.g Kazakhstan_1, Control_1, K1, 1. </li>
+          <li> <span class="fw-bold">Sequencer_ID</span>: The name of the sequencing file output by the sequencer. This may be arbritrary (i.e 001id001) or may be the same as the Sample_ID. This must be the exact ID excluding the shared file ending. For example, if your file outputs are named 001id001_S65_R1_001.fastq.gz, only include up to the first underscore, i.e 001id001.</li>
+          <li> <span class="fw-bold">Sequencing_provider</span>: Company, organization or individual that sequenced samples.</li>
+          <li> <span class="fw-bold">Project</span>: You will be given a project name, this will be the same for all samples within a project. I.e sl-kazakhstan23</li>
+          <li> <span class="fw-bold">Region</span>: Amplicon region (SSU, LSU, ITS1, ITS2)</li>
+          <li> <span class="fw-bold">Index_1</span>: [Optional] The sequence of index 1 used for sequencing, i.e GACGAGATTA</li>
+          <li> <span class="fw-bold">Index_2</span>: [Optional] The sequence of index 2 used for sequencing, i.e ACATTATCCT.</li>
+        </ol>
+        
+      </div>
+      <div>
+        <a href="/logout">Logout</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
