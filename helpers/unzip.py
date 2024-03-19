@@ -24,17 +24,7 @@ def unzip_raw_file(process_id, filename):
 
     if (gunzip_result):
         # Upload.mark_field_as_true(process_id, 'gz_unziped')
-        Upload.update_gz_unziped_progress(process_id, 100, filename)
-
-        # count the files ending with fastq.gz
-        file_names = os.listdir(extract_directory)
-        matching_files = [filename for filename in file_names if (filename.endswith('.fastq.gz') or filename.endswith('.fastq'))]
-        nr_files = 0
-        if (matching_files):
-            nr_files=len(matching_files)
-            # Convert the list to a dictionary with empty parameters
-            matching_files_dict = {filename: {'new_filename': '', 'fastqc': ''} for filename in matching_files}
-            Upload.update_files_json(process_id, matching_files_dict)    
+        Upload.update_gz_unziped_progress(process_id, 100, filename)  
 
 def extract_tar_without_structure(process_id, tar_file, extract_path):
     total_size = os.path.getsize(tar_file)
