@@ -153,7 +153,6 @@ def upload_final_files_to_storage(process_id):
             file_to_move = value['new_filename']
         else:
             file_to_move = key
-        logger.info('File to move is ',file_to_move)
                          
         bucket = None
         folder = None

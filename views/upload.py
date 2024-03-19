@@ -55,6 +55,43 @@ def admin_required(view_func):
         return view_func(*args, **kwargs)
     return decorated_view
 
+def recreate_matching_files(process_id):
+
+    upload = Upload.get(process_id)
+    uploads_folder = upload.uploads_folder
+    extract_directory = Path("processing", uploads_folder)
+
+    # count the files ending with fastq.gz
+    file_names = os.listdir(extract_directory)
+    matching_files = [filename for filename in file_names if (filename.endswith('.fastq.gz') or filename.endswith('.fastq'))]
+    nr_files = 0
+    if (matching_files):
+        nr_files=len(matching_files)
+        # Convert the list to a dictionary with empty parameters
+        matching_files_dict = {filename: {'new_filename': '', 'fastqc': ''} for filename in matching_files}
+        
+        # Update for non standard sequencing data. Find out the bucket and folder from here, because we skip the renaming step
+        path = Path("uploads", upload.uploads_folder)
+        cvs_path = path / upload.csv_filename
+        cvs_records = get_csv_data(cvs_path)
+
+        # Iterate over keys in matching_files_dict
+        for file_key in matching_files_dict.keys():
+            # Extract sequencer ID from the file key
+            sequencer_id = file_key.split("_")[0]
+
+            # Find matching row in CSV data
+            for row in cvs_records.values():
+                if row['sequencer_id'] == sequencer_id:
+                    # Assign project and region to the matching file
+                    matching_files_dict[file_key]['bucket'] = row['project']
+                    matching_files_dict[file_key]['folder'] = row['region']
+                    break  # Break the loop once a match is found
+                    logger.info('Found one file_key: ' + file_key + ' for project ' + row['project'])    
+        
+        Upload.update_files_json(process_id, matching_files_dict)
+    return nr_files
+    
 @upload_bp.route("/")
 def index():
     if current_user.is_authenticated:
@@ -233,41 +270,7 @@ def unzip_progress():
     upload = Upload.get(process_id)
     if (progress==100):
 
-
-        uploads_folder = upload.uploads_folder
-        extract_directory = Path("processing", uploads_folder)
-
-        # count the files ending with fastq.gz
-        file_names = os.listdir(extract_directory)
-        matching_files = [filename for filename in file_names if (filename.endswith('.fastq.gz') or filename.endswith('.fastq'))]
-        nr_files = 0
-        if (matching_files):
-            nr_files=len(matching_files)
-            # Convert the list to a dictionary with empty parameters
-            matching_files_dict = {filename: {'new_filename': '', 'fastqc': ''} for filename in matching_files}
-            
-            # Update for non standard sequencing data. Find out the bucket and folder from here, because we skip the renaming step
-            path = Path("uploads", upload.uploads_folder)
-            cvs_path = path / upload.csv_filename
-            cvs_records = get_csv_data(cvs_path)
-
-            # Iterate over keys in matching_files_dict
-            for file_key in matching_files_dict.keys():
-                # Extract sequencer ID from the file key
-                sequencer_id = file_key.split("_")[0]
-
-                # Find matching row in CSV data
-                for row in cvs_records.values():
-                    if row['sequencer_id'] == sequencer_id:
-                        # Assign project and region to the matching file
-                        matching_files_dict[file_key]['bucket'] = row['project']
-                        matching_files_dict[file_key]['folder'] = row['region']
-                        break  # Break the loop once a match is found
-                        logger.info('Found one file_key: ' + file_key + ' for project ' + row['project'])
-            logger.info('---------------------------')
-            logger.info(matching_files_dict)            
-            
-            Upload.update_files_json(process_id, matching_files_dict)
+        nr_files = recreate_matching_files(process_id)
 
         files_dict_db = upload.get_files_json()
 
@@ -442,6 +445,13 @@ def show_multiqc_report():
 @approved_required
 def upload_final_files_route():
     process_id = request.form["process_id"]
+    
+    # if the files_json is empty, recreate it
+    upload = Upload.get(process_id)
+    matching_files_dict = upload.get_files_json()
+    if len(matching_files_dict) == 0:
+        recreate_matching_files(process_id)
+    
     init_upload_final_files_to_storage(process_id)
     return jsonify({'message': 'Process initiated'})
 
