@@ -562,9 +562,14 @@
         }
 
         $(document).ready(function () {
-          if (!gz_filedata || Object.keys(gz_filedata).length === 0) {
+          if (!gz_filedata || Object.keys(gz_filedata).length === 0 || sequencing_method==0 || sequencing_method>1) {
             hide_form_6();
           }
+          if (sequencing_method>1 && gz_filedata && Object.keys(gz_filedata).length > 0) {
+            $('#step_9_form').show();
+            $('#step_9').css('opacity', '1');
+          }
+
         });
 
         function calculateMD5(file, callback, updateCallback) {
@@ -919,7 +924,6 @@
                               hide_form_6();
                             }
 
-                            //$("#step_6_form").submit();
                         }
                     },
                     error: function() {
