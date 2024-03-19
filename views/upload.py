@@ -77,12 +77,10 @@ def recreate_matching_files(process_id):
 
         # Iterate over keys in matching_files_dict
         for file_key in matching_files_dict.keys():
-            # Extract sequencer ID from the file key
-            sequencer_id = file_key.split("_")[0]
 
             # Find matching row in CSV data
             for row in cvs_records.values():
-                if row['sequencer_id'] == sequencer_id:
+                if file_key.startswith(row['sequencer_id']):
                     # Assign project and region to the matching file
                     matching_files_dict[file_key]['bucket'] = row['project']
                     matching_files_dict[file_key]['folder'] = row['region']
