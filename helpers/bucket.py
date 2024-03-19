@@ -6,7 +6,6 @@ from collections import OrderedDict
 from google.cloud import storage
 from pathlib import Path
 from models.upload import Upload
-from helpers.csv import get_csv_data
 
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
@@ -148,12 +147,6 @@ def upload_final_files_to_storage(process_id):
     total_count = len(files_json)
     files_done = 0
 
-    # Update for non standard sequencing data. Find out the bucket and folder from here, because we skip the renaming step
-    path = Path("uploads", upload.uploads_folder)
-    cvs_path = path / upload.csv_filename
-    cvs_records = get_csv_data(cvs_path)
-
-    
     #lets iterate it doing the actual move
     for key, value in files_json.items():
         if (sequencing_method == 1):
@@ -166,28 +159,10 @@ def upload_final_files_to_storage(process_id):
         folder = None
                 
         if 'bucket' in value:
-            bucket = value['bucket']
-        else:
-            # try to get the bucket from the csv directly
-            # Find matching row in CSV data
-            sequencer_id = file_to_move.split("_")[0]
-            for row in cvs_records.values():
-                if row['sequencer_id'] == sequencer_id:
-                    # Assign project and region to the matching file
-                    bucket = row['project']
-                    break  # Break the loop once a match is found         
+            bucket = value['bucket']    
 
         if 'folder' in value:
             folder = value['folder']
-        else:
-            # try to get the bucket from the csv directly
-            # Find matching row in CSV data
-            sequencer_id = file_to_move.split("_")[0]
-            for row in cvs_records.values():
-                if row['sequencer_id'] == sequencer_id:
-                    # Assign project and region to the matching file
-                    folder = row['region']
-                    break  # Break the loop once a match is found   
                                 
         if ((bucket is not None) & (folder is not None)):
 
