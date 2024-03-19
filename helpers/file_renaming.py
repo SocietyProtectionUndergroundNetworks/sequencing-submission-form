@@ -48,7 +48,6 @@ def rename_files(csv_file_path, directory_path, files_json):
             for matching_file in matching_files:
                 # Get the full path of the matching file
                 old_file_path = os.path.join(directory_path, matching_file)
-                # app.logger.info('old_file_path is ' + old_file_path)
 
                 # Extract the portion after '_S' from the matching file
                 extension = matching_file.split('_S')[-1]
@@ -59,11 +58,8 @@ def rename_files(csv_file_path, directory_path, files_json):
                 else:
                     new_name = name
 
-                # app.logger.info('new_name is ' + new_name)
-
                 # Create the new file name based on the extracted extension, modified 'Name' column, and the 'CCBB' prefix
                 new_file_name = new_name + '_S' + extension
-                # app.logger.info('new_file_name is ' + new_file_name)
 
                 # Check for duplicate names
                 if new_file_name in file_names:
@@ -102,9 +98,6 @@ def rename_all_files(process_id):
     uploads_folder = upload.uploads_folder
     path = Path("uploads", uploads_folder)
     csv_filepath = path / upload.csv_filename
-    logger.info('The files_json is')
-
-    logger.info(upload.files_json)
 
     extract_directory = Path("processing", uploads_folder)
     rename_results, not_found, files_dict = rename_files(csv_filepath, extract_directory, upload.files_json)
