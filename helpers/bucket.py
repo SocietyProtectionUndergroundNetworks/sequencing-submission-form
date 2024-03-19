@@ -6,6 +6,7 @@ from collections import OrderedDict
 from google.cloud import storage
 from pathlib import Path
 from models.upload import Upload
+from helpers.csv import get_csv_data
 
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
@@ -123,49 +124,84 @@ def bucket_upload_folder(folder_path, destination_upload_directory, process_id, 
             destination_blob_name = os.path.relpath(file_path, folder_path)
             bucket_chunked_upload(file_path, destination_upload_directory, destination_blob_name, process_id, upload_type, bucket)
 
-def init_upload_renamed_files_to_storage(process_id):
+def init_upload_final_files_to_storage(process_id):
 
-    from tasks import upload_renamed_files_to_storage_async
+    from tasks import upload_final_files_to_storage_async
     try:
         logger.info('process_id: ' + str(process_id))
-        result = upload_renamed_files_to_storage_async.delay(process_id)
-        logger.info(f"Celery upload_renamed_files_to_storage_async task called successfully! Task ID: {result.id}")
+        result = upload_final_files_to_storage_async.delay(process_id)
+        logger.info(f"Celery upload_final_files_to_storage_async task called successfully! Task ID: {result.id}")
         task_id = result.id
         #upload.update_fastqc_process_id(process_id, task_id)
     except Exception as e:
-        logger.error("This is an error message from helpers/bucket.py while trying to upload_renamed_files_to_storage_async")
+        logger.error("This is an error message from helpers/bucket.py while trying to upload_final_files_to_storage_async")
         logger.error(e)
 
     return {"msg": "Process initiated"}
 
-def upload_renamed_files_to_storage(process_id):
+def upload_final_files_to_storage(process_id):
     upload = Upload.get(process_id)
+    sequencing_method = upload.sequencing_method
     uploads_folder = upload.uploads_folder
     extract_directory = Path("processing", uploads_folder)
     files_json = json.loads(upload.files_json)
-
     total_count = len(files_json)
     files_done = 0
-    #lets iterate it again, this time doing the actual move
+
+    # Update for non standard sequencing data. Find out the bucket and folder from here, because we skip the renaming step
+    path = Path("uploads", upload.uploads_folder)
+    cvs_path = path / upload.csv_filename
+    cvs_records = get_csv_data(cvs_path)
+
+    
+    #lets iterate it doing the actual move
     for key, value in files_json.items():
-        new_filename = value['new_filename']
+        if (sequencing_method == 1):
+            file_to_move = value['new_filename']
+        else:
+            file_to_move = key
+        logger.info('File to move is ',file_to_move)
+                         
         bucket = None
+        folder = None
+                
         if 'bucket' in value:
             bucket = value['bucket']
-        folder = None
+        else:
+            # try to get the bucket from the csv directly
+            # Find matching row in CSV data
+            sequencer_id = file_to_move.split("_")[0]
+            for row in cvs_records.values():
+                if row['sequencer_id'] == sequencer_id:
+                    # Assign project and region to the matching file
+                    bucket = row['project']
+                    break  # Break the loop once a match is found         
+
         if 'folder' in value:
             folder = value['folder']
+        else:
+            # try to get the bucket from the csv directly
+            # Find matching row in CSV data
+            sequencer_id = file_to_move.split("_")[0]
+            for row in cvs_records.values():
+                if row['sequencer_id'] == sequencer_id:
+                    # Assign project and region to the matching file
+                    folder = row['region']
+                    break  # Break the loop once a match is found   
+                                
         if ((bucket is not None) & (folder is not None)):
 
-            new_file_path = os.path.join(extract_directory, new_filename)
-            # logger.info('folder: ' + str(folder) +  ', new_filename: ' + str(new_filename))
-            bucket_chunked_upload(new_file_path, folder, new_filename, process_id, 'renamed_files', bucket)
+            new_file_path = os.path.join(extract_directory, file_to_move)
+            logger.info('new_file_path is ',new_file_path)
+            # logger.info('folder: ' + str(folder) +  ', file_to_move: ' + str(file_to_move))
+            bucket_chunked_upload(new_file_path, folder, file_to_move, process_id, 'renamed_files', bucket)
             files_json[key]['uploaded'] = 'Done'
 
             files_done = files_done + 1
             Upload.update_files_json(process_id, files_json)
             Upload.update_renamed_sent_to_bucket_progress(process_id, files_done)
     Upload.mark_field_as_true(process_id, 'renamed_sent_to_bucket')
+
 
     return "ok"
 

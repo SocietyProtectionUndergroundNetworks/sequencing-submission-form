@@ -17,7 +17,7 @@ from flask_login import (
 )
 
 from helpers.csv import validate_csv, get_csv_data
-from helpers.bucket import bucket_chunked_upload, get_progress_db_bucket, init_send_raw_to_storage, get_renamed_files_to_storage_progress, init_upload_renamed_files_to_storage
+from helpers.bucket import bucket_chunked_upload, get_progress_db_bucket, init_send_raw_to_storage, get_renamed_files_to_storage_progress, init_upload_final_files_to_storage
 from helpers.unzip import get_progress_db_unzip, unzip_raw
 from helpers.fastqc import get_fastqc_progress, init_fastqc_multiqc_files, get_multiqc_report
 from helpers.file_renaming import calculate_md5, rename_all_files
@@ -176,7 +176,8 @@ def upload_form_resume():
                                     fastqc_run=upload.fastqc_run,
                                     renamed_sent_to_bucket=upload.renamed_sent_to_bucket,
                                     uploads_folder=uploads_folder,
-                                    cvs_records=cvs_records
+                                    cvs_records=cvs_records,
+                                    sequencing_method=upload.sequencing_method
                                     )
         else:
             return redirect(url_for('user.only_admins'))
@@ -194,6 +195,9 @@ def upload_form():
 def upload_csv():
     # Handle CSV file uploads separately
     file = request.files.get('file')
+    sequencing_method = request.form.get('sequencing_method')
+    logger.info('The sequencing method is')
+    logger.info(sequencing_method)
     if not file:
         return jsonify({"error": "No file uploaded"}), 400
 
@@ -212,7 +216,7 @@ def upload_csv():
     cvs_results = validate_csv(save_path)
     cvs_records = get_csv_data(save_path)
     if cvs_results is True:
-        process_id = Upload.create(user_id=current_user.id, csv_filename=filename, uploads_folder=uploads_folder)
+        process_id = Upload.create(user_id=current_user.id, csv_filename=filename, uploads_folder=uploads_folder, sequencing_method=sequencing_method)
         bucket_chunked_upload(save_path, "uploads/" + uploads_folder, filename, process_id, 'csv_file')
         return jsonify({"msg": "CSV file uploaded successfully. Checks passed", "process_id": process_id, "upload_folder": uploads_folder, "cvs_records": cvs_records}), 200
     else:
@@ -241,6 +245,28 @@ def unzip_progress():
             nr_files=len(matching_files)
             # Convert the list to a dictionary with empty parameters
             matching_files_dict = {filename: {'new_filename': '', 'fastqc': ''} for filename in matching_files}
+            
+            # Update for non standard sequencing data. Find out the bucket and folder from here, because we skip the renaming step
+            path = Path("uploads", upload.uploads_folder)
+            cvs_path = path / upload.csv_filename
+            cvs_records = get_csv_data(cvs_path)
+
+            # Iterate over keys in matching_files_dict
+            for file_key in matching_files_dict.keys():
+                # Extract sequencer ID from the file key
+                sequencer_id = file_key.split("_")[0]
+
+                # Find matching row in CSV data
+                for row in cvs_records.values():
+                    if row['sequencer_id'] == sequencer_id:
+                        # Assign project and region to the matching file
+                        matching_files_dict[file_key]['bucket'] = row['project']
+                        matching_files_dict[file_key]['folder'] = row['region']
+                        break  # Break the loop once a match is found
+                        logger.info('Found one file_key: ' + file_key + ' for project ' + row['project'])
+            logger.info('---------------------------')
+            logger.info(matching_files_dict)            
+            
             Upload.update_files_json(process_id, matching_files_dict)
 
         files_dict_db = upload.get_files_json()
@@ -411,12 +437,12 @@ def show_multiqc_report():
 
     return ''
 
-@upload_bp.route('/uploadrenamed', methods=['POST'], endpoint='upload_renamed_files_route')
+@upload_bp.route('/uploadfinalfiles', methods=['POST'], endpoint='upload_final_files_route')
 @login_required
 @approved_required
-def upload_renamed_files_route():
+def upload_final_files_route():
     process_id = request.form["process_id"]
-    init_upload_renamed_files_to_storage(process_id)
+    init_upload_final_files_to_storage(process_id)
     return jsonify({'message': 'Process initiated'})
 
 @upload_bp.route('/user_uploads', methods=['GET'], endpoint='user_uploads')
@@ -441,10 +467,10 @@ def delete_renamed_files():
     upload.delete_files_from_filesystem()
     return redirect(url_for('upload.user_uploads', user_id=user_id))
 
-@upload_bp.route('/moverenamedprogress', methods=['GET'], endpoint='get_renamed_files_to_storage_progress_route')
+@upload_bp.route('/movefinaldprogress', methods=['GET'], endpoint='get_final_files_to_storage_progress_route')
 @login_required
 @approved_required
-def get_renamed_files_to_storage_progress_route():
+def get_final_files_to_storage_progress_route():
     process_id = request.args.get('process_id')
     to_return = get_renamed_files_to_storage_progress(process_id)
     return to_return

@@ -1,5 +1,5 @@
 from celery import current_app as celery_app
-from helpers.bucket import upload_raw_file_to_storage, upload_renamed_files_to_storage
+from helpers.bucket import upload_raw_file_to_storage, upload_final_files_to_storage
 from helpers.unzip import unzip_raw_file
 from helpers.fastqc import fastqc_multiqc_files
 
@@ -16,7 +16,7 @@ def fastqc_multiqc_files_async(process_id):
     fastqc_multiqc_files(process_id)
     
 @celery_app.task
-def upload_renamed_files_to_storage_async(process_id):
-    upload_renamed_files_to_storage(process_id)  
+def upload_final_files_to_storage_async(process_id):
+    upload_final_files_to_storage(process_id)  
     
     

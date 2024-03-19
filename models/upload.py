@@ -66,11 +66,11 @@ class Upload():
         return None
 
     @classmethod
-    def create(self, user_id, csv_filename, uploads_folder):
+    def create(self, user_id, csv_filename, uploads_folder, sequencing_method):
         db_engine = connect_db()
         session = get_session(db_engine)
 
-        new_upload = UploadTable(user_id=user_id, csv_filename=csv_filename, csv_uploaded=True, uploads_folder=uploads_folder)
+        new_upload = UploadTable(user_id=user_id, csv_filename=csv_filename, csv_uploaded=True, uploads_folder=uploads_folder, sequencing_method=sequencing_method)
 
         session.add(new_upload)
         session.commit()
@@ -118,8 +118,6 @@ class Upload():
 
     @classmethod
     def update_gz_filedata(cls, upload_id, gz_filedata):
-
-        logger.info(gz_filedata)
 
         db_engine = connect_db()
         session = get_session(db_engine)
@@ -259,22 +257,24 @@ class Upload():
 
         # Sort the dictionary based on 'bucket' and 'folder'
         matching_files_dict = OrderedDict(sorted(matching_files_dict.items(), key=lambda x: (x[1].get('bucket', ''), x[1].get('folder', ''))))
-        rowspan_counts = {}
-        for filename, data in matching_files_dict.items():
-            if 'bucket' in data and 'folder' in data:
-                key = data['bucket'] + '_' + data['folder']
-                if key in rowspan_counts:
-                    rowspan_counts[key] += 1
-                else:
-                    rowspan_counts[key] = 1
 
-        lastkey = ''
-        for filename, data in matching_files_dict.items():
-            if 'bucket' in data and 'folder' in data:
-                key = data['bucket'] + '_' + data['folder']
-                if key != lastkey:
-                    data['rowspan'] = rowspan_counts[key]
-                lastkey = key
+        if self.sequencing_method == 1:
+            rowspan_counts = {}
+            for filename, data in matching_files_dict.items():
+                if 'bucket' in data and 'folder' in data:
+                    key = data['bucket'] + '_' + data['folder']
+                    if key in rowspan_counts:
+                        rowspan_counts[key] += 1
+                    else:
+                        rowspan_counts[key] = 1
+
+            lastkey = ''
+            for filename, data in matching_files_dict.items():
+                if 'bucket' in data and 'folder' in data:
+                    key = data['bucket'] + '_' + data['folder']
+                    if key != lastkey:
+                        data['rowspan'] = rowspan_counts[key]
+                    lastkey = key
 
         return matching_files_dict
 

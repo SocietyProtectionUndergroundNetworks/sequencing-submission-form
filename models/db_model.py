@@ -31,6 +31,7 @@ class UploadTable(Base):
         nullable=True
     )
     uploads_folder = Column(String(20), nullable=True)
+    sequencing_method = Column(Integer, default=0)
     csv_uploaded = Column(Boolean, default=False)
     csv_filename = Column(String(255), nullable=True)
     gz_filedata = Column(JSON(none_as_null=True))
