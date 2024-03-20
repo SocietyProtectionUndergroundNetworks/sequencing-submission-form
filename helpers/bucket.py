@@ -153,21 +153,19 @@ def upload_final_files_to_storage(process_id):
             file_to_move = value['new_filename']
         else:
             file_to_move = key
-                         
+
         bucket = None
         folder = None
-                
+
         if 'bucket' in value:
-            bucket = value['bucket']    
+            bucket = value['bucket']
 
         if 'folder' in value:
             folder = value['folder']
-                                
+
         if ((bucket is not None) & (folder is not None)):
 
             new_file_path = os.path.join(extract_directory, file_to_move)
-            logger.info('new_file_path is ',new_file_path)
-            # logger.info('folder: ' + str(folder) +  ', file_to_move: ' + str(file_to_move))
             bucket_chunked_upload(new_file_path, folder, file_to_move, process_id, 'renamed_files', bucket)
             files_json[key]['uploaded'] = 'Done'
 

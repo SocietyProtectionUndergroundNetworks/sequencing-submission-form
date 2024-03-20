@@ -463,7 +463,7 @@
                                 '<td>' + (fileDetails.new_filename || '') + '</td>' +
                                 '<td>' + (fileDetails.bucket || '') + '</td>' +
                                 '<td>' + (fileDetails.folder || '') + '</td>' +
-                                '<td>' + '</td>';
+                                '<td>' + (fileDetails.uploaded || '') + '</td>';
 
                 if (fileDetails.rowspan > 1) {
                   newRow +=         '<td rowspan="' + (fileDetails.rowspan) + '">';
@@ -997,7 +997,11 @@
                             $('#step_8').css('opacity', '1');
                             $('#step_8_msg').text('Fastqc and multiqc files transfered to bucket');
                         } else {
-                            $('#step_7_msg').text('Files done: ' + data.files_done + ' / ' +  data.files_main).addClass('text-info').removeClass('text-success');
+                            if (data.progress_text === null || data.progress_text === '') {
+                              $('#step_7_msg').text('Fastqc and multiqc process started').addClass('text-info').removeClass('text-success');
+                            } else {
+                              $('#step_7_msg').text(data.progress_text).addClass('text-info').removeClass('text-success');
+                            }
                         }
                     },
                     error: function() {
@@ -1022,24 +1026,23 @@
                         let process_finished = data.process_finished;
                         if (process_finished == 1) {
                             clearInterval(intervals[interval_id]); // Stop updating when progress reaches 100%
-                            console.log('We will now stop calling for updates');
-                            $('#step_9_msg').text('All final files moved to project buckets');
+                            console.log('We will now stop calling for updates for final files to bucket');
+                            $('#step_9_msg').text('All final files moved to project buckets').addClass('text-success').removeClass('text-info');
                         } else {
                             $('#step_9_msg').text('Files done: ' + data.files_done + ' / ' +  data.files_main).addClass('text-info').removeClass('text-success');
-
-                            $.each(data.files_dict, function(oldFilename, fileDetails) {
-                                // Iterate through table rows in the tbody with ID 'files_body'
-                                $('#files_body tr').each(function() {
-                                    var currentFilename = $(this).find('td:nth-child(2)').text(); // Get the filename from the second cell
-                                    if (currentFilename === oldFilename) {
-                                        // Update the third cell with new_filename if it exists in fileDetails
-                                        if ('uploaded' in fileDetails) {
-                                            $(this).find('td:nth-child(6)').text(fileDetails.uploaded);
-                                        }
-                                    }
-                                });
-                            });
                         }
+                        $.each(data.files_dict, function(oldFilename, fileDetails) {
+                            // Iterate through table rows in the tbody with ID 'files_body'
+                            $('#files_body tr').each(function() {
+                                var currentFilename = $(this).find('td:nth-child(2)').text(); // Get the filename from the second cell
+                                if (currentFilename === oldFilename) {
+                                    // Update the third cell with new_filename if it exists in fileDetails
+                                    if ('uploaded' in fileDetails) {
+                                        $(this).find('td:nth-child(6)').text(fileDetails.uploaded);
+                                    }
+                                }
+                            });
+                        });
                     },
                     error: function() {
                         // Handle error situations

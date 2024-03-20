@@ -31,7 +31,7 @@ def get_fastqc_progress(process_id):
     files_dict_db = upload.get_files_json()
 
     count_fastq_gz = 0
-    files_done = 0
+    progress_text = ''
     process_finished = 0
 
     extract_directory = upload.extract_directory
@@ -48,7 +48,7 @@ def get_fastqc_progress(process_id):
         count_fastq_gz = sum(1 for file in files_main if ((file.endswith('.fastq.gz') or file.endswith('.fastq')) and not (file.startswith('._'))))
 
         # Get how many are done
-        files_done = upload.fastqc_files_progress
+        progress_text = upload.fastqc_files_progress
     else:
         process_finished = 1
         upload.mark_field_as_true(process_id, "fastqc_run")
@@ -58,7 +58,7 @@ def get_fastqc_progress(process_id):
     to_return = {
         'process_finished': process_finished,
         'files_main': count_fastq_gz,
-        'files_done': files_done,
+        'progress_text': progress_text,
         'multiqc_report_exists': multiqc_report_exists,
         'multiqc_report_path': fastqc_path,
         'files_dict_db': files_dict_db
@@ -99,9 +99,11 @@ def fastqc_multiqc_files(process_id):
     output_folder = os.path.join(input_folder, 'fastqc')
     os.makedirs(output_folder, exist_ok=True)
     output_folders = {}
+    nr_output_folders = 0
     files_done = 0
     # Run fastqc on all raw fastq.gz files within the 'fastqc' conda environment
     fastq_files = [f for f in os.listdir(input_folder) if ((f.endswith('.fastq.gz') or f.endswith('.fastq')) and not f.startswith('.'))]
+    nr_files = len(fastq_files)
     for fastq_file in fastq_files:
         # check that the file exists in our files_json
         if (fastq_file in new_files_json):
@@ -113,6 +115,7 @@ def fastqc_multiqc_files(process_id):
 
             if (folder not in output_folders[bucket]):
                 output_folders[bucket][folder] = True
+                nr_output_folders += 1
 
             print('file we will try is ' + str(fastq_file))
 
@@ -122,10 +125,14 @@ def fastqc_multiqc_files(process_id):
             output_file = os.path.join(output_folder_of_file, fastq_file.replace('.fastq.gz', '_fastqc.zip'))
             fastqc_cmd = f'/usr/local/bin/FastQC/fastqc -o {output_folder_of_file} {input_file}'
             subprocess.run(fastqc_cmd, shell=True, executable='/bin/bash')
-            files_done = files_done + 1
-            Upload.update_fastqc_files_progress(process_id, files_done)
+            files_done += 1
+            progress = str(files_done) + ' fastq files done out of ' + str(nr_files)
+            if (nr_files == files_done):
+                progress = progress + '. Starting creation of multiqc reports'
+            Upload.update_fastqc_files_progress(process_id, progress)
 
     # Run the multiqc process differently for each project.
+    multiqc_done =0
     for bucket, folders in output_folders.items():
         for folder in folders:
             multiqc_folder = os.path.join(output_folder, bucket, folder)
@@ -137,6 +144,10 @@ def fastqc_multiqc_files(process_id):
 
             # upload the multiqc files to the project bucket
             bucket_upload_folder(multiqc_folder, folder+'/'+uploads_folder, process_id, 'fastqc_files', bucket)
+            
+            multiqc_done = multiqc_done + 1
+            progress = str(multiqc_done) + ' multiqc reports done out of ' + str(nr_output_folders)
+            Upload.update_fastqc_files_progress(process_id, progress)            
 
     fastqc_path = os.path.join(input_folder , 'fastqc')
     Upload.mark_field_as_true(process_id, 'fastqc_sent_to_bucket')
