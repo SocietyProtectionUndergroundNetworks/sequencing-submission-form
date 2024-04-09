@@ -143,11 +143,11 @@ def fastqc_multiqc_files(process_id):
                 os.remove(path_to_delete)
 
             # upload the multiqc files to the project bucket
-            bucket_upload_folder(multiqc_folder, folder+'/'+uploads_folder, process_id, 'fastqc_files', bucket)
-            
+            bucket_upload_folder(multiqc_folder, folder+'/MultiQC_report'+uploads_folder, process_id, 'fastqc_files', bucket)
+
             multiqc_done = multiqc_done + 1
             progress = str(multiqc_done) + ' multiqc reports done out of ' + str(nr_output_folders)
-            Upload.update_fastqc_files_progress(process_id, progress)            
+            Upload.update_fastqc_files_progress(process_id, progress)
 
     fastqc_path = os.path.join(input_folder , 'fastqc')
     Upload.mark_field_as_true(process_id, 'fastqc_sent_to_bucket')
