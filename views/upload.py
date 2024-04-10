@@ -129,6 +129,10 @@ def privacy_and_terms():
 def csv_structure():
     return render_template('csv_structure.html')
 
+@upload_bp.route('/app_instructions', endpoint='app_instructions')
+def app_instructions():
+    return render_template('app_instructions.html')
+
 @upload_bp.route('/csv_sample', endpoint='csv_sample')
 def csv_sample():
     path = Path("static","csv")
