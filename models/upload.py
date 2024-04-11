@@ -66,11 +66,11 @@ class Upload():
         return None
 
     @classmethod
-    def create(self, user_id, csv_filename, uploads_folder, sequencing_method):
+    def create(self, user_id, uploads_folder, metadata_filename):
         db_engine = connect_db()
         session = get_session(db_engine)
 
-        new_upload = UploadTable(user_id=user_id, csv_filename=csv_filename, csv_uploaded=True, uploads_folder=uploads_folder, sequencing_method=sequencing_method)
+        new_upload = UploadTable(user_id=user_id, metadata_filename=metadata_filename, uploads_folder=uploads_folder)
 
         session.add(new_upload)
         session.commit()
@@ -83,6 +83,19 @@ class Upload():
         session.close()
 
         return new_upload_id
+
+    @classmethod
+    def update_csv_filename_and_method(cls, upload_id, csv_filename, sequencing_method):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        upload = session.query(UploadTable).filter_by(id=upload_id).first()
+        upload.csv_filename = csv_filename
+        upload.csv_uploaded = True
+        upload.sequencing_method = sequencing_method
+        session.commit()
+        session.close()
+        return True
 
     @classmethod
     def mark_field_as_true(cls, upload_id, field_name):

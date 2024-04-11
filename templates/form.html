@@ -27,10 +27,33 @@
       <span id="process_id_info">Process id: {{ process_id }}</span> -
       <span id="upload_folder_info">Folder: {{ uploads_folder }}</span>
     </div>
+
     <div id="step_1" class="form-step-item">
-      <h3> Step 1: Choose sequencing platform used </h3>
+      <h3> Step 1: upload your metadata file</h3>
+      <div class="text-danger">
+        Please note: This is NOT the csv file that you created in order to describe your files.
+        This is the metadata file you were originally asked to prepare for your samples.
+      </div>
+      {% if metadata_uploaded %}
+        <div id="step_1_msg" class="text-success">Metadata file already uploaded : {{ metadata_filename }}</div>
+      {% else %}
+
+        <form
+            method="POST"
+            action="/uploadmetadata"
+            enctype="multipart/form-data"
+            id="step_1_form"
+        >
+        <input type="file" id="step_1_button" accept=".csv">
+        </form>
+        <div id="step_1_msg"></div>
+      {% endif %}
+    </div>
+
+    <div id="step_2" {% if not metadata_uploaded %} style="opacity: 0.5;" {% endif %} class="form-step-item">
+      <h3> Step 2: Choose sequencing platform used </h3>
       {% if sequencing_method %}
-        <div id="step_1_msg" class="text-success">
+        <div id="step_2_msg" class="text-success">
           Chosen sequencing platform:
           {% if sequencing_method == 1 %}
             Illumina
@@ -43,7 +66,7 @@
           {% endif %}
         </div>
       {% else %}
-        <form id="step_1_form">
+        <form id="step_2_form">
           <div class="form-check">
             <input class="form-check-input" type="radio" name="sequencing_method" id="sequencing_method_1" value="1">
             <label class="form-check-label" for="sequencing_method_1">
@@ -69,14 +92,15 @@
             </label>
           </div>
         </form>
-        <div id="step_1_msg"></div>
+        <div id="step_2_msg"></div>
       {% endif %}
     </div>
 
-    <div id="step_2" {% if not sequencing_method %} style="opacity: 0.5;" {% endif %} class="form-step-item">
-      <h3> Step 2: upload Data File (csv) </h3>
+    <div id="step_3" {% if not sequencing_method %} style="opacity: 0.5;" {% endif %} class="form-step-item">
+      <h3> Step 3: upload Data File (csv) </h3>
+      <div class="text-danger"> Please note: This is NOT the metadata file you had been asked to create.</div>
       {% if csv_uploaded %}
-        <div id="step_2_msg" class="text-success">CSV file already uploaded : {{ csv_filename }}</div>
+        <div id="step_3_msg" class="text-success">CSV file already uploaded : {{ csv_filename }}</div>
       {% else %}
         <p> <a href="/csv_structure" target="_blank" class="text-decoration-underline">Instructions for the csv file</a> </p>
 
@@ -85,13 +109,14 @@
             action="/uploadcsv"
             class="dropzone dz-clickable"
             enctype="multipart/form-data"
-            id="step_2_form"
+            id="step_3_form"
             style="display:none"
         >
         <input type="hidden" name="sequencing_method" value="{{ sequencing_method }}">
-        <input type="file" id="step_2_button" accept=".csv">
+        <input type="hidden" name="process_id" value="{{ process_id }}">
+        <input type="file" id="step_3_button" accept=".csv">
         </form>
-        <div id="step_2_msg"></div>
+        <div id="step_3_msg"></div>
       {% endif %}
     </div>
 
@@ -145,19 +170,19 @@
       <div id="showAllRows" class="text-info" style="cursor: pointer;">.</div>
     </div>
 
-    <div id="step_3" {% if not csv_uploaded %} style="opacity: 0.5;" {% endif %} class="form-step-item">
-      <h3> Step 3: upload gz/tar/zip file with sample data </h3>
+    <div id="step_4" {% if not csv_uploaded %} style="opacity: 0.5;" {% endif %} class="form-step-item">
+      <h3> Step 4: upload gz/tar/zip file with sample data </h3>
       <form
         method="POST"
         action="/upload"
-        id="step_3_form"
+        id="step_4_form"
         enctype="multipart/form-data"
       >
-        <input type="file" id="step_3_button" name="file" multiple />
+        <input type="file" id="step_4_button" name="file" multiple />
         <input type="hidden" name="process_id" value="{{ process_id }}">
       </form>
       {% if csv_uploaded %}
-        <div id="step_3_msg" class="text-primary">
+        <div id="step_4_msg" class="text-primary">
           {% if gz_filedata %}
               {% for filename, file_data in gz_filedata.items() %}
                   {% if 'percent_uploaded' in file_data %}
@@ -175,13 +200,13 @@
           {% endif %}
         </div>
       {% else  %}
-        <div id="step_3_msg"></div>
+        <div id="step_4_msg"></div>
       {% endif %}
     </div>
-    <div id="step_4" {% if not csv_uploaded %} style="opacity: 0.5;" {% endif %} class="form-step-item">
-      <h3> Step 4: Upload raw files to google storage </h3>
+    <div id="step_5" {% if not csv_uploaded %} style="opacity: 0.5;" {% endif %} class="form-step-item">
+      <h3> Step 5: Upload raw files to google storage </h3>
 
-      <div id="step_4_progress">
+      <div id="step_5_progress">
         {% if gz_filedata %}
             {% for filename, file_data in gz_filedata.items() %}
                 {% if 'gz_sent_to_bucket_progress' in file_data %}
@@ -192,12 +217,12 @@
             {% endfor %}
         {% endif %}
       </div>
-      <div id="step_4_msg"></div>
+      <div id="step_5_msg"></div>
 
     </div>
-    <div id="step_5" {% if not csv_uploaded %} style="opacity: 0.5;" {% endif %} class="form-step-item">
-      <h3> Step 5: Unzip Raw files</h3>
-      <div id="step_5_progress">
+    <div id="step_6" {% if not csv_uploaded %} style="opacity: 0.5;" {% endif %} class="form-step-item">
+      <h3> Step 6: Unzip Raw files</h3>
+      <div id="step_6_progress">
         {% if gz_filedata %}
             {% for filename, file_data in gz_filedata.items() %}
                 {% if 'gz_unziped_progress' in file_data %}
@@ -208,11 +233,11 @@
             {% endfor %}
         {% endif %}
       </div>
-      <div id="step_5_msg"></div>
+      <div id="step_6_msg"></div>
     </div>
-    <div id="step_6" class="form-step-item">
-      <h3 id="step_6_title">
-        Step 6:
+    <div id="step_7" class="form-step-item">
+      <h3 id="step_7_title">
+        Step 7:
         {% if sequencing_method and sequencing_method>1 %}
           Not Applicable to this sequencing method
         {% else  %}
@@ -220,44 +245,16 @@
         {% endif %}
       </h3>
       {% if files_renamed %}
-        <div id="step_6_msg" class="text-success">Files renamed</div>
-        <h4 id="step_6_warning" class="text-warning"></h4>
+        <div id="step_7_msg" class="text-success">Files renamed</div>
+        <h4 id="step_7_warning" class="text-warning"></h4>
       {% else %}
-        <h4 id="step_6_warning" class="text-warning"> ONLY start this when you have uploaded successfully all your files and the unzip process has finished for all your files</h4>
-        <div>
-          <form
-              id="step_6_form"
-              method="POST"
-              action="/renamefiles"
-              {% if files_renamed %} style="display: none;" {% endif %}
-          >
-            <input type="hidden" name="process_id" value="{{ process_id }}">
-            <input type="submit" class="btn btn-primary" id="step_6_button">
-          </form>
-        </div>
-        <div id="step_6_msg"></div>
-        <div id="step_6_details"></div>
-      {% endif %}
-    </div>
-    <div id="step_7" {% if not files_renamed %} style="opacity: 0.5;" {% endif %} class="form-step-item">
-      <h3 id="step_7_title">
-        Step 7:
-        {% if sequencing_method and sequencing_method>1 %}
-          Not Applicable to this sequencing method
-        {% else  %}
-          Run fastqc
-        {% endif %}
-      </h3>
-
-      {% if fastqc_run %}
-        <div id="step_7_msg" class="text-success">Fastqc and multiqc processes run</div>
-      {% else %}
+        <h4 id="step_7_warning" class="text-warning"> ONLY start this when you have uploaded successfully all your files and the unzip process has finished for all your files</h4>
         <div>
           <form
               id="step_7_form"
               method="POST"
-              action="/fastqcfiles"
-              {% if ((not files_renamed) or (fastqc_run)) %} style="display: none;" {% endif %}
+              action="/renamefiles"
+              {% if files_renamed %} style="display: none;" {% endif %}
           >
             <input type="hidden" name="process_id" value="{{ process_id }}">
             <input type="submit" class="btn btn-primary" id="step_7_button">
@@ -267,9 +264,37 @@
         <div id="step_7_details"></div>
       {% endif %}
     </div>
-    <div id="step_8" {% if not fastqc_run %} style="opacity: 0.5;" {% endif %} class="form-step-item">
+    <div id="step_8" {% if not files_renamed %} style="opacity: 0.5;" {% endif %} class="form-step-item">
       <h3 id="step_8_title">
         Step 8:
+        {% if sequencing_method and sequencing_method>1 %}
+          Not Applicable to this sequencing method
+        {% else  %}
+          Run fastqc
+        {% endif %}
+      </h3>
+
+      {% if fastqc_run %}
+        <div id="step_8_msg" class="text-success">Fastqc and multiqc processes run</div>
+      {% else %}
+        <div>
+          <form
+              id="step_8_form"
+              method="POST"
+              action="/fastqcfiles"
+              {% if ((not files_renamed) or (fastqc_run)) %} style="display: none;" {% endif %}
+          >
+            <input type="hidden" name="process_id" value="{{ process_id }}">
+            <input type="submit" class="btn btn-primary" id="step_8_button">
+          </form>
+        </div>
+        <div id="step_8_msg"></div>
+        <div id="step_8_details"></div>
+      {% endif %}
+    </div>
+    <div id="step_9" {% if not fastqc_run %} style="opacity: 0.5;" {% endif %} class="form-step-item">
+      <h3 id="step_9_title">
+        Step 9:
         {% if sequencing_method and sequencing_method>1 %}
           Not Applicable to this sequencing method
         {% else  %}
@@ -277,14 +302,14 @@
         {% endif %}
       </h3>
       {% if fastqc_run %}
-        <div id="step_8_msg" class="text-success">Multiqc report uploaded to bucket</div>
+        <div id="step_9_msg" class="text-success">Multiqc report uploaded to bucket</div>
       {% else %}
-        <div id="step_8_msg" class="text-success"></div>
+        <div id="step_9_msg" class="text-success"></div>
       {% endif %}
     </div>
-    <div id="step_9" {% if not files_renamed %} style="opacity: 0.5;" {% endif %} class="form-step-item">
-      <h3 id="step_9_title">
-        Step 9:
+    <div id="step_10" {% if not files_renamed %} style="opacity: 0.5;" {% endif %} class="form-step-item">
+      <h3 id="step_10_title">
+        Step 10:
         {% if sequencing_method and sequencing_method>1 %}
           Upload fastq.gz files to project backets
         {% else  %}
@@ -292,19 +317,19 @@
         {% endif %}
       </h3>
       {% if renamed_sent_to_bucket %}
-        <div id="step_9_msg" class="text-success">Renamed files sent to buckets</div>
+        <div id="step_10_msg" class="text-success">Renamed files sent to buckets</div>
       {% else %}
         <div>
           <form
-              id="step_9_form"
+              id="step_10_form"
               method="POST"
               action="/uploadfinalfiles"
           >
             <input type="hidden" name="process_id" value="{{ process_id }}">
-            <input type="submit" class="btn btn-primary" id="step_9_button">
+            <input type="submit" class="btn btn-primary" id="step_10_button">
           </form>
         </div>
-        <div id="step_9_msg"></div>
+        <div id="step_10_msg"></div>
       {% endif %}
     </div>
 
@@ -514,23 +539,23 @@
           });
         }
 
-        // Handle the step_1 (Sequencing method selection)
+        // Handle the step_3 (Sequencing method selection)
         $(document).ready(function() {
 
           // Function to handle radio button change event
           $('input[name="sequencing_method"]').change(function() {
             sequencing_method = parseInt($(this).val());
-            var form2 = $("#step_2_form");
-            form2.find('input[name="sequencing_method"]').val(sequencing_method);
-            $('#step_2').css('opacity', '1');
-            $('#step_2_form').show();
+            var form3 = $("#step_3_form");
+            form3.find('input[name="sequencing_method"]').val(sequencing_method);
+            $('#step_3').css('opacity', '1');
+            $('#step_3_form').show();
             console.log("Selected sequencing method 1: ", sequencing_method);
             $('input[name="sequencing_method"]').not(this).prop('disabled', true);
             if (sequencing_method>1) {
-              $('#step_6_title').html('Step 6: Not Applicable to this sequencing method');
-              $('#step_7_title').html('Step 7: Not Applicable to this sequencing method');
-              $('#step_8_title').html('Step 8: Not Applicable to this sequencing method');
-              $('#step_9_title').html('Step 9: Upload fastq.gz files to project backets');
+              $('#step_7_title').html('Step 6: Not Applicable to this sequencing method');
+              $('#step_8_title').html('Step 7: Not Applicable to this sequencing method');
+              $('#step_9_title').html('Step 8: Not Applicable to this sequencing method');
+              $('#step_10_title').html('Step 9: Upload fastq.gz files to project backets');
             }
           });
         });
@@ -544,21 +569,21 @@
         $(document).ready(function () {
           redrawTable(matching_files_db);
           if (files_renamed==0) {
-            $('#step_9_form').hide();
+            $('#step_10_form').hide();
           }
 
         });
 
         function hide_form_6() {
-          $('#step_6_button').hide();
-          $('#step_6_warning').hide();
-          $('#step_6').css('opacity', '0.5');
+          $('#step_7_button').hide();
+          $('#step_7_warning').hide();
+          $('#step_7').css('opacity', '0.5');
         }
 
         function show_form_6() {
-          $('#step_6_button').show();
-          $('#step_6_warning').show();
-          $('#step_6').css('opacity', '1');
+          $('#step_7_button').show();
+          $('#step_7_warning').show();
+          $('#step_7').css('opacity', '1');
         }
 
         $(document).ready(function () {
@@ -566,8 +591,8 @@
             hide_form_6();
           }
           if (sequencing_method>1 && gz_filedata && Object.keys(gz_filedata).length > 0) {
-            $('#step_9_form').show();
-            $('#step_9').css('opacity', '1');
+            $('#step_10_form').show();
+            $('#step_10').css('opacity', '1');
           }
 
         });
@@ -610,13 +635,19 @@
         }
 
         $(document).ready(function () {
-            $('#step_2_button').on('change', function () {
+            $('#step_1_button').on('change', function () {
+                uploadMetadataFile();
+            });
+        });
+
+        $(document).ready(function () {
+            $('#step_3_button').on('change', function () {
                 uploadCsvFile();
             });
         });
 
-        function uploadCsvFile() {
-          var fileInput = $('#step_2_button')[0];
+        function uploadMetadataFile() {
+          var fileInput = $('#step_1_button')[0];
           var file = fileInput.files[0];
 
           if (!file) {
@@ -627,8 +658,64 @@
           var formData = new FormData();
           formData.append('file', file);
 
-          //var sequencing_method = $('#step_2_form input[name="sequencing_method"]').val();
-          console.log('626 in uploadCsvFile sequencing method is ' + sequencing_method)
+          $.ajax({
+              url: '/uploadmetadata',
+              type: 'POST',
+              data: formData,
+              contentType: false,
+              processData: false,
+              success: function (response) {
+                  // Access and use the process ID
+                  process_id = response.process_id;
+                  upload_folder = response.upload_folder;
+
+                  // Update the hidden input field within the specific forms
+                  var form3 = $("#step_3_form");
+                  form3.find('input[name="process_id"]').val(process_id);
+                  var form4 = $("#step_4_form");
+                  form4.find('input[name="process_id"]').val(process_id);
+                  var form7 = $("#step_7_form");
+                  form7.find('input[name="process_id"]').val(process_id);
+                  var form8 = $("#step_8_form");
+                  form8.find('input[name="process_id"]').val(process_id);
+                  var form10 = $("#step_10_form");
+                  form10.find('input[name="process_id"]').val(process_id);
+                  $('#process_id_info').html('Process ID: ' + process_id);
+                  $('#upload_folder_info').html('Folder: ' + upload_folder)
+
+                  $('#step_1_msg').html(response.msg).removeClass('text-danger').addClass('text-success');
+                  $('#step_1_button').prop('disabled', true);
+
+                  $('#step_2').css('opacity', '1');
+                  $('#step_2_form').show();
+              },
+              error: function (xhr) {
+                if (xhr && xhr.responseText) {
+                    var response = JSON.parse(xhr.responseText);
+                    $("#step_1_msg").html(response.error + ' ' + response.results).addClass('text-danger').removeClass('text-info').removeClass('text-success');
+                } else {
+                    $("#step_1_msg").html(errorMessage).addClass('text-danger').removeClass('text-info').removeClass('text-success');
+                }
+              }
+          });
+        }
+
+        function uploadCsvFile() {
+          var fileInput = $('#step_3_button')[0];
+          var file = fileInput.files[0];
+
+          if (!file) {
+              alert("Please select a file.");
+              return;
+          }
+
+          var formData = new FormData();
+          formData.append('file', file);
+          formData.append('process_id', process_id);
+          console.log('715 in uploadCsvFile process_id  is ' + process_id)
+
+          //var sequencing_method = $('#step_3_form input[name="sequencing_method"]').val();
+          console.log('in uploadCsvFile sequencing method is ' + sequencing_method)
           formData.append('sequencing_method', sequencing_method);
 
           $.ajax({
@@ -639,38 +726,25 @@
               processData: false,
               success: function (response) {
                   // Access and use the process ID
-                  process_id = response.process_id;
                   upload_folder = response.upload_folder;
 
                   redrawCsvTable(response.cvs_records)
 
-                  // Update the hidden input field within the specific forms
-                  var form3 = $("#step_3_form");
-                  form3.find('input[name="process_id"]').val(process_id);
-                  var form6 = $("#step_6_form");
-                  form6.find('input[name="process_id"]').val(process_id);
-                  var form7 = $("#step_7_form");
-                  form7.find('input[name="process_id"]').val(process_id);
-                  var form9 = $("#step_9_form");
-                  form9.find('input[name="process_id"]').val(process_id);
-                  $('#process_id_info').html('Process ID: ' + process_id);
-                  $('#upload_folder_info').html('Folder: ' + upload_folder)
+                  $('#step_3_msg').html(response.msg).removeClass('text-danger').addClass('text-success');
+                  $('#step_3_button').prop('disabled', true);
 
-                  $('#step_2_msg').html(response.msg).removeClass('text-danger').addClass('text-success');
-                  $('#step_2_button').prop('disabled', true);
-
-                  $('#step_3').css('opacity', '1');
-                  $('#step_3_form').show();
-                  $('#step_3_button').prop('disabled', false);
                   $('#step_4').css('opacity', '1');
+                  $('#step_4_form').show();
+                  $('#step_4_button').prop('disabled', false);
                   $('#step_5').css('opacity', '1');
+                  $('#step_6').css('opacity', '1');
               },
               error: function (xhr) {
                 if (xhr && xhr.responseText) {
                     var response = JSON.parse(xhr.responseText);
-                    $("#step_2_msg").html(response.error + ' ' + response.results).addClass('text-danger').removeClass('text-info').removeClass('text-success');
+                    $("#step_3_msg").html(response.error + ' ' + response.results).addClass('text-danger').removeClass('text-info').removeClass('text-success');
                 } else {
-                    $("#step_2_msg").html(errorMessage).addClass('text-danger').removeClass('text-info').removeClass('text-success');
+                    $("#step_3_msg").html(errorMessage).addClass('text-danger').removeClass('text-info').removeClass('text-success');
                 }
               }
           });
@@ -707,21 +781,21 @@
                 console.log('file added to resumable:', file);
                 console.log('Unique Identifier for file:', file.uniqueIdentifier);
 
-                var file_msg_id = 'step_3_file_' + file.uniqueIdentifier;
+                var file_msg_id = 'step_4_file_' + file.uniqueIdentifier;
                 var file_name = file.file.name;
                 var file_row = '<div id="' + file_msg_id + '">Calculating md5 for: ' + file_name + '</div>';
-                $('#step_3_msg').append( file_row );
+                $('#step_4_msg').append( file_row );
 
                 //Add lines for third step
-                var step_4_msg_id = 'step_4_file_' + file.uniqueIdentifier;
-                var step_4_file_row = '<div id="' + step_4_msg_id + '"></div>';
-                $('#step_4_progress').append( step_4_file_row );
-
-                //Add lines for fourth step
                 var step_5_msg_id = 'step_5_file_' + file.uniqueIdentifier;
                 var step_5_file_row = '<div id="' + step_5_msg_id + '"></div>';
                 $('#step_5_progress').append( step_5_file_row );
 
+                //Add lines for fourth step
+                var step_6_msg_id = 'step_6_file_' + file.uniqueIdentifier;
+                var step_6_file_row = '<div id="' + step_6_msg_id + '"></div>';
+                $('#step_6_progress').append( step_6_file_row );
+                console.log('In /upload on line 799 the process_id is ' + process_id)
                 // Customize options for each file
                 var fileOptions = {
                     query: {
@@ -742,7 +816,7 @@
                 // Listen to events for each file
                 resumableFile.on('progress', function(file) {
                   let progress =Math.round(resumableFile.progress() * 10000)/100
-                  var file_msg_id = 'step_3_file_' + resumableFile.files[0].uniqueIdentifier;
+                  var file_msg_id = 'step_4_file_' + resumableFile.files[0].uniqueIdentifier;
                   $("#" + file_msg_id).html('Upload progress: ' + progress.toFixed(2) + '%');
                   if (progress < 100) {
                     uploading = true;
@@ -753,7 +827,7 @@
                   const parsedMessage = JSON.parse(message);
                   gz_filedata = parsedMessage.gz_filedata;
                   var file_id = resumableFile.files[0].uniqueIdentifier;
-                  var file_msg_id = 'step_3_file_' + file_id;
+                  var file_msg_id = 'step_4_file_' + file_id;
                   var file_name = file.file.name;
                   $("#" + file_msg_id).html('Upload of file ' + file_name + ' finished').addClass('text-success').removeClass('text-danger').removeClass('text-info');
 
@@ -765,7 +839,7 @@
                 });
 
                 // Assign file input to the Resumable instance
-                resumableFile.assignBrowse(document.getElementById('step_3_button'));
+                resumableFile.assignBrowse(document.getElementById('step_4_button'));
 
                 // Start upload for each file
                 setTimeout(function() {
@@ -775,7 +849,7 @@
                           $("#" + file_msg_id).html('Md5 for file ' + file_name + ' calculated:' + md5).addClass('text-info').removeClass('text-danger').removeClass('text-success');
 
                           // Enable the button after calculation is completed
-                          $('#step_3_button').prop("disabled", false);
+                          $('#step_4_button').prop("disabled", false);
 
                           resumableFile.upload();
 
@@ -791,7 +865,7 @@
         });
 
         // Assign file input to the main Resumable instance
-        r.assignBrowse(document.getElementById('step_3_button'));
+        r.assignBrowse(document.getElementById('step_4_button'));
 
         let intervals = {}; // To store interval IDs for each file upload
 
@@ -810,19 +884,19 @@
                         let progress = data.progress;
                         gz_filedata = data.gz_filedata;
 
-                        var step_4_msg_id = 'step_4_file_' + file_id;
-                        // Check if the element with id step_4_msg_id exists
+                        var step_5_msg_id = 'step_5_file_' + file_id;
+                        // Check if the element with id step_5_msg_id exists
 
-                        if ($('#' + step_4_msg_id).length === 0) {
+                        if ($('#' + step_5_msg_id).length === 0) {
                             // If it doesn't exist, create it
-                            var step_4_file_row = $('<div id="' + step_4_msg_id + '"></div>');
-                            // Append it to the parent element with id step_4_progress
-                            $('#step_4_progress').append(step_4_file_row);
+                            var step_5_file_row = $('<div id="' + step_5_msg_id + '"></div>');
+                            // Append it to the parent element with id step_5_progress
+                            $('#step_5_progress').append(step_5_file_row);
                         }
-                        $('#'+step_4_msg_id).text(`Bucket Transfer Progress of file ${file_name}: ${progress}%`);
+                        $('#'+step_5_msg_id).text(`Bucket Transfer Progress of file ${file_name}: ${progress}%`);
 
                         if (progress >= 100) {
-                            $('#'+step_4_msg_id).addClass('text-success').removeClass('text-info');
+                            $('#'+step_5_msg_id).addClass('text-success').removeClass('text-info');
                             clearInterval(intervals[interval_id]); // Stop updating when progress reaches 100%
                             console.log('We will now stop calling for updates in updateProgressRawFileBucket');
 
@@ -887,22 +961,22 @@
                     success: function(data) {
                         let progress = data.progress;
                         gz_filedata = data.gz_filedata;
-                        var step_5_msg_id = 'step_5_file_' + file_id;
-                        // Check if the element with id step_4_msg_id exists
+                        var step_6_msg_id = 'step_6_file_' + file_id;
+                        // Check if the element with id step_5_msg_id exists
 
-                        if ($('#' + step_5_msg_id).length === 0) {
+                        if ($('#' + step_6_msg_id).length === 0) {
                             // If it doesn't exist, create it
-                            var step_5_file_row = $('<div id="' + step_5_msg_id + '"></div>');
-                            // Append it to the parent element with id step_5_progress
-                            $('#step_5_progress').append(step_4_file_row);
+                            var step_6_file_row = $('<div id="' + step_6_msg_id + '"></div>');
+                            // Append it to the parent element with id step_6_progress
+                            $('#step_6_progress').append(step_5_file_row);
                         }
-                        $('#'+step_5_msg_id).text(`Unzip Progress of file ${file_name}: ${progress}%`);
+                        $('#'+step_6_msg_id).text(`Unzip Progress of file ${file_name}: ${progress}%`);
 
 
                         if (progress >= 100) {
                             clearInterval(intervals[interval_id]); // Stop updating when progress reaches 100%
                             console.log('We will now stop calling for updates for ProgressUnZip for file ' + file_name);
-                            $('#'+step_5_msg_id).text(`File ${file_name}: ${progress}% successfully unziped`).addClass('text-success').removeClass('text-info');
+                            $('#'+step_6_msg_id).text(`File ${file_name}: ${progress}% successfully unziped`).addClass('text-success').removeClass('text-info');
 
                             let filesDict = data.files_dict_db;
                             redrawTable(filesDict);
@@ -916,8 +990,8 @@
                                   show_form_6();
                                 } else {
                                   hide_form_6();
-                                  $('#step_9_form').show();
-                                  $('#step_9').css('opacity', '1');
+                                  $('#step_10_form').show();
+                                  $('#step_10').css('opacity', '1');
                                 }
                               }
                             } else {
@@ -934,11 +1008,11 @@
         }
 
         $(document).ready(function () {
-            $('#step_6_form').submit(function (event) {
+            $('#step_7_form').submit(function (event) {
                 // Prevent the default form submission
                 event.preventDefault();
-                $('#step_6_button').prop("disabled", true);
-                $('#step_6_warning').hide();
+                $('#step_7_button').prop("disabled", true);
+                $('#step_7_warning').hide();
                 // Get form data
                 var formData = $(this).serialize();
 
@@ -949,19 +1023,19 @@
                     success: function (response) {
                         // Handle success
                         console.log('Form data submitted via AJAX successfully');
-                        $('#step_6_msg').text('File renaming process finished').addClass('text-success');
+                        $('#step_7_msg').text('File renaming process finished').addClass('text-success');
                         let results = response.results;
                         let filesDict = response.files_dict;
                         // Redraw the HTML table
                         redrawTable(filesDict);
 
-                        $('#step_6_button').hide();
-                        $('#step_7_form').show();
-                        $('#step_7').css('opacity', '1');
-                        $("#step_7_form").submit();
+                        $('#step_7_button').hide();
+                        $('#step_8_form').show();
+                        $('#step_8').css('opacity', '1');
+                        $("#step_8_form").submit();
 
-                        $('#step_9_form').show();
-                        $('#step_9').css('opacity', '1');
+                        $('#step_10_form').show();
+                        $('#step_10').css('opacity', '1');
 
                     },
                     error: function (error) {
@@ -992,15 +1066,15 @@
                             clearInterval(intervals[interval_id]); // Stop updating when progress reaches 100%
                             redrawTable(filesDict);
                             console.log('We will now stop calling for updates');
-                            $('#step_7_msg').text('Creation of fastqc and multiqc reports finished').addClass('text-success').removeClass('text-info');
-                            $('#step_7_button').hide();
-                            $('#step_8').css('opacity', '1');
-                            $('#step_8_msg').text('Fastqc and multiqc files transfered to bucket');
+                            $('#step_8_msg').text('Creation of fastqc and multiqc reports finished').addClass('text-success').removeClass('text-info');
+                            $('#step_8_button').hide();
+                            $('#step_9').css('opacity', '1');
+                            $('#step_9_msg').text('Fastqc and multiqc files transfered to bucket');
                         } else {
                             if (data.progress_text === null || data.progress_text === '') {
-                              $('#step_7_msg').text('Fastqc and multiqc process started').addClass('text-info').removeClass('text-success');
+                              $('#step_8_msg').text('Fastqc and multiqc process started').addClass('text-info').removeClass('text-success');
                             } else {
-                              $('#step_7_msg').text(data.progress_text).addClass('text-info').removeClass('text-success');
+                              $('#step_8_msg').text(data.progress_text).addClass('text-info').removeClass('text-success');
                             }
                         }
                     },
@@ -1027,9 +1101,9 @@
                         if (process_finished == 1) {
                             clearInterval(intervals[interval_id]); // Stop updating when progress reaches 100%
                             console.log('We will now stop calling for updates for final files to bucket');
-                            $('#step_9_msg').text('All final files moved to project buckets').addClass('text-success').removeClass('text-info');
+                            $('#step_10_msg').text('All final files moved to project buckets').addClass('text-success').removeClass('text-info');
                         } else {
-                            $('#step_9_msg').text('Files done: ' + data.files_done + ' / ' +  data.files_main).addClass('text-info').removeClass('text-success');
+                            $('#step_10_msg').text('Files done: ' + data.files_done + ' / ' +  data.files_main).addClass('text-info').removeClass('text-success');
                         }
                         $.each(data.files_dict, function(oldFilename, fileDetails) {
                             // Iterate through table rows in the tbody with ID 'files_body'
@@ -1052,11 +1126,11 @@
         }
 
         $(document).ready(function () {
-            $('#step_7_form').submit(function (event) {
+            $('#step_8_form').submit(function (event) {
                 // Prevent the default form submission
                 event.preventDefault();
-                $('#step_7_button').prop("disabled", true);
-                $('#step_3_form').hide();
+                $('#step_8_button').prop("disabled", true);
+                $('#step_4_form').hide();
 
                 // Get form data
                 var formData = $(this).serialize();
@@ -1071,7 +1145,7 @@
                         // Handle success
                         console.log('Form data submitted via AJAX successfully');
 
-                        $('#step_7_msg').text('Fastqc process started').addClass('text-info');
+                        $('#step_8_msg').text('Fastqc process started').addClass('text-info');
                     },
                     error: function (error) {
                         // Handle errors
@@ -1082,10 +1156,10 @@
         });
 
         $(document).ready(function () {
-            $('#step_9_form').submit(function (event) {
+            $('#step_10_form').submit(function (event) {
                 // Prevent the default form submission
                 event.preventDefault();
-                $('#step_9_button').prop("disabled", true);
+                $('#step_10_button').prop("disabled", true);
                 // Get form data
                 var formData = $(this).serialize();
                 var process_id = $(this).find('input[name="process_id"]').val();
@@ -1100,7 +1174,7 @@
                         // Handle success
                         console.log('Form data for upload files submitted via AJAX successfully');
 
-                        $('#step_9_msg').text('Upload files process started').addClass('text-info');
+                        $('#step_10_msg').text('Upload files process started').addClass('text-info');
                     },
                     error: function (error) {
                         // Handle errors

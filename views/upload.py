@@ -69,7 +69,7 @@ def recreate_matching_files(process_id):
         nr_files=len(matching_files)
         # Convert the list to a dictionary with empty parameters
         matching_files_dict = {filename: {'new_filename': '', 'fastqc': ''} for filename in matching_files}
-        
+
         # Update for non standard sequencing data. Find out the bucket and folder from here, because we skip the renaming step
         path = Path("uploads", upload.uploads_folder)
         cvs_path = path / upload.csv_filename
@@ -85,11 +85,11 @@ def recreate_matching_files(process_id):
                     matching_files_dict[file_key]['bucket'] = row['project']
                     matching_files_dict[file_key]['folder'] = row['region']
                     break  # Break the loop once a match is found
-                    logger.info('Found one file_key: ' + file_key + ' for project ' + row['project'])    
-        
+                    logger.info('Found one file_key: ' + file_key + ' for project ' + row['project'])
+
         Upload.update_files_json(process_id, matching_files_dict)
     return nr_files
-    
+
 @upload_bp.route("/")
 def index():
     if current_user.is_authenticated:
@@ -207,6 +207,8 @@ def upload_form_resume():
                                     process_id=upload.id,
                                     csv_uploaded=upload.csv_uploaded,
                                     csv_filename=upload.csv_filename,
+                                    metadata_uploaded=(upload.metadata_filename is not None),
+                                    metadata_filename=upload.metadata_filename,
                                     gz_filedata=gz_filedata if gz_filedata else {},
                                     files_renamed=upload.files_renamed,
                                     nr_files=nr_files,
@@ -228,15 +230,12 @@ def upload_form_resume():
 def upload_form():
     return render_template("form.html")
 
-@upload_bp.route('/uploadcsv', methods=['POST'], endpoint='upload_csv')
+@upload_bp.route('/uploadmetadata', methods=['POST'], endpoint='upload_metadata')
 @login_required
 @approved_required
-def upload_csv():
-    # Handle CSV file uploads separately
+def upload_metadata():
+    # Handle metadata file upload separately
     file = request.files.get('file')
-    sequencing_method = request.form.get('sequencing_method')
-    logger.info('The sequencing method is')
-    logger.info(sequencing_method)
     if not file:
         return jsonify({"error": "No file uploaded"}), 400
 
@@ -252,12 +251,45 @@ def upload_csv():
     #save_path = Path("uploads", filename)
     file.save(save_path)  # Save the CSV file to a specific location
 
+    process_id = Upload.create(user_id=current_user.id, uploads_folder=uploads_folder, metadata_filename=filename)
+    bucket_chunked_upload(save_path, "uploads/" + uploads_folder, filename, process_id, 'metadata_file')
+    return jsonify({"msg": "Metadata file uploaded successfully.", "process_id": process_id, "upload_folder": uploads_folder}), 200
+
+
+
+@upload_bp.route('/uploadcsv', methods=['POST'], endpoint='upload_csv')
+@login_required
+@approved_required
+def upload_csv():
+    # Handle CSV file uploads separately
+    file = request.files.get('file')
+    sequencing_method = request.form.get('sequencing_method')
+    logger.info('The sequencing method is')
+    logger.info(sequencing_method)
+    if not file:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    # Process the CSV file (e.g., save it or perform specific operations)
+    filename = secure_filename(file.filename)
+
+    process_id = request.form.get('process_id')
+    logger.info('The process_id method is ')
+    logger.info(process_id)
+    upload = Upload.get(process_id)
+    uploads_folder = upload.uploads_folder
+    path = Path("uploads", uploads_folder)
+    save_path = path / filename
+    #save_path = Path("uploads", filename)
+    file.save(save_path)  # Save the CSV file to a specific location
+
     cvs_results = validate_csv(save_path)
     cvs_records = get_csv_data(save_path)
+
+
     if cvs_results is True:
-        process_id = Upload.create(user_id=current_user.id, csv_filename=filename, uploads_folder=uploads_folder, sequencing_method=sequencing_method)
+        Upload.update_csv_filename_and_method(process_id, filename, sequencing_method)
         bucket_chunked_upload(save_path, "uploads/" + uploads_folder, filename, process_id, 'csv_file')
-        return jsonify({"msg": "CSV file uploaded successfully. Checks passed", "process_id": process_id, "upload_folder": uploads_folder, "cvs_records": cvs_records}), 200
+        return jsonify({"msg": "CSV file uploaded successfully. Checks passed", "cvs_records": cvs_records}), 200
     else:
         return jsonify({"error": "CSV file problems: ", "results": cvs_results}), 400
 
@@ -303,6 +335,8 @@ def handle_upload():
     file = request.files.get('file')
     if file:
         process_id = request.args.get('process_id')
+        logger.info('process_is is ')
+        logger.info(process_id)
         #fields to know which file we are uploading
         form_filename       = request.args.get('filename')
         form_filesize       = request.args.get('filesize')
@@ -447,13 +481,13 @@ def show_multiqc_report():
 @approved_required
 def upload_final_files_route():
     process_id = request.form["process_id"]
-    
+
     # if the files_json is empty, recreate it
     upload = Upload.get(process_id)
     matching_files_dict = upload.get_files_json()
     if len(matching_files_dict) == 0:
         recreate_matching_files(process_id)
-    
+
     init_upload_final_files_to_storage(process_id)
     return jsonify({'message': 'Process initiated'})
 

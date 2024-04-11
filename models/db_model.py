@@ -30,6 +30,7 @@ class UploadTable(Base):
         onupdate=func.now(), 
         nullable=True
     )
+    metadata_filename = Column(String(255), nullable=True)
     uploads_folder = Column(String(20), nullable=True)
     sequencing_method = Column(Integer, default=0)
     csv_uploaded = Column(Boolean, default=False)
