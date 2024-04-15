@@ -17,7 +17,17 @@ from flask_login import (
 )
 
 from helpers.csv import validate_csv, get_csv_data
-from helpers.bucket import bucket_chunked_upload, get_progress_db_bucket, init_send_raw_to_storage, get_renamed_files_to_storage_progress, init_upload_final_files_to_storage
+from helpers.bucket import (
+    bucket_chunked_upload, 
+    get_progress_db_bucket, 
+    init_send_raw_to_storage, 
+    get_renamed_files_to_storage_progress, 
+    init_upload_final_files_to_storage, 
+    download_bucket_contents,
+    get_bucket_size_excluding_archive,
+    check_archive_file
+)
+
 from helpers.unzip import get_progress_db_unzip, unzip_raw
 from helpers.fastqc import get_fastqc_progress, init_fastqc_multiqc_files, get_multiqc_report
 from helpers.file_renaming import calculate_md5, rename_all_files
@@ -520,6 +530,15 @@ def get_final_files_to_storage_progress_route():
     process_id = request.args.get('process_id')
     to_return = get_renamed_files_to_storage_progress(process_id)
     return to_return
+
+@upload_bp.route('/testbucket', methods=['GET'], endpoint='create_temp_bucket_file')
+@login_required
+@approved_required
+def create_temp_bucket_file():
+    #total_size = get_bucket_size_excluding_archive('sl-greece22')
+    # download_bucket_contents('sl-greece22', 'temp')
+    archive_file = check_archive_file('sl-greece22')
+    return {"archive_file":archive_file}
 
 @upload_bp.route('/sysreport', methods=['GET'], endpoint='show_system_report')
 @login_required

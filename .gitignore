@@ -21,6 +21,8 @@ backup/
 
 mysql/
 
+temp/
+
 processing
 
 upload_progress.json

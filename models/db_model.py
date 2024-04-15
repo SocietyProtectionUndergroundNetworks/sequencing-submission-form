@@ -16,6 +16,7 @@ class UserTable(Base):
     admin = Column(Boolean, default=False)
     uploads = relationship("UploadTable", backref="user")
     approved = Column(Boolean, default=False)
+    buckets = Column(JSON(none_as_null=True))
 
         
 class UploadTable(Base):

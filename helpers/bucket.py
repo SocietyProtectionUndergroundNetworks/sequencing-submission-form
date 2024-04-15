@@ -1,6 +1,9 @@
 import os
 import json
 import logging
+import datetime
+import zipfile
+import re
 from collections import OrderedDict
 # Library about google cloud storage
 from google.cloud import storage
@@ -194,3 +197,110 @@ def get_renamed_files_to_storage_progress(process_id):
     }
 
     return to_return
+
+def get_project_resource_role_users(role):
+    from google.auth import default
+    from googleapiclient import discovery
+    # Create IAM client
+
+
+    project_id = os.environ.get('GOOGLE_STORAGE_PROJECT_ID')
+    # Create a credentials object
+    credentials, _ = default()
+
+    # Create a service object for interacting with the Cloud Resource Manager API
+    service = discovery.build('cloudresourcemanager', 'v1', credentials=credentials)
+
+    # Retrieve the IAM policy for the project
+    policy = service.projects().getIamPolicy(resource=project_id).execute()
+
+    bindings_for_role = [binding for binding in policy['bindings'] if binding['role'].endswith(role)]
+    members = bindings_for_role[0]['members']
+    emails = [member.split(':', 1)[1] for member in members]
+
+    return emails
+
+def get_bucket_role_users(bucket_name, role):
+    from google.auth import default
+    from googleapiclient import discovery
+    # Authenticate with Google Cloud
+    credentials, _ = default()
+
+    # Create a storage client
+    storage_client = storage.Client(credentials=credentials)
+
+    # Retrieve the IAM policy for the bucket
+    bucket = storage_client.get_bucket(bucket_name)
+    policy = bucket.get_iam_policy()
+
+    # Filter bindings to retrieve only the ones associated with roles that end with the specified string
+    bindings_for_role = [binding for binding in policy.bindings if binding['role'].endswith(role)]
+
+    # Extract member emails
+    emails = []
+    for binding in bindings_for_role:
+        for member in binding['members']:
+            # Member strings might have prefix, so we need to split to get the email part
+            email = member.split(':', 1)[-1]  # Split only once to avoid issues with colons in email addresses
+            emails.append(email)
+
+    return emails
+
+def get_bucket_size_excluding_archive(bucket_name):
+    # Initialize Google Cloud Storage client
+    client = storage.Client()
+    bucket = client.bucket(bucket_name)
+
+    # Get list of all blobs in the bucket
+    blob_list = bucket.list_blobs()
+
+    # Calculate total size excluding blobs in the "archive" folder
+    total_size = sum(blob.size for blob in blob_list if not blob.name.startswith('archive/'))
+    return total_size
+
+def download_bucket_contents(bucket_name, destination_folder):
+    # Initialize Google Cloud Storage client
+    client = storage.Client()
+    bucket = client.bucket(bucket_name)
+
+    # Get list of files in the bucket
+    blob_list = bucket.list_blobs()
+
+    # Create a zip file
+    current_datetime = datetime.datetime.now().strftime("%Y%m%d-%H%M")
+    zip_filename = f"{current_datetime}-{bucket_name}.zip"
+    with zipfile.ZipFile(zip_filename, 'w') as zipf:
+        for blob in blob_list:
+            # Exclude files in the "archive" folder
+            if not blob.name.startswith('archive/'):
+                # Create directory if it does not exist
+                local_path = os.path.join(destination_folder, os.path.dirname(blob.name))
+                os.makedirs(local_path, exist_ok=True)
+                # Download file to local computer
+                blob.download_to_filename(os.path.join(destination_folder, blob.name))
+                # Add file to zip archive
+                zipf.write(os.path.join(destination_folder, blob.name), arcname=blob.name)
+
+    # Upload zip file to the "archive" folder
+    archive_blob = bucket.blob(f"archive/{zip_filename}")
+    archive_blob.upload_from_filename(zip_filename)
+
+    # Delete the local zip file after uploading
+    os.remove(zip_filename)
+
+def check_archive_file(bucket_name):
+    # Initialize Google Cloud Storage client
+    client = storage.Client()
+    bucket = client.bucket(bucket_name)
+
+    # Get list of blob names in the "archive" directory
+    blob_names = [blob.name for blob in bucket.list_blobs(prefix='archive/')]
+
+    # Check if any blob matches the expected filename format
+    for blob_name in blob_names:
+        match = re.match(r'^archive/(\d{8}-\d{4}-[\w-]+\.zip)$', blob_name)
+        if match:
+            return match.group(1)
+
+    # If no matching file found, return False
+    return False
