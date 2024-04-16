@@ -262,6 +262,8 @@ def download_bucket_contents(bucket_name, destination_folder):
     # Initialize Google Cloud Storage client
     client = storage.Client()
     bucket = client.bucket(bucket_name)
+    
+    bucket_size = check_archive_file(bucket_name)
 
     # Get list of files in the bucket
     blob_list = bucket.list_blobs()

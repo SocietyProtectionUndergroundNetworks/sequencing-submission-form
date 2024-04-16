@@ -63,11 +63,10 @@
               <td>
                 <ul>
                   {% if user.user.buckets %}
-                    {% for bucket, info in user.user.buckets.items() %}
+                    {% for bucket in user.user.buckets %}
                       <li>
-                        {{ bucket }} - {% if info.has_access %}
+                        {{ bucket }}
                         <a href="#" class="remove_bucket_access" data-user-id="{{ user.user.id }}" data-bucket="{{ bucket }}">X</a>
-                        {% else %}No Access{% endif %}
                       </li>
                     {% endfor %}
                   {% else %}

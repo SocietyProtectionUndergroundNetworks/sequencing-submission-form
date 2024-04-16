@@ -1,10 +1,15 @@
 # helpers/db_model.py
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, BigInteger, ForeignKey
+from sqlalchemy import Table, Column, Integer, String, Boolean, DateTime, func, BigInteger, ForeignKey
 from sqlalchemy.dialects.mysql import JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
 Base = declarative_base()
+
+association_table = Table('user_buckets', Base.metadata,
+    Column('user_id', String(36), ForeignKey('users.id')),
+    Column('bucket_id', String(250), ForeignKey('buckets.id'))
+)
 
 class UserTable(Base):
     __tablename__ = 'users'
@@ -16,7 +21,14 @@ class UserTable(Base):
     admin = Column(Boolean, default=False)
     uploads = relationship("UploadTable", backref="user")
     approved = Column(Boolean, default=False)
-    buckets = Column(JSON(none_as_null=True))
+    buckets = relationship("BucketTable", secondary=association_table, backref="users")
+
+class BucketTable(Base):
+    __tablename__ = 'buckets'
+
+    id = Column(String(250), primary_key=True)
+    archive_file = Column(String(255), nullable=True)
+    archive_file_created_at = Column(DateTime, nullable=True)
 
         
 class UploadTable(Base):

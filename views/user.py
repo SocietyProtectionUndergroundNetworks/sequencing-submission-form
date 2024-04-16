@@ -14,6 +14,7 @@ from flask_login import (
 )
 
 from models.user import User
+from models.bucket import Bucket
 from helpers.bucket import list_buckets, get_project_resource_role_users, get_bucket_role_users
 
 # Get the logger instance from app.py
@@ -161,6 +162,9 @@ def only_approved():
 def users():
     all_users = User.get_all()
     all_buckets = list_buckets()
+    for bucket in all_buckets:
+        Bucket.create(bucket)
+
     return render_template('users.html', all_users=all_users, all_buckets=all_buckets)
 
 @user_bp.route('/update_admin_status', methods=['POST'], endpoint='update_admin_status')
