@@ -278,10 +278,11 @@ def download_bucket_contents(bucket_name):
     upload_progress = 0
     
     destination_folder = os.path.join('temp', bucket_name)
-
+    os.makedirs(destination_folder, exist_ok=True)
+    
     # Create a zip file
     current_datetime = datetime.datetime.now().strftime("%Y%m%d-%H%M")
-    zip_filename = f"{current_datetime}-{bucket_name}.zip"
+    zip_filename = os.path.join('temp', f"{current_datetime}-{bucket_name}.zip")
     with zipfile.ZipFile(zip_filename, 'w') as zipf:
         # Iterate through files in the bucket
         for blob in bucket.list_blobs():
