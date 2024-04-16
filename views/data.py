@@ -43,7 +43,6 @@ def approved_required(view_func):
 @login_required
 def data():
     all_buckets = Bucket.get_all()
-    logger.info(all_buckets)
     my_buckets = {}
     for my_bucket in current_user.buckets:
         my_buckets[my_bucket] = Bucket.get(my_bucket)
@@ -82,7 +81,7 @@ def get_archive_progress():
     bucket = request.args.get('bucket')
     this_bucket= Bucket.get(bucket)
     progress = this_bucket.archive_file_creation_progress
-    if (progress >= 100):
+    if (progress is not None) and (progress >= 100):
         file = this_bucket.archive_file
         url = make_file_accessible(bucket, 'archive/'+file)
         return {'progress':progress, 'url':url}
