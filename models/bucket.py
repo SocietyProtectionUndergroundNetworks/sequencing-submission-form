@@ -1,6 +1,7 @@
 import logging
 from models.db_model import BucketTable
 from helpers.dbm import connect_db, get_session
+from datetime import datetime
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
@@ -27,7 +28,7 @@ class Bucket():
         filtered_dict = {key: value for key, value in bucket_db_dict.items() if not key.startswith('_')}
 
         # Create an instance of YourClass using the dictionary
-        bucket = Upload(**filtered_dict)
+        bucket = Bucket(**filtered_dict)
 
         return bucket
 
@@ -55,3 +56,52 @@ class Bucket():
         session.close()
 
         return new_bucket_id
+
+
+    @classmethod
+    def get_all(cls):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        all_buckets_db = session.query(BucketTable).all()
+
+        buckets = []
+        for bucket_db in all_buckets_db:
+            bucket = Bucket(id_=bucket_db.id)
+            buckets.append(bucket)
+
+        session.close()
+        return buckets
+        
+    @classmethod
+    def update_progress(cls, id, progress):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+        bucket = session.query(BucketTable).filter_by(id=id).first()
+
+        if bucket:
+            bucket.archive_file_creation_progress = progress
+
+            session.commit()
+            session.close()
+            return True
+        else:
+            session.close()
+            return False       
+            
+    @classmethod
+    def update_archive_filename(cls, id, filename):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+        bucket = session.query(BucketTable).filter_by(id=id).first()
+
+        if bucket:
+            bucket.archive_file = filename
+            bucket.archive_file_created_at = datetime.now()
+
+            session.commit()
+            session.close()
+            return True
+        else:
+            session.close()
+            return False     

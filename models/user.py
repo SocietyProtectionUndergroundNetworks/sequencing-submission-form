@@ -22,16 +22,23 @@ class User(UserMixin):
         session = get_session(db_engine)
         
         user_db = session.query(UserTable).filter_by(id=user_id).first()
-        
+        user_buckets = user_db.buckets
+        buckets=[bucket.id for bucket in user_buckets]
         session.close()
         
         if not user_db:
             return None
 
         user = User(
-            id_=user_db.id, name=user_db.name, email=user_db.email, profile_pic=user_db.profile_pic, admin=user_db.admin, approved=user_db.approved
+            id_=user_db.id, 
+            name=user_db.name, 
+            email=user_db.email, 
+            profile_pic=user_db.profile_pic, 
+            admin=user_db.admin, 
+            approved=user_db.approved, 
+            buckets=buckets
         )
-        
+
         return user
 
     @classmethod

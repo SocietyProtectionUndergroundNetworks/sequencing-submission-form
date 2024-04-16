@@ -4,6 +4,7 @@ import logging
 
 from flask import Flask, session
 from views.user import user_bp
+from views.data import data_bp
 from views.upload import upload_bp
 from extensions import login_manager
 from celery_config import make_celery
@@ -28,6 +29,7 @@ app.secret_key = foo
 # Register blueprints
 app.register_blueprint(user_bp)
 app.register_blueprint(upload_bp)
+app.register_blueprint(data_bp)
 
 # Initialize extensions
 login_manager.init_app(app)

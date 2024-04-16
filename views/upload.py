@@ -23,7 +23,6 @@ from helpers.bucket import (
     init_send_raw_to_storage, 
     get_renamed_files_to_storage_progress, 
     init_upload_final_files_to_storage, 
-    download_bucket_contents,
     get_bucket_size_excluding_archive,
     check_archive_file
 )
@@ -530,15 +529,6 @@ def get_final_files_to_storage_progress_route():
     process_id = request.args.get('process_id')
     to_return = get_renamed_files_to_storage_progress(process_id)
     return to_return
-
-@upload_bp.route('/testbucket', methods=['GET'], endpoint='create_temp_bucket_file')
-@login_required
-@approved_required
-def create_temp_bucket_file():
-    #total_size = get_bucket_size_excluding_archive('sl-greece22')
-    # download_bucket_contents('sl-greece22', 'temp')
-    archive_file = check_archive_file('sl-greece22')
-    return {"archive_file":archive_file}
 
 @upload_bp.route('/sysreport', methods=['GET'], endpoint='show_system_report')
 @login_required

@@ -4,11 +4,13 @@ import logging
 import datetime
 import zipfile
 import re
+import shutil
 from collections import OrderedDict
 # Library about google cloud storage
 from google.cloud import storage
 from pathlib import Path
 from models.upload import Upload
+from models.bucket import Bucket
 
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
@@ -258,23 +260,39 @@ def get_bucket_size_excluding_archive(bucket_name):
     total_size = sum(blob.size for blob in blob_list if not blob.name.startswith('archive/'))
     return total_size
 
-def download_bucket_contents(bucket_name, destination_folder):
+def download_bucket_contents(bucket_name):
     # Initialize Google Cloud Storage client
     client = storage.Client()
     bucket = client.bucket(bucket_name)
-    
-    bucket_size = check_archive_file(bucket_name)
 
     # Get list of files in the bucket
     blob_list = bucket.list_blobs()
+
+    # Calculate total number of files for progress tracking
+    total_files = sum(1 for _ in blob_list)
+    bucket_size = check_archive_file(bucket_name)
+
+    # Initialize progress counters
+    downloaded_files = 0
+    zip_progress = 0
+    upload_progress = 0
+    
+    destination_folder = os.path.join('temp', bucket_name)
 
     # Create a zip file
     current_datetime = datetime.datetime.now().strftime("%Y%m%d-%H%M")
     zip_filename = f"{current_datetime}-{bucket_name}.zip"
     with zipfile.ZipFile(zip_filename, 'w') as zipf:
-        for blob in blob_list:
+        # Iterate through files in the bucket
+        for blob in bucket.list_blobs():
             # Exclude files in the "archive" folder
             if not blob.name.startswith('archive/'):
+                # Update progress for downloaded files
+                downloaded_files += 1
+                download_progress = downloaded_files / total_files * 60  # 60% allocated for downloading
+                
+                Bucket.update_progress(bucket_name, download_progress)
+
                 # Create directory if it does not exist
                 local_path = os.path.join(destination_folder, os.path.dirname(blob.name))
                 os.makedirs(local_path, exist_ok=True)
@@ -283,12 +301,26 @@ def download_bucket_contents(bucket_name, destination_folder):
                 # Add file to zip archive
                 zipf.write(os.path.join(destination_folder, blob.name), arcname=blob.name)
 
+        # Update progress for zipping
+        zip_progress = 10  # 10% allocated for zipping
+        
+        # Update database with zip progress
+        Bucket.update_progress(bucket_name, 60 + zip_progress)
+
+
     # Upload zip file to the "archive" folder
     archive_blob = bucket.blob(f"archive/{zip_filename}")
     archive_blob.upload_from_filename(zip_filename)
 
+    # Update progress for uploading
+    Bucket.update_progress(bucket_name, 100)
+    Bucket.update_archive_filename(bucket_name, zip_filename)
+
     # Delete the local zip file after uploading
     os.remove(zip_filename)
+    
+    # Delete all files from the destination folder
+    shutil.rmtree(destination_folder)    
 
 def check_archive_file(bucket_name):
     # Initialize Google Cloud Storage client
@@ -306,3 +338,19 @@ def check_archive_file(bucket_name):
 
     # If no matching file found, return False
     return False
+    
+def make_file_accessible(bucket_name, file_name):
+    # Initialize a client
+    storage_client = storage.Client()
+
+    # Get the bucket and file objects
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(file_name)
+
+    # Generate the signed URL
+    url = blob.generate_signed_url(
+        version="v4",
+        expiration=datetime.timedelta(hours=1),  # Expiration time for the URL
+        method="GET"  # HTTP method allowed (e.g., GET, PUT, POST, etc.)
+    )
+    return url  
