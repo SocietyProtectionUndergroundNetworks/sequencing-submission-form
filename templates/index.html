@@ -47,6 +47,11 @@
             <h3>Start a new upload</h3>
           </div>
         </a>
+        <a href="/data">
+          <div class="page-menu-item">
+            <h3>My data</h3>
+          </div>
+        </a>        
       {% endif %}
       {% if current_user.is_authenticated and current_user.admin %}
         <a href="{{ url_for('user.users') }}">

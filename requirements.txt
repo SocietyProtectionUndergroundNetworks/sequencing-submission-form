@@ -25,4 +25,6 @@ celery==5.3.6
 redis==5.0.1
 psutil==5.9.8
 
+google-api-python-client==2.125.0
+
 debugpy # Required for debugging.

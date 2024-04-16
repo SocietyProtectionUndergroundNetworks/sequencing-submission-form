@@ -17,7 +17,16 @@ from flask_login import (
 )
 
 from helpers.csv import validate_csv, get_csv_data
-from helpers.bucket import bucket_chunked_upload, get_progress_db_bucket, init_send_raw_to_storage, get_renamed_files_to_storage_progress, init_upload_final_files_to_storage
+from helpers.bucket import (
+    bucket_chunked_upload, 
+    get_progress_db_bucket, 
+    init_send_raw_to_storage, 
+    get_renamed_files_to_storage_progress, 
+    init_upload_final_files_to_storage, 
+    get_bucket_size_excluding_archive,
+    check_archive_file
+)
+
 from helpers.unzip import get_progress_db_unzip, unzip_raw
 from helpers.fastqc import get_fastqc_progress, init_fastqc_multiqc_files, get_multiqc_report
 from helpers.file_renaming import calculate_md5, rename_all_files

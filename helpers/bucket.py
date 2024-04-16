@@ -1,11 +1,16 @@
 import os
 import json
 import logging
+import datetime
+import zipfile
+import re
+import shutil
 from collections import OrderedDict
 # Library about google cloud storage
 from google.cloud import storage
 from pathlib import Path
 from models.upload import Upload
+from models.bucket import Bucket
 
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
@@ -194,3 +199,158 @@ def get_renamed_files_to_storage_progress(process_id):
     }
 
     return to_return
+
+def get_project_resource_role_users(role):
+    from google.auth import default
+    from googleapiclient import discovery
+    # Create IAM client
+
+
+    project_id = os.environ.get('GOOGLE_STORAGE_PROJECT_ID')
+    # Create a credentials object
+    credentials, _ = default()
+
+    # Create a service object for interacting with the Cloud Resource Manager API
+    service = discovery.build('cloudresourcemanager', 'v1', credentials=credentials)
+
+    # Retrieve the IAM policy for the project
+    policy = service.projects().getIamPolicy(resource=project_id).execute()
+
+    bindings_for_role = [binding for binding in policy['bindings'] if binding['role'].endswith(role)]
+    members = bindings_for_role[0]['members']
+    emails = [member.split(':', 1)[1] for member in members]
+
+    return emails
+
+def get_bucket_role_users(bucket_name, role):
+    from google.auth import default
+    from googleapiclient import discovery
+    # Authenticate with Google Cloud
+    credentials, _ = default()
+
+    # Create a storage client
+    storage_client = storage.Client(credentials=credentials)
+
+    # Retrieve the IAM policy for the bucket
+    bucket = storage_client.get_bucket(bucket_name)
+    policy = bucket.get_iam_policy()
+
+    # Filter bindings to retrieve only the ones associated with roles that end with the specified string
+    bindings_for_role = [binding for binding in policy.bindings if binding['role'].endswith(role)]
+
+    # Extract member emails
+    emails = []
+    for binding in bindings_for_role:
+        for member in binding['members']:
+            # Member strings might have prefix, so we need to split to get the email part
+            email = member.split(':', 1)[-1]  # Split only once to avoid issues with colons in email addresses
+            emails.append(email)
+
+    return emails
+
+def get_bucket_size_excluding_archive(bucket_name):
+    # Initialize Google Cloud Storage client
+    client = storage.Client()
+    bucket = client.bucket(bucket_name)
+
+    # Get list of all blobs in the bucket
+    blob_list = bucket.list_blobs()
+
+    # Calculate total size excluding blobs in the "archive" folder
+    total_size = sum(blob.size for blob in blob_list if not blob.name.startswith('archive/'))
+    return total_size
+
+def download_bucket_contents(bucket_name):
+    # Initialize Google Cloud Storage client
+    client = storage.Client()
+    bucket = client.bucket(bucket_name)
+
+    # Get list of files in the bucket
+    blob_list = bucket.list_blobs()
+
+    # Calculate total number of files for progress tracking
+    total_files = sum(1 for _ in blob_list)
+    bucket_size = check_archive_file(bucket_name)
+
+    # Initialize progress counters
+    downloaded_files = 0
+    zip_progress = 0
+    upload_progress = 0
+    
+    destination_folder = os.path.join('temp', bucket_name)
+
+    # Create a zip file
+    current_datetime = datetime.datetime.now().strftime("%Y%m%d-%H%M")
+    zip_filename = f"{current_datetime}-{bucket_name}.zip"
+    with zipfile.ZipFile(zip_filename, 'w') as zipf:
+        # Iterate through files in the bucket
+        for blob in bucket.list_blobs():
+            # Exclude files in the "archive" folder
+            if not blob.name.startswith('archive/'):
+                # Update progress for downloaded files
+                downloaded_files += 1
+                download_progress = downloaded_files / total_files * 60  # 60% allocated for downloading
+                
+                Bucket.update_progress(bucket_name, download_progress)
+
+                # Create directory if it does not exist
+                local_path = os.path.join(destination_folder, os.path.dirname(blob.name))
+                os.makedirs(local_path, exist_ok=True)
+                # Download file to local computer
+                blob.download_to_filename(os.path.join(destination_folder, blob.name))
+                # Add file to zip archive
+                zipf.write(os.path.join(destination_folder, blob.name), arcname=blob.name)
+
+        # Update progress for zipping
+        zip_progress = 10  # 10% allocated for zipping
+        
+        # Update database with zip progress
+        Bucket.update_progress(bucket_name, 60 + zip_progress)
+
+
+    # Upload zip file to the "archive" folder
+    archive_blob = bucket.blob(f"archive/{zip_filename}")
+    archive_blob.upload_from_filename(zip_filename)
+
+    # Update progress for uploading
+    Bucket.update_progress(bucket_name, 100)
+    Bucket.update_archive_filename(bucket_name, zip_filename)
+
+    # Delete the local zip file after uploading
+    os.remove(zip_filename)
+    
+    # Delete all files from the destination folder
+    shutil.rmtree(destination_folder)    
+
+def check_archive_file(bucket_name):
+    # Initialize Google Cloud Storage client
+    client = storage.Client()
+    bucket = client.bucket(bucket_name)
+
+    # Get list of blob names in the "archive" directory
+    blob_names = [blob.name for blob in bucket.list_blobs(prefix='archive/')]
+
+    # Check if any blob matches the expected filename format
+    for blob_name in blob_names:
+        match = re.match(r'^archive/(\d{8}-\d{4}-[\w-]+\.zip)$', blob_name)
+        if match:
+            return match.group(1)
+
+    # If no matching file found, return False
+    return False
+    
+def make_file_accessible(bucket_name, file_name):
+    # Initialize a client
+    storage_client = storage.Client()
+
+    # Get the bucket and file objects
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(file_name)
+
+    # Generate the signed URL
+    url = blob.generate_signed_url(
+        version="v4",
+        expiration=datetime.timedelta(hours=1),  # Expiration time for the URL
+        method="GET"  # HTTP method allowed (e.g., GET, PUT, POST, etc.)
+    )
+    return url  

@@ -2,7 +2,7 @@ import os
 import requests
 import json
 import logging
-from flask import request, redirect, url_for, render_template, session, Blueprint
+from flask import request, redirect, url_for, render_template, session, Blueprint, jsonify
 from oauthlib.oauth2 import WebApplicationClient
 from extensions import login_manager
 from flask_login import (
@@ -14,6 +14,8 @@ from flask_login import (
 )
 
 from models.user import User
+from models.bucket import Bucket
+from helpers.bucket import list_buckets, get_project_resource_role_users, get_bucket_role_users
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -55,7 +57,7 @@ def get_google_provider_cfg():
 @user_bp.route('/login')
 def login():
     session['referrer_url'] = request.referrer
-    
+
     # Find out what URL to hit for Google login
     google_provider_cfg = get_google_provider_cfg()
     authorization_endpoint = google_provider_cfg["authorization_endpoint"]
@@ -140,12 +142,12 @@ def callback():
 def logout():
     logout_user()
     return redirect(url_for("upload.index"))
-    
+
 @login_manager.unauthorized_handler
 def custom_unauthorized():
     # Customize the unauthorized page
     return render_template('public_homepage.html')
-    
+
 @user_bp.route('/only_admins')
 def only_admins():
     return render_template('only_admins.html')
@@ -153,14 +155,18 @@ def only_admins():
 @user_bp.route('/only_approved')
 def only_approved():
     return render_template('only_approved.html')
-    
+
 @user_bp.route('/users', endpoint='users')
 @login_required
 @admin_required
 def users():
     all_users = User.get_all()
-    return render_template('users.html', all_users=all_users)
-    
+    all_buckets = list_buckets()
+    for bucket in all_buckets:
+        Bucket.create(bucket)
+
+    return render_template('users.html', all_users=all_users, all_buckets=all_buckets)
+
 @user_bp.route('/update_admin_status', methods=['POST'], endpoint='update_admin_status')
 @login_required
 @admin_required
@@ -170,7 +176,7 @@ def update_admin_status():
     # Update the admin status in the database based on user_id and admin_status
     User.update_admin_status(user_id, admin_status)
     return redirect('/users')
-    
+
 @user_bp.route('/update_approved_status', methods=['POST'], endpoint='update_approved_status')
 @login_required
 @admin_required
@@ -179,4 +185,28 @@ def update_approved_status():
     approved_status = request.form.get('approved') == 'on'  # Convert to boolean
     # Update the admin status in the database based on user_id and admin_status
     User.update_approved_status(user_id, approved_status)
-    return redirect('/users')   
+    return redirect('/users')
+
+
+@user_bp.route('/give_access_to_bucket', methods=['POST'], endpoint='give_access_to_bucket')
+@login_required
+@admin_required
+def give_access_to_bucket():
+    user_id = request.form.get('user_id')
+    bucket = request.form.get('bucket')
+    User.add_user_bucket_access(user_id, bucket)
+
+    return redirect('/users')
+
+@user_bp.route('/remove_access_from_bucket', methods=['POST'], endpoint='remove_access_from_bucket')
+@login_required
+@admin_required
+def remove_access_from_bucket():
+    user_id = request.form.get('user_id')
+    bucket = request.form.get('bucket')
+
+    User.delete_user_bucket_access(user_id, bucket)
+    if User.has_bucket_access(user_id, bucket):
+        return {'status': 0}
+    else:
+        return {'status': 1}
