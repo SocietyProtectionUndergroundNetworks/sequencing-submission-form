@@ -182,34 +182,35 @@ def upload_form_resume():
             gz_filedata = {}
             nr_files = 0
             uploads_folder = upload.uploads_folder
+            cvs_records = []
 
             if (upload.csv_uploaded):
                 gz_filedata = Upload.get_gz_filedata(upload.id)
 
-            any_unzipped = False
+                any_unzipped = False
 
-            path = Path("uploads", upload.uploads_folder)
-            save_path = path / upload.csv_filename
-            cvs_records = get_csv_data(save_path)
+                path = Path("uploads", upload.uploads_folder)
+                save_path = path / upload.csv_filename
+                cvs_records = get_csv_data(save_path)
 
-            if gz_filedata:
-                for filename, file_data in gz_filedata.items():
-                    if 'gz_sent_to_bucket_progress' in file_data:
-                        if file_data['gz_sent_to_bucket_progress'] == 100:
-                            any_unzipped = True
+                if gz_filedata:
+                    for filename, file_data in gz_filedata.items():
+                        if 'gz_sent_to_bucket_progress' in file_data:
+                            if file_data['gz_sent_to_bucket_progress'] == 100:
+                                any_unzipped = True
 
-            if (any_unzipped):
-                extract_directory = Path("processing", uploads_folder)
+                if (any_unzipped):
+                    extract_directory = Path("processing", uploads_folder)
 
-                if os.path.exists(extract_directory):
-                    # count the files ending with fastq.gz
-                    file_names = os.listdir(extract_directory)
-                    matching_files_filesystem = [filename for filename in file_names if filename.endswith('.fastq.gz')]
-                    nr_files = 0
-                    if (matching_files_filesystem):
-                        nr_files=len(matching_files_filesystem)
+                    if os.path.exists(extract_directory):
+                        # count the files ending with fastq.gz
+                        file_names = os.listdir(extract_directory)
+                        matching_files_filesystem = [filename for filename in file_names if filename.endswith('.fastq.gz')]
+                        nr_files = 0
+                        if (matching_files_filesystem):
+                            nr_files=len(matching_files_filesystem)
 
-                    matching_files_dict = upload.get_files_json()
+                        matching_files_dict = upload.get_files_json()
 
             return render_template(
                                     "form.html",
