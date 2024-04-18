@@ -7,7 +7,7 @@ from flask_login import (
 )
 from models.user import User
 from models.bucket import Bucket
-from helpers.bucket import make_file_accessible, download_bucket_contents
+from helpers.bucket import make_file_accessible, download_bucket_contents, delete_buckets_archive_files
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -42,6 +42,7 @@ def approved_required(view_func):
 @data_bp.route('/data')
 @login_required
 def data():
+    delete_buckets_archive_files()
     all_buckets = Bucket.get_all()
     my_buckets = {}
     for my_bucket in current_user.buckets:
@@ -87,3 +88,4 @@ def get_archive_progress():
         return {'progress':progress, 'url':url}
     else:
         return {'progress':progress}
+

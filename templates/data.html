@@ -37,6 +37,7 @@
               <td>
                 {%if bucket.archive_file == None %}
                   <a href="#" class="generate_file" data-bucket="{{ bucket.id }}" id="generate-file-{{ bucket.id }}">Generate file</a>
+                  <span class="text-info" id="info-{{ bucket.id }}" style="display:none">File being generated. Please wait</span>
                 {% else %}  
                   {{ bucket.archive_file }}
                   {%if bucket.archive_file_creation_progress == 100 %}
@@ -61,6 +62,10 @@
       var generateFile = $(this); // Store reference to the 'generate_file' link
       
       console.log('bucket:', bucket);
+      
+      $('#info-' + bucket).show();
+      
+      generateFile.hide();
       // Make AJAX request to remove access to the bucket
       $.ajax({
         url: '/create_bucket_archive',
@@ -135,9 +140,10 @@
                     if (progress >= 100) {
                         clearInterval(intervals[interval_id]); // Stop updating when progress reaches 100%
                         console.log('We will now stop calling for updates for updateArchiveProgress for bucket ' + bucket);
-                        $('#generate-file-'+bucket).hide();
+                        //$('#generate-file-'+bucket).hide();
                         if (data.url) {
                           $('#download-' + bucket).show().attr('href', data.url);
+                          $('#info-' + bucket).hide();
                         }
                         
                     }

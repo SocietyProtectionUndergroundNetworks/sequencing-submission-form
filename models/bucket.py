@@ -97,7 +97,6 @@ class Bucket():
 
         if bucket:
             bucket.archive_file = filename
-            bucket.archive_file_created_at = datetime.now()
 
             session.commit()
             session.close()

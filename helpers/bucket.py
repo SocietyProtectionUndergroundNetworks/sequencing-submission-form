@@ -282,8 +282,10 @@ def download_bucket_contents(bucket_name):
     
     # Create a zip file
     current_datetime = datetime.datetime.now().strftime("%Y%m%d-%H%M")
-    zip_filename = os.path.join('temp', f"{current_datetime}-{bucket_name}.zip")
-    with zipfile.ZipFile(zip_filename, 'w') as zipf:
+    zip_filename = f"{current_datetime}-{bucket_name}.zip"
+    zip_filepath = os.path.join('temp', zip_filename)
+    
+    with zipfile.ZipFile(zip_filepath, 'w') as zipf:
         # Iterate through files in the bucket
         for blob in bucket.list_blobs():
             # Exclude files in the "archive" folder
@@ -311,14 +313,14 @@ def download_bucket_contents(bucket_name):
 
     # Upload zip file to the "archive" folder
     archive_blob = bucket.blob(f"archive/{zip_filename}")
-    archive_blob.upload_from_filename(zip_filename)
+    archive_blob.upload_from_filename(zip_filepath)
 
     # Update progress for uploading
     Bucket.update_progress(bucket_name, 100)
     Bucket.update_archive_filename(bucket_name, zip_filename)
 
     # Delete the local zip file after uploading
-    os.remove(zip_filename)
+    os.remove(zip_filepath)
     
     # Delete all files from the destination folder
     shutil.rmtree(destination_folder)    
@@ -354,4 +356,46 @@ def make_file_accessible(bucket_name, file_name):
         expiration=datetime.timedelta(hours=1),  # Expiration time for the URL
         method="GET"  # HTTP method allowed (e.g., GET, PUT, POST, etc.)
     )
-    return url  
+    return url
+    
+def delete_buckets_archive_files():
+    # Initialize Google Cloud Storage client
+    storage_client = storage.Client()
+    
+    # List the buckets in the project
+    buckets = list(storage_client.list_buckets())
+
+    # Create a dictionary with bucket names as keys and their regions as values
+    # bucket_info = {bucket.name: bucket.location for bucket in buckets}  
+    current_datetime = datetime.datetime.now(datetime.timezone.utc)
+    
+    for bucket in buckets:
+        
+        #bucket = client.bucket(bucket_name)
+        logger.info("-Bucket we are checking: " + bucket.name)
+
+        # Iterate through blobs in the "archive" folder
+        for blob in bucket.list_blobs(prefix='archive/'):
+            
+            creation_time = blob.time_created   
+            logger.info(creation_time) 
+
+            # Calculate age of the blob in hours
+            age_seconds = (current_datetime - creation_time).total_seconds()
+            # If the blob is older than 1 days, delete it
+            logger.info('--age_seconds is ')
+            logger.info(age_seconds)
+            if age_seconds > 86400:
+                blob.delete()
+                
+                db_bucket = Bucket.get(bucket.name)
+                logger.info('---Blob name: ' + blob.name)
+                logger.info('---db_bucket archive_file : ' + db_bucket.archive_file)
+                if blob.name.endswith(db_bucket.archive_file):
+                    logger.info('----It ends with it!')
+                    Bucket.update_archive_filename(bucket.name, None)
+                    Bucket.update_progress(bucket.name, None)
+                    
+                
+                logger.info(f"Deleted blob '{blob.name}' from the 'archive' folder.")
+    
