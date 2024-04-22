@@ -56,6 +56,9 @@ logsnginx:
 migration:
 	docker-compose exec flask alembic revision --autogenerate -m "${description}"
 
+delete_expired_files:
+	docker-compose exec flask python delete_expired_files.py
+
 migrate:
 	docker-compose exec flask alembic upgrade head
 
