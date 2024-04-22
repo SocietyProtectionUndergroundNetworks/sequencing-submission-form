@@ -18,11 +18,11 @@ from flask_login import (
 
 from helpers.csv import validate_csv, get_csv_data
 from helpers.bucket import (
-    bucket_chunked_upload, 
-    get_progress_db_bucket, 
-    init_send_raw_to_storage, 
-    get_renamed_files_to_storage_progress, 
-    init_upload_final_files_to_storage, 
+    bucket_chunked_upload,
+    get_progress_db_bucket,
+    init_send_raw_to_storage,
+    get_renamed_files_to_storage_progress,
+    init_upload_final_files_to_storage,
     get_bucket_size_excluding_archive,
     check_archive_file
 )
@@ -195,6 +195,15 @@ def upload_form_resume():
 
                 if gz_filedata:
                     for filename, file_data in gz_filedata.items():
+                        gz_file_path = os.path.join(path, filename)
+
+                        # Check for inconsistencies.
+                        # inconsistency 1: If the final .gz file exists, when it says that it is uncomplete
+                        if (file_data['percent_uploaded'] < 100):
+                            if os.path.exists(gz_file_path):
+                                logger.info('The file ' + filename + ' exists when it shouldnt. Deleting it ')
+                                os.remove(gz_file_path)
+
                         if 'gz_sent_to_bucket_progress' in file_data:
                             if file_data['gz_sent_to_bucket_progress'] == 100:
                                 any_unzipped = True
