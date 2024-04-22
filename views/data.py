@@ -42,7 +42,6 @@ def approved_required(view_func):
 @data_bp.route('/data')
 @login_required
 def data():
-    delete_buckets_archive_files()
     all_buckets = Bucket.get_all()
     my_buckets = {}
     for my_bucket in current_user.buckets:
