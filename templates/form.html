@@ -190,9 +190,11 @@
                           You have uploaded the file {{ filename }}<br>
                       {% else %}
                           {% if file_data.percent_uploaded > 0 %}
-                              You have previously started uploading a file: {{ filename }}<br>
-                              Already uploaded: {{ file_data.percent_uploaded }}%<br>
-                              Please select the same file to resume uploading<br>
+                              <span class="text-danger">
+                                You have previously started uploading a file: {{ filename }}<br>
+                                Already uploaded: {{ file_data.percent_uploaded }}%<br>
+                                Please select the same file to resume uploading<br>
+                              </span>
                           {% endif %}
                       {% endif %}
                   {% endif %}
