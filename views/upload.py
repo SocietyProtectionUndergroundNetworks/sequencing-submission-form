@@ -249,6 +249,47 @@ def upload_form_resume():
 def upload_form():
     return render_template("form.html")
 
+
+@upload_bp.route('/clear_file_upload', methods=['POST'], endpoint='clear_file_upload')
+@login_required
+@approved_required
+def clear_file_upload():
+    filename = request.form.get('filename')
+    process_id = request.form.get('process_id')
+    logger.info(filename)
+    logger.info(process_id)
+    logger.info(int(process_id))
+    process_id = int(process_id)
+    if (isinstance(process_id, int) and (process_id !=0)):
+        logger.info('here 1')
+        upload = Upload.get(process_id)
+        path = Path("uploads", upload.uploads_folder)
+        if (upload.csv_uploaded):
+            logger.info('here 2')
+            
+            #find out files to be deleted
+            file_names = os.listdir(path)
+            matching_files_filesystem = [matchingfilename for matchingfilename in file_names if matchingfilename.startswith(filename)]
+            for matching_file in matching_files_filesystem:
+                file_to_remove = Path("uploads", upload.uploads_folder, matching_file)
+                os.remove(file_to_remove)
+                
+            logger.info(matching_files_filesystem)
+            
+            gz_filedata = Upload.get_gz_filedata(upload.id)
+            logger.info(gz_filedata)            
+            one_filedata = gz_filedata[filename]
+            logger.info(one_filedata)
+            one_filedata['percent_uploaded'] = 0;
+            one_filedata['chunk_number_uploaded'] = 0;
+
+            Upload.update_gz_filedata(process_id, one_filedata)            
+
+
+    
+    return jsonify({"status": 1})
+
+
 @upload_bp.route('/uploadmetadata', methods=['POST'], endpoint='upload_metadata')
 @login_required
 @approved_required

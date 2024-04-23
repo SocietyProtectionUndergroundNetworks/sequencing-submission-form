@@ -194,7 +194,18 @@
                                 You have previously started uploading a file: {{ filename }}<br>
                                 Already uploaded: {{ file_data.percent_uploaded }}%<br>
                                 Please select the same file to resume uploading<br>
+                                <a href="#"
+                                    class="clear_file_upload"
+                                    data-filename="{{ filename }}"
+                                    data-filename_safe="{{ filename|safe }}"
+                                    data-process_id="{{ process_id }}"
+                                    data-file_identifier="{{ file_data['form_fileidentifier'] }}">
+                                    Or clean the upload to try again the file from the beggining
+                                </a>
+
                               </span>
+                              <span style="display:none" id="file_removed-{{ file_data['form_fileidentifier'] }}">test</span>
+                              <span style="display:none" id="testme2">test2</span>
                           {% endif %}
                       {% endif %}
                   {% endif %}
@@ -540,6 +551,38 @@
             $('#showAllRows').text(excessRowsVisible ? 'hide excess rows' : 'only ' + cvs_rows_show + ' rows shown, click here to see them all');
           });
         }
+
+        $(document).ready(function() {
+          $('.clear_file_upload').on('click', function() {
+            event.preventDefault();
+            var filename = $(this).data('filename');
+            var file_identifier = $(this).data('file_identifier');
+            var this_process_id = $(this).data('process_id');
+
+
+            // Make AJAX request to remove access to the bucket
+            $.ajax({
+              url: '/clear_file_upload',
+              type: 'POST',
+              data: {
+                filename: filename,
+                process_id: this_process_id
+              },
+              success: function(response) {
+                // Handle success response if needed
+                console.log('Cleaned upload of :', filename);
+                if (response.status==1) {
+                  var span_id = '#file_removed-'+file_identifier;
+                  $(span_id).show().html('File upload cleaned. Please retry the file');
+                }
+              },
+              error: function(xhr, status, error) {
+                // Handle error response if needed
+                console.error('Error cleaning upload:', error);
+              }
+            });
+          });
+        });
 
         // Handle the step_3 (Sequencing method selection)
         $(document).ready(function() {
