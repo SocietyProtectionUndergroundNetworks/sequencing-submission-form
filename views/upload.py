@@ -266,27 +266,27 @@ def clear_file_upload():
         path = Path("uploads", upload.uploads_folder)
         if (upload.csv_uploaded):
             logger.info('here 2')
-            
+
             #find out files to be deleted
             file_names = os.listdir(path)
             matching_files_filesystem = [matchingfilename for matchingfilename in file_names if matchingfilename.startswith(filename)]
             for matching_file in matching_files_filesystem:
                 file_to_remove = Path("uploads", upload.uploads_folder, matching_file)
                 os.remove(file_to_remove)
-                
+
             logger.info(matching_files_filesystem)
-            
+
             gz_filedata = Upload.get_gz_filedata(upload.id)
-            logger.info(gz_filedata)            
+            logger.info(gz_filedata)
             one_filedata = gz_filedata[filename]
             logger.info(one_filedata)
             one_filedata['percent_uploaded'] = 0;
             one_filedata['chunk_number_uploaded'] = 0;
 
-            Upload.update_gz_filedata(process_id, one_filedata)            
+            Upload.update_gz_filedata(process_id, one_filedata)
 
 
-    
+
     return jsonify({"status": 1})
 
 
@@ -594,3 +594,13 @@ def show_system_report():
             'percent': disk_usage.percent
         })
     return {}
+
+@upload_bp.route('/recreate_process_matching_files', endpoint='recreate_process_matching_files')
+@login_required
+@approved_required
+def recreate_process_matching_files():
+    process_id = request.args.get('process_id')
+    nr_files = recreate_matching_files(process_id)
+    return {
+        "nr_files": nr_files
+    }
