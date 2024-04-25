@@ -1,6 +1,10 @@
 import csv
 import re
 from helpers.bucket import list_buckets
+import logging
+
+# Get the logger instance from app.py
+logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
 def validate_csv(file_path):
     
@@ -55,8 +59,8 @@ def validate_csv_buckets(file_path):
     not_found = []
     wrong_regions = []
 
-    with open(file_path, 'r') as file:
-        reader = csv.reader(file)
+    with open(file_path, 'r', newline='', encoding='utf-8-sig') as csvfile:
+        reader = csv.reader(csvfile)
         
         # Skip the header row
         next(reader, None)
@@ -109,10 +113,11 @@ def make_safe_html_id(string, existing_ids=[]):
 def get_csv_data(file_path):
     data = {}
     existing_ids = []
-    with open(file_path, 'r') as file:
-        csv_reader = csv.DictReader(file)
+    with open(file_path, 'r', newline='', encoding='utf-8-sig') as csvfile:
+        csv_reader = csv.DictReader(csvfile)
         # next(csv_reader)  # Skip the header row
         for row in csv_reader:
+            #logger.info(row)
             sample_id_safe = make_safe_html_id(row['Sample_ID'], existing_ids)
             existing_ids.append(sample_id_safe)
             data[sample_id_safe] = {
