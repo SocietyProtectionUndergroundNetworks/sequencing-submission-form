@@ -79,7 +79,6 @@ def bucket_chunked_upload(local_file_path, destination_upload_directory, destina
     bucket = storage_client.bucket(bucket_name)
 
     total_size = os.path.getsize(local_file_path)
-
     # If the file is smaller than 30 MB, upload it directly
     if total_size <= 30 * 1024 * 1024:
         blob = bucket.blob(f'{destination_upload_directory}/{destination_blob_name}')
@@ -152,6 +151,9 @@ def upload_final_files_to_storage(process_id):
     total_count = len(files_json)
     files_done = 0
 
+    first_bucket = None
+    first_folder = None
+
     #lets iterate it doing the actual move
     for key, value in files_json.items():
         if (sequencing_method == 1):
@@ -170,6 +172,10 @@ def upload_final_files_to_storage(process_id):
 
         if ((bucket is not None) & (folder is not None)):
 
+            if first_bucket is None:
+                first_bucket = bucket
+                first_folder = folder
+
             new_file_path = os.path.join(extract_directory, file_to_move)
             bucket_chunked_upload(new_file_path, folder, file_to_move, process_id, 'renamed_files', bucket)
             files_json[key]['uploaded'] = 'Done'
@@ -177,6 +183,13 @@ def upload_final_files_to_storage(process_id):
             files_done = files_done + 1
             Upload.update_files_json(process_id, files_json)
             Upload.update_renamed_sent_to_bucket_progress(process_id, files_done)
+
+    if first_bucket is not None:
+        #lets upload the metadata file as well
+        upload_directory = Path("uploads", uploads_folder)
+        metadata_file_path = os.path.join(upload_directory, upload.metadata_filename)
+        bucket_chunked_upload(metadata_file_path, first_folder + '/' + uploads_folder, upload.metadata_filename, process_id, 'metadata', first_bucket)
+
     Upload.mark_field_as_true(process_id, 'renamed_sent_to_bucket')
 
 
@@ -276,15 +289,15 @@ def download_bucket_contents(bucket_name):
     downloaded_files = 0
     zip_progress = 0
     upload_progress = 0
-    
+
     destination_folder = os.path.join('temp', bucket_name)
     os.makedirs(destination_folder, exist_ok=True)
-    
+
     # Create a zip file
     current_datetime = datetime.datetime.now().strftime("%Y%m%d-%H%M")
     zip_filename = f"{current_datetime}-{bucket_name}.zip"
     zip_filepath = os.path.join('temp', zip_filename)
-    
+
     with zipfile.ZipFile(zip_filepath, 'w') as zipf:
         # Iterate through files in the bucket
         for blob in bucket.list_blobs():
@@ -293,7 +306,7 @@ def download_bucket_contents(bucket_name):
                 # Update progress for downloaded files
                 downloaded_files += 1
                 download_progress = downloaded_files / total_files * 60  # 60% allocated for downloading
-                
+
                 Bucket.update_progress(bucket_name, download_progress)
 
                 # Create directory if it does not exist
@@ -306,7 +319,7 @@ def download_bucket_contents(bucket_name):
 
         # Update progress for zipping
         zip_progress = 10  # 10% allocated for zipping
-        
+
         # Update database with zip progress
         Bucket.update_progress(bucket_name, 60 + zip_progress)
 
@@ -321,9 +334,9 @@ def download_bucket_contents(bucket_name):
 
     # Delete the local zip file after uploading
     os.remove(zip_filepath)
-    
+
     # Delete all files from the destination folder
-    shutil.rmtree(destination_folder)    
+    shutil.rmtree(destination_folder)
 
 def check_archive_file(bucket_name):
     # Initialize Google Cloud Storage client
@@ -341,7 +354,7 @@ def check_archive_file(bucket_name):
 
     # If no matching file found, return False
     return False
-    
+
 def make_file_accessible(bucket_name, file_name):
     # Initialize a client
     storage_client = storage.Client()
@@ -357,28 +370,28 @@ def make_file_accessible(bucket_name, file_name):
         method="GET"  # HTTP method allowed (e.g., GET, PUT, POST, etc.)
     )
     return url
-    
+
 def delete_buckets_archive_files():
     # Initialize Google Cloud Storage client
     storage_client = storage.Client()
-    
+
     # List the buckets in the project
     buckets = list(storage_client.list_buckets())
 
     # Create a dictionary with bucket names as keys and their regions as values
-    # bucket_info = {bucket.name: bucket.location for bucket in buckets}  
+    # bucket_info = {bucket.name: bucket.location for bucket in buckets}
     current_datetime = datetime.datetime.now(datetime.timezone.utc)
-    
+
     for bucket in buckets:
-        
+
         #bucket = client.bucket(bucket_name)
         logger.info("-Bucket we are checking: " + bucket.name)
 
         # Iterate through blobs in the "archive" folder
         for blob in bucket.list_blobs(prefix='archive/'):
-            
-            creation_time = blob.time_created   
-            logger.info(creation_time) 
+
+            creation_time = blob.time_created
+            logger.info(creation_time)
 
             # Calculate age of the blob in hours
             age_seconds = (current_datetime - creation_time).total_seconds()
@@ -387,7 +400,7 @@ def delete_buckets_archive_files():
             logger.info(age_seconds)
             if age_seconds > 86400:
                 blob.delete()
-                
+
                 db_bucket = Bucket.get(bucket.name)
                 logger.info('---Blob name: ' + blob.name)
                 logger.info('---db_bucket archive_file : ' + db_bucket.archive_file)
@@ -395,7 +408,6 @@ def delete_buckets_archive_files():
                     logger.info('----It ends with it!')
                     Bucket.update_archive_filename(bucket.name, None)
                     Bucket.update_progress(bucket.name, None)
-                    
-                
+
+
                 logger.info(f"Deleted blob '{blob.name}' from the 'archive' folder.")
-    
