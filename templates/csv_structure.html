@@ -24,7 +24,7 @@
     <div class="p-3">
       <div>
         <h3>CSV file format</h3>
-        <p>We need a csv file to describe the sequencing files you will upload.
+        <p>We need a csv file to describe the sequencing files you will upload. This must be filled in correctly to allow file upload and quality control analyses. 
         <p>"CSV" stands for "Comma Seperated Values" and you can read more about it at the relevant <a href="https://en.wikipedia.org/wiki/Comma-separated_values">wikipedia article</a></p>
         <p>You can open it on a text editor, or in a spreadsheet application (for example MS excel, OpenOffice Sheets, Google Sheets), as long as you save it at the end as ".csv"</p>
 
@@ -32,13 +32,13 @@
         <ol>
           <li> Download and use the <a href="/csv_sample">sample csv file</a> as template. </li>
           <li> Fill in the csv for the files you want to upload. The column names are explained bellow. </li>
-          <li> Please note that one line could refer to multiple of your files </li>
+          <li> Each row should refer to one pair of files, if using Illumina paired-end sequencing. Do not include separate rows for the R1 and R2 files. </li>
         </ol>
 
         <h3>Column names for the csv file </h3>
         <ol>
           <li> <span class="fw-bold">Sample_ID</span>: The number or name assigned to your sample, can be a number or a name used to indicate the identity of the sample. E.g Kazakhstan_1, Control_1, K1, 1. </li>
-          <li> <span class="fw-bold">Sequencer_ID</span>: The name of the sequencing file output by the sequencer. This may be arbritrary (i.e 001id001) or may be the same as the Sample_ID. This must be the exact ID excluding the shared file ending. For example, if your file outputs are named 001id001_S65_R1_001.fastq.gz, only include up to the first underscore, i.e 001id001.</li>
+          <li> <span class="fw-bold">Sequencer_ID</span>: The name of the sequencing file output by the sequencer. This may be arbritrary (i.e 001id001) or may be the same as the Sample_ID. This must be the exact ID excluding the shared file ending. For example, if your file outputs are named 001id001_S65_R1_001.fastq.gz, only include up to the first underscore, i.e 001id001. For Illumina sequencing, include the name of the pair of files up to the the '_S1' characters. For example, if your file pairs are called '055id055_S361_R1_001.fastq.gz' and '055id055_S361_R2_001.fastq.gz', write '055id055' only.</li>
           <li> <span class="fw-bold">Sequencing_provider</span>: Company, organization or individual that sequenced samples.</li>
           <li> <span class="fw-bold">Project</span>: You will be given a project name, this will be the same for all samples within a project. I.e sl-kazakhstan23</li>
           <li> <span class="fw-bold">Region</span>: Amplicon region (SSU, LSU, ITS1, ITS2)</li>
