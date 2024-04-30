@@ -3,6 +3,7 @@ from pathlib import Path
 import gzip
 import json
 import tarfile
+import zipfile
 import os
 import logging
 
@@ -20,7 +21,7 @@ def unzip_raw_file(process_id, filename):
     save_path = path / filename
 
     extract_directory = Path("processing", uploads_folder)
-    gunzip_result = extract_uploaded_gzip(process_id, save_path, extract_directory)
+    gunzip_result = extract_uploaded_file(process_id, save_path, extract_directory)
 
     if (gunzip_result):
         # Upload.mark_field_as_true(process_id, 'gz_unziped')
@@ -44,16 +45,13 @@ def extract_tar(tar_file, extract_path):
     with tarfile.open(tar_file, 'r') as tar:
         tar.extractall(path=extract_path)
 
-def extract_uploaded_gzip(process_id, uploaded_file_path, extract_directory):
+def extract_uploaded_file(process_id, uploaded_file_path, extract_directory):
     os.makedirs(extract_directory, exist_ok=True)
     uploaded_file_name = os.path.basename(uploaded_file_path)
 
     if uploaded_file_name.endswith('.tar'):
         extract_tar_without_structure(process_id, uploaded_file_path, extract_directory)
-    else:
-        if not uploaded_file_name.endswith('.gz'):
-            raise ValueError("The uploaded file is not a gzip file.")
-
+    elif uploaded_file_name.endswith('.gz'):
         file_name = os.path.splitext(uploaded_file_name)[0]
         extract_path = os.path.join(extract_directory, file_name)
 
@@ -74,7 +72,12 @@ def extract_uploaded_gzip(process_id, uploaded_file_path, extract_directory):
         if file_name.endswith('.tar'):
             extract_tar_without_structure(process_id, extract_path, extract_directory)
             os.remove(extract_path)
-            
+    elif uploaded_file_name.endswith('.zip'):
+        with zipfile.ZipFile(uploaded_file_path, 'r') as zip_ref:
+            zip_ref.extractall(extract_directory)
+    else:
+        raise ValueError("Unsupported file type.")
+
     return True
     
 def track_progress(process_id, current_size, total_size, filename):

@@ -95,7 +95,7 @@ def recreate_matching_files(process_id):
                     matching_files_dict[file_key]['folder'] = row['region']
                     break  # Break the loop once a match is found
                     logger.info('Found one file_key: ' + file_key + ' for project ' + row['project'])
-
+        logger.info('we will now update the files json')
         Upload.update_files_json(process_id, matching_files_dict)
     return nr_files
 
@@ -361,16 +361,15 @@ def unzip_progress():
     file_id = request.args.get('file_id')
     progress = get_progress_db_unzip(process_id, file_id)
     gz_filedata = Upload.get_gz_filedata(process_id)
-    upload = Upload.get(process_id)
+
     if (progress==100):
-
         nr_files = recreate_matching_files(process_id)
-
+        upload = Upload.get(process_id)
         files_dict_db = upload.get_files_json()
-
         return jsonify({"progress": progress, "msg": "Raw unzipped successfully.", "nr_files": nr_files, "files_dict_db":files_dict_db, 'gz_filedata': gz_filedata}), 200
-
-    files_dict_db = upload.get_files_json()
+    else:
+        upload = Upload.get(process_id)
+        files_dict_db = upload.get_files_json()
     return {
         "progress": progress, 'gz_filedata': gz_filedata, "files_dict_db":files_dict_db
     }
@@ -431,7 +430,8 @@ def handle_upload():
             'form_filechunks'       : form_filechunks,
             'form_fileidentifier'   : form_fileidentifier,
             'chunk_number_uploaded' : chunk_number,
-            'percent_uploaded'      : percentage
+            'percent_uploaded'      : percentage,
+            'expected_md5'          : expected_md5
         }
 
         Upload.update_gz_filedata(process_id, one_filedata)

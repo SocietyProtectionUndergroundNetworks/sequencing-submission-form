@@ -261,16 +261,12 @@ class Upload():
     def get_files_json(self):
         matching_files_dict = {}
         files_json = self.files_json
-
         if files_json is not None:
             matching_files_dict = json.loads(files_json)
-
         # Remove files where the name starts with '._' (non real files, artifacts of zip process)
         matching_files_dict = {key: value for key, value in matching_files_dict.items() if not key.startswith('._')}
-
         # Sort the dictionary based on 'bucket' and 'folder'
         matching_files_dict = OrderedDict(sorted(matching_files_dict.items(), key=lambda x: (x[1].get('bucket', ''), x[1].get('folder', ''))))
-
         if self.sequencing_method == 1:
             rowspan_counts = {}
             for filename, data in matching_files_dict.items():
@@ -288,7 +284,6 @@ class Upload():
                     if key != lastkey:
                         data['rowspan'] = rowspan_counts[key]
                     lastkey = key
-
         return matching_files_dict
 
     @classmethod
