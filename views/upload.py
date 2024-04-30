@@ -562,11 +562,11 @@ def user_uploads():
     else:
         return redirect(url_for('user.only_admins'))
 
-@upload_bp.route('/deleterenamedfiles', methods=['GET'], endpoint='delete_renamed_files')
+@upload_bp.route('/delete_upload_files', methods=['GET'], endpoint='delete_renamed_files')
 @admin_required
 @login_required
 @approved_required
-def delete_renamed_files():
+def delete_upload_files():
     process_id = request.args.get('process_id')
     user_id = request.args.get('user_id')
     upload = Upload.get(process_id)

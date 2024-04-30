@@ -59,7 +59,7 @@
               <td {% if upload.files_still_on_filesystem:  %} class="text-success" {% endif %}>
                 {% if upload.files_still_on_filesystem:  %}
                   {{ upload.files_still_on_filesystem }}
-                  <a href="deleterenamedfiles?process_id={{ upload.id }}&user_id={{ user_id }}">
+                  <a href="delete_upload_files?process_id={{ upload.id }}&user_id={{ user_id }}">
                     Delete
                   </a>
                 {% else: %}

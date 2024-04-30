@@ -345,11 +345,28 @@ class Upload():
         # Retrieve files_json data for the current instance
         files_json = self.get_files_json()
 
+        if self.gz_filedata:
+            # Define the extract directory
+            uploads_directory = Path("uploads", self.uploads_folder)
+            gz_filedata = json.loads(self.gz_filedata)
+            logger.info(gz_filedata)
+            for filename, file_info in gz_filedata.items():
+                logger.info(filename)
+                file_path = uploads_directory / filename
+                if file_path.exists() and file_path.is_file():
+                    # If it exists and is a file, delete the file
+                    os.remove(str(file_path))
+                    logger.info(f"Deleted file: {file_path}")
+                else:
+                    logger.info(f"File not found or is not a file: {file_path}")
+
         # Define the extract directory
         extract_directory = Path("processing", self.uploads_folder)
 
+        # Delete the processed renamed files
         # Iterate over each filename in files_json
         for filename, file_info in files_json.items():
+
             # Check if 'new_filename' is not empty
             if 'new_filename' in file_info and file_info['new_filename']:
                 # Construct the full path to the file
