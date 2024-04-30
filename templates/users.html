@@ -34,7 +34,11 @@
       <tbody id="files_body">
         {% for user in all_users %}
           <tr>
-              <td scope="row"></td>
+              <td scope="row">
+                {% if user.uploads_count == 0 %}
+                  <a href="#" class="remove_user text-danger" data-user-id="{{ user.user.id }}">X</a>
+                {% endif %}
+              </td>
               <td>{{ user.user.email }}</td>
               <td>{{ user.user.name }}</td>
               <td>
@@ -66,7 +70,7 @@
                     {% for bucket in user.user.buckets %}
                       <li>
                         {{ bucket }}
-                        <a href="#" class="remove_bucket_access" data-user-id="{{ user.user.id }}" data-bucket="{{ bucket }}">X</a>
+                        <a href="#" class="remove_bucket_access text-danger" data-user-id="{{ user.user.id }}" data-bucket="{{ bucket }}">X</a>
                       </li>
                     {% endfor %}
                   {% else %}
@@ -130,6 +134,39 @@
           console.error('Error removing access:', error);
         }
       });
+    });
+
+    $('.remove_user').on('click', function() {
+      var userId = $(this).data('user-id');
+      var $row = $(this).closest('tr'); // Find the parent row
+
+      // Ask the user for confirmation
+      if (confirm("Are you sure you want to remove this user?")) {
+        // If the user confirms, proceed with removal
+        event.preventDefault();
+        console.log('userId:', userId);
+        // Make AJAX request to remove the user
+        $.ajax({
+          url: '/remove_user',
+          type: 'POST',
+          data: {
+            user_id: userId
+          },
+          success: function(response) {
+            // Handle success response
+            console.log(response);
+            if (response.status == 1) {
+              console.log('User removed:', userId);
+              // Remove the row from the table
+              $row.remove();
+            }
+          },
+          error: function(xhr, status, error) {
+            // Handle error response if needed
+            console.error('Error removing user:', error);
+          }
+        });
+      }
     });
 
   </script>

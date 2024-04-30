@@ -210,3 +210,12 @@ def remove_access_from_bucket():
         return {'status': 0}
     else:
         return {'status': 1}
+
+@user_bp.route('/remove_user', methods=['POST'], endpoint='remove_user')
+@login_required
+@admin_required
+def remove_user():
+    user_id = request.form.get('user_id')
+
+    user_delete_result = User.delete(user_id)
+    return user_delete_result

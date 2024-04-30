@@ -20,24 +20,22 @@ class User(UserMixin):
     def get(cls, user_id):
         db_engine = connect_db()
         session = get_session(db_engine)
-        
+
         user_db = session.query(UserTable).filter_by(id=user_id).first()
         if not user_db:
             return None
-                    
+
         user_buckets = user_db.buckets
         buckets=[bucket.id for bucket in user_buckets]
         session.close()
-        
-
 
         user = User(
-            id_=user_db.id, 
-            name=user_db.name, 
-            email=user_db.email, 
-            profile_pic=user_db.profile_pic, 
-            admin=user_db.admin, 
-            approved=user_db.approved, 
+            id_=user_db.id,
+            name=user_db.name,
+            email=user_db.email,
+            profile_pic=user_db.profile_pic,
+            admin=user_db.admin,
+            approved=user_db.approved,
             buckets=buckets
         )
 
@@ -47,44 +45,44 @@ class User(UserMixin):
     def create(cls, id_, name, email, profile_pic, admin=False, approved=False):
         db_engine = connect_db()
         session = get_session(db_engine)
-        
+
         new_user = UserTable(id=id_, name=name, email=email, profile_pic=profile_pic, admin=admin, approved=approved)
-        
+
         session.add(new_user)
         session.commit()
-        
+
         session.close()
-        
+
         return id_
-        
+
     @classmethod
     def get_all(cls):
         db_engine = connect_db()
         session = get_session(db_engine)
-        
+
         all_users_db = session.query(UserTable, func.count(UploadTable.id)).outerjoin(UploadTable).group_by(UserTable.id).all()
-        
+
         if not all_users_db:
             session.close()
             return []
-        
+
         all_users = []
         for user_db, uploads_count in all_users_db:
             user_buckets = [bucket.id for bucket in user_db.buckets]
             user_info = {
                 'user': User(
-                    id_=user_db.id, 
-                    name=user_db.name, 
+                    id_=user_db.id,
+                    name=user_db.name,
                     email=user_db.email,
-                    profile_pic=user_db.profile_pic, 
-                    admin=user_db.admin, 
+                    profile_pic=user_db.profile_pic,
+                    admin=user_db.admin,
                     approved=user_db.approved,
                     buckets=user_buckets
                 ),
                 'uploads_count': uploads_count if uploads_count else 0
             }
             all_users.append(user_info)
-        
+
         session.close()
         return all_users
 
@@ -137,7 +135,7 @@ class User(UserMixin):
             session.close()
             raise ValueError(f"User with ID '{user_id}' not found")
 
-        
+
     @classmethod
     def update_approved_status(cls, user_id, new_approved_status):
         db_engine = connect_db()
@@ -150,7 +148,7 @@ class User(UserMixin):
             session.commit()
 
         session.close()
-        
+
     @classmethod
     def has_bucket_access(cls, user_id, bucket_name):
         db_engine = connect_db()
@@ -165,3 +163,29 @@ class User(UserMixin):
         else:
             session.close()
             raise ValueError(f"User with ID '{user_id}' not found")
+
+    @classmethod
+    def delete(cls, user_id):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+        to_return = {'status':0, 'message': 'Not run'}
+        # Check if the user has uploads
+        uploads_count = session.query(func.count(UploadTable.id)).filter_by(user_id=user_id).scalar()
+
+        if uploads_count == 0:
+            user_db = session.query(UserTable).filter_by(id=user_id).first()
+            if user_db:
+                # Delete user's bucket accesses
+                for bucket in user_db.buckets:
+                    user_db.buckets.remove(bucket)
+
+                # Delete the user
+                session.delete(user_db)
+                session.commit()
+                to_return = {'status':1, 'message': 'Success'}
+            else:
+                to_return = {'status':0, 'message': 'Not deleted. User doesnt exist'}
+        else:
+            to_return = {'status':0, 'message': 'Not deleted. Uploads exist'}
+        session.close()
+        return to_return
