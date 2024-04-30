@@ -434,8 +434,9 @@
 
             if (matching_files_db) {
               $.each(matching_files_db, function(filename, filesData) {
-                var filenameSequencerId = filename.split('id', 1)[0] + 'id';
-                if (filename.startsWith(sequencerId.split('id', 1)[0] + 'id')) {
+                var sequencerIdPrefix = sequencerId.split('_S')[0]; // Extracting prefix before "_S"
+                var filenamePrefix = filename.split('_S')[0]; // Extracting prefix before "_S"
+                if (filename.startsWith(sequencerIdPrefix)) {
                   lastTd.append(filename + '<br>');
                 }
               });
