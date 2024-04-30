@@ -43,8 +43,8 @@ def rename_files(csv_file_path, directory_path, files_json):
             bucket_folder = str(row[bucket_folder_index])
 
             # Find the matching filenames based on the Sequencer_ID
-            matching_files = [filename for filename in file_names if filename.startswith(sampleid.split('id', 1)[0] + 'id')]
-
+            matching_files = [filename for filename in file_names if filename.startswith(sampleid.split('_S', 1)[0] + '_S')]
+            #logger.info(matching_files)
             for matching_file in matching_files:
                 # Get the full path of the matching file
                 old_file_path = os.path.join(directory_path, matching_file)
@@ -79,7 +79,7 @@ def rename_files(csv_file_path, directory_path, files_json):
                     matching_files_dict[matching_file]['bucket'] = bucket
                     matching_files_dict[matching_file]['folder'] = bucket_folder
                     matching_files_dict[matching_file]['csv_sample_id'] = name
-                    
+
 
             if not matching_files:
                 not_found.append(sampleid)
