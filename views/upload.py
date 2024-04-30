@@ -344,14 +344,14 @@ def upload_csv():
 
     cvs_results = validate_csv(save_path)
     cvs_records = get_csv_data(save_path)
-
+    matching_files_db = upload.get_files_json()
 
     if cvs_results is True:
         Upload.update_csv_filename_and_method(process_id, filename, sequencing_method)
         bucket_chunked_upload(save_path, "uploads/" + uploads_folder, filename, process_id, 'csv_file')
-        return jsonify({"msg": "CSV file uploaded successfully. Checks passed", "cvs_records": cvs_records}), 200
+        return jsonify({"msg": "CSV file uploaded successfully. Checks passed", "cvs_records": cvs_records, "matching_files_db": matching_files_db}), 200
     else:
-        return jsonify({"error": "CSV file problems: ", "results": cvs_results}), 400
+        return jsonify({"error": "CSV file problems: ", "results": cvs_results, "matching_files_db": matching_files_db}), 400
 
 @upload_bp.route('/unzipprogress', endpoint='unzip_progress')
 @login_required

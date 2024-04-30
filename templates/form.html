@@ -101,7 +101,10 @@
       <div class="text-danger"> Please note: This is NOT the metadata file you had been asked to create.</div>
       {% if csv_uploaded %}
         <div id="step_3_msg" class="text-success">CSV file already uploaded : {{ csv_filename }}</div>
-      {% else %}
+
+        <div class="text-danger">If you upload the csv again it will overwrite the previous one. Only re-upload if there was something wrong</div>
+      {% endif %}
+
         <p> <a href="/csv_structure" target="_blank" class="text-decoration-underline">Instructions for the csv file</a> </p>
 
         <form
@@ -110,14 +113,13 @@
             class="dropzone dz-clickable"
             enctype="multipart/form-data"
             id="step_3_form"
-            style="display:none"
         >
         <input type="hidden" name="sequencing_method" value="{{ sequencing_method }}">
         <input type="hidden" name="process_id" value="{{ process_id }}">
         <input type="file" id="step_3_button" accept=".csv">
         </form>
         <div id="step_3_msg"></div>
-      {% endif %}
+
     </div>
 
     <div id="cvs_data">
@@ -399,7 +401,6 @@
         let gz_filedata = {{ gz_filedata|tojson if gz_filedata else '{}' }};
         let matching_files_db = {{ matching_files_db|tojson if matching_files_db else '{}' }};
         let files_renamed = {{ files_renamed if files_renamed else 0 }};
-
 
         function redrawCsvTable(cvs_records) {
           var tableBody = $('#cvs_records_body');
@@ -774,6 +775,9 @@
                   upload_folder = response.upload_folder;
 
                   redrawCsvTable(response.cvs_records)
+
+                  matching_files_db = response.matching_files_db;
+                  updateCsvTable(matching_files_db)
 
                   $('#step_3_msg').html(response.msg).removeClass('text-danger').addClass('text-success');
                   $('#step_3_button').prop('disabled', true);
