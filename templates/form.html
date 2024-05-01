@@ -632,12 +632,14 @@
 
         function hide_form_6() {
           $('#step_7_button').hide();
+          $('#step_7_skip_button').hide();
           $('#step_7_warning').hide();
           $('#step_7').css('opacity', '0.5');
         }
 
         function show_form_6() {
           $('#step_7_button').show();
+          $('#step_7_skip_button').show();
           $('#step_7_warning').show();
           $('#step_7').css('opacity', '1');
         }
@@ -1071,6 +1073,7 @@
                 // Prevent the default form submission
                 event.preventDefault();
                 $('#step_7_button').prop("disabled", true);
+                $('#step_7_skip_button').prop("disabled", true);
                 $('#step_7_warning').hide();
                 // Get form data
                 var formData = $(this).serialize();
@@ -1096,6 +1099,7 @@
                         }
 
                         $('#step_7_button').hide();
+                        $('#step_7_skip_button').hide();
                         $('#step_8_form').show();
                         $('#step_8').css('opacity', '1');
                         $("#step_8_form").submit();
