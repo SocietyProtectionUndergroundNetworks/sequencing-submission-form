@@ -6,6 +6,7 @@ import tarfile
 import zipfile
 import os
 import logging
+import shutil
 
 logger = logging.getLogger("my_app_logger")
 
@@ -45,6 +46,24 @@ def extract_tar(tar_file, extract_path):
     with tarfile.open(tar_file, 'r') as tar:
         tar.extractall(path=extract_path)
 
+def extract_zip_without_structure(zip_file_path, extract_directory):
+    with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+        for file_info in zip_ref.infolist():
+            # Skip directories
+            if file_info.filename.endswith('/'):
+                continue
+            
+            # Extracting file without directory structure
+            file_name = os.path.basename(file_info.filename)
+            extract_path = os.path.join(extract_directory, file_name)
+
+            # Ensure the extraction directory exists
+            os.makedirs(extract_directory, exist_ok=True)
+            
+            # Extract the file
+            with zip_ref.open(file_info) as source, open(extract_path, 'wb') as target:
+                shutil.copyfileobj(source, target)
+
 def extract_uploaded_file(process_id, uploaded_file_path, extract_directory):
     os.makedirs(extract_directory, exist_ok=True)
     uploaded_file_name = os.path.basename(uploaded_file_path)
@@ -73,8 +92,7 @@ def extract_uploaded_file(process_id, uploaded_file_path, extract_directory):
             extract_tar_without_structure(process_id, extract_path, extract_directory)
             os.remove(extract_path)
     elif uploaded_file_name.endswith('.zip'):
-        with zipfile.ZipFile(uploaded_file_path, 'r') as zip_ref:
-            zip_ref.extractall(extract_directory)
+        extract_zip_without_structure(uploaded_file_path, extract_directory)
     else:
         raise ValueError("Unsupported file type.")
 

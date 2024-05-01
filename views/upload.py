@@ -27,7 +27,7 @@ from helpers.bucket import (
     check_archive_file
 )
 
-from helpers.unzip import get_progress_db_unzip, unzip_raw
+from helpers.unzip import get_progress_db_unzip, unzip_raw, unzip_raw_file
 from helpers.fastqc import get_fastqc_progress, init_fastqc_multiqc_files, get_multiqc_report
 from helpers.file_renaming import calculate_md5, rename_all_files
 
@@ -445,21 +445,27 @@ def handle_upload():
             # Perform actions for the complete file
             # Combine the chunks, save to final location, etc.
             final_file_path = f'uploads/{uploads_folder}/{file.filename}'
-            with open(final_file_path, 'ab') as final_file:
+            temp_file_path = f'uploads/{uploads_folder}/{file.filename}.temp'
+            with open(temp_file_path, 'ab') as temp_file:
                 for i in range(1, total_chunks + 1):
                     chunk_path = f'uploads/{uploads_folder}/{file.filename}.part{i}'
                     with open(chunk_path, 'rb') as chunk_file:
-                        final_file.write(chunk_file.read())
-                    # Delete individual chunks after combining, if needed
-                    os.remove(chunk_path)
+                        temp_file.write(chunk_file.read())
+
 
             # Perform MD5 hash check
             expected_md5 = request.args.get('md5')  # Get the expected MD5 hash from the request
-            actual_md5 = calculate_md5(final_file_path)
+            actual_md5 = calculate_md5(temp_file_path)
 
             # Compare MD5 hashes
             if expected_md5 == actual_md5:
                 # MD5 hashes match, file integrity verified
+                os.rename(temp_file_path, final_file_path)
+
+                # Then, since it is now confirmed, lets delete the parts
+                for i in range(1, total_chunks + 1):
+                    chunk_path = f'uploads/{uploads_folder}/{file.filename}.part{i}'
+                    os.remove(chunk_path)
 
                 # TODO: UNCOMMENT THE FOLLOWING TWO LINES
                 result = init_send_raw_to_storage(process_id, file.filename)
