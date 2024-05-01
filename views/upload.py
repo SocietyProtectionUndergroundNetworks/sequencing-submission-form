@@ -230,6 +230,7 @@ def upload_form_resume():
                                     metadata_filename=upload.metadata_filename,
                                     gz_filedata=gz_filedata if gz_filedata else {},
                                     files_renamed=upload.files_renamed,
+                                    renaming_skipped=upload.renaming_skipped,
                                     nr_files=nr_files,
                                     matching_files=matching_files_filesystem,
                                     matching_files_db=matching_files_dict,
@@ -508,8 +509,14 @@ def renamefiles():
     # in order to continue on the same process, lets get the id from the form
     process_id = request.form["process_id"]
 
-    # TODO: return 200 or 400 depending on the actul result.
-    result = rename_all_files(process_id)
+    skip = request.form["skip"]
+
+    if skip == "true":
+        Upload.mark_field_as_true(process_id, 'renaming_skipped')
+        result = {"msg": "Renaming files skipped."}
+    else:
+        result = rename_all_files(process_id)
+
     return jsonify(result), 200
 
 
@@ -551,8 +558,9 @@ def upload_final_files_route():
     # if the files_json is empty, recreate it
     upload = Upload.get(process_id)
     matching_files_dict = upload.get_files_json()
-    if len(matching_files_dict) == 0:
-        recreate_matching_files(process_id)
+    if (not upload.renaming_skipped):
+        if len(matching_files_dict) == 0:
+            recreate_matching_files(process_id)
 
     init_upload_final_files_to_storage(process_id)
     return jsonify({'message': 'Process initiated'})

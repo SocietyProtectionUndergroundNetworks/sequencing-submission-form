@@ -84,17 +84,28 @@ def fastqc_multiqc_files(process_id):
     uploads_folder = upload.uploads_folder
     input_folder = str(upload.extract_directory)
     files_json = json.loads(upload.files_json)
-
-    new_files_json = {
-        data["new_filename"]: {
-            "bucket": data.get("bucket"),
-            "folder": data.get("folder"),
-            "old_filename": key
+    
+    if (upload.renaming_skipped):
+        new_files_json = {
+            key: {
+                "bucket": data.get("bucket"),
+                "folder": data.get("folder"),
+                "old_filename": key
+            }
+            for key, data in files_json.items()
+            if "bucket" in data and "folder" in data
         }
-        for key, data in files_json.items()
-        if "bucket" in data and "folder" in data
-    }
-
+    else:
+        new_files_json = {
+            data["new_filename"]: {
+                "bucket": data.get("bucket"),
+                "folder": data.get("folder"),
+                "old_filename": key
+            }
+            for key, data in files_json.items()
+            if "bucket" in data and "folder" in data
+        }
+    
     results=[]
     output_folder = os.path.join(input_folder, 'fastqc')
     os.makedirs(output_folder, exist_ok=True)

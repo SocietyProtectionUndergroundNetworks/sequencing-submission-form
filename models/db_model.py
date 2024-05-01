@@ -51,6 +51,7 @@ class UploadTable(Base):
     gz_filedata = Column(JSON(none_as_null=True))
     files_json = Column(JSON(none_as_null=True))
     files_renamed = Column(Boolean, default=False)
+    renaming_skipped = Column(Boolean, default=False)
     fastqc_run = Column(Boolean, default=False)
     fastqc_files_progress = Column(String(255), nullable=True)
     fastqc_process_id = Column(String(255), nullable=True, index=True)

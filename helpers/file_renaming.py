@@ -107,5 +107,5 @@ def rename_all_files(process_id):
 
     if rename_results:
         Upload.mark_field_as_true(process_id, 'files_renamed')
-        return {"msg": "Raw unzipped successfully.", "results":rename_results, "not_found":not_found, "files_dict": files_dict}
+        return {"msg": "Files renamed successfully.", "results":rename_results, "not_found":not_found, "files_dict": files_dict}
     return {"error": "Something went wrong while renaming files."}
