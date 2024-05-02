@@ -89,7 +89,8 @@ def recreate_matching_files(process_id):
 
             # Find matching row in CSV data
             for row in cvs_records.values():
-                if file_key.startswith(row['sequencer_id']):
+                sequencer_identifier = row['sequencer_id'].split('_S')[0]
+                if file_key.startswith(sequencer_identifier):
                     # Assign project and region to the matching file
                     matching_files_dict[file_key]['bucket'] = row['project']
                     matching_files_dict[file_key]['folder'] = row['region']
