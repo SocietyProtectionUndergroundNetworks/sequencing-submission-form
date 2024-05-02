@@ -35,7 +35,7 @@
         This is the metadata file you were originally asked to prepare for your samples.
       </div>
       {% if metadata_uploaded %}
-        <div id="step_1_msg" class="text-success">Metadata file already uploaded : {{ metadata_filename }}</div>
+        <div id="step_1_msg" class="text-success">Metadata file already uploaded : <a href="/download_metadata?process_id={{ process_id }}">{{ metadata_filename }}</a></div>
       {% else %}
 
         <form
@@ -100,7 +100,7 @@
       <h3> Step 3: upload Data File (csv) </h3>
       <div class="text-danger"> Please note: This is NOT the metadata file you had been asked to create.</div>
       {% if csv_uploaded %}
-        <div id="step_3_msg" class="text-success">CSV file already uploaded : {{ csv_filename }}</div>
+        <div id="step_3_msg" class="text-success">CSV file already uploaded : <a href="/download_csv?process_id={{ process_id }}">{{ csv_filename }}</a></div>
 
         <div class="text-danger">If you upload the csv again it will overwrite the previous one. Only re-upload if there was something wrong</div>
       {% endif %}

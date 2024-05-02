@@ -124,6 +124,7 @@ def index():
 
         return render_template("index.html",
                                 name=current_user.name,
+                                user_id=current_user.id,
                                 email=current_user.email,
                                 gz_filedata=gz_filedata,
                                 sys_info=sys_info)
@@ -149,6 +150,57 @@ def csv_sample():
     filename = 'csv_structure.csv'
 
     return send_file(csv_path, as_attachment=True)
+
+@upload_bp.route('/download_metadata', endpoint='download_metadata')
+@login_required
+@approved_required
+def download_metadata():
+    process_id = request.args.get('process_id',0)
+
+    try:
+        process_id = int(process_id)
+        if (isinstance(process_id, int) and (process_id !=0)):
+            upload = Upload.get(process_id)
+            path = Path("uploads", upload.uploads_folder)
+            metadata_file_path = path / upload.metadata_filename
+            
+            #TODO: check that the user asking for this is either an admin or the owner of the process
+            
+            return send_file(metadata_file_path, as_attachment=True)        
+    except (ValueError, TypeError):
+        # Handle the case where process_id is not a valid integer or convertible to an integer
+        logger.info('Tried to access download_metadata without a valid process_id')
+
+
+    return render_template("index.html",
+                                name=current_user.name,
+                                user_id=current_user.id,
+                                email=current_user.email)        
+
+@upload_bp.route('/download_csv', endpoint='download_csv')
+@login_required
+@approved_required
+def download_csv():
+    process_id = request.args.get('process_id',0)
+
+    try:
+        process_id = int(process_id)
+        if (isinstance(process_id, int) and (process_id !=0)):
+            upload = Upload.get(process_id)
+            path = Path("uploads", upload.uploads_folder)
+            csv_file_path = path / upload.csv_filename
+            
+            #TODO: check that the user asking for this is either an admin or the owner of the process
+            
+            return send_file(csv_file_path, as_attachment=True)        
+    except (ValueError, TypeError):
+        # Handle the case where process_id is not a valid integer or convertible to an integer
+        logger.info('Tried to access download_csv without a valid process_id')
+
+    return render_template("index.html",
+                                name=current_user.name,
+                                user_id=current_user.id,
+                                email=current_user.email)
 
 @upload_bp.route('/form_resume', endpoint='upload_form_resume')
 @login_required
