@@ -3,8 +3,8 @@
     <meta charset="UTF-8">
     <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnSuA4Ss2PkkikSOLtYs8BlYIeeIK1h99ty4YfvRPAlzr377vr3CXDb7sb7eEEBYjDtcYj+AjBH3FLv5uSJuXg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js" integrity="sha512-7Pi/otdlbbCR+LnW+F7PwFcSDJOuUJB3OxtEHbg4vSMvzvJjde4Po1v4BR9Gdc9aXNUNFVUY+SK51wWT8WF0Gg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <title>My data</title>
 </head>
 <body>
@@ -38,17 +38,17 @@
                 {%if bucket.archive_file == None %}
                   <a href="#" class="generate_file" data-bucket="{{ bucket.id }}" id="generate-file-{{ bucket.id }}">Generate file</a>
                   <span class="text-info" id="info-{{ bucket.id }}" style="display:none">File being generated. Please wait</span>
-                {% else %}  
+                {% else %}
                   {{ bucket.archive_file }}
                   {%if bucket.archive_file_creation_progress == 100 %}
                     <br>
                     <a href="#" class="generate_download" data-bucket="{{ bucket.id }}" data-file="{{ bucket.archive_file }}">Generate Download Link</a>
                   {% endif %}
                 {% endif %}
-                <a style="display:none" id="download-{{ bucket.id }}">Download</a>  
+                <a style="display:none" id="download-{{ bucket.id }}">Download</a>
               </td>
               <td id="progress-{{ bucket.id }}">{{ bucket.archive_file_creation_progress }}</td>
-              <td>{{ bucket.archive_file_created_at }}</td>  
+              <td>{{ bucket.archive_file_created_at }}</td>
           </tr>
         {% endfor %}
       </tbody>
@@ -60,11 +60,11 @@
       event.preventDefault();
       var bucket = $(this).data('bucket');
       var generateFile = $(this); // Store reference to the 'generate_file' link
-      
+
       console.log('bucket:', bucket);
-      
+
       $('#info-' + bucket).show();
-      
+
       generateFile.hide();
       // Make AJAX request to remove access to the bucket
       $.ajax({
@@ -85,15 +85,15 @@
           console.error('Error removing access:', error);
         }
       });
-    });  
-      
+    });
+
     $('.generate_download').on('click', function() {
       event.preventDefault();
       var file = $(this).data('file');
       var bucket = $(this).data('bucket');
       var generateLink = $(this); // Store reference to the 'generate_download' link
       var downloadLink = $('#download-' + bucket); // Store reference to the download link by ID
-      
+
       console.log('file:', file);
       console.log('bucket:', bucket);
       // Make AJAX request to remove access to the bucket
@@ -145,7 +145,7 @@
                           $('#download-' + bucket).show().attr('href', data.url);
                           $('#info-' + bucket).hide();
                         }
-                        
+
                     }
                 },
                 error: function() {
@@ -153,7 +153,7 @@
                 }
             });
         }, 5000); // Update progress every 10 seconds (adjust timing as needed)
-    }    
+    }
   </script>
 </body>
 </html>
