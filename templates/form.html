@@ -193,20 +193,20 @@
                           You have uploaded the file {{ filename }}<br>
                       {% else %}
                           {% if file_data.percent_uploaded > 0 %}
-                              <span class="text-danger">
+                              <div class="text-danger">
                                 You have previously started uploading a file: {{ filename }}<br>
                                 Already uploaded: {{ file_data.percent_uploaded }}%<br>
                                 Please select the same file to resume uploading<br>
                                 <a href="#"
-                                    class="clear_file_upload"
+                                    class="clear_file_upload btn btn-danger"
                                     data-filename="{{ filename }}"
                                     data-filename_safe="{{ filename|safe }}"
                                     data-process_id="{{ process_id }}"
                                     data-file_identifier="{{ file_data['form_fileidentifier'] }}">
-                                    Or clean the upload to try again the file from the beggining
+                                    Or click here to clean the upload to try again the file from the beggining
                                 </a>
 
-                              </span>
+                              </div>
                               <span style="display:none" id="file_removed-{{ file_data['form_fileidentifier'] }}">test</span>
                               <span style="display:none" id="testme2">test2</span>
                           {% endif %}
