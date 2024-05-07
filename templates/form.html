@@ -161,14 +161,19 @@
                     <td>{{ data.get('index_1', '') }}</td>
                     <td>{{ data.get('index_2', '') }}</td>
                     <td id="cvs_sample_files_{{ data.get('sample_id_safe', '') }}">
+                      {% set matched_files_count = 0 %}
                       {% if matching_files_db %}
                         {% for filename, files_data in matching_files_db.items() %}
                           {% if 'csv_sample_id' in files_data %}
                             {% if filename.startswith(data['sequencer_id'].split('id', 1)[0] + 'id') %}
+                              {% set matched_files_count = matched_files_count + 1 %}
                               {{ filename }} <br>
                             {% endif %}
                           {% endif %}
                         {% endfor %}
+                      {% endif %}
+                      {% if matched_files_count == 1 %}
+                        <div class="text-danger">Only a single file matched </div>
                       {% endif %}
                     </td>
                 </tr>
@@ -450,14 +455,21 @@
             var lastTd = $(this).find('td:last');
             lastTd.empty();
 
+            var matchedFilesCount = 0;
+
             if (matching_files_db) {
               $.each(matching_files_db, function(filename, filesData) {
                 var sequencerIdPrefix = sequencerId.split('_S')[0]; // Extracting prefix before "_S"
                 var filenamePrefix = filename.split('_S')[0]; // Extracting prefix before "_S"
                 if (filename.startsWith(sequencerIdPrefix)) {
                   lastTd.append(filename + '<br>');
+                  matchedFilesCount++;
                 }
               });
+            }
+
+            if (matchedFilesCount === 1) {
+              lastTd.append('<div class="text-danger">Only a single file matched </div>');
             }
           });
         }
