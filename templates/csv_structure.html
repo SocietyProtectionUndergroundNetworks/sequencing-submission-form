@@ -38,7 +38,14 @@
         <h3>Column names for the csv file </h3>
         <ol>
           <li> <span class="fw-bold">Sample_ID</span>: The number or name assigned to your sample that you can use to identify it. Please keep this as short as possible, preferably under 10 characters. Can be a number or a name used to indicate the identity of the sample. E.g Kazakhstan_1, Control_1, K1, 1. </li>
-          <li> <span class="fw-bold">Sequencer_ID</span>: The name of the sequencing file output by the sequencer, must match exactly the characters in the file names. For Illumina sequencing, include the name of the pair of files up to the the '_S' characters. For example, if your file pairs are called '055id055_S361_R1_001.fastq.gz' and '055id055_S361_R2_001.fastq.gz', write '055id055' only.</li>
+          <li> 
+              <span class="fw-bold">Sequencer_ID</span>: 
+              The name of the sequencing file output by the sequencer, must match exactly the characters in the file names, (without the file ending). <br>
+              For Illumina sequencing, include the name of the pair of files up to the the '_S' characters. <br>
+              Example 1: For Illumina sequencing if your file pairs are called '055id055_S361_R1_001.fastq.gz' and '055id055_S361_R2_001.fastq.gz', write '055id055' only.<br>
+              
+              Example 2: Non Illumina sequencing. If your file is named 'KlmtM2_M11.fastq.gz', please write 'KlmtM2_M11'
+            </li>
           <li> <span class="fw-bold">Sequencing_provider</span>: Company, organization or individual that sequenced samples.</li>
           <li> <span class="fw-bold">Project</span>: You will be given a project name, this will be the same for all samples within a project. I.e sl-kazakhstan23</li>
           <li> <span class="fw-bold">Region</span>: Amplicon region (SSU, LSU, ITS1, ITS2)</li>
