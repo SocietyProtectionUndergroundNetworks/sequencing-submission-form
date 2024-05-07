@@ -33,7 +33,8 @@
           <th scope="col">Fastqc/multiqc run</th>
           <th scope="col">Files moved to bucket</th>
           <th scope="col">Files still on server</th>
-          <th scope="col">Files size</th>
+          <th scope="col">Files size uploads folder</th>
+          <th scope="col">Files size processing folder</th>
         </tr>
       </thead>
       <tbody id="files_body">
@@ -59,18 +60,21 @@
               <td {% if upload.files_still_on_filesystem:  %} class="text-success" {% endif %}>
                 {% if upload.files_still_on_filesystem:  %}
                   {{ upload.files_still_on_filesystem }}
-                  <a href="delete_upload_files?process_id={{ upload.id }}&user_id={{ user_id }}">
-                    Delete
-                  </a>
+                  {% if is_admin %}
+                    <a href="delete_upload_files?process_id={{ upload.id }}&user_id={{ user_id }}">
+                      Delete
+                    </a>
+                  {% endif %}
                 {% else: %}
                   {{ upload.files_still_on_filesystem }}
                 {% endif %}
               </td>
               <td>
-                <td>
-                  {{ '%.1f' | format(upload.files_size / (1024*1024)) }} MB
-                </td>
-              </td>                          
+                {{ '%.1f' | format(upload.files_size_upload / (1024*1024)) }} MB
+              </td>
+              <td>
+                {{ '%.1f' | format(upload.files_size_extract / (1024*1024)) }} MB
+              </td>                                     
           </tr>
         {% endfor %}        
       </tbody>

@@ -300,6 +300,7 @@ class Upload():
 
         uploads_list = []
         for upload in uploads:
+            upload_directory = Path("uploads", upload.uploads_folder)
             extract_directory = Path("processing", upload.uploads_folder)
             files_still_on_filesystem = False
             upload_instance = Upload.get(upload.id)
@@ -308,6 +309,8 @@ class Upload():
             # Calculate total size of files in extract_directory
             extract_directory_size = sum(f.stat().st_size for f in extract_directory.glob('**/*') if f.is_file())
 
+            # Calculate total size of files in upload_directory
+            upload_directory_size = sum(f.stat().st_size for f in upload_directory.glob('**/*') if f.is_file())
 
             # Check if any of the files in files_json still exist on the filesystem
             for filename, file_info in files_json.items():
@@ -321,12 +324,30 @@ class Upload():
                         files_still_on_filesystem = True
                         break
 
+                # Construct the full path to the file
+                file_path_original = extract_directory / filename
+
+                # Check if the file exists and it is a file (not a directory)
+                if file_path_original.exists() and file_path_original.is_file():
+                    files_still_on_filesystem = True
+                    break
+
+            # Check if any of the files in gz_filedata still exist on the filesystem
+            if (upload_instance.gz_filedata):
+                gz_filedata = json.loads(upload_instance.gz_filedata)
+                for filename, file_info in gz_filedata.items():
+                    file_path = upload_directory / filename
+                    if file_path.exists() and file_path.is_file():
+                        files_still_on_filesystem = True
+                        break
+
             # Create a dictionary containing all fields including the calculated ones
             upload_data = {key: getattr(upload, key) for key in upload.__dict__.keys() if not key.startswith('_')}
 
             # Add files_still_on_filesystem and files_size to the dictionary
             upload_data['files_still_on_filesystem'] = files_still_on_filesystem
-            upload_data['files_size'] = extract_directory_size
+            upload_data['files_size_extract'] = extract_directory_size
+            upload_data['files_size_upload'] = upload_directory_size
 
             # Create an instance of the class with the modified data
             upload_instance = cls(**upload_data)
@@ -341,7 +362,7 @@ class Upload():
         files_json = self.get_files_json()
 
         if self.gz_filedata:
-            # Define the extract directory
+            # Define the uploads directory
             uploads_directory = Path("uploads", self.uploads_folder)
             gz_filedata = json.loads(self.gz_filedata)
             logger.info(gz_filedata)
@@ -361,7 +382,6 @@ class Upload():
         # Delete the processed renamed files
         # Iterate over each filename in files_json
         for filename, file_info in files_json.items():
-
             # Check if 'new_filename' is not empty
             if 'new_filename' in file_info and file_info['new_filename']:
                 # Construct the full path to the file
@@ -376,3 +396,10 @@ class Upload():
                     logger.info(f"File not found or is not a file: {file_path}")
             else:
                 logger.info("Skipping deletion: new_filename is empty or not provided")
+
+            # Construct the full path to the file
+            file_path_original = extract_directory / filename
+            if file_path_original.exists() and file_path_original.is_file():
+                # If it exists and is a file, delete the file
+                os.remove(str(file_path_original))
+                logger.info(f"Deleted file: {file_path}")
