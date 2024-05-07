@@ -96,6 +96,20 @@ def extract_uploaded_file(process_id, uploaded_file_path, extract_directory):
     else:
         raise ValueError("Unsupported file type.")
 
+    # Add final step to unzip any .zip or .gz files in the extract directory
+    for root, dirs, files in os.walk(extract_directory):
+        for file in files:
+            file_path = os.path.join(root, file)
+            if file.endswith('.zip'):
+                extract_zip_without_structure(file_path, extract_directory)
+            elif file.endswith('.gz'):
+                with gzip.open(file_path, 'rb') as f_in:
+                    file_name = os.path.splitext(file)[0]
+                    extract_path = os.path.join(root, file_name)
+                    with open(extract_path, 'wb') as f_out:
+                        f_out.write(f_in.read())
+                    os.remove(file_path)
+
     return True
     
 def track_progress(process_id, current_size, total_size, filename):
