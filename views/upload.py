@@ -114,7 +114,7 @@ def index():
             # Handle the case where no data is returned
             print("No data found.")
             if not current_user.admin:
-                return render_template("form.html", msg='We could not find an unfinished process to resume')
+                return render_template("form.html", msg='We could not find an unfinished process to resume', is_admin=current_user.admin)
         else:
             if (upload.csv_uploaded):
                 gz_filedata = Upload.get_gz_filedata(upload.id)
@@ -165,10 +165,10 @@ def download_metadata():
             upload = Upload.get(process_id)
             path = Path("uploads", upload.uploads_folder)
             metadata_file_path = path / upload.metadata_filename
-            
+
             #TODO: check that the user asking for this is either an admin or the owner of the process
-            
-            return send_file(metadata_file_path, as_attachment=True)        
+
+            return send_file(metadata_file_path, as_attachment=True)
     except (ValueError, TypeError):
         # Handle the case where process_id is not a valid integer or convertible to an integer
         logger.info('Tried to access download_metadata without a valid process_id')
@@ -177,7 +177,7 @@ def download_metadata():
     return render_template("index.html",
                                 name=current_user.name,
                                 user_id=current_user.id,
-                                email=current_user.email)        
+                                email=current_user.email)
 
 @upload_bp.route('/download_csv', endpoint='download_csv')
 @login_required
@@ -191,10 +191,10 @@ def download_csv():
             upload = Upload.get(process_id)
             path = Path("uploads", upload.uploads_folder)
             csv_file_path = path / upload.csv_filename
-            
+
             #TODO: check that the user asking for this is either an admin or the owner of the process
-            
-            return send_file(csv_file_path, as_attachment=True)        
+
+            return send_file(csv_file_path, as_attachment=True)
     except (ValueError, TypeError):
         # Handle the case where process_id is not a valid integer or convertible to an integer
         logger.info('Tried to access download_csv without a valid process_id')
@@ -229,11 +229,11 @@ def upload_form_resume():
     if upload is None:
         # Handle the case where no data is returned
         print("No data found.")
-        return render_template("form.html", msg='We could not find an unfinished process to resume')
+        return render_template("form.html", msg='We could not find an unfinished process to resume', is_admin=current_user.admin)
     else:
-        
+
         logger.info(process_id)
-        
+
         #TODO: check if the current user is admin or owner of this upload. Else redirect them.
         if (current_user.admin) or (current_user.id == upload.user_id) :
             matching_files_filesystem = []
@@ -263,13 +263,13 @@ def upload_form_resume():
                                 logger.info('The file ' + filename + ' exists when it shouldnt. Deleting it ')
                                 os.remove(gz_file_path)
                                 form_reporting.append('The file ' + filename + ' exists when it shouldnt. Deleting it ')
-                        
-                        # inconsistency 2: If the progress says 100, but the file does not exist! 
+
+                        # inconsistency 2: If the progress says 100, but the file does not exist!
                         if (file_data['percent_uploaded'] == 100):
                             if not os.path.exists(gz_file_path):
                                 logger.info('The file ' + filename + ' doesnt exist when it should. Deleting the gz_record and the parts ')
                                 logger.info(file_data)
-                                
+
                                 one_filedata = {
                                     'form_filename'         : file_data['form_filename'],
                                     'form_filesize'         : file_data['form_filesize'],
@@ -284,21 +284,21 @@ def upload_form_resume():
                                 files = os.listdir(path)
                                 for file in files:
                                     # Check if the file starts with the filename and ends with '.partX' or '.temp'
-                                    
+
                                     if file.startswith(filename) and (file.endswith('.temp') or re.match(rf"{filename}\.part\d+", file)):
                                         # Construct the full file path
                                         file_path = os.path.join(path, file)
                                         # Delete the file
                                         os.remove(file_path)
-                                        
-                                
+
+
                         if 'gz_sent_to_bucket_progress' in file_data:
                             if file_data['gz_sent_to_bucket_progress'] == 100:
                                 any_unzipped = True
 
                 # get it again, because we may have just changed it
                 gz_filedata = Upload.get_gz_filedata(upload.id)
-                        
+
                 if (any_unzipped):
                     extract_directory = Path("processing", uploads_folder)
 
@@ -330,7 +330,8 @@ def upload_form_resume():
                                     uploads_folder=uploads_folder,
                                     cvs_records=cvs_records,
                                     sequencing_method=upload.sequencing_method,
-                                    form_reporting=form_reporting
+                                    form_reporting=form_reporting,
+                                    is_admin=current_user.admin
                                     )
         else:
             return redirect(url_for('user.only_admins'))
@@ -340,7 +341,7 @@ def upload_form_resume():
 @login_required
 @approved_required
 def upload_form():
-    return render_template("form.html")
+    return render_template("form.html",is_admin=current_user.admin)
 
 
 @upload_bp.route('/clear_file_upload', methods=['POST'], endpoint='clear_file_upload')
@@ -664,7 +665,7 @@ def user_uploads():
     user_id = request.args.get('user_id')
     if (current_user.admin) or (current_user.id == user_id) :
         user_uploads = Upload.get_uploads_by_user(user_id)
-        return render_template('user_uploads.html', user_uploads=user_uploads, user_id=user_id)
+        return render_template('user_uploads.html', user_uploads=user_uploads, user_id=user_id, is_admin=current_user.admin)
     else:
         return redirect(url_for('user.only_admins'))
 

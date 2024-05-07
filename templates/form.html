@@ -293,7 +293,9 @@
             <input type="hidden" name="process_id" value="{{ process_id }}">
             <input type="hidden" name="skip" value="false">
             <input type="submit" class="btn btn-primary" id="step_7_button">
-            <button type="button" class="btn btn-secondary" id="step_7_skip_button">Skip renaming</button>
+            {% if (is_admin) %}
+              <button type="button" class="btn btn-secondary" id="step_7_skip_button">Skip renaming</button>
+            {% endif %}
           </form>
         </div>
         <div id="step_7_msg"></div>
