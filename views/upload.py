@@ -2,6 +2,7 @@ import datetime
 import random
 import string
 import os
+import re
 import json
 import logging
 import psutil
@@ -223,12 +224,16 @@ def upload_form_resume():
 
     else:
         upload = Upload.get_latest_unfinished_process(current_user.id)
+        process_id = upload.id
 
     if upload is None:
         # Handle the case where no data is returned
         print("No data found.")
         return render_template("form.html", msg='We could not find an unfinished process to resume')
     else:
+        
+        logger.info(process_id)
+        
         #TODO: check if the current user is admin or owner of this upload. Else redirect them.
         if (current_user.admin) or (current_user.id == upload.user_id) :
             matching_files_filesystem = []
@@ -263,23 +268,36 @@ def upload_form_resume():
                         if (file_data['percent_uploaded'] == 100):
                             if not os.path.exists(gz_file_path):
                                 logger.info('The file ' + filename + ' doesnt exist when it should. Deleting the gz_record and the parts ')
+                                logger.info(file_data)
+                                
                                 one_filedata = {
-                                    'form_filename'         : file_data.form_filename,
-                                    'form_filesize'         : file_data.form_filesize,
-                                    'form_filechunks'       : file_data.form_filechunks,
-                                    'form_fileidentifier'   : file_data.form_fileidentifier,
+                                    'form_filename'         : file_data['form_filename'],
+                                    'form_filesize'         : file_data['form_filesize'],
+                                    'form_filechunks'       : file_data['form_filechunks'],
+                                    'form_fileidentifier'   : file_data['form_fileidentifier'],
                                     'chunk_number_uploaded' : 0,
                                     'percent_uploaded'      : 0,
-                                    'expected_md5'          : expected_md5
+                                    'expected_md5'          : file_data['expected_md5']
                                 }
                                 form_reporting.append('The file ' + filename + ' doesnt exist when it should. Deleting the gz_record and the parts ')
-                                Upload.update_gz_filedata(process_id, one_filedata)    
-                                
+                                Upload.update_gz_filedata(process_id, one_filedata)
+                                files = os.listdir(path)
+                                for file in files:
+                                    # Check if the file starts with the filename and ends with '.partX' or '.temp'
+                                    
+                                    if file.startswith(filename) and (file.endswith('.temp') or re.match(rf"{filename}\.part\d+", file)):
+                                        # Construct the full file path
+                                        file_path = os.path.join(path, file)
+                                        # Delete the file
+                                        os.remove(file_path)
+                                        
                                 
                         if 'gz_sent_to_bucket_progress' in file_data:
                             if file_data['gz_sent_to_bucket_progress'] == 100:
                                 any_unzipped = True
 
+                # get it again, because we may have just changed it
+                gz_filedata = Upload.get_gz_filedata(upload.id)
                         
                 if (any_unzipped):
                     extract_directory = Path("processing", uploads_folder)

@@ -137,13 +137,13 @@ class Upload():
         upload = session.query(UploadTable).filter_by(id=upload_id).first()
         # one_file_json_data = json.dumps(one_filedata)
         filename = gz_filedata['form_filename']
-
         if upload:
             existing_gz_filedata_db = upload.gz_filedata
             if (existing_gz_filedata_db):
                 new_gz_filedata = json.loads(existing_gz_filedata_db)
             else:
                 new_gz_filedata = {}
+            
             new_gz_filedata[filename] = gz_filedata
 
             upload.gz_filedata = json.dumps(new_gz_filedata)
