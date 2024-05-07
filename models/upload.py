@@ -1,10 +1,12 @@
 import json
 import os
+import shutil
 import logging
 from collections import OrderedDict
 from helpers.dbm import connect_db, get_session
 from models.db_model import UploadTable
 from sqlalchemy import desc, or_
+from sqlalchemy.exc import SQLAlchemyError
 from pathlib import Path
 from fnmatch import fnmatch
 
@@ -143,7 +145,7 @@ class Upload():
                 new_gz_filedata = json.loads(existing_gz_filedata_db)
             else:
                 new_gz_filedata = {}
-            
+
             new_gz_filedata[filename] = gz_filedata
 
             upload.gz_filedata = json.dumps(new_gz_filedata)
@@ -357,6 +359,7 @@ class Upload():
 
         return uploads_list
 
+
     def delete_files_from_filesystem(self):
         # Retrieve files_json data for the current instance
         files_json = self.get_files_json()
@@ -403,3 +406,39 @@ class Upload():
                 # If it exists and is a file, delete the file
                 os.remove(str(file_path_original))
                 logger.info(f"Deleted file: {file_path}")
+
+    @classmethod
+    def delete_upload_and_files(cls, upload_id):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        upload_db = session.query(UploadTable).filter_by(id=upload_id).first()
+        if not upload_db:
+            session.close()
+            logger.error(f"No upload found with id {upload_id}")
+            return
+
+        uploads_directory = Path("uploads", upload_db.uploads_folder)
+        extract_directory = Path("processing", upload_db.uploads_folder)
+
+        try:
+            shutil.rmtree(uploads_directory)
+            logger.info(f"Directory '{uploads_directory}' and its contents deleted successfully.")
+        except Exception as e:
+            logger.error(f"Error deleting directory '{uploads_directory}': {e}")
+
+        try:
+            shutil.rmtree(extract_directory)
+            logger.info(f"Directory '{extract_directory}' and its contents deleted successfully.")
+        except Exception as e:
+            logger.error(f"Error deleting directory '{extract_directory}': {e}")
+
+        try:
+            session.delete(upload_db)
+            session.commit()
+            logger.info(f"Upload record with id {upload_id} deleted successfully.")
+        except SQLAlchemyError as e:
+            session.rollback()
+            logger.error(f"Error deleting upload record: {e}")
+        finally:
+            session.close()

@@ -18,7 +18,7 @@
     </div>
   </div>  
     
-  <h1>Uploads list for user</h1>
+  <h1>Uploads list for user {{ username }} - {{ user_email }}</h1>
   <div>
     <table class="table">      
       <thead>
@@ -44,6 +44,11 @@
                 <a href="/form_resume?process_id={{ upload.id }}">
                   {{ upload.id }}
                 </a>
+                {% if is_admin %}
+                  <br><a href="#" class="text-danger delete-upload" data-process-id="{{ upload.id }}" data-user-id="{{ user_id }}">
+                      X
+                  </a>
+              {% endif %}              
               </td>
               <td>{{ upload.created_at }}</td>
               <td>{{ upload.updated_at }}</td>
@@ -80,5 +85,24 @@
       </tbody>
     </table>    
   </div>
+  <script>
+  $(document).ready(function() {
+      $(".delete-upload").click(function(e) {
+          e.preventDefault(); // Prevent the default action of clicking the link
+          
+          // Get the data attributes
+          var processId = $(this).data("process-id");
+          var userId = $(this).data("user-id");
+          
+          // Ask for confirmation
+          var confirmation = confirm("Are you sure you want to delete this upload?");
+          
+          // If user confirms, redirect to the delete URL
+          if (confirmation) {
+              window.location.href = "delete_upload_process?process_id=" + processId + "&user_id=" + userId;
+          }
+      });
+  });
+  </script>  
 </body>
 </html>

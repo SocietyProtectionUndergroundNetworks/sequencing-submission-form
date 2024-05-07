@@ -665,7 +665,12 @@ def user_uploads():
     user_id = request.args.get('user_id')
     if (current_user.admin) or (current_user.id == user_id) :
         user_uploads = Upload.get_uploads_by_user(user_id)
-        return render_template('user_uploads.html', user_uploads=user_uploads, user_id=user_id, is_admin=current_user.admin)
+        return render_template('user_uploads.html',
+                                user_uploads=user_uploads,
+                                user_id=user_id,
+                                is_admin=current_user.admin,
+                                username=current_user.name,
+                                user_email=current_user.email)
     else:
         return redirect(url_for('user.only_admins'))
 
@@ -679,6 +684,18 @@ def delete_upload_files():
     upload = Upload.get(process_id)
     upload.delete_files_from_filesystem()
     return redirect(url_for('upload.user_uploads', user_id=user_id))
+
+@upload_bp.route('/delete_upload_process', methods=['GET'], endpoint='delete_upload_process')
+@admin_required
+@login_required
+@approved_required
+def delete_upload_process():
+    process_id = request.args.get('process_id')
+    user_id = request.args.get('user_id')
+    Upload.delete_upload_and_files(process_id)
+    return redirect(url_for('upload.user_uploads', user_id=user_id))
+
+
 
 @upload_bp.route('/movefinaldprogress', methods=['GET'], endpoint='get_final_files_to_storage_progress_route')
 @login_required
