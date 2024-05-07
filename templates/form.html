@@ -28,6 +28,14 @@
       <span id="upload_folder_info">Folder: {{ uploads_folder }}</span>
     </div>
 
+    <div id="form_reporting">
+      {% if form_reporting %}
+        {% for data in form_reporting %}
+          <div class="text-info">{{ data }}</div>
+        {% endfor %}
+      {% endif %}
+    </div>
+
     <div id="step_1" class="form-step-item">
       <h3> Step 1: upload your metadata file</h3>
       <div class="text-danger">

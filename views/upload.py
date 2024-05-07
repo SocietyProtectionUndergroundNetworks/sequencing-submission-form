@@ -210,6 +210,7 @@ def upload_form_resume():
     default_process_id = 0
     process_id = request.args.get('process_id', default_process_id)
     uploads_folder = ''
+    form_reporting = []
 
     try:
         process_id = int(process_id)
@@ -256,11 +257,30 @@ def upload_form_resume():
                             if os.path.exists(gz_file_path):
                                 logger.info('The file ' + filename + ' exists when it shouldnt. Deleting it ')
                                 os.remove(gz_file_path)
-
+                                form_reporting.append('The file ' + filename + ' exists when it shouldnt. Deleting it ')
+                        
+                        # inconsistency 2: If the progress says 100, but the file does not exist! 
+                        if (file_data['percent_uploaded'] == 100):
+                            if not os.path.exists(gz_file_path):
+                                logger.info('The file ' + filename + ' doesnt exist when it should. Deleting the gz_record and the parts ')
+                                one_filedata = {
+                                    'form_filename'         : file_data.form_filename,
+                                    'form_filesize'         : file_data.form_filesize,
+                                    'form_filechunks'       : file_data.form_filechunks,
+                                    'form_fileidentifier'   : file_data.form_fileidentifier,
+                                    'chunk_number_uploaded' : 0,
+                                    'percent_uploaded'      : 0,
+                                    'expected_md5'          : expected_md5
+                                }
+                                form_reporting.append('The file ' + filename + ' doesnt exist when it should. Deleting the gz_record and the parts ')
+                                Upload.update_gz_filedata(process_id, one_filedata)    
+                                
+                                
                         if 'gz_sent_to_bucket_progress' in file_data:
                             if file_data['gz_sent_to_bucket_progress'] == 100:
                                 any_unzipped = True
 
+                        
                 if (any_unzipped):
                     extract_directory = Path("processing", uploads_folder)
 
@@ -291,7 +311,8 @@ def upload_form_resume():
                                     renamed_sent_to_bucket=upload.renamed_sent_to_bucket,
                                     uploads_folder=uploads_folder,
                                     cvs_records=cvs_records,
-                                    sequencing_method=upload.sequencing_method
+                                    sequencing_method=upload.sequencing_method,
+                                    form_reporting=form_reporting
                                     )
         else:
             return redirect(url_for('user.only_admins'))
@@ -522,7 +543,6 @@ def handle_upload():
                     chunk_path = f'uploads/{uploads_folder}/{file.filename}.part{i}'
                     os.remove(chunk_path)
 
-                # TODO: UNCOMMENT THE FOLLOWING TWO LINES
                 result = init_send_raw_to_storage(process_id, file.filename)
                 result2 = unzip_raw(process_id, file.filename)
                 gz_filedata = Upload.get_gz_filedata(upload.id)
