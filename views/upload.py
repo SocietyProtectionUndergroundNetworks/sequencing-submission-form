@@ -33,7 +33,7 @@ from helpers.fastqc import get_fastqc_progress, init_fastqc_multiqc_files, get_m
 from helpers.file_renaming import calculate_md5, rename_all_files
 
 from models.upload import Upload
-
+from models.user import User
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -271,13 +271,13 @@ def upload_form_resume():
                                 logger.info(file_data)
 
                                 one_filedata = {
-                                    'form_filename'         : file_data['form_filename'],
-                                    'form_filesize'         : file_data['form_filesize'],
-                                    'form_filechunks'       : file_data['form_filechunks'],
-                                    'form_fileidentifier'   : file_data['form_fileidentifier'],
-                                    'chunk_number_uploaded' : 0,
-                                    'percent_uploaded'      : 0,
-                                    'expected_md5'          : file_data['expected_md5']
+                                    'form_filename': file_data.get('form_filename', None),
+                                    'form_filesize': file_data.get('form_filesize', None),
+                                    'form_filechunks': file_data.get('form_filechunks', None),
+                                    'form_fileidentifier': file_data.get('form_fileidentifier', None),
+                                    'chunk_number_uploaded': 0,
+                                    'percent_uploaded': 0,
+                                    'expected_md5': file_data.get('expected_md5', None)
                                 }
                                 form_reporting.append('The file ' + filename + ' doesnt exist when it should. Deleting the gz_record and the parts ')
                                 Upload.update_gz_filedata(process_id, one_filedata)
@@ -663,14 +663,15 @@ def upload_final_files_route():
 @approved_required
 def user_uploads():
     user_id = request.args.get('user_id')
+    user = User.get(user_id)
     if (current_user.admin) or (current_user.id == user_id) :
         user_uploads = Upload.get_uploads_by_user(user_id)
         return render_template('user_uploads.html',
                                 user_uploads=user_uploads,
                                 user_id=user_id,
                                 is_admin=current_user.admin,
-                                username=current_user.name,
-                                user_email=current_user.email)
+                                username=user.name,
+                                user_email=user.email)
     else:
         return redirect(url_for('user.only_admins'))
 
