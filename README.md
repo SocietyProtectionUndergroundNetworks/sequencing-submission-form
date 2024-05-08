@@ -49,3 +49,22 @@ Everytime a commit happens in the master, a github workflow runs an action and d
 - GCP_SA_KEY : A json file containing the key of the service account that has access to the VM and the buckets. 
 - GCP_VM_INSTANCE : The name of the VM instance inside the above google cloud project. Visible from the google cloud VM admin page. 
 - GCP_ZONE : The zone where the instance is created (for example: `us-central1-a`). Visible from the google cloud VM admin page. 
+
+# Known problems
+
+Until it gets fixed by the google-github-actions/auth and google-github-actions/setup-gcloud processes, each deployment adds a key to the os-login profile.
+This causes that after (quite a number) of deployments the profile becomes very big and deployments fail with the error message: 
+`ERROR: (gcloud.compute.ssh) INVALID_ARGUMENT: Login profile size exceeds 32 KiB. Delete profile values to make additional space.`
+
+The error is described in the [google documentation](https://cloud.google.com/compute/docs/troubleshooting/troubleshoot-os-login#invalid_argument)
+To avoid this happening the keys should be added with an expiration time with `To prevent this issue from occurring in the future, add an expiry time for SSH keys` [described here](https://cloud.google.com/compute/docs/connect/add-ssh-keys#os-login)
+
+But this is not possible when we are using google-github-actions/auth which does the key management on its own.
+
+Until this is fixed, the solution is as described in the documentation.
+
+- Login to the vm
+- Run `gcloud compute os-login describe-profile` to see the profile
+- For each key you want to delete, run `gcloud compute os-login ssh-keys remove --key=XXXXXXXX`
+
+
