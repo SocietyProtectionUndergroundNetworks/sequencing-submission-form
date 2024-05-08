@@ -299,18 +299,17 @@ def upload_form_resume():
                 # get it again, because we may have just changed it
                 gz_filedata = Upload.get_gz_filedata(upload.id)
 
-                if (any_unzipped):
-                    extract_directory = Path("processing", uploads_folder)
+                extract_directory = Path("processing", uploads_folder)
 
-                    if os.path.exists(extract_directory):
-                        # count the files ending with fastq.gz
-                        file_names = os.listdir(extract_directory)
-                        matching_files_filesystem = [filename for filename in file_names if filename.endswith('.fastq.gz')]
-                        nr_files = 0
-                        if (matching_files_filesystem):
-                            nr_files=len(matching_files_filesystem)
+                if os.path.exists(extract_directory):
+                    # count the files ending with fastq.gz
+                    file_names = os.listdir(extract_directory)
+                    matching_files_filesystem = [filename for filename in file_names if filename.endswith('.fastq.gz')]
+                    nr_files = 0
+                    if (matching_files_filesystem):
+                        nr_files=len(matching_files_filesystem)
 
-                        matching_files_dict = upload.get_files_json()
+                    matching_files_dict = upload.get_files_json()
 
             return render_template(
                                     "form.html",
