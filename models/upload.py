@@ -116,6 +116,23 @@ class Upload():
             return False
 
     @classmethod
+    def reset_renamed_sent_to_bucket(cls, upload_id):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        upload = session.query(UploadTable).filter_by(id=upload_id).first()
+
+        if upload:
+            upload.renamed_sent_to_bucket=0
+            upload.renamed_sent_to_bucket_progress=0
+            session.commit()
+            session.close()
+            return True
+        else:
+            session.close()
+            return False
+
+    @classmethod
     def update_fastqc_process_id(cls, upload_id, fastqc_process_id):
         db_engine = connect_db()
         session = get_session(db_engine)

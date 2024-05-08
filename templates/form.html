@@ -356,6 +356,9 @@
       </h3>
       {% if renamed_sent_to_bucket %}
         <div id="step_10_msg" class="text-success">Renamed files sent to buckets</div>
+        {% if (is_admin) %}
+          <button type="button" class="btn btn-secondary" id="step_10_reset_button" data-process_id="{{ process_id }}">Reset step flag</button>
+        {% endif %}           
       {% else %}
         <div>
           <form
@@ -1283,6 +1286,28 @@
                     }
                 });
             });
+                     
+            $('#step_10_reset_button').click(function() {
+              // Toggle visibility of all rows after the specified number of rows
+              var this_process_id = $(this).data('process_id');
+              $.ajax({
+                  type: 'POST',
+                  url: '/reset_flag',
+                  data: {
+                    flag: 'final_files_sent_to_bucket',
+                    process_id: this_process_id
+                  },
+                  success: function (response) {
+                      // Handle success
+                      console.log('Reset flag submitted via AJAX successfully');
+                  },
+                  error: function (error) {
+                      // Handle errors
+                      console.error('Error submitting form data via AJAX', error);
+                  }
+              });              
+            });          
+            
         });
     </script>
 </body>

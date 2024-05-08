@@ -723,9 +723,26 @@ def show_system_report():
 @upload_bp.route('/recreate_process_matching_files', endpoint='recreate_process_matching_files')
 @login_required
 @approved_required
+@admin_required
 def recreate_process_matching_files():
     process_id = request.args.get('process_id')
     nr_files = recreate_matching_files(process_id)
     return {
         "nr_files": nr_files
     }
+
+@upload_bp.route('/reset_flag', methods=['POST'], endpoint='reset_flag')
+@login_required
+@approved_required
+@admin_required
+def reset_flag():
+    process_id = request.form.get('process_id')
+    flag = request.form.get('flag')
+    if flag == 'final_files_sent_to_bucket':
+        Upload.reset_renamed_sent_to_bucket(process_id)
+
+        return {
+            "status": 'Success'
+        }
+
+    return {'status':'Unrecognised flag'}
