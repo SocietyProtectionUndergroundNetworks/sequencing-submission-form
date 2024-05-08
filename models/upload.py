@@ -133,6 +133,42 @@ class Upload():
             return False
 
     @classmethod
+    def reset_renaming_files(cls, upload_id):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        upload = session.query(UploadTable).filter_by(id=upload_id).first()
+
+        if upload:
+            upload.files_renamed=False
+            upload.renaming_skipped=False
+            session.commit()
+            session.close()
+            return True
+        else:
+            session.close()
+            return False
+
+    @classmethod
+    def reset_fastqc(cls, upload_id):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        upload = session.query(UploadTable).filter_by(id=upload_id).first()
+
+        if upload:
+            upload.fastqc_run=False
+            upload.fastqc_files_progress=0
+            upload.fastqc_process_id=None
+            upload.fastqc_sent_to_bucket=False
+            session.commit()
+            session.close()
+            return True
+        else:
+            session.close()
+            return False
+
+    @classmethod
     def update_fastqc_process_id(cls, upload_id, fastqc_process_id):
         db_engine = connect_db()
         session = get_session(db_engine)

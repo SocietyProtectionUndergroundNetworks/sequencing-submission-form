@@ -743,5 +743,8 @@ def reset_flag():
         return {
             "status": 'Success'
         }
-
+    elif flag=='renaming_files':
+        Upload.reset_renaming_files(process_id)
+    elif flag=='fastqc':
+        Upload.reset_fastqc(process_id)
     return {'status':'Unrecognised flag'}

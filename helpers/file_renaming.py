@@ -44,7 +44,6 @@ def rename_files(csv_file_path, directory_path, files_json):
 
             # Find the matching filenames based on the Sequencer_ID
             matching_files = [filename for filename in file_names if filename.startswith(sampleid.split('_S', 1)[0] + '_S')]
-            #logger.info(matching_files)
             for matching_file in matching_files:
                 # Get the full path of the matching file
                 old_file_path = os.path.join(directory_path, matching_file)
@@ -61,8 +60,14 @@ def rename_files(csv_file_path, directory_path, files_json):
                 # Create the new file name based on the extracted extension, modified 'Name' column, and the 'CCBB' prefix
                 new_file_name = new_name + '_S' + extension
 
-                # Check for duplicate names
-                if new_file_name in file_names:
+                if new_file_name == matching_file:
+                    results[matching_file] = f"New and old names the same for {new_file_name}"
+                    matching_files_dict[matching_file]['new_filename'] = new_file_name
+                    matching_files_dict[matching_file]['bucket'] = bucket
+                    matching_files_dict[matching_file]['folder'] = bucket_folder
+                    matching_files_dict[matching_file]['csv_sample_id'] = name
+                elif new_file_name in file_names:
+                    # Check for duplicate names
                     # app.logger.info(f"Duplicate file name: {new_file_name}. Skipping renaming for {matching_file}")
                     results[matching_file] = f"Duplicate file name: {new_file_name}. Skipping renaming"
                     #results.append(f"Duplicate file name: {new_file_name}. Skipping renaming for {matching_file}")
@@ -83,7 +88,6 @@ def rename_files(csv_file_path, directory_path, files_json):
 
             if not matching_files:
                 not_found.append(sampleid)
-
     return results, not_found, matching_files_dict
 
 def calculate_md5(file_path):

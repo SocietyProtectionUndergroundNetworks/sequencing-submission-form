@@ -278,9 +278,15 @@
       {% if (files_renamed) %}
         <div id="step_7_msg" class="text-success">Files renamed</div>
         <h4 id="step_7_warning" class="text-warning"></h4>
+        {% if (is_admin) %}
+          <button type="button" class="btn btn-secondary" id="step_7_reset_button" data-process_id="{{ process_id }}">Reset step flag</button>
+        {% endif %}          
       {% elif renaming_skipped and renaming_skipped==True %}
         <div id="step_7_msg" class="text-success">Renaming skipped</div>
         <h4 id="step_7_warning" class="text-warning"></h4>
+        {% if (is_admin) %}
+          <button type="button" class="btn btn-secondary" id="step_7_reset_button" data-process_id="{{ process_id }}">Reset step flag</button>
+        {% endif %}          
       {% else %}
         <h4 id="step_7_warning" class="text-warning"> ONLY start this when you have uploaded successfully all your files and the unzip process has finished for all your files</h4>
         <div>
@@ -314,6 +320,9 @@
 
       {% if fastqc_run %}
         <div id="step_8_msg" class="text-success">Fastqc and multiqc processes run</div>
+        {% if (is_admin) %}
+          <button type="button" class="btn btn-secondary" id="step_8_reset_button" data-process_id="{{ process_id }}">Reset step flag</button>
+        {% endif %}          
       {% else %}
         <div>
           <form
@@ -426,7 +435,7 @@
         let sequencing_method = {{ sequencing_method if sequencing_method else 0 }};
         let gz_filedata = {{ gz_filedata|tojson if gz_filedata else '{}' }};
         let matching_files_db = {{ matching_files_db|tojson if matching_files_db else '{}' }};
-        let files_renamed = {{ files_renamed if files_renamed else 0 }};
+        let files_renamed = {{ 1 if files_renamed else 0 }};
         let renaming_skipped = {{ 1 if renaming_skipped else 0 }};
 
 
@@ -1306,7 +1315,49 @@
                       console.error('Error submitting form data via AJAX', error);
                   }
               });              
-            });          
+            });   
+            
+            $('#step_7_reset_button').click(function() {
+              // Toggle visibility of all rows after the specified number of rows
+              var this_process_id = $(this).data('process_id');
+              $.ajax({
+                  type: 'POST',
+                  url: '/reset_flag',
+                  data: {
+                    flag: 'renaming_files',
+                    process_id: this_process_id
+                  },
+                  success: function (response) {
+                      // Handle success
+                      console.log('Reset flag submitted via AJAX successfully');
+                  },
+                  error: function (error) {
+                      // Handle errors
+                      console.error('Error submitting form data via AJAX', error);
+                  }
+              });              
+            });           
+            
+            $('#step_8_reset_button').click(function() {
+              // Toggle visibility of all rows after the specified number of rows
+              var this_process_id = $(this).data('process_id');
+              $.ajax({
+                  type: 'POST',
+                  url: '/reset_flag',
+                  data: {
+                    flag: 'fastqc',
+                    process_id: this_process_id
+                  },
+                  success: function (response) {
+                      // Handle success
+                      console.log('Reset flag submitted via AJAX successfully');
+                  },
+                  error: function (error) {
+                      // Handle errors
+                      console.error('Error submitting form data via AJAX', error);
+                  }
+              });              
+            });                      
             
         });
     </script>
