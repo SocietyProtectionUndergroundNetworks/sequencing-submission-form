@@ -414,3 +414,19 @@ def delete_buckets_archive_files():
 
 
                 logger.info(f"Deleted blob '{blob.name}' from the 'archive' folder.")
+
+def delete_bucket_folder(folder_name, bucket_name=None):
+    # Configure Google Cloud Storage
+    if bucket_name is None:
+        bucket_name = os.environ.get('GOOGLE_STORAGE_BUCKET_NAME')
+
+    bucket_name = bucket_name.lower()
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+
+    blobs = bucket.list_blobs(prefix=folder_name)  # List blobs within the folder
+
+    for blob in blobs:
+        blob.delete()
+
+    logger.info(f"Folder '{folder_name}' and its contents deleted successfully from bucket '{bucket_name}'.")

@@ -25,7 +25,8 @@ from helpers.bucket import (
     get_renamed_files_to_storage_progress,
     init_upload_final_files_to_storage,
     get_bucket_size_excluding_archive,
-    check_archive_file
+    check_archive_file,
+    delete_bucket_folder
 )
 
 from helpers.unzip import get_progress_db_unzip, unzip_raw, unzip_raw_file
@@ -692,10 +693,11 @@ def delete_upload_files():
 def delete_upload_process():
     process_id = request.args.get('process_id')
     user_id = request.args.get('user_id')
+    upload = Upload.get(process_id)
+    uploads_folder = upload.uploads_folder
+    delete_bucket_folder('uploads/' + uploads_folder)
     Upload.delete_upload_and_files(process_id)
     return redirect(url_for('upload.user_uploads', user_id=user_id))
-
-
 
 @upload_bp.route('/movefinaldprogress', methods=['GET'], endpoint='get_final_files_to_storage_progress_route')
 @login_required
