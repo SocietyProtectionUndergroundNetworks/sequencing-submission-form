@@ -30,7 +30,7 @@ class BucketTable(Base):
     archive_file = Column(String(255), nullable=True)
     archive_file_created_at = Column(DateTime, nullable=True)
     archive_file_creation_progress = Column(Integer, nullable=True)
-        
+
 class UploadTable(Base):
     __tablename__ = 'uploads'
 
@@ -38,9 +38,9 @@ class UploadTable(Base):
     user_id = Column(String(36), ForeignKey('users.id', ondelete='CASCADE'))
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(
-        DateTime, 
-        default=func.now(), 
-        onupdate=func.now(), 
+        DateTime,
+        default=func.now(),
+        onupdate=func.now(),
         nullable=True
     )
     metadata_filename = Column(String(255), nullable=True)
@@ -58,3 +58,4 @@ class UploadTable(Base):
     fastqc_sent_to_bucket = Column(Boolean, default=False)
     renamed_sent_to_bucket = Column(Boolean, default=False)
     renamed_sent_to_bucket_progress = Column(Integer, default=0)
+    reviewed_by_admin = Column(Boolean, default=False)

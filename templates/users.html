@@ -44,6 +44,11 @@
               <td>
                 {% if user.uploads_count > 0 %}
                   <a href="/user_uploads?user_id={{ user.user.id }}">{{ user.uploads_count }}</a>
+                  {% if (user.uploads_count - user.reviewed_by_admin_count) > 0 %}
+                  <div>
+                    Not reviewed by admin: {{ (user.uploads_count - user.reviewed_by_admin_count) }}
+                  </div>
+                  {% endif %}
                 {% else %}
                   {{ user.uploads_count }}
                 {% endif %}

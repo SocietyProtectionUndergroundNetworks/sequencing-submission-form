@@ -2,7 +2,7 @@ from flask_login import UserMixin
 
 from helpers.dbm import connect_db, get_session
 from models.db_model import UserTable, UploadTable, BucketTable
-from sqlalchemy import func
+from sqlalchemy import func, case
 import logging
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
@@ -60,14 +60,18 @@ class User(UserMixin):
         db_engine = connect_db()
         session = get_session(db_engine)
 
-        all_users_db = session.query(UserTable, func.count(UploadTable.id)).outerjoin(UploadTable).group_by(UserTable.id).all()
+        all_users_db = session.query(UserTable,
+                                     func.count(UploadTable.id),
+                                     func.count(func.nullif(UploadTable.reviewed_by_admin, False)),
+                                     func.count(func.nullif(UploadTable.reviewed_by_admin, True))
+                                    ).outerjoin(UploadTable).group_by(UserTable.id).all()
 
         if not all_users_db:
             session.close()
             return []
 
         all_users = []
-        for user_db, uploads_count in all_users_db:
+        for user_db, uploads_count, reviewed_true_count, reviewed_false_count in all_users_db:
             user_buckets = [bucket.id for bucket in user_db.buckets]
             user_info = {
                 'user': User(
@@ -79,7 +83,8 @@ class User(UserMixin):
                     approved=user_db.approved,
                     buckets=user_buckets
                 ),
-                'uploads_count': uploads_count if uploads_count else 0
+                'uploads_count': uploads_count if uploads_count else 0,
+                'reviewed_by_admin_count': reviewed_true_count if reviewed_true_count else 0
             }
             all_users.append(user_info)
 

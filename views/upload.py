@@ -748,3 +748,14 @@ def reset_flag():
     elif flag=='fastqc':
         Upload.reset_fastqc(process_id)
     return {'status':'Unrecognised flag'}
+
+@upload_bp.route('/update_reviewed_by_admin_status', methods=['POST'], endpoint='update_reviewed_by_admin_status')
+@login_required
+@admin_required
+def update_reviewed_by_admin_status():
+    process_id = request.form.get('process_id')
+    user_id = request.form.get('user_id')
+    reviewed_status = request.form.get('reviewed') == 'on'  # Convert to boolean
+    # Update the admin status in the database based on user_id and admin_status
+    Upload.update_reviewed_by_admin_status(process_id, reviewed_status)
+    return redirect('/user_uploads?user_id=' + user_id)

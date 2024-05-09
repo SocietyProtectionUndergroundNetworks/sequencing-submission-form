@@ -495,3 +495,16 @@ class Upload():
             logger.error(f"Error deleting upload record: {e}")
         finally:
             session.close()
+
+    @classmethod
+    def update_reviewed_by_admin_status(cls, upload_id, new_reviewed_status):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        upload_db = session.query(UploadTable).filter_by(id=upload_id).first()
+
+        if upload_db:
+            upload_db.reviewed_by_admin = new_reviewed_status
+            session.commit()
+
+        session.close()
