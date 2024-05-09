@@ -18,6 +18,7 @@ from flask_login import (
 )
 
 from helpers.csv import validate_csv, get_csv_data
+from helpers.discord import init_send_message
 from helpers.bucket import (
     bucket_chunked_upload,
     get_progress_db_bucket,
@@ -406,6 +407,8 @@ def upload_metadata():
     file.save(save_path)  # Save the CSV file to a specific location
 
     process_id = Upload.create(user_id=current_user.id, uploads_folder=uploads_folder, metadata_filename=filename)
+    init_send_message('STARTING: An upload was initiated by uploading metadata by the user ' + current_user.name + '. The id of the upload is: ' + str(process_id))
+
     bucket_chunked_upload(save_path, "uploads/" + uploads_folder, filename, process_id, 'metadata_file')
     return jsonify({"msg": "Metadata file uploaded successfully.", "process_id": process_id, "upload_folder": uploads_folder}), 200
 
@@ -656,6 +659,9 @@ def upload_final_files_route():
             recreate_matching_files(process_id)
 
     init_upload_final_files_to_storage(process_id)
+
+    init_send_message('FINISHING: The last step (upload final files to storage) was initiated by the user ' + current_user.name + '. The id of the upload is: ' + str(process_id))
+
     return jsonify({'message': 'Process initiated'})
 
 @upload_bp.route('/user_uploads', methods=['GET'], endpoint='user_uploads')
@@ -761,3 +767,8 @@ def update_reviewed_by_admin_status():
     # Update the admin status in the database based on user_id and admin_status
     Upload.update_reviewed_by_admin_status(process_id, reviewed_status)
     return redirect('/user_uploads?user_id=' + user_id)
+
+@upload_bp.route('/discord', endpoint='discord')
+def discord():
+    init_send_message('test')
+    return {}
