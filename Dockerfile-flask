@@ -53,7 +53,7 @@ RUN pip install --trusted-host pypi.python.org -r requirements.txt
 USER $FLASK_PROCESS_USER
 
 # Copy the rest of the working directory contents into the container at /app
-COPY . .
+# COPY . .
 
 # Run app.py when the container launches
 ENTRYPOINT ["python", "app.py"]

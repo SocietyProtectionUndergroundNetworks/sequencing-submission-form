@@ -157,7 +157,7 @@ def upload_final_files_to_storage(process_id):
     #lets iterate it doing the actual move
     for key, value in files_json.items():
         if (sequencing_method == 1):
-            if (upload.renaming_skipped):
+            if ((upload.renaming_skipped) or (value['new_filename']==None)or (value['new_filename']=="")):
                 file_to_move = key
             else:
                 file_to_move = value['new_filename']
