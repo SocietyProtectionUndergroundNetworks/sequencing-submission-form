@@ -305,7 +305,7 @@ def download_bucket_contents(bucket_name):
         # Iterate through files in the bucket
         for blob in bucket.list_blobs():
             # Exclude files in the "archive" folder
-            if not blob.name.startswith('archive/'):
+            if ((not blob.name.startswith('archive/')) and (not blob.name.endswith('/'))):
                 # Update progress for downloaded files
                 downloaded_files += 1
                 download_progress = downloaded_files / total_files * 60  # 60% allocated for downloading
@@ -316,7 +316,8 @@ def download_bucket_contents(bucket_name):
                 local_path = os.path.join(destination_folder, os.path.dirname(blob.name))
                 os.makedirs(local_path, exist_ok=True)
                 # Download file to local computer
-                blob.download_to_filename(os.path.join(destination_folder, blob.name))
+                new_file_path = os.path.join(destination_folder, blob.name)
+                blob.download_to_filename(new_file_path)
                 # Add file to zip archive
                 zipf.write(os.path.join(destination_folder, blob.name), arcname=blob.name)
 

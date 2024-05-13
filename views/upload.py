@@ -579,6 +579,18 @@ def handle_upload():
 
     return jsonify({'message': 'No file received'}), 400
 
+@upload_bp.route('/start_raw_and_unzip', methods=['GET'], endpoint='start_raw_and_unzip')
+@login_required
+@admin_required
+@approved_required
+def start_raw_and_unzip():
+    process_id = request.args.get('process_id')
+    filename = request.args.get('filename')
+    result = init_send_raw_to_storage(process_id, filename)
+    result2 = unzip_raw(process_id, filename)
+    return jsonify({'result_1': result, 'result2': result2}), 200
+
+
 @upload_bp.route('/upload', methods=['GET'], endpoint='check_chunk')
 @login_required
 @approved_required
