@@ -669,17 +669,35 @@ def upload_final_files_route():
 @approved_required
 def user_uploads():
     user_id = request.args.get('user_id')
+    order_by = request.args.get('order_by', 'id')
+    if (order_by not in ['id', 'filesize']):
+        order_by='id'
     user = User.get(user_id)
     if (current_user.admin) or (current_user.id == user_id) :
-        user_uploads = Upload.get_uploads_by_user(user_id)
+        user_uploads = Upload.get_uploads(user_id, order_by=order_by)
         return render_template('user_uploads.html',
                                 user_uploads=user_uploads,
                                 user_id=user_id,
                                 is_admin=current_user.admin,
                                 username=user.name,
-                                user_email=user.email)
+                                user_email=user.email,
+                                order_by=order_by)
     else:
         return redirect(url_for('user.only_admins'))
+
+@upload_bp.route('/all_uploads', methods=['GET'], endpoint='all_uploads')
+@login_required
+@admin_required
+@approved_required
+def all_uploads():
+    order_by = request.args.get('order_by', 'id')
+    if (order_by not in ['id', 'filesize']):
+        order_by='id'
+
+    all_uploads = Upload.get_uploads(None, order_by=order_by)
+    return render_template('all_uploads.html',
+                            all_uploads=all_uploads,
+                            order_by=order_by)
 
 @upload_bp.route('/delete_upload_files', methods=['GET'], endpoint='delete_renamed_files')
 @admin_required
@@ -698,12 +716,18 @@ def delete_upload_files():
 @approved_required
 def delete_upload_process():
     process_id = request.args.get('process_id')
-    user_id = request.args.get('user_id')
+    return_to = request.args.get('return_to')
+    order_by = request.args.get('order_by')
+    logger.info('The order_by is ' + order_by)
     upload = Upload.get(process_id)
     uploads_folder = upload.uploads_folder
     delete_bucket_folder('uploads/' + uploads_folder)
     Upload.delete_upload_and_files(process_id)
-    return redirect(url_for('upload.user_uploads', user_id=user_id))
+    if return_to=='user':
+        user_id = request.args.get('user_id')
+        return redirect(url_for('upload.user_uploads', user_id=user_id, order_by=order_by))
+    else:
+        return redirect(url_for('upload.all_uploads', order_by=order_by))
 
 @upload_bp.route('/movefinaldprogress', methods=['GET'], endpoint='get_final_files_to_storage_progress_route')
 @login_required
@@ -762,11 +786,16 @@ def reset_flag():
 @admin_required
 def update_reviewed_by_admin_status():
     process_id = request.form.get('process_id')
-    user_id = request.form.get('user_id')
+    return_to = request.form.get('return_to')
+    order_by = request.form.get('order_by')
     reviewed_status = request.form.get('reviewed') == 'on'  # Convert to boolean
     # Update the admin status in the database based on user_id and admin_status
     Upload.update_reviewed_by_admin_status(process_id, reviewed_status)
-    return redirect('/user_uploads?user_id=' + user_id)
+    if return_to=='user':
+        user_id = request.form.get('user_id')
+        return redirect('/user_uploads?user_id=' + user_id + '&order_by=' + order_by)
+    else:
+        return redirect('/all_uploads?order_by=' + order_by)
 
 @upload_bp.route('/discord', endpoint='discord')
 def discord():

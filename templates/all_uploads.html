@@ -18,20 +18,20 @@
     </div>
   </div>
 
-  <h1>Uploads list for user {{ username }} - {{ user_email }}</h1>
   <div>
     <table class="table">
       <thead>
         <tr>
           <th scope="col">
             {% if (order_by=='filesize') %}
-            <a href="user_uploads?user_id={{ user_id }}">#</a>
+            <a href="all_uploads">#</a>
             {% else %}
             #
             {% endif %}
           </th>
-          <th scope="col">Created At</th>
-          <th scope="col">Updated AT</th>
+          <th scope="col">Created by</th>
+          <th scope="col">Created at</th>
+          <th scope="col">Updated at</th>
           <th scope="col">Uploads folder</th>
           <th scope="col">CVS uploaded</th>
           <th scope="col">CVS filename</th>
@@ -41,7 +41,7 @@
           <th scope="col">Files still on server</th>
           <th scope="col">
             {% if (order_by=='id') %}
-            <a href="user_uploads?user_id={{ user_id }}&order_by=filesize">Files size uploads folder</a>
+            <a href="all_uploads?order_by=filesize">Files size uploads folder</a>
             {% else %}
             Files size uploads folder
             {% endif %}
@@ -52,18 +52,17 @@
         </tr>
       </thead>
       <tbody id="files_body">
-        {% for upload in user_uploads %}
+        {% for upload in all_uploads %}
           <tr>
               <td scope="row">
                 <a href="/form_resume?process_id={{ upload.id }}">
                   {{ upload.id }}
                 </a>
-                {% if is_admin %}
-                  <br><a href="#" class="text-danger delete-upload" data-process-id="{{ upload.id }}" data-user-id="{{ user_id }}" data-order-by="{{ order_by }}">
-                      X
-                  </a>
-                {% endif %}
+                <br><a href="#" class="text-danger delete-upload" data-process-id="{{ upload.id }}" data-order-by="{{ order_by }}">
+                    X
+                </a>
               </td>
+              <td>{{ upload.username }}</td>
               <td>{{ upload.created_at }}</td>
               <td>{{ upload.updated_at }}</td>
               <td>{{ upload.uploads_folder }}</td>
@@ -79,11 +78,9 @@
               <td {% if upload.files_still_on_filesystem:  %} class="text-success" {% endif %}>
                 {% if upload.files_still_on_filesystem:  %}
                   {{ upload.files_still_on_filesystem }}
-                  {% if is_admin %}
-                    <a href="delete_upload_files?return_to=user&process_id={{ upload.id }}&user_id={{ user_id }}&order_by={{ order_by }}">
-                      Delete
-                    </a>
-                  {% endif %}
+                  <a href="delete_upload_files?return_to=all&process_id={{ upload.id }}&order_by={{ order_by }}">
+                    Delete
+                  </a>
                 {% else: %}
                   {{ upload.files_still_on_filesystem }}
                 {% endif %}
@@ -95,19 +92,14 @@
                 {{ '%.1f' | format(upload.files_size_extract / (1024*1024)) }} MB
               </td>
               <td>
-                {% if is_admin %}
-                  <form action="/update_reviewed_by_admin_status" method="post" class="approved-form">
-                    <input type="hidden" name="process_id" value="{{ upload.id }}">
-                    <input type="hidden" name="user_id" value="{{ user_id }}">
-                    <input type="hidden" name="return_to" value="user">
-                    <input type="hidden" name="order_by" value="{{ order_by }}">
-                    <div class="form-check">
-                      <input class="form-check-input approved-checkbox" type="checkbox" name="reviewed" {% if upload.reviewed_by_admin %} checked {% endif %}>
-                    </div>
-                  </form>
-                {% else: %}
-                  {{ upload.reviewed_by_admin }}
-                {% endif %}
+                <form action="/update_reviewed_by_admin_status" method="post" class="approved-form">
+                  <input type="hidden" name="process_id" value="{{ upload.id }}">
+                  <input type="hidden" name="return_to" value="all">
+                  <input type="hidden" name="order_by" value="{{ order_by }}">
+                  <div class="form-check">
+                    <input class="form-check-input approved-checkbox" type="checkbox" name="reviewed" {% if upload.reviewed_by_admin %} checked {% endif %}>
+                  </div>
+                </form>
               </td>
           </tr>
         {% endfor %}
@@ -121,7 +113,6 @@
 
           // Get the data attributes
           var processId = $(this).data("process-id");
-          var userId = $(this).data("user-id");
           var orderBy = $(this).data("order-by");
 
           // Ask for confirmation
@@ -129,7 +120,7 @@
 
           // If user confirms, redirect to the delete URL
           if (confirmation) {
-              window.location.href = "delete_upload_process?return_to=user&process_id=" + processId + "&order_by=" + orderBy + "&user_id=" + userId;
+              window.location.href = "delete_upload_process?return_to=all&process_id=" + processId + "&order_by=" + orderBy;
           }
       });
       $('.approved-checkbox').on('change', function() {

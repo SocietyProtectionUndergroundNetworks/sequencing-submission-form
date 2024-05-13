@@ -4,7 +4,7 @@ import shutil
 import logging
 from collections import OrderedDict
 from helpers.dbm import connect_db, get_session
-from models.db_model import UploadTable
+from models.db_model import UploadTable, UserTable
 from sqlalchemy import desc, or_
 from sqlalchemy.exc import SQLAlchemyError
 from pathlib import Path
@@ -341,22 +341,27 @@ class Upload():
                     lastkey = key
         return matching_files_dict
 
+
+
     @classmethod
-    def get_uploads_by_user(cls, user_id):
+    def get_uploads(cls, user_id=None, order_by='id'):
         db_engine = connect_db()
         session = get_session(db_engine)
 
-        uploads = session.query(UploadTable).filter_by(user_id=user_id).all()
-
+        if user_id:
+            uploads_query = session.query(UploadTable, UserTable.name).join(UserTable).filter(UploadTable.user_id == user_id)
+        else:
+            uploads_query = session.query(UploadTable, UserTable.name).join(UserTable)
+        from sqlalchemy import text
         session.close()
-
-        if not uploads:
-            return []
-
+        uploads = uploads_query.all()
+            
+        logger.info(uploads)
         uploads_list = []
-        for upload in uploads:
+        for upload, username in uploads:
             upload_directory = Path("uploads", upload.uploads_folder)
             extract_directory = Path("processing", upload.uploads_folder)
+
             files_still_on_filesystem = False
             upload_instance = Upload.get(upload.id)
             files_json = upload_instance.get_files_json()
@@ -387,14 +392,7 @@ class Upload():
                     files_still_on_filesystem = True
                     break
 
-            # Check if any of the files in gz_filedata still exist on the filesystem
-            if (upload_instance.gz_filedata):
-                gz_filedata = json.loads(upload_instance.gz_filedata)
-                for filename, file_info in gz_filedata.items():
-                    file_path = upload_directory / filename
-                    if file_path.exists() and file_path.is_file():
-                        files_still_on_filesystem = True
-                        break
+            # Get user name
 
             # Create a dictionary containing all fields including the calculated ones
             upload_data = {key: getattr(upload, key) for key in upload.__dict__.keys() if not key.startswith('_')}
@@ -403,12 +401,19 @@ class Upload():
             upload_data['files_still_on_filesystem'] = files_still_on_filesystem
             upload_data['files_size_extract'] = extract_directory_size
             upload_data['files_size_upload'] = upload_directory_size
+            upload_data['username'] = username
 
             # Create an instance of the class with the modified data
             upload_instance = cls(**upload_data)
 
             # Append the instance to the list
             uploads_list.append(upload_instance)
+
+        # Sort the uploads_list based on the order_by parameter
+        if order_by == 'filesize':
+            uploads_list.sort(key=lambda x: x.files_size_upload, reverse=True)
+        else:
+            uploads_list.sort(key=lambda x: x.id, reverse=True)
 
         return uploads_list
 
