@@ -68,9 +68,7 @@ def rename_files(csv_file_path, directory_path, files_json):
                     matching_files_dict[matching_file]['csv_sample_id'] = name
                 elif new_file_name in file_names:
                     # Check for duplicate names
-                    # app.logger.info(f"Duplicate file name: {new_file_name}. Skipping renaming for {matching_file}")
                     results[matching_file] = f"Duplicate file name: {new_file_name}. Skipping renaming"
-                    #results.append(f"Duplicate file name: {new_file_name}. Skipping renaming for {matching_file}")
                 else:
                     # Get the full path of the new file name
                     new_file_path = os.path.join(directory_path, new_file_name)

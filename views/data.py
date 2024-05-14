@@ -58,10 +58,6 @@ def generate_download_link():
     file = request.form.get('file')
     bucket = request.form.get('bucket')
     url = make_file_accessible(bucket, 'archive/'+file)
-    logger.info('Bucket is:  ' + bucket)
-    logger.info('file is:  ' + file)
-    logger.info('url is:  ' + url)
-    
     
     return {'status':1, 'url':url}
 

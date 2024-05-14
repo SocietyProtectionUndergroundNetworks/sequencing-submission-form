@@ -280,13 +280,13 @@
         <h4 id="step_7_warning" class="text-warning"></h4>
         {% if (is_admin) %}
           <button type="button" class="btn btn-secondary" id="step_7_reset_button" data-process_id="{{ process_id }}">Reset step flag</button>
-        {% endif %}          
+        {% endif %}
       {% elif renaming_skipped and renaming_skipped==True %}
         <div id="step_7_msg" class="text-success">Renaming skipped</div>
         <h4 id="step_7_warning" class="text-warning"></h4>
         {% if (is_admin) %}
           <button type="button" class="btn btn-secondary" id="step_7_reset_button" data-process_id="{{ process_id }}">Reset step flag</button>
-        {% endif %}          
+        {% endif %}
       {% else %}
         <h4 id="step_7_warning" class="text-warning"> ONLY start this when you have uploaded successfully all your files and the unzip process has finished for all your files</h4>
         <div>
@@ -322,7 +322,7 @@
         <div id="step_8_msg" class="text-success">Fastqc and multiqc processes run</div>
         {% if (is_admin) %}
           <button type="button" class="btn btn-secondary" id="step_8_reset_button" data-process_id="{{ process_id }}">Reset step flag</button>
-        {% endif %}          
+        {% endif %}
       {% else %}
         <div>
           <form
@@ -367,7 +367,7 @@
         <div id="step_10_msg" class="text-success">Renamed files sent to buckets</div>
         {% if (is_admin) %}
           <button type="button" class="btn btn-secondary" id="step_10_reset_button" data-process_id="{{ process_id }}">Reset step flag</button>
-        {% endif %}           
+        {% endif %}
       {% else %}
         <div>
           <form
@@ -665,14 +665,14 @@
 
         });
 
-        function hide_form_6() {
+        function hide_form_7() {
           $('#step_7_button').hide();
           $('#step_7_skip_button').hide();
           $('#step_7_warning').hide();
           $('#step_7').css('opacity', '0.5');
         }
 
-        function show_form_6() {
+        function show_form_7() {
           $('#step_7_button').show();
           $('#step_7_skip_button').show();
           $('#step_7_warning').show();
@@ -681,8 +681,15 @@
 
         $(document).ready(function () {
           if (!gz_filedata || Object.keys(gz_filedata).length === 0 || sequencing_method==0 || sequencing_method>1) {
-            hide_form_6();
+            hide_form_7();
           }
+
+          if (!areAllFilesMatchedToBuckets(matching_files_db)) {
+            console.log('Not all files are matched');
+            console.log(matching_files_db);
+            hide_form_7();
+          }
+
           if (sequencing_method>1 && gz_filedata && Object.keys(gz_filedata).length > 0) {
             $('#step_10_form').show();
             $('#step_10').css('opacity', '1');
@@ -870,7 +877,7 @@
         // Event listener for when files are added
         r.on('filesAdded', function(files) {
             var file_index = 0;
-            hide_form_6();
+            hide_form_7();
             files.forEach(function(file) {
                 file_index = file_index +1;
                 // Handle each file individually
@@ -1042,6 +1049,16 @@
             return true;
         }
 
+        function areAllFilesMatchedToBuckets(filesDict) {
+            for (const filename in filesDict) {
+                const fileInfo = filesDict[filename];
+                if (!fileInfo.bucket || !fileInfo.folder) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
 
         function updateProgressUnZip(process_id, file_id, file_name) {
             console.log('We will now start calling for updates for ProgressUnZip for file ' + file_name);
@@ -1077,21 +1094,26 @@
                             let filesDict = data.files_dict_db;
                             redrawTable(filesDict);
 
-                            // We should check if all available files have been uzipped
-                            // and if yes, we should enable the next step
-                            if (areAllFilesUnzipped(gz_filedata)) {
-                              if (!uploading) {
-                                // HERE
-                                if (sequencing_method==1) {
-                                  show_form_6();
-                                } else {
-                                  hide_form_6();
-                                  $('#step_10_form').show();
-                                  $('#step_10').css('opacity', '1');
+                            if (areAllFilesMatchedToBuckets(filesDict)) {
+                              // We should check if all available files have been uzipped
+                              // and if yes, we should enable the next step
+                              if (areAllFilesUnzipped(gz_filedata)) {
+                                if (!uploading) {
+                                  // HERE
+                                  if (sequencing_method==1) {
+                                    show_form_7();
+                                  } else {
+                                    hide_form_7();
+                                    $('#step_10_form').show();
+                                    $('#step_10').css('opacity', '1');
+                                  }
                                 }
+                              } else {
+                                hide_form_7();
                               }
                             } else {
-                              hide_form_6();
+                              $('#step_7_msg').text('Not all files are matched to records in your CSV. Please correct this by either renaming your files, or fixing your CSV. Please check the table bellow to see which files are not matched.').removeClass('text-success').addClass('text-danger');;
+                              hide_form_7();
                             }
 
                         }
@@ -1295,7 +1317,7 @@
                     }
                 });
             });
-                     
+
             $('#step_10_reset_button').click(function() {
               // Toggle visibility of all rows after the specified number of rows
               var this_process_id = $(this).data('process_id');
@@ -1314,9 +1336,9 @@
                       // Handle errors
                       console.error('Error submitting form data via AJAX', error);
                   }
-              });              
-            });   
-            
+              });
+            });
+
             $('#step_7_reset_button').click(function() {
               // Toggle visibility of all rows after the specified number of rows
               var this_process_id = $(this).data('process_id');
@@ -1335,9 +1357,9 @@
                       // Handle errors
                       console.error('Error submitting form data via AJAX', error);
                   }
-              });              
-            });           
-            
+              });
+            });
+
             $('#step_8_reset_button').click(function() {
               // Toggle visibility of all rows after the specified number of rows
               var this_process_id = $(this).data('process_id');
@@ -1356,9 +1378,9 @@
                       // Handle errors
                       console.error('Error submitting form data via AJAX', error);
                   }
-              });              
-            });                      
-            
+              });
+            });
+
         });
     </script>
 </body>

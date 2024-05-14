@@ -28,3 +28,7 @@ processing
 upload_progress.json
 
 app.log
+
+appvm.log
+
+backup.sql

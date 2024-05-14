@@ -99,7 +99,6 @@ def recreate_matching_files(process_id):
                     matching_files_dict[file_key]['folder'] = row['region']
                     break  # Break the loop once a match is found
                     logger.info('Found one file_key: ' + file_key + ' for project ' + row['project'])
-        logger.info('we will now update the files json')
         Upload.update_files_json(process_id, matching_files_dict)
     return nr_files
 
@@ -267,31 +266,33 @@ def upload_form_resume():
                                 form_reporting.append('The file ' + filename + ' exists when it shouldnt. Deleting it ')
 
                         # inconsistency 2: If the progress says 100, but the file does not exist!
-                        if (file_data['percent_uploaded'] == 100):
-                            if not os.path.exists(gz_file_path):
-                                logger.info('The file ' + filename + ' doesnt exist when it should. Deleting the gz_record and the parts ')
-                                logger.info(file_data)
+                        # TODO: This should not happen always, because it deletes data for the cases where we have chosen to delete the files from server!
+                        if (False):
+                            if (file_data['percent_uploaded'] == 100):
+                                if not os.path.exists(gz_file_path):
+                                    logger.info('The file ' + filename + ' doesnt exist when it should. Deleting the gz_record and the parts ')
+                                    logger.info(file_data)
 
-                                one_filedata = {
-                                    'form_filename': file_data.get('form_filename', None),
-                                    'form_filesize': file_data.get('form_filesize', None),
-                                    'form_filechunks': file_data.get('form_filechunks', None),
-                                    'form_fileidentifier': file_data.get('form_fileidentifier', None),
-                                    'chunk_number_uploaded': 0,
-                                    'percent_uploaded': 0,
-                                    'expected_md5': file_data.get('expected_md5', None)
-                                }
-                                form_reporting.append('The file ' + filename + ' doesnt exist when it should. Deleting the gz_record and the parts ')
-                                Upload.update_gz_filedata(process_id, one_filedata)
-                                files = os.listdir(path)
-                                for file in files:
-                                    # Check if the file starts with the filename and ends with '.partX' or '.temp'
+                                    one_filedata = {
+                                        'form_filename': file_data.get('form_filename', None),
+                                        'form_filesize': file_data.get('form_filesize', None),
+                                        'form_filechunks': file_data.get('form_filechunks', None),
+                                        'form_fileidentifier': file_data.get('form_fileidentifier', None),
+                                        'chunk_number_uploaded': 0,
+                                        'percent_uploaded': 0,
+                                        'expected_md5': file_data.get('expected_md5', None)
+                                    }
+                                    form_reporting.append('The file ' + filename + ' doesnt exist when it should. Deleting the gz_record and the parts ')
+                                    Upload.update_gz_filedata(process_id, one_filedata)
+                                    files = os.listdir(path)
+                                    for file in files:
+                                        # Check if the file starts with the filename and ends with '.partX' or '.temp'
 
-                                    if file.startswith(filename) and (file.endswith('.temp') or re.match(rf"{filename}\.part\d+", file)):
-                                        # Construct the full file path
-                                        file_path = os.path.join(path, file)
-                                        # Delete the file
-                                        os.remove(file_path)
+                                        if file.startswith(filename) and (file.endswith('.temp') or re.match(rf"{filename}\.part\d+", file)):
+                                            # Construct the full file path
+                                            file_path = os.path.join(path, file)
+                                            # Delete the file
+                                            os.remove(file_path)
 
 
                         if 'gz_sent_to_bucket_progress' in file_data:
@@ -351,16 +352,11 @@ def upload_form():
 def clear_file_upload():
     filename = request.form.get('filename')
     process_id = request.form.get('process_id')
-    logger.info(filename)
-    logger.info(process_id)
-    logger.info(int(process_id))
     process_id = int(process_id)
     if (isinstance(process_id, int) and (process_id !=0)):
-        logger.info('here 1')
         upload = Upload.get(process_id)
         path = Path("uploads", upload.uploads_folder)
         if (upload.csv_uploaded):
-            logger.info('here 2')
 
             #find out files to be deleted
             file_names = os.listdir(path)
@@ -369,12 +365,9 @@ def clear_file_upload():
                 file_to_remove = Path("uploads", upload.uploads_folder, matching_file)
                 os.remove(file_to_remove)
 
-            logger.info(matching_files_filesystem)
 
             gz_filedata = Upload.get_gz_filedata(upload.id)
-            logger.info(gz_filedata)
             one_filedata = gz_filedata[filename]
-            logger.info(one_filedata)
             one_filedata['percent_uploaded'] = 0;
             one_filedata['chunk_number_uploaded'] = 0;
 
@@ -421,8 +414,7 @@ def upload_csv():
     # Handle CSV file uploads separately
     file = request.files.get('file')
     sequencing_method = request.form.get('sequencing_method')
-    logger.info('The sequencing method is')
-    logger.info(sequencing_method)
+
     if not file:
         return jsonify({"error": "No file uploaded"}), 400
 
@@ -430,8 +422,7 @@ def upload_csv():
     filename = secure_filename(file.filename)
 
     process_id = request.form.get('process_id')
-    logger.info('The process_id method is ')
-    logger.info(process_id)
+    logger.info('Uploading csv for process_id ' + str(process_id) + ' with sequencing method ' + str(sequencing_method) +  'filename ' + filename )
     upload = Upload.get(process_id)
     uploads_folder = upload.uploads_folder
     path = Path("uploads", uploads_folder)
@@ -440,7 +431,6 @@ def upload_csv():
     file.save(save_path)  # Save the CSV file to a specific location
 
     cvs_results = validate_csv(save_path)
-    logger.info(cvs_results)
 
     if cvs_results is True:
         cvs_records = get_csv_data(save_path)
@@ -492,8 +482,6 @@ def handle_upload():
     file = request.files.get('file')
     if file:
         process_id = request.args.get('process_id')
-        logger.info('process_is is ')
-        logger.info(process_id)
         #fields to know which file we are uploading
         form_filename       = request.args.get('filename')
         form_filesize       = request.args.get('filesize')
@@ -730,7 +718,6 @@ def delete_upload_process():
     process_id = request.args.get('process_id')
     return_to = request.args.get('return_to')
     order_by = request.args.get('order_by')
-    logger.info('The order_by is ' + order_by)
     upload = Upload.get(process_id)
     uploads_folder = upload.uploads_folder
     delete_bucket_folder('uploads/' + uploads_folder)

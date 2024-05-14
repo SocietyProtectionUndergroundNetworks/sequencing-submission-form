@@ -131,9 +131,8 @@ def init_upload_final_files_to_storage(process_id):
 
     from tasks import upload_final_files_to_storage_async
     try:
-        logger.info('process_id: ' + str(process_id))
         result = upload_final_files_to_storage_async.delay(process_id)
-        logger.info(f"Celery upload_final_files_to_storage_async task called successfully! Task ID: {result.id}")
+        logger.info(f"Celery upload_final_files_to_storage_async task called successfully! Task ID: {result.id}. process_id: {process_id}")
         task_id = result.id
         #upload.update_fastqc_process_id(process_id, task_id)
     except Exception as e:
@@ -389,7 +388,7 @@ def delete_buckets_archive_files():
     for bucket in buckets:
 
         #bucket = client.bucket(bucket_name)
-        logger.info("-Bucket we are checking: " + bucket.name)
+        #logger.info("-Bucket we are checking: " + bucket.name)
 
         # Iterate through blobs in the "archive" folder
         for blob in bucket.list_blobs(prefix='archive/'):

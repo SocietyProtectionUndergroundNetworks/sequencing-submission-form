@@ -32,7 +32,6 @@ def extract_tar_without_structure(process_id, tar_file, extract_path):
     total_size = os.path.getsize(tar_file)
     current_size = 0
     filename = os.path.basename(tar_file)
-    logger.info(filename)
 
     with tarfile.open(tar_file, 'r') as tar:
         for member in tar.getmembers():

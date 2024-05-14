@@ -9,13 +9,9 @@ logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 async def send_message(message):
     # Retrieve the Discord bot token from environment variables
     TOKEN = os.environ.get('DISCORD_TOKEN')
-    #logger.info('The TOKEN is')
-    #logger.info(TOKEN)
 
     # Retrieve the Discord channel ID from environment variables
     CHANNEL = os.environ.get('DISCORD_CHANNEL')
-    #logger.info('The Channel is')
-    #logger.info(CHANNEL)
 
     PREFIX = os.environ.get('DISCORD_MESSAGE_PREFIX')
 

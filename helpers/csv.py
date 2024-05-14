@@ -122,7 +122,6 @@ def get_csv_data(file_path):
         csv_reader = csv.DictReader(csvfile)
         # next(csv_reader)  # Skip the header row
         for row in csv_reader:
-            #logger.info(row)
             sample_id_safe = make_safe_html_id(row['Sample_ID'] + '__' + row['Sequencer_ID'] + '__' + row['Project'], existing_ids)
             existing_ids.append(sample_id_safe)
             data[sample_id_safe] = {

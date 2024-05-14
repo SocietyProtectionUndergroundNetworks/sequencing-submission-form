@@ -356,7 +356,6 @@ class Upload():
         session.close()
         uploads = uploads_query.all()
             
-        logger.info(uploads)
         uploads_list = []
         for upload, username in uploads:
             upload_directory = Path("uploads", upload.uploads_folder)
@@ -426,9 +425,7 @@ class Upload():
             # Define the uploads directory
             uploads_directory = Path("uploads", self.uploads_folder)
             gz_filedata = json.loads(self.gz_filedata)
-            logger.info(gz_filedata)
             for filename, file_info in gz_filedata.items():
-                logger.info(filename)
                 file_path = uploads_directory / filename
                 if file_path.exists() and file_path.is_file():
                     # If it exists and is a file, delete the file

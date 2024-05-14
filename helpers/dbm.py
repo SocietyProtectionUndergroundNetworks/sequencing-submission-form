@@ -26,26 +26,4 @@ def get_session(db_engine):
     Session_mysql = sessionmaker(autoflush=False)
     session = Session_mysql(bind=db_engine)
     return session
-    
-def test_select(app):
-    test3()
-    db_engine = connect_db()
-    session = get_session(db_engine)
-    session.expire_all()
-    sql_query = """SELECT test FROM test"""
-    app.logger.info("SQL Query: " + sql_query)  # Log the SQL query
-    result = session.execute(text(sql_query))
-    nr = ''
-    for row in result:
-        app.logger.info("SQL result: " + str(row[0]))  # Log the SQL query
-        nr = str(row[0])
-    return nr
-
-        
-def test3():
-    db_engine = connect_db()
-    session = get_session(db_engine)
-    with db_engine.connect() as conn:
-        conn.execute(text("UPDATE test SET test = test+1;"))
-        conn.commit()
 
