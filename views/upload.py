@@ -114,8 +114,7 @@ def index():
         if upload is None:
             # Handle the case where no data is returned
             print("No data found.")
-            if not current_user.admin:
-                return render_template("form.html", msg='We could not find an unfinished process to resume', is_admin=current_user.admin)
+            gz_filedata = []
         else:
             if (upload.csv_uploaded):
                 gz_filedata = Upload.get_gz_filedata(upload.id)
@@ -800,3 +799,9 @@ def update_reviewed_by_admin_status():
 def discord():
     init_send_message('test')
     return {}
+
+@upload_bp.route('/metadata_form', endpoint='metadata_form')
+@login_required
+@approved_required
+def metadata_form():
+    return render_template("metadata_form.html")

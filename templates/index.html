@@ -21,27 +21,32 @@
         with the email: {{email}}
     </div>
       {% if current_user.is_authenticated and current_user.approved %}
-        <a href="/form_resume">
-          <div class="page-menu-item">
-            <div>
-              {% for filename, file_data in gz_filedata.items() %}
-                  {% if 'percent_uploaded' in file_data %}
-                      {% if file_data.percent_uploaded == 100 %}
-                          You have uploaded the file {{ filename }}<br>
-                      {% else %}
-                          {% if file_data.percent_uploaded > 0 %}
-                              You have previously started uploading a file: {{ filename }}<br>
-                              Already uploaded: {{ file_data.percent_uploaded }}%<br>
-                              Enter the form and select the same file to resume uploading<br>
+        {% if gz_filedata %}
+          <a href="/form_resume">
+            <div class="page-menu-item">
+              <div>
+
+                  {% for filename, file_data in gz_filedata.items() %}
+                      {% if 'percent_uploaded' in file_data %}
+                          {% if file_data.percent_uploaded == 100 %}
+                              You have uploaded the file {{ filename }}<br>
+                          {% else %}
+                              {% if file_data.percent_uploaded > 0 %}
+                                  You have previously started uploading a file: {{ filename }}<br>
+                                  Already uploaded: {{ file_data.percent_uploaded }}%<br>
+                                  Enter the form and select the same file to resume uploading<br>
+                              {% endif %}
                           {% endif %}
                       {% endif %}
-                  {% endif %}
-              {% endfor %}
+                  {% endfor %}
+                
+              </div>
+              
+              <h3>Resume Upload</h3>
             </div>
             
-            <h3>Resume Upload</h3>
-          </div>
-        </a>
+          </a>
+        {% endif %}
         <a href="/user_uploads?user_id={{ user_id }}">
           <div class="page-menu-item">
             <h3>Previous uploads</h3>
@@ -59,6 +64,12 @@
         </a>        
       {% endif %}
       {% if current_user.is_authenticated and current_user.admin %}
+      
+        <a href="{{ url_for('upload.metadata_form') }}">
+          <div class="page-menu-item">
+            <h3>(ADMIN ONLY. IN DEVELOPMENT). Metadata Submition form</h3>
+          </div>
+        </a>      
         <a href="{{ url_for('user.users') }}">
           <div class="page-menu-item">
             <h3>Users</h3>
