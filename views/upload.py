@@ -807,6 +807,7 @@ def discord():
 def metadata_form():
     all_buckets = Bucket.get_all()
     my_buckets = {}
+    map_key = os.environ.get('GOOGLE_MAP_API_KEY')
     for my_bucket in current_user.buckets:
         my_buckets[my_bucket] = Bucket.get(my_bucket)
-    return render_template("metadata_form.html", my_buckets=my_buckets)
+    return render_template("metadata_form.html", my_buckets=my_buckets, map_key=map_key)
