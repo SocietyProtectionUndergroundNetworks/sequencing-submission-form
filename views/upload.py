@@ -36,6 +36,7 @@ from helpers.file_renaming import calculate_md5, rename_all_files
 
 from models.upload import Upload
 from models.user import User
+from models.bucket import Bucket
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -804,4 +805,8 @@ def discord():
 @login_required
 @approved_required
 def metadata_form():
-    return render_template("metadata_form.html")
+    all_buckets = Bucket.get_all()
+    my_buckets = {}
+    for my_bucket in current_user.buckets:
+        my_buckets[my_bucket] = Bucket.get(my_bucket)
+    return render_template("metadata_form.html", my_buckets=my_buckets)

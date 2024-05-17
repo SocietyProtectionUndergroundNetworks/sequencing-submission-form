@@ -1,12 +1,11 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/resumable.js/1.1.0/resumable.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnSuA4Ss2PkkikSOLtYs8BlYIeeIK1h99ty4YfvRPAlzr377vr3CXDb7sb7eEEBYjDtcYj+AjBH3FLv5uSJuXg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js" integrity="sha512-7Pi/otdlbbCR+LnW+F7PwFcSDJOuUJB3OxtEHbg4vSMvzvJjde4Po1v4BR9Gdc9aXNUNFVUY+SK51wWT8WF0Gg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/spark-md5/3.0.0/spark-md5.min.js"></script>
     <title>Upload data</title>
 </head>
 <body>
@@ -31,9 +30,47 @@
         {% endfor %}
       {% endif %}
     </div>
-    
+    <div class="table-container">
+      <table id="dataTable" class="table-bordered">
+        <thead>
+          <tr>
+            <th scope="col">Sample ID</th>
+            <th scope="col">Project Specific Sample ID</th>
+            <th scope="col">Project ID</th>
+            <th scope="col">Site name</th>
+            <th scope="col">Latitude</th>
+            <th scope="col">Longitude</th>
+            <th scope="col">Country</th>
+            <th scope="col">Vegetation</th>
+            <th scope="col">Land Use</th>
+            
+            <th scope="col">Ecosystem</th>
+            <th scope="col">Grid Size</th>
+            <th scope="col">Soil Depth</th>
+            <th scope="col">Transport Refrigeration</th>
+            <th scope="col">Drying</th>
+            <th scope="col">Extraction Method</th>
+            <th scope="col">Date Collected</th>
+            <th scope="col">DNA Concentration (ng/µl)</th>
+            <th scope="col">DNA Conc Instrument</th>
+            <th scope="col">Sequencing Platform</th>
+            <th scope="col">Sequencing Facility</th>
+            <th scope="col">Elevation</th>
+            <th scope="col">Sample or Control</th>
+            <th scope="col">Primers</th>
+            <th scope="col">Expedition Leader</th>
+            <th scope="col">Collaborators</th>
+            <th scope="col">Sequencing Run</th>
+            <th scope="col">Notes</th>
+          </tr>          
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
+      
+    </div>
     <div class="container">
-      <form>
+      <form id="metadataForm">
         <div class="form-group row mb-3">
           <label for="sampleID" class="col-sm-3 col-form-label">Sample ID</label>
           <div class="col-sm-9">
@@ -52,8 +89,23 @@
         <div class="form-group row mb-3">
           <label for="projectID" class="col-sm-3 col-form-label">Project ID</label>
           <div class="col-sm-9">
-            <small id="projectIDHelp" class="form-text">Project ID given to you by the SPUN team</small>
-            <input type="text" class="form-control" id="projectID" placeholder="Project ID">
+            {% if my_buckets %}
+              {% if my_buckets|length == 1 %}
+                {% set single_project_key, single_project_value = my_buckets.items()|first %}
+                <select class="form-control" id="projectID" name="projectID">
+                  <option value="{{ single_project_key }}">{{ single_project_key }}</option>
+                </select>
+              {% else %}
+                <select class="form-control" id="projectID" name="projectID">
+                  <option value="" selected disabled>Please select a project</option>
+                  {% for project_key, project_value in my_buckets.items() %}
+                    <option value="{{ project_key }}">{{ project_key }}</option>
+                  {% endfor %}
+                </select>
+              {% endif %}
+            {% else %}
+              <small id="projectIDHelp" class="form-text text-danger">You have no projects assigned to this account. Please contact an administrator</small>
+            {% endif %}
           </div>
         </div>
         <div class="form-group row mb-3">
@@ -76,7 +128,11 @@
             <small id="longitudeHelp" class="form-text">Longitude of coordinates measured using WGS1984 (default on most GPS). Ideally in decimal format</small>
             <input type="text" class="form-control" id="longitude" placeholder="Longitude">
           </div>
-        </div>        
+        </div>
+        <div id="mapWrapper">
+          <div id="map"></div>
+        </div>
+          
         <div class="form-group row mb-3">
           <label for="country" class="col-sm-3 col-form-label">Country</label>
           <div class="col-sm-9">
@@ -85,126 +141,160 @@
           </div>
         </div>
 
-
-        
         <div class="form-group row mb-3">
           <label for="vegetation" class="col-sm-3 col-form-label">Vegetation</label>
           <div class="col-sm-9">
-            <small id="projectSpecificIDHelp" class="form-text">Project ID given to you by the SPUN team</small>
+            <small id="vegetationHelp" class="form-text">List of names of local vegetation, if names unknown describe (trees, grass, forbs, etc)</small>
             <input type="text" class="form-control" id="vegetation" placeholder="Vegetation">
           </div>
         </div>
         <div class="form-group row mb-3">
           <label for="landUse" class="col-sm-3 col-form-label">Land Use</label>
           <div class="col-sm-9">
+            <small id="landUseHelp" class="form-text">Short description such as Agricultural, Non-Agricultural, Urban, Burned forest</small>
             <input type="text" class="form-control" id="landUse" placeholder="Land Use">
           </div>
         </div>
         <div class="form-group row mb-3">
           <label for="ecosystem" class="col-sm-3 col-form-label">Ecosystem</label>
           <div class="col-sm-9">
+            <small id="ecosystemHelp" class="form-text">Ecossytem type or ecoregion</small>
             <input type="text" class="form-control" id="ecosystem" placeholder="Ecosystem">
           </div>
         </div>
         <div class="form-group row mb-3">
           <label for="gridSize" class="col-sm-3 col-form-label">Grid Size</label>
           <div class="col-sm-9">
+            <small id="gridSizeHelp" class="form-text">Size of your sampling grid. ** 30m ** is the standard</small>
             <input type="text" class="form-control" id="gridSize" placeholder="Grid Size">
           </div>
         </div>
         <div class="form-group row mb-3">
           <label for="soilDepth" class="col-sm-3 col-form-label">Soil Depth</label>
           <div class="col-sm-9">
+            <small id="soilDepthHelp" class="form-text">Depth of soil core. 5-10cm is the standard</small>
             <input type="text" class="form-control" id="soilDepth" placeholder="Soil Depth">
           </div>
         </div>
         <div class="form-group row mb-3">
           <label for="transportRefrigeration" class="col-sm-3 col-form-label">Transport Refrigeration</label>
           <div class="col-sm-9">
-            <input type="text" class="form-control" id="transportRefrigeration" placeholder="Transport Refrigeration">
+            <small id="transportRefrigerationHelp" class="form-text">Select whether you have refrigerated transport, such as a cooler.</small>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="transportRefrigeration" id="transportRefrigerationYes" value="yes">
+              <label class="form-check-label" for="transportRefrigerationYes">Yes</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="transportRefrigeration" id="transportRefrigerationNo" value="no">
+              <label class="form-check-label" for="transportRefrigerationNo">No</label>
+            </div>
           </div>
         </div>
         <div class="form-group row mb-3">
           <label for="drying" class="col-sm-3 col-form-label">Drying</label>
           <div class="col-sm-9">
+            <small id="dryingHelp" class="form-text">Yes/No. If so: time drying and method.</small>
             <input type="text" class="form-control" id="drying" placeholder="Drying">
           </div>
-        </div>
+        </div>        
+
         <div class="form-group row mb-3">
           <label for="extractionMethod" class="col-sm-3 col-form-label">Extraction Method</label>
           <div class="col-sm-9">
+            <small id="extractionMethodHelp" class="form-text">Kit or protocol used for DNA extraction.</small>
             <input type="text" class="form-control" id="extractionMethod" placeholder="Extraction Method">
           </div>
         </div>
+        
         <div class="form-group row mb-3">
           <label for="dateCollected" class="col-sm-3 col-form-label">Date Collected</label>
           <div class="col-sm-9">
-            <input type="text" class="form-control" id="dateCollected" placeholder="Date Collected">
+            <small id="dateCollectedHelp" class="form-text">Date of sample collection.</small>
+            <input type="date" class="form-control" id="dateCollected" placeholder="Date Collected">
           </div>
         </div>
+        
         <div class="form-group row mb-3">
           <label for="dnaConcentration" class="col-sm-3 col-form-label">DNA Concentration (ng/µl)</label>
           <div class="col-sm-9">
+            <small id="dnaConcentrationHelp" class="form-text">DNA concentration of sample.</small>
             <input type="text" class="form-control" id="dnaConcentration" placeholder="DNA Concentration (ng/µl)">
           </div>
         </div>
         <div class="form-group row mb-3">
           <label for="dnaConcInstrument" class="col-sm-3 col-form-label">DNA Conc Instrument</label>
           <div class="col-sm-9">
+            <small id="dnaConcInstrumentHelp" class="form-text">Instrument/machine used to quantiy DNA.</small>
             <input type="text" class="form-control" id="dnaConcInstrument" placeholder="DNA Conc Instrument">
           </div>
         </div>
         <div class="form-group row mb-3">
           <label for="sequencingPlatform" class="col-sm-3 col-form-label">Sequencing Platform</label>
           <div class="col-sm-9">
+            <small id="sequencingPlatformHelp" class="form-text">Sequencing platform and machine.</small>
             <input type="text" class="form-control" id="sequencingPlatform" placeholder="Sequencing Platform">
           </div>
         </div>
         <div class="form-group row mb-3">
           <label for="sequencingFacility" class="col-sm-3 col-form-label">Sequencing Facility</label>
           <div class="col-sm-9">
+            <small id="sequencingFacilityHelp" class="form-text">Company or core facility name.</small>
             <input type="text" class="form-control" id="sequencingFacility" placeholder="Sequencing Facility">
           </div>
         </div>
         <div class="form-group row mb-3">
           <label for="elevation" class="col-sm-3 col-form-label">Elevation</label>
           <div class="col-sm-9">
+            <small id="elevationHelp" class="form-text">Elevation in meters above sea level.</small>
             <input type="text" class="form-control" id="elevation" placeholder="Elevation">
           </div>
         </div>
         <div class="form-group row mb-3">
           <label for="sampleOrControl" class="col-sm-3 col-form-label">Sample or Control</label>
           <div class="col-sm-9">
-            <input type="text" class="form-control" id="sampleOrControl" placeholder="Sample or Control">
+            <small id="extractionMethodHelp" class="form-text">True sample' if the sample is a collected soil sample, 'control' if sample is a negative control.</small>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="sampleOrControl" id="sampleOrControlControlTrueSample" value="truesample">
+              <label class="form-check-label" for="sampleOrControlControlTrueSample">True sample</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="sampleOrControl" id="sampleOrControlControl" value="control">
+              <label class="form-check-label" for="sampleOrControlControl">Control</label>
+            </div>
           </div>
         </div>
         <div class="form-group row mb-3">
           <label for="primers" class="col-sm-3 col-form-label">Primers</label>
           <div class="col-sm-9">
+            <small id="primersHelp" class="form-text">Primer sets to be used for amplicon sequencing.</small>
             <input type="text" class="form-control" id="primers" placeholder="Primers">
           </div>
         </div>
         <div class="form-group row mb-3">
           <label for="expeditionLeader" class="col-sm-3 col-form-label">Expedition Leader</label>
           <div class="col-sm-9">
+            <small id="expeditionLeaderHelp" class="form-text">Name of leader and Underground Explorer grant winner.</small>
             <input type="text" class="form-control" id="expeditionLeader" placeholder="Expedition Leader">
           </div>
         </div>
         <div class="form-group row mb-3">
           <label for="collaborators" class="col-sm-3 col-form-label">Collaborators</label>
           <div class="col-sm-9">
+            <small id="collaboratorsHelp" class="form-text">List of names of local collaborators for this project.</small>
             <input type="text" class="form-control" id="collaborators" placeholder="Collaborators">
           </div>
         </div>
         <div class="form-group row mb-3">
           <label for="sequencingRun" class="col-sm-3 col-form-label">Sequencing Run</label>
           <div class="col-sm-9">
+            <small id="sequencingRunHelp" class="form-text">Leave blank unless samples run across multiple different sequencing runs.</small>
             <input type="text" class="form-control" id="sequencingRun" placeholder="Sequencing Run">
           </div>
         </div>
         <div class="form-group row mb-3">
           <label for="notes" class="col-sm-3 col-form-label">Notes</label>
           <div class="col-sm-9">
+            <small id="extractionMethodHelp" class="form-text">Any other information recorded.</small>
             <input type="text" class="form-control" id="notes" placeholder="Notes">
           </div>
         </div>
@@ -217,7 +307,9 @@
   </div>
   
   <script type="application/javascript">
+  let marker;
   $(document).ready(function() {
+    
     $('#sampleID').on('input', function() {
       console.log('Input event triggered');
       var sampleIDValue = $(this).val();
@@ -232,7 +324,167 @@
         $('#sampleIDHelp').text('Unique sample tracking ID for your project. This should be a location name used to describe where you sampled (country or region), the year, and a sample number. I.e Patagonia22_1').removeClass('text-danger');
       }
     });
+    
+    $('#latitude, #longitude').on('input', function() {
+        var latitudeValue = $('#latitude').val().trim();
+        var longitudeValue = $('#longitude').val().trim();
+
+        // Regular expressions to match latitude and longitude in WGS1984 format
+        var latitudePattern = /^[-+]?([1-8]?\d(\.\d+)?|90(\.0+)?)$/;
+        var longitudePattern = /^[-+]?([1-9]?\d(\.\d+)?|1[0-7]\d(\.\d+)?|180(\.0+)?)$/;
+
+        var latitudeValid = latitudePattern.test(latitudeValue);
+        var longitudeValid = longitudePattern.test(longitudeValue);
+
+        // Update help text and styles for latitude input
+        if (!latitudeValid) {
+            $('#latitudeHelp').text('Please enter a valid latitude in the WGS1984 format. Ideally in decimal format.').addClass('text-danger');
+        } else {
+            $('#latitudeHelp').text('Latitude of coordinates measured using WGS1984 (default on most GPS). Ideally in decimal format').removeClass('text-danger');
+        }
+
+        // Update help text and styles for longitude input
+        if (!longitudeValid) {
+            $('#longitudeHelp').text('Please enter a valid longitude in the WGS1984 format. Ideally in decimal format.').addClass('text-danger');
+        } else {
+            $('#longitudeHelp').text('Longitude of coordinates measured using WGS1984 (default on most GPS). Ideally in decimal format').removeClass('text-danger');
+        }
+
+        // Check if both latitude and longitude are valid
+        if (latitudeValid && longitudeValid) {
+            // Refresh the map and show marker at the specified coordinates
+            var location = { lat: parseFloat(latitudeValue), lng: parseFloat(longitudeValue) };
+            map.panTo(location);
+            map.setZoom(14); // Set higher zoom level
+            if (marker) {
+                marker.position = location;
+            } else {
+              console.log(location);
+                marker = new google.maps.marker.AdvancedMarkerElement({
+                    position: location,
+                    map: map
+                });
+            }
+        }
+    });
+
+    // Function to validate form fields
+    function validateForm() {
+        // Implement your validation logic here
+        // Return true if all fields are valid, false otherwise
+        return true; // Placeholder, replace with actual validation logic
+    }
+
+    // Function to populate table with form data
+    function populateTable() {
+        // Extract data from form fields
+        var formData = {
+            sampleID: $('#sampleID').val(),
+            projectSpecificID: $('#projectSpecificID').val(),
+            projectID: $('#projectID').val(),
+            siteName: $('#siteName').val(),
+            latitude: $('#latitude').val(),
+            longitude: $('#longitude').val(),
+            country: $('#country').val(),
+            vegetation: $('#vegetation').val(),
+            landUse: $('#landUse').val(),
+            ecosystem: $('#ecosystem').val(),
+            gridSize: $('#gridSize').val(),
+            soilDepth: $('#soilDepth').val(),
+            transportRefrigeration: $('input[name="transportRefrigeration"]:checked').val(),
+            drying: $('#drying').val(),
+            extractionMethod: $('#extractionMethod').val(),
+            dateCollected: $('#dateCollected').val(),
+            dnaConcentration: $('#dnaConcentration').val(),
+            dnaConcInstrument: $('#dnaConcInstrument').val(),
+            sequencingPlatform: $('#sequencingPlatform').val(),
+            sequencingFacility: $('#sequencingFacility').val(),
+            elevation: $('#elevation').val(),
+            sampleOrControl: $('input[name="sampleOrControl"]:checked').val(),
+            primers: $('#primers').val(),
+            expeditionLeader: $('#expeditionLeader').val(),
+            collaborators: $('#collaborators').val(),
+            sequencingRun: $('#sequencingRun').val(),
+            notes: $('#notes').val(),
+
+        };
+        console.log(formData);
+
+        // Construct table row HTML using form data
+        var tableRow = '<tr>';
+        for (var key in formData) {
+            tableRow += '<td>' + formData[key] + '</td>';
+        }
+        tableRow += '</tr>';
+
+        // Append table row to table body
+        $('#dataTable tbody').append(tableRow);
+    }
+    
+    // Submit form event handler
+    $('#metadataForm').submit(function(event) {
+        // Prevent default form submission
+        event.preventDefault();
+
+        // Validate form fields
+        if (validateForm()) {
+            // Populate table with form data
+            populateTable();
+
+            // Reset form fields
+            $(this)[0].reset();
+
+            // Submit form data to specified URL
+            //$.post('/metadata_submit', $(this).serialize(), function(response) {
+                // Handle response if needed
+          //  });
+        } else {
+            // Handle case where form fields are not valid
+            // You can display an error message or perform any other action here
+        }
+    });    
   });
+  
   </script>
+  <script>
+    (g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({
+      key: "AIzaSyDZprIULPxAutt7YxAQugNyViNiG_ZJyFA",
+      v: "weekly",
+      // Use the 'v' parameter to indicate the version to use (weekly, beta, alpha, etc.).
+      // Add other bootstrap parameters as needed, using camel case.
+    });
+    let map;
+
+    async function initMap() {
+      const { Map } = await google.maps.importLibrary("maps");
+      const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker");
+
+      map = new Map(document.getElementById("map"), {
+        center: { lat: -34.397, lng: 150.644 },
+        zoom: 8,
+        mapId: "SEQ_SAMPLE_POSITION",
+      });
+    }
+
+    initMap();    
+  </script>
+  <style>
+    #map {
+      height: 100%;
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    #mapWrapper {
+      height: 350px;
+      width: 700px;
+    }
+    
+    .table-container {
+        overflow-x: auto; /* Enable horizontal scrolling */
+    } 
+  </style>
 </body>
 </html>
