@@ -567,6 +567,44 @@ def handle_upload():
 
     return jsonify({'message': 'No file received'}), 400
 
+@upload_bp.route('/joinparts', methods=['GET'], endpoint='join_uploaded_parts')
+@login_required
+@approved_required
+def join_uploaded_parts():
+    process_id = request.args.get('process_id')
+
+    upload = Upload.get(process_id)
+    uploads_folder = upload.uploads_folder
+    gz_filedata = Upload.get_gz_filedata(upload.id)
+
+    logger.info(gz_filedata)
+
+    for filename, one_file_data in gz_filedata.items():
+        logger.info(one_file_data)
+        if one_file_data['percent_uploaded'] == 100:
+            final_file_path = f'uploads/{uploads_folder}/{filename}'
+            temp_file_path = f'uploads/{uploads_folder}/{filename}.temp'
+            with open(temp_file_path, 'ab') as temp_file:
+                for i in range(1, one_file_data['chunk_number_uploaded'] + 1):
+                    chunk_path = f'uploads/{uploads_folder}/{filename}.part{i}'
+                    with open(chunk_path, 'rb') as chunk_file:
+                        temp_file.write(chunk_file.read())
+
+    return gz_filedata
+
+
+@upload_bp.route('/uploadbyurl', methods=['POST'], endpoint='upload_via_url')
+@login_required
+@approved_required
+def upload_via_url():
+    url = request.form["url"]
+    if url:
+        process_id = request.form["process_id"]
+        logger.info('the url is: ' + url)
+        logger.info('the process_id is ' + process_id)
+
+    return {}
+
 @upload_bp.route('/start_raw_and_unzip', methods=['GET'], endpoint='start_raw_and_unzip')
 @login_required
 @admin_required
