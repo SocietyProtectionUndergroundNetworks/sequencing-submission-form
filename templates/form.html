@@ -475,7 +475,8 @@
               $.each(matching_files_db, function(filename, filesData) {
                 var sequencerIdPrefix = sequencerId.split('_S')[0]; // Extracting prefix before "_S"
                 var filenamePrefix = filename.split('_S')[0]; // Extracting prefix before "_S"
-                if (filename.startsWith(sequencerIdPrefix)) {
+
+                if (filename.startsWith(sequencerId)) {
                   lastTd.append(filename + '<br>');
                   matchedFilesCount++;
                 }
