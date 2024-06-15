@@ -36,10 +36,12 @@ def init_send_message(message):
     try:
         result = send_message_async.delay(message)
         logger.info(
-            f"Celery send_message_async task called successfully! Task ID: {result.id}"
+            f"Celery send_message_async task called successfully! "
+            f"Task ID: {result.id}"
         )
     except Exception as e:
         logger.error(
-            "This is an error message from helpers/discord.py while trying to send_message_async"
+            "This is an error message from "
+            "helpers/discord.py while trying to send_message_async"
         )
         logger.error(e)

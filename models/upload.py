@@ -8,7 +8,6 @@ from models.db_model import UploadTable, UserTable
 from sqlalchemy import desc, or_
 from sqlalchemy.exc import SQLAlchemyError
 from pathlib import Path
-from fnmatch import fnmatch
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -57,7 +56,7 @@ class Upload:
             .filter(
                 UploadTable.user_id == user_id,
                 or_(
-                    UploadTable.renamed_sent_to_bucket == False,
+                    UploadTable.renamed_sent_to_bucket == False,  # noqa
                     UploadTable.renamed_sent_to_bucket.is_(None),
                 ),
             )
@@ -332,7 +331,8 @@ class Upload:
         files_json = self.files_json
         if files_json is not None:
             matching_files_dict = json.loads(files_json)
-        # Remove files where the name starts with '._' (non real files, artifacts of zip process)
+        # Remove files where the name starts with '._' (non real files,
+        # artifacts of zip process)
         matching_files_dict = {
             key: value
             for key, value in matching_files_dict.items()
@@ -379,7 +379,6 @@ class Upload:
             uploads_query = session.query(UploadTable, UserTable.name).join(
                 UserTable
             )
-        from sqlalchemy import text
 
         session.close()
         uploads = uploads_query.all()
@@ -407,14 +406,16 @@ class Upload:
                 if f.is_file()
             )
 
-            # Check if any of the files in files_json still exist on the filesystem
+            # Check if any of the files in files_json still exist
+            # on the filesystem
             for filename, file_info in files_json.items():
                 # Check if 'new_filename' is not empty
                 if "new_filename" in file_info and file_info["new_filename"]:
                     # Construct the full path to the file
                     file_path = extract_directory / file_info["new_filename"]
 
-                    # Check if the file exists and it is a file (not a directory)
+                    # Check if the file exists and it is a file
+                    # (not a directory)
                     if file_path.exists() and file_path.is_file():
                         files_still_on_filesystem = True
                         break
@@ -432,7 +433,8 @@ class Upload:
 
             # Get user name
 
-            # Create a dictionary containing all fields including the calculated ones
+            # Create a dictionary containing all fields including the
+            # calculated ones
             upload_data = {
                 key: getattr(upload, key)
                 for key in upload.__dict__.keys()
@@ -529,7 +531,8 @@ class Upload:
         try:
             shutil.rmtree(uploads_directory)
             logger.info(
-                f"Directory '{uploads_directory}' and its contents deleted successfully."
+                "Directory '{}' and its contents "
+                "deleted successfully.".format(uploads_directory)
             )
         except Exception as e:
             logger.error(
@@ -539,7 +542,7 @@ class Upload:
         try:
             shutil.rmtree(extract_directory)
             logger.info(
-                f"Directory '{extract_directory}' and its contents deleted successfully."
+                f"Directory '{extract_directory}' and contents deleted."
             )
         except Exception as e:
             logger.error(

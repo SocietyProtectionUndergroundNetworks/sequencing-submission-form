@@ -3,16 +3,14 @@ import secrets
 import logging
 
 from flask import Flask, session
-from views.user import user_bp
-from views.data import data_bp
-from views.upload import upload_bp
+from views import create_app
 from extensions import login_manager
 from celery_config import make_celery
 from flask_session import Session
 from flask_sqlalchemy import SQLAlchemy
 from db.db_conn import get_database_uri
 
-app = Flask(__name__)
+app = create_app()
 SQLALCHEMY_DATABASE_URI = get_database_uri()
 
 app.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
@@ -25,11 +23,6 @@ Session(app)
 # Secret key generation
 foo = secrets.token_urlsafe(16)
 app.secret_key = foo
-
-# Register blueprints
-app.register_blueprint(user_bp)
-app.register_blueprint(upload_bp)
-app.register_blueprint(data_bp)
 
 # Initialize extensions
 login_manager.init_app(app)

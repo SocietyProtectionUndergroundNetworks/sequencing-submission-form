@@ -12,7 +12,6 @@ logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
 def get_multiqc_report(process_id, bucket, folder):
     upload = Upload.get(process_id)
-    uploads_folder = upload.uploads_folder
 
     extract_directory = upload.extract_directory
 
@@ -31,7 +30,6 @@ def get_multiqc_report(process_id, bucket, folder):
 
 def get_fastqc_progress(process_id):
     upload = Upload.get(process_id)
-    uploads_folder = upload.uploads_folder
     files_dict_db = upload.get_files_json()
 
     count_fastq_gz = 0
@@ -131,7 +129,7 @@ def fastqc_multiqc_files(process_id):
     output_folders = {}
     nr_output_folders = 0
     files_done = 0
-    # Run fastqc on all raw fastq.gz files within the 'fastqc' conda environment
+    # Run fastqc on all raw fastq.gz files within the 'fastqc' environment
     fastq_files = [
         f
         for f in os.listdir(input_folder)
@@ -159,11 +157,11 @@ def fastqc_multiqc_files(process_id):
             output_folder_of_file = os.path.join(output_folder, bucket, folder)
             Path(output_folder_of_file).mkdir(parents=True, exist_ok=True)
             input_file = os.path.join(input_folder, fastq_file)
-            output_file = os.path.join(
-                output_folder_of_file,
-                fastq_file.replace(".fastq.gz", "_fastqc.zip"),
+            fastqc_cmd = (
+                f"/usr/local/bin/FastQC/fastqc "
+                f"-o {output_folder_of_file} "
+                f"{input_file}"
             )
-            fastqc_cmd = f"/usr/local/bin/FastQC/fastqc -o {output_folder_of_file} {input_file}"
             subprocess.run(fastqc_cmd, shell=True, executable="/bin/bash")
             files_done += 1
             progress = (
@@ -205,7 +203,6 @@ def fastqc_multiqc_files(process_id):
             )
             Upload.update_fastqc_files_progress(process_id, progress)
 
-    fastqc_path = os.path.join(input_folder, "fastqc")
     Upload.mark_field_as_true(process_id, "fastqc_sent_to_bucket")
 
     results.append("Finished")

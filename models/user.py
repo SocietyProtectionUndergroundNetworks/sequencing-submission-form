@@ -2,7 +2,7 @@ from flask_login import UserMixin
 
 from helpers.dbm import connect_db, get_session
 from models.db_model import UserTable, UploadTable, BucketTable
-from sqlalchemy import func, case
+from sqlalchemy import func
 import logging
 
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -190,7 +190,8 @@ class User(UserMixin):
 
         user = session.query(UserTable).filter_by(id=user_id).first()
         if user:
-            # Explicitly load the buckets relationship before closing the session
+            # Explicitly load the buckets relationship before closing the
+            # session
             user_buckets = user.buckets  # This will trigger a lazy load
             session.close()
             return bucket_name in [bucket.id for bucket in user_buckets]

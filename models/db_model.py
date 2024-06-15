@@ -7,12 +7,12 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     func,
-    BigInteger,
     ForeignKey,
 )
 from sqlalchemy.dialects.mysql import JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+import uuid
 
 Base = declarative_base()
 

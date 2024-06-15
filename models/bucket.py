@@ -1,7 +1,6 @@
 import logging
 from models.db_model import BucketTable
 from helpers.dbm import connect_db, get_session
-from datetime import datetime
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py

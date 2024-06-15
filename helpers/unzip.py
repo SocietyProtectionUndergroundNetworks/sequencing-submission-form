@@ -10,9 +10,6 @@ import shutil
 
 logger = logging.getLogger("my_app_logger")
 
-# for debug reasons only
-import time
-
 
 def unzip_raw_file(process_id, filename):
     # in order to continue on the same process, lets get the id from the form
@@ -142,12 +139,13 @@ def unzip_raw(process_id, filename):
     try:
         result = unzip_raw_file_async.delay(process_id, filename)
         logger.info(
-            f"Celery unzip_raw_file_async task called successfully! Task ID: {result.id}"
+            f"Celery unzip_raw_file_async task called successfully! "
+            f"Task ID: {result.id}"
         )
-        task_id = result.id
     except Exception as e:
         logger.error(
-            "This is an error message from upload.py while trying to unzip_raw_file_async"
+            "This is an error message from upload.py "
+            "while trying to unzip_raw_file_async"
         )
         logger.error(e)
 

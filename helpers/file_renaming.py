@@ -1,14 +1,14 @@
-# Script for renaming fastq files received from Scripps Research.  Requires a sample key with file name string matches and desired name changes to be specified in-script. Takes a directory containing the files to be changed as an argument.
+# Script for renaming fastq files received from Scripps Research.  Requires a
+# sample key with file name string matches and desired name changes to be
+# specified in-script. Takes a directory containing the files to be changed
+# as an argument.
 
 import os
 import csv
-import subprocess
 import json
-import multiqc
 import hashlib
 import logging
 from pathlib import Path
-from flask import current_app as app  # Import the 'app' instance
 from models.upload import Upload
 
 # Get the logger instance from app.py
@@ -64,7 +64,8 @@ def rename_files(csv_file_path, directory_path, files_json):
                 else:
                     new_name = name
 
-                # Create the new file name based on the extracted extension, modified 'Name' column, and the 'CCBB' prefix
+                # Create the new file name based on the extracted extension,
+                # modified 'Name' column, and the 'CCBB' prefix
                 new_file_name = new_name + "_S" + extension
 
                 if new_file_name == matching_file:
@@ -82,7 +83,8 @@ def rename_files(csv_file_path, directory_path, files_json):
                 elif new_file_name in file_names:
                     # Check for duplicate names
                     results[matching_file] = (
-                        f"Duplicate file name: {new_file_name}. Skipping renaming"
+                        f"Duplicate file name: {new_file_name}. "
+                        "Skipping renaming"
                     )
                 else:
                     # Get the full path of the new file name
@@ -90,7 +92,8 @@ def rename_files(csv_file_path, directory_path, files_json):
 
                     # Rename the file
                     os.rename(old_file_path, new_file_path)
-                    # results.append(f"Renamed {matching_file} to {new_file_name}")
+                    # results.append(f"Renamed {matching_file} to
+                    # {new_file_name}")
                     results[matching_file] = f"Renamed to {new_file_name}"
 
                     matching_files_dict[matching_file][
@@ -126,8 +129,6 @@ def rename_all_files(process_id):
         csv_filepath, extract_directory, upload.files_json
     )
     Upload.update_files_json(process_id, files_dict)
-
-    to_render = "<br>".join(rename_results)
 
     if rename_results:
         Upload.mark_field_as_true(process_id, "files_renamed")
