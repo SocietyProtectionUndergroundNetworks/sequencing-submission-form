@@ -22,7 +22,9 @@ def rename_files(csv_file_path, directory_path, files_json):
     not_found = []
 
     # Open the CSV file using csv.reader
-    with open(csv_file_path, "r", newline="", encoding="utf-8-sig") as csv_file:
+    with open(
+        csv_file_path, "r", newline="", encoding="utf-8-sig"
+    ) as csv_file:
         csv_reader = csv.reader(csv_file)
         # Assuming the first row contains headers
         headers = next(csv_reader)
@@ -69,9 +71,13 @@ def rename_files(csv_file_path, directory_path, files_json):
                     results[matching_file] = (
                         f"New and old names the same for {new_file_name}"
                     )
-                    matching_files_dict[matching_file]["new_filename"] = new_file_name
+                    matching_files_dict[matching_file][
+                        "new_filename"
+                    ] = new_file_name
                     matching_files_dict[matching_file]["bucket"] = bucket
-                    matching_files_dict[matching_file]["folder"] = bucket_folder
+                    matching_files_dict[matching_file][
+                        "folder"
+                    ] = bucket_folder
                     matching_files_dict[matching_file]["csv_sample_id"] = name
                 elif new_file_name in file_names:
                     # Check for duplicate names
@@ -87,9 +93,13 @@ def rename_files(csv_file_path, directory_path, files_json):
                     # results.append(f"Renamed {matching_file} to {new_file_name}")
                     results[matching_file] = f"Renamed to {new_file_name}"
 
-                    matching_files_dict[matching_file]["new_filename"] = new_file_name
+                    matching_files_dict[matching_file][
+                        "new_filename"
+                    ] = new_file_name
                     matching_files_dict[matching_file]["bucket"] = bucket
-                    matching_files_dict[matching_file]["folder"] = bucket_folder
+                    matching_files_dict[matching_file][
+                        "folder"
+                    ] = bucket_folder
                     matching_files_dict[matching_file]["csv_sample_id"] = name
 
             if not matching_files:

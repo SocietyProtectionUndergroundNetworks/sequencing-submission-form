@@ -9,7 +9,9 @@ logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
 
 class User(UserMixin):
-    def __init__(self, id_, name, email, profile_pic, admin, approved, buckets=None):
+    def __init__(
+        self, id_, name, email, profile_pic, admin, approved, buckets=None
+    ):
         self.id = id_
         self.name = name
         self.email = email
@@ -44,7 +46,9 @@ class User(UserMixin):
         return user
 
     @classmethod
-    def create(cls, id_, name, email, profile_pic, admin=False, approved=False):
+    def create(
+        cls, id_, name, email, profile_pic, admin=False, approved=False
+    ):
         db_engine = connect_db()
         session = get_session(db_engine)
 
@@ -133,7 +137,9 @@ class User(UserMixin):
 
         user = session.query(UserTable).filter_by(id=user_id).first()
         if user:
-            bucket = session.query(BucketTable).filter_by(id=bucket_name).first()
+            bucket = (
+                session.query(BucketTable).filter_by(id=bucket_name).first()
+            )
             if bucket:
                 user.buckets.append(bucket)
                 session.commit()
@@ -151,7 +157,9 @@ class User(UserMixin):
 
         user = session.query(UserTable).filter_by(id=user_id).first()
         if user:
-            bucket = session.query(BucketTable).filter_by(id=bucket_name).first()
+            bucket = (
+                session.query(BucketTable).filter_by(id=bucket_name).first()
+            )
             if bucket:
                 user.buckets.remove(bucket)
                 session.commit()
@@ -214,7 +222,10 @@ class User(UserMixin):
                 session.commit()
                 to_return = {"status": 1, "message": "Success"}
             else:
-                to_return = {"status": 0, "message": "Not deleted. User doesnt exist"}
+                to_return = {
+                    "status": 0,
+                    "message": "Not deleted. User doesnt exist",
+                }
         else:
             to_return = {"status": 0, "message": "Not deleted. Uploads exist"}
         session.close()

@@ -108,7 +108,8 @@ def recreate_matching_files(process_id):
         nr_files = len(matching_files)
         # Convert the list to a dictionary with empty parameters
         matching_files_dict = {
-            filename: {"new_filename": "", "fastqc": ""} for filename in matching_files
+            filename: {"new_filename": "", "fastqc": ""}
+            for filename in matching_files
         }
 
         # Update for non standard sequencing data. Find out the bucket and folder from here, because we skip the renaming step
@@ -213,7 +214,9 @@ def download_metadata():
             return send_file(metadata_file_path, as_attachment=True)
     except (ValueError, TypeError):
         # Handle the case where process_id is not a valid integer or convertible to an integer
-        logger.info("Tried to access download_metadata without a valid process_id")
+        logger.info(
+            "Tried to access download_metadata without a valid process_id"
+        )
 
     return render_template(
         "index.html",
@@ -359,17 +362,23 @@ def upload_form_resume():
                                         + filename
                                         + " doesnt exist when it should. Deleting the gz_record and the parts "
                                     )
-                                    Upload.update_gz_filedata(process_id, one_filedata)
+                                    Upload.update_gz_filedata(
+                                        process_id, one_filedata
+                                    )
                                     files = os.listdir(path)
                                     for file in files:
                                         # Check if the file starts with the filename and ends with '.partX' or '.temp'
 
                                         if file.startswith(filename) and (
                                             file.endswith(".temp")
-                                            or re.match(rf"{filename}\.part\d+", file)
+                                            or re.match(
+                                                rf"{filename}\.part\d+", file
+                                            )
                                         ):
                                             # Construct the full file path
-                                            file_path = os.path.join(path, file)
+                                            file_path = os.path.join(
+                                                path, file
+                                            )
                                             # Delete the file
                                             os.remove(file_path)
 
@@ -428,7 +437,9 @@ def upload_form():
     return render_template("form.html", is_admin=current_user.admin)
 
 
-@upload_bp.route("/clear_file_upload", methods=["POST"], endpoint="clear_file_upload")
+@upload_bp.route(
+    "/clear_file_upload", methods=["POST"], endpoint="clear_file_upload"
+)
 @login_required
 @approved_required
 def clear_file_upload():
@@ -448,7 +459,9 @@ def clear_file_upload():
                 if matchingfilename.startswith(filename)
             ]
             for matching_file in matching_files_filesystem:
-                file_to_remove = Path("uploads", upload.uploads_folder, matching_file)
+                file_to_remove = Path(
+                    "uploads", upload.uploads_folder, matching_file
+                )
                 os.remove(file_to_remove)
 
             gz_filedata = Upload.get_gz_filedata(upload.id)
@@ -461,7 +474,9 @@ def clear_file_upload():
     return jsonify({"status": 1})
 
 
-@upload_bp.route("/uploadmetadata", methods=["POST"], endpoint="upload_metadata")
+@upload_bp.route(
+    "/uploadmetadata", methods=["POST"], endpoint="upload_metadata"
+)
 @login_required
 @approved_required
 def upload_metadata():
@@ -497,7 +512,11 @@ def upload_metadata():
     )
 
     bucket_chunked_upload(
-        save_path, "uploads/" + uploads_folder, filename, process_id, "metadata_file"
+        save_path,
+        "uploads/" + uploads_folder,
+        filename,
+        process_id,
+        "metadata_file",
     )
     return (
         jsonify(
@@ -546,9 +565,15 @@ def upload_csv():
     if cvs_results is True:
         cvs_records = get_csv_data(save_path)
         matching_files_db = upload.get_files_json()
-        Upload.update_csv_filename_and_method(process_id, filename, sequencing_method)
+        Upload.update_csv_filename_and_method(
+            process_id, filename, sequencing_method
+        )
         bucket_chunked_upload(
-            save_path, "uploads/" + uploads_folder, filename, process_id, "csv_file"
+            save_path,
+            "uploads/" + uploads_folder,
+            filename,
+            process_id,
+            "csv_file",
         )
         return (
             jsonify(
@@ -561,7 +586,10 @@ def upload_csv():
             200,
         )
     else:
-        return jsonify({"error": "CSV file problems: ", "results": cvs_results}), 400
+        return (
+            jsonify({"error": "CSV file problems: ", "results": cvs_results}),
+            400,
+        )
 
 
 @upload_bp.route("/unzipprogress", endpoint="unzip_progress")
@@ -635,8 +663,12 @@ def handle_upload():
         expected_md5 = request.args.get("md5")
 
         # Handle file chunks or combine chunks into a complete file
-        chunk_number = int(resumable_chunk_number) if resumable_chunk_number else 1
-        total_chunks = int(resumable_total_chunks) if resumable_total_chunks else 1
+        chunk_number = (
+            int(resumable_chunk_number) if resumable_chunk_number else 1
+        )
+        total_chunks = (
+            int(resumable_total_chunks) if resumable_total_chunks else 1
+        )
 
         # Calculate the percentage completion
         percentage = int((chunk_number / total_chunks) * 100)
@@ -654,7 +686,9 @@ def handle_upload():
         Upload.update_gz_filedata(process_id, one_filedata)
 
         # Save or process the chunk (for demonstration, just save it)
-        save_path = f"uploads/{uploads_folder}/{file.filename}.part{chunk_number}"
+        save_path = (
+            f"uploads/{uploads_folder}/{file.filename}.part{chunk_number}"
+        )
         file.save(save_path)
 
         # Check if all chunks have been uploaded
@@ -665,7 +699,9 @@ def handle_upload():
             temp_file_path = f"uploads/{uploads_folder}/{file.filename}.temp"
             with open(temp_file_path, "ab") as temp_file:
                 for i in range(1, total_chunks + 1):
-                    chunk_path = f"uploads/{uploads_folder}/{file.filename}.part{i}"
+                    chunk_path = (
+                        f"uploads/{uploads_folder}/{file.filename}.part{i}"
+                    )
                     with open(chunk_path, "rb") as chunk_file:
                         temp_file.write(chunk_file.read())
 
@@ -682,7 +718,9 @@ def handle_upload():
 
                 # Then, since it is now confirmed, lets delete the parts
                 for i in range(1, total_chunks + 1):
-                    chunk_path = f"uploads/{uploads_folder}/{file.filename}.part{i}"
+                    chunk_path = (
+                        f"uploads/{uploads_folder}/{file.filename}.part{i}"
+                    )
                     os.remove(chunk_path)
 
                 result = init_send_raw_to_storage(process_id, file.filename)
@@ -768,7 +806,9 @@ def check_chunk():
     upload = Upload.get(process_id)
     uploads_folder = upload.uploads_folder
 
-    chunk_path = f"uploads/{uploads_folder}/{resumable_filename}.part{chunk_number}"
+    chunk_path = (
+        f"uploads/{uploads_folder}/{resumable_filename}.part{chunk_number}"
+    )
 
     if os.path.exists(chunk_path):
         return "", 200  # Chunk already uploaded, return 200
@@ -963,7 +1003,8 @@ def show_system_report():
 
 
 @upload_bp.route(
-    "/recreate_process_matching_files", endpoint="recreate_process_matching_files"
+    "/recreate_process_matching_files",
+    endpoint="recreate_process_matching_files",
 )
 @login_required
 @approved_required
@@ -1003,12 +1044,16 @@ def update_reviewed_by_admin_status():
     process_id = request.form.get("process_id")
     return_to = request.form.get("return_to")
     order_by = request.form.get("order_by")
-    reviewed_status = request.form.get("reviewed") == "on"  # Convert to boolean
+    reviewed_status = (
+        request.form.get("reviewed") == "on"
+    )  # Convert to boolean
     # Update the admin status in the database based on user_id and admin_status
     Upload.update_reviewed_by_admin_status(process_id, reviewed_status)
     if return_to == "user":
         user_id = request.form.get("user_id")
-        return redirect("/user_uploads?user_id=" + user_id + "&order_by=" + order_by)
+        return redirect(
+            "/user_uploads?user_id=" + user_id + "&order_by=" + order_by
+        )
     else:
         return redirect("/all_uploads?order_by=" + order_by)
 
@@ -1028,4 +1073,6 @@ def metadata_form():
     map_key = os.environ.get("GOOGLE_MAP_API_KEY")
     for my_bucket in current_user.buckets:
         my_buckets[my_bucket] = Bucket.get(my_bucket)
-    return render_template("metadata_form.html", my_buckets=my_buckets, map_key=map_key)
+    return render_template(
+        "metadata_form.html", my_buckets=my_buckets, map_key=map_key
+    )

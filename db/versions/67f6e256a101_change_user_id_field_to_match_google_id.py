@@ -28,7 +28,9 @@ def upgrade() -> None:
         type_=sa.String(length=36),
         nullable=True,
     )
-    op.create_index(op.f("ix_uploads_user_id"), "uploads", ["user_id"], unique=False)
+    op.create_index(
+        op.f("ix_uploads_user_id"), "uploads", ["user_id"], unique=False
+    )
     # ### end Alembic commands ###
 
 

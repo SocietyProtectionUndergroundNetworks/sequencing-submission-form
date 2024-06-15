@@ -27,14 +27,18 @@ association_table = Table(
 class UserTable(Base):
     __tablename__ = "users"
 
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    id = Column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
     name = Column(String(255), nullable=False)
     email = Column(String(255), nullable=False)
     profile_pic = Column(String(255), nullable=False)
     admin = Column(Boolean, default=False)
     uploads = relationship("UploadTable", backref="user")
     approved = Column(Boolean, default=False)
-    buckets = relationship("BucketTable", secondary=association_table, backref="users")
+    buckets = relationship(
+        "BucketTable", secondary=association_table, backref="users"
+    )
 
 
 class BucketTable(Base):

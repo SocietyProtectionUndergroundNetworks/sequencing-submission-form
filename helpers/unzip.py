@@ -24,7 +24,9 @@ def unzip_raw_file(process_id, filename):
     save_path = path / filename
 
     extract_directory = Path("processing", uploads_folder)
-    gunzip_result = extract_uploaded_file(process_id, save_path, extract_directory)
+    gunzip_result = extract_uploaded_file(
+        process_id, save_path, extract_directory
+    )
 
     if gunzip_result:
         # Upload.mark_field_as_true(process_id, 'gz_unziped')
@@ -65,7 +67,9 @@ def extract_zip_without_structure(zip_file_path, extract_directory):
             os.makedirs(extract_directory, exist_ok=True)
 
             # Extract the file
-            with zip_ref.open(file_info) as source, open(extract_path, "wb") as target:
+            with zip_ref.open(file_info) as source, open(
+                extract_path, "wb"
+            ) as target:
                 shutil.copyfileobj(source, target)
 
 
@@ -74,7 +78,9 @@ def extract_uploaded_file(process_id, uploaded_file_path, extract_directory):
     uploaded_file_name = os.path.basename(uploaded_file_path)
 
     if uploaded_file_name.endswith(".tar"):
-        extract_tar_without_structure(process_id, uploaded_file_path, extract_directory)
+        extract_tar_without_structure(
+            process_id, uploaded_file_path, extract_directory
+        )
     elif uploaded_file_name.endswith(".gz"):
         file_name = os.path.splitext(uploaded_file_name)[0]
         extract_path = os.path.join(extract_directory, file_name)
@@ -91,10 +97,14 @@ def extract_uploaded_file(process_id, uploaded_file_path, extract_directory):
                         break
                     current_size += len(chunk)
                     f_out.write(chunk)
-                    track_progress(process_id, current_size, total_size, file_name)
+                    track_progress(
+                        process_id, current_size, total_size, file_name
+                    )
 
         if file_name.endswith(".tar"):
-            extract_tar_without_structure(process_id, extract_path, extract_directory)
+            extract_tar_without_structure(
+                process_id, extract_path, extract_directory
+            )
             os.remove(extract_path)
     elif uploaded_file_name.endswith(".zip"):
         extract_zip_without_structure(uploaded_file_path, extract_directory)

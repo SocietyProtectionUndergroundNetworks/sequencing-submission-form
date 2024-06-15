@@ -60,7 +60,9 @@ def data():
 
 
 @data_bp.route(
-    "/generate_download_link", methods=["POST"], endpoint="generate_download_link"
+    "/generate_download_link",
+    methods=["POST"],
+    endpoint="generate_download_link",
 )
 @login_required
 def generate_download_link():
@@ -72,7 +74,9 @@ def generate_download_link():
 
 
 @data_bp.route(
-    "/create_bucket_archive", methods=["POST"], endpoint="create_bucket_archive"
+    "/create_bucket_archive",
+    methods=["POST"],
+    endpoint="create_bucket_archive",
 )
 @login_required
 @approved_required

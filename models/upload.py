@@ -98,7 +98,9 @@ class Upload:
         return new_upload_id
 
     @classmethod
-    def update_csv_filename_and_method(cls, upload_id, csv_filename, sequencing_method):
+    def update_csv_filename_and_method(
+        cls, upload_id, csv_filename, sequencing_method
+    ):
         db_engine = connect_db()
         session = get_session(db_engine)
 
@@ -244,7 +246,9 @@ class Upload:
             if upload.gz_filedata:
                 gz_filedata = json.loads(upload.gz_filedata)
                 if filename in gz_filedata:
-                    gz_filedata[filename]["gz_sent_to_bucket_progress"] = progress
+                    gz_filedata[filename][
+                        "gz_sent_to_bucket_progress"
+                    ] = progress
                     upload.gz_filedata = json.dumps(gz_filedata)
 
             session.commit()
@@ -372,7 +376,9 @@ class Upload:
                 .filter(UploadTable.user_id == user_id)
             )
         else:
-            uploads_query = session.query(UploadTable, UserTable.name).join(UserTable)
+            uploads_query = session.query(UploadTable, UserTable.name).join(
+                UserTable
+            )
         from sqlalchemy import text
 
         session.close()
@@ -389,12 +395,16 @@ class Upload:
 
             # Calculate total size of files in extract_directory
             extract_directory_size = sum(
-                f.stat().st_size for f in extract_directory.glob("**/*") if f.is_file()
+                f.stat().st_size
+                for f in extract_directory.glob("**/*")
+                if f.is_file()
             )
 
             # Calculate total size of files in upload_directory
             upload_directory_size = sum(
-                f.stat().st_size for f in upload_directory.glob("**/*") if f.is_file()
+                f.stat().st_size
+                for f in upload_directory.glob("**/*")
+                if f.is_file()
             )
 
             # Check if any of the files in files_json still exist on the filesystem
@@ -413,7 +423,10 @@ class Upload:
                 file_path_original = extract_directory / filename
 
                 # Check if the file exists and it is a file (not a directory)
-                if file_path_original.exists() and file_path_original.is_file():
+                if (
+                    file_path_original.exists()
+                    and file_path_original.is_file()
+                ):
                     files_still_on_filesystem = True
                     break
 
@@ -427,7 +440,9 @@ class Upload:
             }
 
             # Add files_still_on_filesystem and files_size to the dictionary
-            upload_data["files_still_on_filesystem"] = files_still_on_filesystem
+            upload_data["files_still_on_filesystem"] = (
+                files_still_on_filesystem
+            )
             upload_data["files_size_extract"] = extract_directory_size
             upload_data["files_size_upload"] = upload_directory_size
             upload_data["username"] = username
@@ -461,7 +476,9 @@ class Upload:
                     os.remove(str(file_path))
                     logger.info(f"Deleted file: {file_path}")
                 else:
-                    logger.info(f"File not found or is not a file: {file_path}")
+                    logger.info(
+                        f"File not found or is not a file: {file_path}"
+                    )
 
         # Define the extract directory
         extract_directory = Path("processing", self.uploads_folder)
@@ -480,9 +497,13 @@ class Upload:
                     os.remove(str(file_path))
                     logger.info(f"Deleted file: {file_path}")
                 else:
-                    logger.info(f"File not found or is not a file: {file_path}")
+                    logger.info(
+                        f"File not found or is not a file: {file_path}"
+                    )
             else:
-                logger.info("Skipping deletion: new_filename is empty or not provided")
+                logger.info(
+                    "Skipping deletion: new_filename is empty or not provided"
+                )
 
             # Construct the full path to the file
             file_path_original = extract_directory / filename
@@ -511,7 +532,9 @@ class Upload:
                 f"Directory '{uploads_directory}' and its contents deleted successfully."
             )
         except Exception as e:
-            logger.error(f"Error deleting directory '{uploads_directory}': {e}")
+            logger.error(
+                f"Error deleting directory '{uploads_directory}': {e}"
+            )
 
         try:
             shutil.rmtree(extract_directory)
@@ -519,12 +542,16 @@ class Upload:
                 f"Directory '{extract_directory}' and its contents deleted successfully."
             )
         except Exception as e:
-            logger.error(f"Error deleting directory '{extract_directory}': {e}")
+            logger.error(
+                f"Error deleting directory '{extract_directory}': {e}"
+            )
 
         try:
             session.delete(upload_db)
             session.commit()
-            logger.info(f"Upload record with id {upload_id} deleted successfully.")
+            logger.info(
+                f"Upload record with id {upload_id} deleted successfully."
+            )
         except SQLAlchemyError as e:
             session.rollback()
             logger.error(f"Error deleting upload record: {e}")

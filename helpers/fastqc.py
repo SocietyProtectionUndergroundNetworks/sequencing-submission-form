@@ -88,7 +88,9 @@ def init_fastqc_multiqc_files(process_id):
 
     try:
         result = fastqc_multiqc_files_async.delay(process_id)
-        logger.info(f"Celery multiqc task called successfully! Task ID: {result.id}")
+        logger.info(
+            f"Celery multiqc task called successfully! Task ID: {result.id}"
+        )
         task_id = result.id
         upload.update_fastqc_process_id(process_id, task_id)
     except Exception as e:
@@ -133,7 +135,10 @@ def fastqc_multiqc_files(process_id):
     fastq_files = [
         f
         for f in os.listdir(input_folder)
-        if ((f.endswith(".fastq.gz") or f.endswith(".fastq")) and not f.startswith("."))
+        if (
+            (f.endswith(".fastq.gz") or f.endswith(".fastq"))
+            and not f.startswith(".")
+        )
     ]
     nr_files = len(fastq_files)
     for fastq_file in fastq_files:
@@ -155,14 +160,15 @@ def fastqc_multiqc_files(process_id):
             Path(output_folder_of_file).mkdir(parents=True, exist_ok=True)
             input_file = os.path.join(input_folder, fastq_file)
             output_file = os.path.join(
-                output_folder_of_file, fastq_file.replace(".fastq.gz", "_fastqc.zip")
+                output_folder_of_file,
+                fastq_file.replace(".fastq.gz", "_fastqc.zip"),
             )
-            fastqc_cmd = (
-                f"/usr/local/bin/FastQC/fastqc -o {output_folder_of_file} {input_file}"
-            )
+            fastqc_cmd = f"/usr/local/bin/FastQC/fastqc -o {output_folder_of_file} {input_file}"
             subprocess.run(fastqc_cmd, shell=True, executable="/bin/bash")
             files_done += 1
-            progress = str(files_done) + " fastq files done out of " + str(nr_files)
+            progress = (
+                str(files_done) + " fastq files done out of " + str(nr_files)
+            )
             if nr_files == files_done:
                 progress = progress + ". Starting creation of multiqc reports"
             Upload.update_fastqc_files_progress(process_id, progress)

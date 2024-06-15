@@ -104,7 +104,9 @@ def bucket_chunked_upload(
     total_size = os.path.getsize(local_file_path)
     # If the file is smaller than 30 MB, upload it directly
     if total_size <= 30 * 1024 * 1024:
-        blob = bucket.blob(f"{destination_upload_directory}/{destination_blob_name}")
+        blob = bucket.blob(
+            f"{destination_upload_directory}/{destination_blob_name}"
+        )
         blob.upload_from_filename(local_file_path)
         update_progress_db(process_id, upload_type, 100, destination_blob_name)
         return True
@@ -129,7 +131,9 @@ def bucket_chunked_upload(
             temp_blob = bucket.blob(
                 f"{destination_upload_directory}/{destination_blob_name}.part{chunk_num}"
             )
-            temp_blob.upload_from_string(data, content_type="application/octet-stream")
+            temp_blob.upload_from_string(
+                data, content_type="application/octet-stream"
+            )
             chunks.append(temp_blob)
             chunk_num += 1
 
@@ -141,7 +145,9 @@ def bucket_chunked_upload(
             )
             print(f"Bytes uploaded: {file.tell()} / {total_size}", flush=True)
 
-        blob = bucket.blob(f"{destination_upload_directory}/{destination_blob_name}")
+        blob = bucket.blob(
+            f"{destination_upload_directory}/{destination_blob_name}"
+        )
         blob.compose(chunks)
 
         for temp_blob in chunks:
@@ -231,18 +237,27 @@ def upload_final_files_to_storage(process_id):
 
             new_file_path = os.path.join(extract_directory, file_to_move)
             bucket_chunked_upload(
-                new_file_path, folder, file_to_move, process_id, "renamed_files", bucket
+                new_file_path,
+                folder,
+                file_to_move,
+                process_id,
+                "renamed_files",
+                bucket,
             )
             files_json[key]["uploaded"] = "Done"
 
             files_done = files_done + 1
             Upload.update_files_json(process_id, files_json)
-            Upload.update_renamed_sent_to_bucket_progress(process_id, files_done)
+            Upload.update_renamed_sent_to_bucket_progress(
+                process_id, files_done
+            )
 
     if first_bucket is not None:
         # lets upload the metadata file as well
         upload_directory = Path("uploads", uploads_folder)
-        metadata_file_path = os.path.join(upload_directory, upload.metadata_filename)
+        metadata_file_path = os.path.join(
+            upload_directory, upload.metadata_filename
+        )
         bucket_chunked_upload(
             metadata_file_path,
             first_folder + "/" + uploads_folder,
@@ -292,13 +307,17 @@ def get_project_resource_role_users(role):
     credentials, _ = default()
 
     # Create a service object for interacting with the Cloud Resource Manager API
-    service = discovery.build("cloudresourcemanager", "v1", credentials=credentials)
+    service = discovery.build(
+        "cloudresourcemanager", "v1", credentials=credentials
+    )
 
     # Retrieve the IAM policy for the project
     policy = service.projects().getIamPolicy(resource=project_id).execute()
 
     bindings_for_role = [
-        binding for binding in policy["bindings"] if binding["role"].endswith(role)
+        binding
+        for binding in policy["bindings"]
+        if binding["role"].endswith(role)
     ]
     members = bindings_for_role[0]["members"]
     emails = [member.split(":", 1)[1] for member in members]
@@ -322,7 +341,9 @@ def get_bucket_role_users(bucket_name, role):
 
     # Filter bindings to retrieve only the ones associated with roles that end with the specified string
     bindings_for_role = [
-        binding for binding in policy.bindings if binding["role"].endswith(role)
+        binding
+        for binding in policy.bindings
+        if binding["role"].endswith(role)
     ]
 
     # Extract member emails
@@ -382,7 +403,9 @@ def download_bucket_contents(bucket_name):
         # Iterate through files in the bucket
         for blob in bucket.list_blobs():
             # Exclude files in the "archive" folder
-            if (not blob.name.startswith("archive/")) and (not blob.name.endswith("/")):
+            if (not blob.name.startswith("archive/")) and (
+                not blob.name.endswith("/")
+            ):
                 # Update progress for downloaded files
                 downloaded_files += 1
                 download_progress = (
@@ -401,7 +424,8 @@ def download_bucket_contents(bucket_name):
                 blob.download_to_filename(new_file_path)
                 # Add file to zip archive
                 zipf.write(
-                    os.path.join(destination_folder, blob.name), arcname=blob.name
+                    os.path.join(destination_folder, blob.name),
+                    arcname=blob.name,
                 )
 
         # Update progress for zipping
@@ -492,13 +516,17 @@ def delete_buckets_archive_files():
 
                 db_bucket = Bucket.get(bucket.name)
                 logger.info("---Blob name: " + blob.name)
-                logger.info("---db_bucket archive_file : " + db_bucket.archive_file)
+                logger.info(
+                    "---db_bucket archive_file : " + db_bucket.archive_file
+                )
                 if blob.name.endswith(db_bucket.archive_file):
                     logger.info("----It ends with it!")
                     Bucket.update_archive_filename(bucket.name, None)
                     Bucket.update_progress(bucket.name, None)
 
-                logger.info(f"Deleted blob '{blob.name}' from the 'archive' folder.")
+                logger.info(
+                    f"Deleted blob '{blob.name}' from the 'archive' folder."
+                )
 
 
 def delete_bucket_folder(folder_name, bucket_name=None):
@@ -510,7 +538,9 @@ def delete_bucket_folder(folder_name, bucket_name=None):
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
 
-    blobs = bucket.list_blobs(prefix=folder_name)  # List blobs within the folder
+    blobs = bucket.list_blobs(
+        prefix=folder_name
+    )  # List blobs within the folder
 
     for blob in blobs:
         blob.delete()

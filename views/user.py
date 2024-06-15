@@ -36,7 +36,9 @@ logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", None)
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", None)
 GOOGLE_CLIENT_CALLBACK_URL = os.environ.get("GOOGLE_CLIENT_CALLBACK_URL", None)
-GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"
+GOOGLE_DISCOVERY_URL = (
+    "https://accounts.google.com/.well-known/openid-configuration"
+)
 
 
 # OAuth 2 client setup
@@ -200,10 +202,14 @@ def users():
     for bucket in all_buckets:
         Bucket.create(bucket)
 
-    return render_template("users.html", all_users=all_users, all_buckets=all_buckets)
+    return render_template(
+        "users.html", all_users=all_users, all_buckets=all_buckets
+    )
 
 
-@user_bp.route("/update_admin_status", methods=["POST"], endpoint="update_admin_status")
+@user_bp.route(
+    "/update_admin_status", methods=["POST"], endpoint="update_admin_status"
+)
 @login_required
 @admin_required
 def update_admin_status():
@@ -215,20 +221,26 @@ def update_admin_status():
 
 
 @user_bp.route(
-    "/update_approved_status", methods=["POST"], endpoint="update_approved_status"
+    "/update_approved_status",
+    methods=["POST"],
+    endpoint="update_approved_status",
 )
 @login_required
 @admin_required
 def update_approved_status():
     user_id = request.form.get("user_id")
-    approved_status = request.form.get("approved") == "on"  # Convert to boolean
+    approved_status = (
+        request.form.get("approved") == "on"
+    )  # Convert to boolean
     # Update the admin status in the database based on user_id and admin_status
     User.update_approved_status(user_id, approved_status)
     return redirect("/users")
 
 
 @user_bp.route(
-    "/give_access_to_bucket", methods=["POST"], endpoint="give_access_to_bucket"
+    "/give_access_to_bucket",
+    methods=["POST"],
+    endpoint="give_access_to_bucket",
 )
 @login_required
 @admin_required
@@ -241,7 +253,9 @@ def give_access_to_bucket():
 
 
 @user_bp.route(
-    "/remove_access_from_bucket", methods=["POST"], endpoint="remove_access_from_bucket"
+    "/remove_access_from_bucket",
+    methods=["POST"],
+    endpoint="remove_access_from_bucket",
 )
 @login_required
 @admin_required
