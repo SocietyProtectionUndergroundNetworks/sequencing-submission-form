@@ -3,7 +3,6 @@ import random
 import string
 import os
 import re
-import json
 import logging
 import psutil
 from pathlib import Path
@@ -19,11 +18,8 @@ from flask import (
     send_file,
 )
 from flask_login import (
-    LoginManager,
     current_user,
     login_required,
-    login_user,
-    logout_user,
 )
 
 from helpers.csv import validate_csv, get_csv_data
@@ -34,12 +30,10 @@ from helpers.bucket import (
     init_send_raw_to_storage,
     get_renamed_files_to_storage_progress,
     init_upload_final_files_to_storage,
-    get_bucket_size_excluding_archive,
-    check_archive_file,
     delete_bucket_folder,
 )
 
-from helpers.unzip import get_progress_db_unzip, unzip_raw, unzip_raw_file
+from helpers.unzip import get_progress_db_unzip, unzip_raw
 from helpers.fastqc import (
     get_fastqc_progress,
     init_fastqc_multiqc_files,
@@ -112,7 +106,8 @@ def recreate_matching_files(process_id):
             for filename in matching_files
         }
 
-        # Update for non standard sequencing data. Find out the bucket and folder from here, because we skip the renaming step
+        # Update for non standard sequencing data. Find out the bucket and
+        # folder from here, because we skip the renaming step
         path = Path("uploads", upload.uploads_folder)
         cvs_path = path / upload.csv_filename
         cvs_records = get_csv_data(cvs_path)
@@ -191,7 +186,6 @@ def app_instructions():
 def csv_sample():
     path = Path("static", "csv")
     csv_path = path / "csv_structure.csv"
-    filename = "csv_structure.csv"
 
     return send_file(csv_path, as_attachment=True)
 
@@ -209,11 +203,13 @@ def download_metadata():
             path = Path("uploads", upload.uploads_folder)
             metadata_file_path = path / upload.metadata_filename
 
-            # TODO: check that the user asking for this is either an admin or the owner of the process
+            # TODO: check that the user asking for this is either an admin or
+            # the owner of the process
 
             return send_file(metadata_file_path, as_attachment=True)
     except (ValueError, TypeError):
-        # Handle the case where process_id is not a valid integer or convertible to an integer
+        # Handle the case where process_id is not a valid integer or
+        # convertible to an integer
         logger.info(
             "Tried to access download_metadata without a valid process_id"
         )
@@ -239,11 +235,13 @@ def download_csv():
             path = Path("uploads", upload.uploads_folder)
             csv_file_path = path / upload.csv_filename
 
-            # TODO: check that the user asking for this is either an admin or the owner of the process
+            # TODO: check that the user asking for this is either an
+            # admin or the owner of the process
 
             return send_file(csv_file_path, as_attachment=True)
     except (ValueError, TypeError):
-        # Handle the case where process_id is not a valid integer or convertible to an integer
+        # Handle the case where process_id is not a valid integer or
+        # convertible to an integer
         logger.info("Tried to access download_csv without a valid process_id")
 
     return render_template(
@@ -266,7 +264,8 @@ def upload_form_resume():
     try:
         process_id = int(process_id)
     except (ValueError, TypeError):
-        # Handle the case where process_id is not a valid integer or convertible to an integer
+        # Handle the case where process_id is not a valid
+        # integer or convertible to an integer
         process_id = default_process_id
 
     if isinstance(process_id, int) and (process_id != 0):
@@ -288,7 +287,8 @@ def upload_form_resume():
 
         logger.info(process_id)
 
-        # TODO: check if the current user is admin or owner of this upload. Else redirect them.
+        # TODO: check if the current user is admin or owner of this upload.
+        # Else redirect them.
         if (current_user.admin) or (current_user.id == upload.user_id):
             matching_files_filesystem = []
             matching_files_dict = []
@@ -300,8 +300,6 @@ def upload_form_resume():
             if upload.csv_uploaded:
                 gz_filedata = Upload.get_gz_filedata(upload.id)
 
-                any_unzipped = False
-
                 path = Path("uploads", upload.uploads_folder)
                 save_path = path / upload.csv_filename
                 cvs_records = get_csv_data(save_path)
@@ -311,7 +309,8 @@ def upload_form_resume():
                         gz_file_path = os.path.join(path, filename)
 
                         # Check for inconsistencies.
-                        # inconsistency 1: If the final .gz file exists, when it says that it is uncomplete
+                        # inconsistency 1: If the final .gz file exists,
+                        # when it says that it is uncomplete
                         if file_data["percent_uploaded"] < 100:
                             if os.path.exists(gz_file_path):
                                 logger.info(
@@ -326,15 +325,20 @@ def upload_form_resume():
                                     + " exists when it shouldnt. Deleting it "
                                 )
 
-                        # inconsistency 2: If the progress says 100, but the file does not exist!
-                        # TODO: This should not happen always, because it deletes data for the cases where we have chosen to delete the files from server!
+                        # inconsistency 2: If the progress says 100, but the
+                        # file does not exist!
+                        # TODO: This should not happen always, because
+                        # it deletes data for the cases where we have
+                        # chosen to delete the files from server!
                         if False:
                             if file_data["percent_uploaded"] == 100:
                                 if not os.path.exists(gz_file_path):
                                     logger.info(
                                         "The file "
                                         + filename
-                                        + " doesnt exist when it should. Deleting the gz_record and the parts "
+                                        + " doesnt exist when it should."
+                                        + " Deleting the gz_record and"
+                                        + " the parts "
                                     )
                                     logger.info(file_data)
 
@@ -360,14 +364,18 @@ def upload_form_resume():
                                     form_reporting.append(
                                         "The file "
                                         + filename
-                                        + " doesnt exist when it should. Deleting the gz_record and the parts "
+                                        + " doesnt exist when it should. "
+                                        + " Deleting the gz_record and"
+                                        + " the parts "
                                     )
                                     Upload.update_gz_filedata(
                                         process_id, one_filedata
                                     )
                                     files = os.listdir(path)
                                     for file in files:
-                                        # Check if the file starts with the filename and ends with '.partX' or '.temp'
+                                        # Check if the file starts with the
+                                        # filename and ends with
+                                        # '.partX' or '.temp'
 
                                         if file.startswith(filename) and (
                                             file.endswith(".temp")
@@ -381,10 +389,6 @@ def upload_form_resume():
                                             )
                                             # Delete the file
                                             os.remove(file_path)
-
-                        if "gz_sent_to_bucket_progress" in file_data:
-                            if file_data["gz_sent_to_bucket_progress"] == 100:
-                                any_unzipped = True
 
                 # get it again, because we may have just changed it
                 gz_filedata = Upload.get_gz_filedata(upload.id)
@@ -658,8 +662,8 @@ def handle_upload():
         # Extract Resumable.js headers
         resumable_chunk_number = request.args.get("resumableChunkNumber")
         resumable_total_chunks = request.args.get("resumableTotalChunks")
-        resumable_chunk_size = request.args.get("resumableChunkSize")
-        resumable_total_size = request.args.get("resumableTotalSize")
+        # resumable_chunk_size = request.args.get("resumableChunkSize")
+        # resumable_total_size = request.args.get("resumableTotalSize")
         expected_md5 = request.args.get("md5")
 
         # Handle file chunks or combine chunks into a complete file
@@ -723,8 +727,8 @@ def handle_upload():
                     )
                     os.remove(chunk_path)
 
-                result = init_send_raw_to_storage(process_id, file.filename)
-                result2 = unzip_raw(process_id, file.filename)
+                init_send_raw_to_storage(process_id, file.filename)
+                unzip_raw(process_id, file.filename)
                 gz_filedata = Upload.get_gz_filedata(upload.id)
                 return jsonify(
                     {
@@ -733,7 +737,8 @@ def handle_upload():
                     }
                 )
 
-            # MD5 hashes don't match, handle accordingly (e.g., delete the incomplete file, return an error)
+            # MD5 hashes don't match, handle accordingly
+            # (e.g., delete the incomplete file, return an error)
             # os.remove(final_file_path)
             return jsonify({"message": "MD5 hash verification failed"}), 400
 
@@ -757,7 +762,6 @@ def join_uploaded_parts():
     for filename, one_file_data in gz_filedata.items():
         logger.info(one_file_data)
         if one_file_data["percent_uploaded"] == 100:
-            final_file_path = f"uploads/{uploads_folder}/{filename}"
             temp_file_path = f"uploads/{uploads_folder}/{filename}.temp"
             with open(temp_file_path, "ab") as temp_file:
                 for i in range(1, one_file_data["chunk_number_uploaded"] + 1):
@@ -887,7 +891,8 @@ def upload_final_files_route():
     init_upload_final_files_to_storage(process_id)
 
     init_send_message(
-        "FINISHING: The last step (upload final files to storage) was initiated by the user "
+        "FINISHING: The last step (upload final files to storage)"
+        + " was initiated by the user "
         + current_user.name
         + ". The id of the upload is: "
         + str(process_id)
@@ -1068,7 +1073,6 @@ def discord():
 @login_required
 @approved_required
 def metadata_form():
-    all_buckets = Bucket.get_all()
     my_buckets = {}
     map_key = os.environ.get("GOOGLE_MAP_API_KEY")
     for my_bucket in current_user.buckets:

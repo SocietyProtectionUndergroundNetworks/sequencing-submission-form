@@ -9,12 +9,10 @@ from flask import (
     render_template,
     session,
     Blueprint,
-    jsonify,
 )
 from oauthlib.oauth2 import WebApplicationClient
 from extensions import login_manager
 from flask_login import (
-    LoginManager,
     current_user,
     login_required,
     login_user,
@@ -23,11 +21,7 @@ from flask_login import (
 
 from models.user import User
 from models.bucket import Bucket
-from helpers.bucket import (
-    list_buckets,
-    get_project_resource_role_users,
-    get_bucket_role_users,
-)
+from helpers.bucket import list_buckets
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -161,7 +155,8 @@ def callback():
     # Begin user session by logging the user in
     login_user(user, remember=True)
 
-    # After successful login, check if there's a referrer URL stored in the session
+    # After successful login,
+    # check if there's a referrer URL stored in the session
     if "referrer_url" in session:
         referrer_url = session.pop("referrer_url")
         return redirect(referrer_url)

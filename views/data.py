@@ -1,14 +1,8 @@
-import os
 import logging
-from flask import redirect, Blueprint, render_template, request
+from flask import redirect, Blueprint, render_template, request, url_for
 from flask_login import current_user, login_required
-from models.user import User
 from models.bucket import Bucket
-from helpers.bucket import (
-    make_file_accessible,
-    download_bucket_contents,
-    delete_buckets_archive_files,
-)
+from helpers.bucket import make_file_accessible
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -51,7 +45,6 @@ def approved_required(view_func):
 @data_bp.route("/data")
 @login_required
 def data():
-    all_buckets = Bucket.get_all()
     my_buckets = {}
     for my_bucket in current_user.buckets:
         my_buckets[my_bucket] = Bucket.get(my_bucket)
