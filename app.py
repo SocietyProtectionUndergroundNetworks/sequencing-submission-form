@@ -15,11 +15,11 @@ from db.db_conn import get_database_uri
 app = Flask(__name__)
 SQLALCHEMY_DATABASE_URI = get_database_uri()
 
-app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
+app.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
 db = SQLAlchemy(app)
 
-app.config['SESSION_TYPE'] = 'sqlalchemy'
-app.config['SESSION_SQLALCHEMY'] = db
+app.config["SESSION_TYPE"] = "sqlalchemy"
+app.config["SESSION_SQLALCHEMY"] = db
 Session(app)
 
 # Secret key generation
@@ -37,13 +37,15 @@ login_manager.init_app(app)
 # Configure logging
 logging.basicConfig(
     level=logging.DEBUG,  # Set the logging level as per your need
-    format='%(asctime)s [%(levelname)s] %(message)s',
+    format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
-        logging.FileHandler('app.log'),  # Log to a file
-        logging.StreamHandler()  # Log to console
-    ]
+        logging.FileHandler("app.log"),  # Log to a file
+        logging.StreamHandler(),  # Log to console
+    ],
 )
-logger = logging.getLogger("my_app_logger")  # Use the same name when retrieving the logger
+logger = logging.getLogger(
+    "my_app_logger"
+)  # Use the same name when retrieving the logger
 
 # Initialize Celery
 # logger.info("Initializing Celery...")
@@ -51,9 +53,13 @@ celery = make_celery(app)
 # logger.info("Celery initialized successfully!")
 
 
-from tasks import fastqc_multiqc_files_async, upload_raw_file_to_storage_async, unzip_raw_file_async
+from tasks import (
+    fastqc_multiqc_files_async,
+    upload_raw_file_to_storage_async,
+    unzip_raw_file_async,
+)
 
-    
-if __name__ == '__main__':
-    server_port = os.environ.get('PORT', '8080')
-    app.run(debug=True, port=server_port, host='0.0.0.0')
+
+if __name__ == "__main__":
+    server_port = os.environ.get("PORT", "8080")
+    app.run(debug=True, port=server_port, host="0.0.0.0")

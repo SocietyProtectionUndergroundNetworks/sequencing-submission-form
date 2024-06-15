@@ -1,18 +1,31 @@
 # helpers/db_model.py
-from sqlalchemy import Table, Column, Integer, String, Boolean, DateTime, func, BigInteger, ForeignKey
+from sqlalchemy import (
+    Table,
+    Column,
+    Integer,
+    String,
+    Boolean,
+    DateTime,
+    func,
+    BigInteger,
+    ForeignKey,
+)
 from sqlalchemy.dialects.mysql import JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
 Base = declarative_base()
 
-association_table = Table('user_buckets', Base.metadata,
-    Column('user_id', String(36), ForeignKey('users.id')),
-    Column('bucket_id', String(250), ForeignKey('buckets.id'))
+association_table = Table(
+    "user_buckets",
+    Base.metadata,
+    Column("user_id", String(36), ForeignKey("users.id")),
+    Column("bucket_id", String(250), ForeignKey("buckets.id")),
 )
 
+
 class UserTable(Base):
-    __tablename__ = 'users'
+    __tablename__ = "users"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(255), nullable=False)
@@ -23,25 +36,24 @@ class UserTable(Base):
     approved = Column(Boolean, default=False)
     buckets = relationship("BucketTable", secondary=association_table, backref="users")
 
+
 class BucketTable(Base):
-    __tablename__ = 'buckets'
+    __tablename__ = "buckets"
 
     id = Column(String(250), primary_key=True)
     archive_file = Column(String(255), nullable=True)
     archive_file_created_at = Column(DateTime, nullable=True)
     archive_file_creation_progress = Column(Integer, nullable=True)
 
+
 class UploadTable(Base):
-    __tablename__ = 'uploads'
+    __tablename__ = "uploads"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(String(36), ForeignKey('users.id', ondelete='CASCADE'))
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"))
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(
-        DateTime,
-        default=func.now(),
-        onupdate=func.now(),
-        nullable=True
+        DateTime, default=func.now(), onupdate=func.now(), nullable=True
     )
     metadata_filename = Column(String(255), nullable=True)
     uploads_folder = Column(String(20), nullable=True)
