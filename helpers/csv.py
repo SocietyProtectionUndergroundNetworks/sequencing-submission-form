@@ -44,13 +44,19 @@ def validate_csv_column_names(file_path):
 
         if mismatched_columns:
             mismatched_columns_text = ", ".join(mismatched_columns)
-            return f"The following columns do not have expected names: {mismatched_columns_text}"
+            return (
+                f"The following columns do not have expected names: "
+                f"{mismatched_columns_text}"
+            )
 
         for line_number, row in enumerate(
             reader, start=2
         ):  # Start counting lines from 2 since header is 1st line
             if len(row) != len(expected_column_names):
-                return f"Error in line {line_number}: Incorrect number of columns."
+                return (
+                    f"Error in line {line_number}: "
+                    f"Incorrect number of columns."
+                )
 
         return True  # Return True if column names match
 
@@ -75,7 +81,8 @@ def validate_csv_buckets(file_path):
             # Assuming the fourth column contains values
             csv_bucket_value = row[3] if len(row) > 3 else None
 
-            # Check if the CSV value exists as a key in the bucket_info dictionary
+            # Check if the CSV value exists as a key in the
+            # bucket_info dictionary
             if csv_bucket_value.lower() not in bucket_info:
                 not_found.append(csv_bucket_value)
 
@@ -89,11 +96,17 @@ def validate_csv_buckets(file_path):
 
     if not_found:
         not_found_text = ", ".join(not_found)
-        return f"The following projects do not correspond to buckets: {not_found_text}"
+        return (
+            f"The following projects do not correspond to buckets: "
+            f"{not_found_text}"
+        )
 
     if wrong_regions:
         wrong_regions_text = ", ".join(wrong_regions)
-        return f"The following regions do not correspond to expected values: {wrong_regions_text}"
+        return (
+            f"The following regions do not correspond to expected values: "
+            f"{wrong_regions_text}"
+        )
 
     return True
 

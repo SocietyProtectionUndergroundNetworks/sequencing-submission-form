@@ -9,6 +9,9 @@ def get_database_uri():
     DB_PORT = os.environ["MYSQL_PORT"]
     DB_NAME = os.environ["MYSQL_DATABASE"]
 
-    SQLALCHEMY_DATABASE_URI = f"mysql+mysqldb://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
+    SQLALCHEMY_DATABASE_URI = (
+        f"mysql+mysqldb://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:"
+        f"{DB_PORT}/{DB_NAME}?charset=utf8mb4"
+    )
 
     return SQLALCHEMY_DATABASE_URI

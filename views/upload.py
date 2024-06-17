@@ -865,12 +865,13 @@ def show_multiqc_report():
     bucket = request.args.get("bucket")
     folder = request.args.get("folder")
     multiqc_report = get_multiqc_report(process_id, bucket, folder)
-    if multiqc_report["multiqc_report_exists"]:
-        return send_from_directory(
-            multiqc_report["multiqc_report_path"], "multiqc_report.html"
-        )
 
-    return ""
+    if multiqc_report["multiqc_report_exists"]:
+        multiqc_report_path = multiqc_report["multiqc_report_path"]
+        absolute_path = os.path.abspath(multiqc_report_path)
+        return send_from_directory(absolute_path, "multiqc_report.html")
+
+    return []
 
 
 @upload_bp.route(

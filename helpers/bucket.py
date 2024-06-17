@@ -36,13 +36,13 @@ def init_send_raw_to_storage(process_id, filename):
     try:
         result = upload_raw_file_to_storage_async.delay(process_id, filename)
         logger.info(
-            f"Celery upload_raw_file_to_storage_async task called successfully! Task ID: {result.id}"
+            f"Celery upload_raw_file_to_storage_async task "
+            f"called successfully! Task ID: {result.id}"
         )
-        task_id = result.id
-        # upload.update_fastqc_process_id(process_id, task_id)
     except Exception as e:
         logger.error(
-            "This is an error message from helpers/bucket.py while trying to upload_raw_file_to_storage_async"
+            "This is an error message from helpers/bucket.py "
+            " while trying to upload_raw_file_to_storage_async"
         )
         logger.error(e)
 
@@ -56,7 +56,7 @@ def upload_raw_file_to_storage(process_id, filename):
     uploads_folder = upload.uploads_folder
     path = Path("uploads", uploads_folder)
     save_path = path / filename
-    raw_uploaded = bucket_chunked_upload(
+    bucket_chunked_upload(
         save_path, "uploads/" + uploads_folder, filename, process_id, "gz_raw"
     )
 
@@ -95,8 +95,6 @@ def bucket_chunked_upload(
         bucket_name = os.environ.get("GOOGLE_STORAGE_BUCKET_NAME")
 
     bucket_name = bucket_name.lower()
-    project_id = os.environ.get("GOOGLE_STORAGE_PROJECT_ID")
-    bucket_location = os.environ.get("GOOGLE_STORAGE_BUCKET_LOCATION")
 
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
@@ -129,7 +127,8 @@ def bucket_chunked_upload(
                 break
 
             temp_blob = bucket.blob(
-                f"{destination_upload_directory}/{destination_blob_name}.part{chunk_num}"
+                f"{destination_upload_directory}/"
+                f"{destination_blob_name}.part{chunk_num}"
             )
             temp_blob.upload_from_string(
                 data, content_type="application/octet-stream"
@@ -181,13 +180,16 @@ def init_upload_final_files_to_storage(process_id):
     try:
         result = upload_final_files_to_storage_async.delay(process_id)
         logger.info(
-            f"Celery upload_final_files_to_storage_async task called successfully! Task ID: {result.id}. process_id: {process_id}"
+            f"Celery upload_final_files_to_storage_async"
+            f" task called successfully! "
+            f"Task ID: {result.id}. process_id: {process_id}"
         )
-        task_id = result.id
+        # task_id = result.id
         # upload.update_fastqc_process_id(process_id, task_id)
     except Exception as e:
         logger.error(
-            "This is an error message from helpers/bucket.py while trying to upload_final_files_to_storage_async"
+            "This is an error message from helpers/bucket.py "
+            "while trying to upload_final_files_to_storage_async"
         )
         logger.error(e)
 
@@ -200,7 +202,6 @@ def upload_final_files_to_storage(process_id):
     uploads_folder = upload.uploads_folder
     extract_directory = Path("processing", uploads_folder)
     files_json = json.loads(upload.files_json)
-    total_count = len(files_json)
     files_done = 0
 
     first_bucket = None
@@ -211,7 +212,7 @@ def upload_final_files_to_storage(process_id):
         if sequencing_method == 1:
             if (
                 (upload.renaming_skipped)
-                or (value["new_filename"] == None)
+                or (value["new_filename"] == None)  # noqa
                 or (value["new_filename"] == "")
             ):
                 file_to_move = key
@@ -306,7 +307,8 @@ def get_project_resource_role_users(role):
     # Create a credentials object
     credentials, _ = default()
 
-    # Create a service object for interacting with the Cloud Resource Manager API
+    # Create a service object for interacting with the Cloud
+    # Resource Manager API
     service = discovery.build(
         "cloudresourcemanager", "v1", credentials=credentials
     )
@@ -327,7 +329,6 @@ def get_project_resource_role_users(role):
 
 def get_bucket_role_users(bucket_name, role):
     from google.auth import default
-    from googleapiclient import discovery
 
     # Authenticate with Google Cloud
     credentials, _ = default()
@@ -339,7 +340,8 @@ def get_bucket_role_users(bucket_name, role):
     bucket = storage_client.get_bucket(bucket_name)
     policy = bucket.get_iam_policy()
 
-    # Filter bindings to retrieve only the ones associated with roles that end with the specified string
+    # Filter bindings to retrieve only the ones associated with roles that
+    # end with the specified string
     bindings_for_role = [
         binding
         for binding in policy.bindings
@@ -350,7 +352,8 @@ def get_bucket_role_users(bucket_name, role):
     emails = []
     for binding in bindings_for_role:
         for member in binding["members"]:
-            # Member strings might have prefix, so we need to split to get the email part
+            # Member strings might have prefix, so we need to split to get the
+            # email part
             email = member.split(":", 1)[
                 -1
             ]  # Split only once to avoid issues with colons in email addresses
@@ -384,12 +387,10 @@ def download_bucket_contents(bucket_name):
 
     # Calculate total number of files for progress tracking
     total_files = sum(1 for _ in blob_list)
-    bucket_size = check_archive_file(bucket_name)
 
     # Initialize progress counters
     downloaded_files = 0
     zip_progress = 0
-    upload_progress = 0
 
     destination_folder = os.path.join("temp", bucket_name)
     os.makedirs(destination_folder, exist_ok=True)
@@ -546,5 +547,6 @@ def delete_bucket_folder(folder_name, bucket_name=None):
         blob.delete()
 
     logger.info(
-        f"Folder '{folder_name}' and its contents deleted successfully from bucket '{bucket_name}'."
+        f"Folder '{folder_name}' and its contents "
+        f"deleted successfully from bucket '{bucket_name}'."
     )

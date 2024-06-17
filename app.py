@@ -2,7 +2,6 @@ import os
 import secrets
 import logging
 
-from flask import Flask, session
 from views import create_app
 from extensions import login_manager
 from celery_config import make_celery
@@ -45,13 +44,8 @@ logger = logging.getLogger(
 celery = make_celery(app)
 # logger.info("Celery initialized successfully!")
 
-
-from tasks import (
-    fastqc_multiqc_files_async,
-    upload_raw_file_to_storage_async,
-    unzip_raw_file_async,
-)
-
+# Import tasks after Celery is initialized
+import tasks  # noqa: E402, F401
 
 if __name__ == "__main__":
     server_port = os.environ.get("PORT", "8080")

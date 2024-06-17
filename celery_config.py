@@ -8,10 +8,4 @@ def make_celery(app):
         broker="redis://redis:6379/0",
     )
     celery.conf.update(app.config)
-
-    # Register tasks
-    celery.autodiscover_tasks(
-        ["tasks"]
-    )  # Ensure 'tasks' is the correct path to your tasks module
-
     return celery

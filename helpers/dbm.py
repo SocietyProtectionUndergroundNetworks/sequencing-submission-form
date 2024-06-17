@@ -1,12 +1,8 @@
 # -*- coding: utf-8 -*-
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
-from sqlalchemy.sql import and_, not_, select, exists, text
 
 import os
-import time
-
-from models.db_model import Base  # Import your models from db_model.py
 
 
 def connect_db():
