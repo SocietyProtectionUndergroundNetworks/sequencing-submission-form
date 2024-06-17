@@ -49,7 +49,9 @@ services:
       - PORT=56734
     networks:
       - flask
+    scale: 2
     entrypoint: celery -A app.celery worker --loglevel=info  # Celery worker command
+    
 
   nginx:
     image: nginx:alpine
