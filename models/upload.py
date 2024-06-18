@@ -74,13 +74,12 @@ class Upload:
         return None
 
     @classmethod
-    def create(self, user_id, uploads_folder, metadata_filename):
+    def create(self, user_id, uploads_folder):
         db_engine = connect_db()
         session = get_session(db_engine)
 
         new_upload = UploadTable(
             user_id=user_id,
-            metadata_filename=metadata_filename,
             uploads_folder=uploads_folder,
         )
 

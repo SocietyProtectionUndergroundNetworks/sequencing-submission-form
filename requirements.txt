@@ -29,4 +29,9 @@ discord.py==2.3.2
 
 google-api-python-client==2.125.0
 
+pandas
+
+xlrd
+
+openpyxl
 debugpy # Required for debugging.

@@ -44,6 +44,12 @@
       text-decoration: none;
     }      
   }
+  .explanation {
+    a {
+      color: blue;
+      text-decoration: underline;      
+    }      
+  }
 
   .form-step-item {
     max-width: 900px;   
@@ -66,6 +72,6 @@
   #showAllRows {
     cursor: pointer;
     padding-left: 30px;
-  }
+  } 
 
 }

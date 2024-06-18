@@ -30,20 +30,85 @@
         {% endfor %}
       {% endif %}
     </div>
+
+    <div id="step_1" class="form-step-item">
+      <h3> Step 1: Project ID allocated to user </h3>
+        {% if my_buckets|length == 0 %}
+          <div>You have no assigned project. Please contact the program coordinator</div>
+        {% elif my_buckets|length == 1 %}
+          <div>
+            <p>The only assigned project for this user is {{ my_buckets|list|first }}. If the data are for this project, proceed.</p>
+            <p>If you believe your data should be in a different project, please stop the process and contact the program coordinator</p>
+          </div>
+          <input type="hidden" id="assigned-project-id" value="{{ my_buckets|list|first }}"/>
+        {% else %}
+          <div>
+            <label for="bucket-select">Select your project:</label>
+            <select id="bucket-select" name="bucket">
+              <option value="0">------</option>
+              {% for bucket_name in my_buckets %}
+                <option value="{{ bucket_name }}">{{ bucket_name }}</option>
+              {% endfor %}
+            </select>
+            <p>If you you dont see your assigned project in the list, please stop the process and contact the program coordinator</p>
+          </div>
+        {% endif %}    
+    </div>
+    
+    <div id="step_2" class="form-step-item">
+      <h3> Step 2: Select how you are going to give us the metadata</h3>
+      <div>You can give us the metadata either by </div>
+      <form id="step_2_form">
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="upload_method" id="upload_method_1" value="1">
+          <label class="form-check-label" for="sequencing_method_1">
+            Uploading a file of the format .xls or .csv
+          </label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="upload_method" id="upload_method_2" value="2">
+          <label class="form-check-label" for="sequencing_method_2">
+            Filling in the form once for each of your samples
+          </label>
+        </div>
+      </form>
+      <div id="step_2_explanation_case_1" class="explanation" style="display:none;">
+        <p>You have to upload a csv or xls file that the column names EXACTLY as they appear bellow. </p>
+        <p>You can read the <a href="/metadata_fields_explanation" class="link" target="_blank">description of each field here TODO</a></p>
+        <p>You can download the <a href="/metadata_xls_template" class="link" target="_blank">XLS template TODO</a></p>
+        <p>Or the <a href="/metadata_csv_template" class="link" target="_blank">CSV template TODO</a></p>
+        <form
+            method="POST"
+            action="/upload_metadata_file"
+            enctype="multipart/form-data"
+            id="step_2_file_upload"
+        >
+          <input type="hidden" name="project_id" value="{{ project_id }}">
+          <input type="file" id="step_2_file_upload_button" accept=".csv, .xls, .xlsx">
+        </form>        
+      </div>
+      <div id="step_2_explanation_case_2" class="explanation" style="display:none;">
+        <p>Fill in the form bellow once for each sample. Pay very good attention to the coordinates.</p> 
+        <p>When you enter the coordinates the map should be showing you where this was.</p>
+      </div>       
+    </div>
+    
+    
+    
+    
+    
     <div class="table-container">
       <table id="dataTable" class="table-bordered">
         <thead>
           <tr>
             <th scope="col">Sample ID</th>
             <th scope="col">Project Specific Sample ID</th>
-            <th scope="col">Project ID</th>
             <th scope="col">Site name</th>
             <th scope="col">Latitude</th>
             <th scope="col">Longitude</th>
             <th scope="col">Country</th>
             <th scope="col">Vegetation</th>
-            <th scope="col">Land Use</th>
-            
+            <th scope="col">Land Use</th>            
             <th scope="col">Ecosystem</th>
             <th scope="col">Grid Size</th>
             <th scope="col">Soil Depth</th>
@@ -70,7 +135,7 @@
       
     </div>
     <div class="container">
-      <form id="metadataForm">
+      <form id="metadataForm" style="display:none">
         <div class="form-group row mb-3">
           <label for="sampleID" class="col-sm-3 col-form-label">Sample ID</label>
           <div class="col-sm-9">
@@ -84,28 +149,6 @@
           <div class="col-sm-9">
             <small id="projectSpecificIDHelp" class="form-text">Project specific sample ID (optional) - if required to identify samples with key words - i.e tree_perimeter_site2</small>
             <input type="text" class="form-control" id="projectSpecificID" placeholder="Project Specific Sample ID">
-          </div>
-        </div>
-        <div class="form-group row mb-3">
-          <label for="projectID" class="col-sm-3 col-form-label">Project ID</label>
-          <div class="col-sm-9">
-            {% if my_buckets %}
-              {% if my_buckets|length == 1 %}
-                {% set single_project_key, single_project_value = my_buckets.items()|first %}
-                <select class="form-control" id="projectID" name="projectID">
-                  <option value="{{ single_project_key }}">{{ single_project_key }}</option>
-                </select>
-              {% else %}
-                <select class="form-control" id="projectID" name="projectID">
-                  <option value="" selected disabled>Please select a project</option>
-                  {% for project_key, project_value in my_buckets.items() %}
-                    <option value="{{ project_key }}">{{ project_key }}</option>
-                  {% endfor %}
-                </select>
-              {% endif %}
-            {% else %}
-              <small id="projectIDHelp" class="form-text text-danger">You have no projects assigned to this account. Please contact an administrator</small>
-            {% endif %}
           </div>
         </div>
         <div class="form-group row mb-3">
@@ -309,7 +352,18 @@
   <script type="application/javascript">
   let marker;
   $(document).ready(function() {
-    
+    $('input[name="upload_method"]').change(function() {
+      if (this.value == '1') {
+        $('#step_2_explanation_case_1').show();
+        $('#step_2_explanation_case_2').hide();
+        $('#metadataForm').hide();
+      } else if (this.value == '2') {
+        $('#step_2_explanation_case_1').hide();
+        $('#step_2_explanation_case_2').show();
+        $('#metadataForm').show();
+      }
+    });
+        
     $('#sampleID').on('input', function() {
       console.log('Input event triggered');
       var sampleIDValue = $(this).val();
@@ -381,7 +435,6 @@
         var formData = {
             sampleID: $('#sampleID').val(),
             projectSpecificID: $('#projectSpecificID').val(),
-            projectID: $('#projectID').val(),
             siteName: $('#siteName').val(),
             latitude: $('#latitude').val(),
             longitude: $('#longitude').val(),
@@ -444,6 +497,48 @@
         }
     });    
   });
+
+  $(document).ready(function () {
+      $('#step_2_file_upload_button').on('change', function () {
+          uploadFile();
+      });
+  });
+
+  function uploadFile() {
+    var fileInput = $('#step_2_file_upload_button')[0];
+    var file = fileInput.files[0];
+
+    if (!file) {
+        alert("Please select a file.");
+        return;
+    }
+
+    var formData = new FormData();
+    formData.append('file', file);
+
+    formData.append('project_id', 1);
+
+    $.ajax({
+        url: '/upload_metadata_file',
+        type: 'POST',
+        data: formData,
+        contentType: false,
+        processData: false,
+        success: function (response) {
+            // Access and use the process ID
+            console.log(response)
+        },
+        error: function (xhr) {
+          if (xhr && xhr.responseText) {
+              var response = JSON.parse(xhr.responseText);
+              $("#step_2_msg").html(response.error + ' ' + response.results).addClass('text-danger').removeClass('text-info').removeClass('text-success');
+          } else {
+              $("#step_2_msg").html(errorMessage).addClass('text-danger').removeClass('text-info').removeClass('text-success');
+          }
+        }
+    });
+  }
+
   
   </script>
   <script>
@@ -484,7 +579,8 @@
     
     .table-container {
         overflow-x: auto; /* Enable horizontal scrolling */
-    } 
+    }
+    
   </style>
 </body>
 </html>

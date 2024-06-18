@@ -81,5 +81,8 @@ sshvm:
 copyssh:
 	gcloud compute scp ~/.ssh/id_rsa.pub ${GOOGLE_VM_PROPERTY}:~/
 
+lint:
+	docker-compose run flake8
+
 echo:
 	echo $${GOOGLE_APPLICATION_CREDENTIALS_PATH}
