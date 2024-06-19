@@ -32,7 +32,7 @@ from helpers.bucket import (
     init_upload_final_files_to_storage,
     delete_bucket_folder,
 )
-
+from helpers.slack import send_message_to_slack
 from helpers.unzip import get_progress_db_unzip, unzip_raw
 from helpers.fastqc import (
     get_fastqc_progress,
@@ -511,6 +511,12 @@ def upload_csv():
         + ". The id of the upload is: "
         + str(process_id)
     )
+    send_message_to_slack(
+        "STARTING: An upload was initiated by uploading metadata by the user "
+        + current_user.name
+        + ". The id of the upload is: "
+        + str(process_id)
+    )
 
     logger.info(
         "Uploading csv for process_id "
@@ -852,6 +858,13 @@ def upload_final_files_route():
     init_upload_final_files_to_storage(process_id)
 
     init_send_message(
+        "FINISHING: The last step (upload final files to storage)"
+        + " was initiated by the user "
+        + current_user.name
+        + ". The id of the upload is: "
+        + str(process_id)
+    )
+    send_message_to_slack(
         "FINISHING: The last step (upload final files to storage)"
         + " was initiated by the user "
         + current_user.name
