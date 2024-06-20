@@ -11,6 +11,7 @@ from flask import (
 )
 from flask_login import current_user, login_required
 from models.bucket import Bucket
+from helpers.metadata_check import check_metadata
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -74,19 +75,6 @@ def upload_metadata_file():
     if not file:
         return jsonify({"error": "No file uploaded"}), 400
 
-    # Get the directory of the current module (usually the Flask app)
-    current_dir = os.path.dirname(__file__)
-
-    # Navigate up one directory to reach the base directory of the Flask app
-    base_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
-
-    # Construct the absolute path to columns.csv
-    columns_file_path = os.path.join(base_dir, "metadataconfig", "columns.csv")
-
-    # Open the file and read the expected columns
-    with open(columns_file_path, "r") as columns_file:
-        expected_columns = columns_file.read().strip().split("\n")
-
     # Read uploaded file and get its column names
     filename = file.filename
     file_extension = os.path.splitext(filename)[1].lower()
@@ -98,25 +86,8 @@ def upload_metadata_file():
     else:
         return jsonify({"error": "Unsupported file type"}), 400
 
-    uploaded_columns = df.columns.tolist()
+    # Check metadata using the helper function
+    result = check_metadata(df)
 
-    # Determine missing and extra columns
-    missing_columns = list(set(expected_columns) - set(uploaded_columns))
-    extra_columns = list(set(uploaded_columns) - set(expected_columns))
-
-    # Determine status based on comparison
-    if not missing_columns and not extra_columns:
-        response = {"status": 1}
-    elif missing_columns and extra_columns:
-        response = {
-            "status": 0,
-            "missing_columns": missing_columns,
-            "extra_columns": extra_columns,
-        }
-    elif missing_columns:
-        response = {"status": 0, "missing_columns": missing_columns}
-    else:  # extra_columns
-        response = {"status": 1, "extra_columns": extra_columns}
-
-    # Return status as JSON
-    return jsonify(response)
+    # Return the result as JSON
+    return jsonify(result)

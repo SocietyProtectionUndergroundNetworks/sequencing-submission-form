@@ -1,12 +1,12 @@
 SampleID
-Project_Specific_Sample_ID
-Project_ID
 Site_name
 Latitude
 Longitude
 Country
 Vegetation
 Land_use
+Agricultural_land
+Treatments
 Ecosystem
 Grid_Size
 Soil_depth
