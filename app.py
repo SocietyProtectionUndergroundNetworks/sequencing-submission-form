@@ -26,15 +26,7 @@ app.secret_key = foo
 # Initialize extensions
 login_manager.init_app(app)
 
-# Configure logging
-logging.basicConfig(
-    level=logging.DEBUG,  # Set the logging level as per your need
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        logging.FileHandler("app.log"),  # Log to a file
-        logging.StreamHandler(),  # Log to console
-    ],
-)
+
 logger = logging.getLogger(
     "my_app_logger"
 )  # Use the same name when retrieving the logger

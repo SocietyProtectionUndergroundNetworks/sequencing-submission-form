@@ -1,3 +1,4 @@
+import logging
 from flask import Flask
 from .user import user_bp
 from .upload import upload_bp
@@ -10,6 +11,16 @@ def create_app():
         __name__, static_folder="../static", template_folder="../templates"
     )
 
+    # Configure logging
+    logging.basicConfig(
+        level=logging.DEBUG,  # Set the logging level as per your need
+        format="%(asctime)s 1 [%(levelname)s] %(message)s",
+        handlers=[
+            logging.FileHandler("app.log"),  # Log to a file
+            logging.StreamHandler(),  # Log to console
+        ],
+    )
+    logger = logging.getLogger("my_app_logger")
     # Register Blueprints
     app.register_blueprint(user_bp)
     app.register_blueprint(upload_bp)

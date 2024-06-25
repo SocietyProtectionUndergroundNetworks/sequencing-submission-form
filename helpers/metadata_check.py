@@ -1,6 +1,7 @@
 import os
 import re
 import logging
+import json
 
 logger = logging.getLogger("my_app_logger")
 
@@ -15,21 +16,42 @@ def check_sample_id(sample_id):
     return bool(sample_id_pattern.match(sample_id))
 
 
-def check_expected_columns(df):
+def get_columns_data():
+    current_dir = os.path.dirname(__file__)
+    base_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
+    columns_file_path = os.path.join(
+        base_dir, "metadataconfig", "columns.json"
+    )
+
+    with open(columns_file_path, "r") as columns_file:
+        data = json.load(columns_file)
+
+    for key, value in data.items():
+        lookup_file = value.get("lookup_file")
+        if (
+            lookup_file and lookup_file.strip()
+        ):  # Check if lookup_file is not empty
+            lookup_file_path = os.path.join(
+                base_dir, "metadataconfig", lookup_file
+            )
+            if os.path.exists(lookup_file_path):
+                with open(lookup_file_path, "r") as lookup:
+                    value["options"] = lookup.read().strip().split("\n")
+            else:
+                value["options"] = []  # or handle missing file as needed
+
+    return data
+
+
+def check_expected_columns(df, expected_columns_data):
     """
     Check for missing and extra columns in the DataFrame.
     """
-    current_dir = os.path.dirname(__file__)
-    base_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
-    columns_file_path = os.path.join(base_dir, "metadataconfig", "columns.csv")
 
-    with open(columns_file_path, "r") as columns_file:
-        expected_columns = columns_file.read().strip().split("\n")
-
+    expected_columns = list(expected_columns_data.keys())
     uploaded_columns = df.columns.tolist()
     missing_columns = list(set(expected_columns) - set(uploaded_columns))
     extra_columns = list(set(uploaded_columns) - set(expected_columns))
-
     issues = []
 
     if missing_columns:
@@ -45,7 +67,6 @@ def check_expected_columns(df):
         issues.append(
             {"invalid": extra_columns, "message": "Extra columns", "status": 0}
         )
-
     return issues
 
 
@@ -53,6 +74,7 @@ def check_sample_ids(df):
     """
     Check the SampleID column for correct format.
     """
+    
     invalid_sample_ids = []
     for idx, sample_id in df["SampleID"].items():
         if not check_sample_id(sample_id):
@@ -67,26 +89,49 @@ def check_sample_ids(df):
 
     return {"status": 1}
 
+def check_field_length(df, field_name, limit):
+    """
+    Check if the field values exceed limit characters.
+    """
+    # Replace NaN values with empty strings
+    df[field_name] = df[field_name].fillna("")
 
-def check_vegetation_length(df):
-    """
-    Check if the Vegetation column values exceed 200 characters.
-    """
-    long_vegetation_entries = [
+    # Find entries that exceed the length limit
+    long_entries = [
         {"row": idx, "value": value[:20] + "..."}
-        for idx, value in df[df["Vegetation"].str.len() > 200][
-            "Vegetation"
-        ].items()
+        for idx, value in df[df[field_name].str.len() > limit][field_name].items()
     ]
 
-    if long_vegetation_entries:
+    if long_entries:
         return {
             "status": 0,
-            "invalid": long_vegetation_entries,
-            "message": "Invalid Vegetation values exceed 200 characters.",
+            "invalid": long_entries,
+            "message": f"Invalid {field_name} values exceed {limit} characters.",
         }
 
     return {"status": 1}
+
+def check_sequencing_facility(df):
+    result = check_field_length(df, "Sequencing_facility", 150)
+    return result
+
+def check_vegetation(df):
+    result = check_field_length(df, "Vegetation", 200)
+    return result
+
+
+def check_expedition_lead(df):
+    result = check_field_length(df, "Expedition_lead", 150)
+    return result
+
+
+def check_notes(df):
+    result = check_field_length(df, "Notes", 200)
+    return result
+
+def check_collaborators(df):
+    result = check_field_length(df, "Collaborators", 150)
+    return result
 
 
 def check_agricultural_land_values(df):
@@ -110,22 +155,16 @@ def check_agricultural_land_values(df):
     return {"status": 1}
 
 
-def check_field_values_lookup(df, field_name, filename, allow_empty=True):
+def check_field_values_lookup(df, valid_values, field_name, allow_empty=True):
     """
-    Check if field_name values are valid based on the filename file.
+    Check if field_name values are valid based on the valid_values list.
+    Ignore case when comparing values.
     """
-    current_dir = os.path.dirname(__file__)
-    base_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
-    file_path = os.path.join(base_dir, "metadataconfig", filename)
-
-    with open(file_path, "r") as values_file:
-        valid_values = values_file.read().strip().split("\n")
-
     invalid_values = [
         {"row": idx, "value": value}
         for idx, value in df[field_name].dropna().items()
-        if (value.strip() == "" and not allow_empty)
-        or (value not in valid_values)
+        if ((value.strip() == "" and not allow_empty) or
+            (value.strip().lower() not in [v.lower() for v in valid_values]))
     ]
 
     # Identify empty values
@@ -194,14 +233,12 @@ def check_dna_concentration(df):
     Check if DNA_concentration_ng_ul values are valid numeric
     decimal values and not empty.
     """
-    invalid_dna_concentration_entries = []
-    empty_dna_concentration_entries = []
+    invalid_entries = []
+    empty_values = []
 
     for idx, value in df["DNA_concentration_ng_ul"].items():
-        if not is_numeric(value) or float(value) < 0:
-            invalid_dna_concentration_entries.append(
-                {"row": idx, "value": value}
-            )
+        if not is_numeric(value):
+            invalid_entries.append({"row": idx, "value": value})
 
     empty_values = df[
         df["DNA_concentration_ng_ul"].isna()
@@ -209,19 +246,45 @@ def check_dna_concentration(df):
     ].index.tolist()
 
     result = {
-        "status": (
-            1
-            if not invalid_dna_concentration_entries
-            and not empty_dna_concentration_entries
-            else 0
-        ),
+        "status": (1 if not invalid_entries and not empty_values else 0),
         "message": (
             "Invalid DNA_concentration_ng_ul values"
-            if invalid_dna_concentration_entries
-            or empty_dna_concentration_entries
+            if invalid_entries or empty_values
             else "DNA_concentration_ng_ul values are valid"
         ),
-        "invalid": invalid_dna_concentration_entries,
+        "invalid": invalid_entries,
+        "empty_values": empty_values,
+    }
+
+    return result
+
+
+def check_elevation(df):
+    """
+    Check if elevation values are valid numeric
+    integer values and not empty.
+    """
+    invalid_entries = []
+    empty_values = []
+
+    invalid_entries = [
+        {"row": idx, "value": value}
+        for idx, value in df["Elevation"].dropna().items()
+        if not is_positive_integer(value)
+    ]
+
+    empty_values = df[
+        df["Elevation"].isna() | df["Elevation"].astype(str).str.strip().eq("")
+    ].index.tolist()
+
+    result = {
+        "status": (1 if not invalid_entries and not empty_values else 0),
+        "message": (
+            "Invalid Elevation values"
+            if invalid_entries or empty_values
+            else "Elevation values are valid"
+        ),
+        "invalid": invalid_entries,
         "empty_values": empty_values,
     }
 
@@ -239,124 +302,75 @@ def is_numeric(value):
         return False
 
 
+def is_positive_integer(value):
+    """
+    Check if a value is a positive integer.
+    """
+    try:
+        # Check if the value can be converted to an integer
+        int_value = int(value)
+        # Check if the integer value is positive
+        if int_value > 0:
+            return True
+        else:
+            return False
+    except ValueError:
+        return False
+
+
 def check_metadata(df):
     """
     Check metadata including columns, and validity of fields.
     """
-    result = check_expected_columns(df)
-
+    expected_columns_data = get_columns_data()
+    result = check_expected_columns(df, expected_columns_data)
     # Initialize the result to collect all issues
     overall_status = 1
     issues = {}
 
-    # Check for columns issues
+    # Identify missing and extra columns
+    missing_columns = set()
+    extra_columns = set()
+    
     if isinstance(result, list):  # Check if result is a list of issues
         for issue in result:
             if issue["status"] == 0:
                 overall_status = 0
-                if "missing_columns" in issue:
+                if issue['message'] == "Missing columns":
+                    missing_columns.update(issue["invalid"])
                     issues["missing_columns"] = issue
-                elif "extra_columns" in issue:
+                elif issue['message'] == "Extra columns":
+                    extra_columns.update(issue["invalid"])
                     issues["extra_columns"] = issue
+    
 
-    # Check SampleID
-    sample_id_check_result = check_sample_ids(df)
-    if sample_id_check_result["status"] == 0:
-        overall_status = 0
-        issues["SampleID"] = sample_id_check_result
+    # Iterate through expected columns data, skipping any missing columns
+    for column_key, column_values in expected_columns_data.items():
+        if column_key in missing_columns:
+            continue  # Skip checks for missing columns
 
-    # Check Land_use
-    land_use_check_result = check_field_values_lookup(
-        df, "Land_use", "landuses.csv", False
-    )
-    if land_use_check_result["status"] == 0:
-        overall_status = 0
-        issues["Land_use"] = land_use_check_result
-
-    # Check Country
-    country_check_result = check_field_values_lookup(
-        df, "Country", "countries.csv", False
-    )
-    if country_check_result["status"] == 0:
-        overall_status = 0
-        issues["Country"] = country_check_result
-
-    # Check Vegetation length
-    vegetation_length_check_result = check_vegetation_length(df)
-    if vegetation_length_check_result["status"] == 0:
-        overall_status = 0
-        issues["Vegetation"] = vegetation_length_check_result
-
-    # Check Agricultural_land values
-    agricultural_land_check_result = check_agricultural_land_values(df)
-    if agricultural_land_check_result["status"] == 0:
-        overall_status = 0
-        issues["Agricultural_land"] = agricultural_land_check_result
-
-    # Check Grid_Size values
-    grid_size_check_result = check_field_values_lookup(
-        df, "Grid_Size", "gridsizes.csv", False
-    )
-    if grid_size_check_result["status"] == 0:
-        overall_status = 0
-        issues["Grid_Size"] = grid_size_check_result
-
-    # Check Soil_depth values
-    soil_depth_check_result = check_field_values_lookup(
-        df, "Soil_depth", "soildepths.csv", False
-    )
-    if soil_depth_check_result["status"] == 0:
-        overall_status = 0
-        issues["Soil_depth"] = soil_depth_check_result
-
-    # Check Transport_refrigeration values
-    transport_refrigeration_check_result = check_field_values_lookup(
-        df, "Transport_refrigeration", "transport_refrigerations.csv", False
-    )
-    if transport_refrigeration_check_result["status"] == 0:
-        overall_status = 0
-        issues["Transport_refrigeration"] = (
-            transport_refrigeration_check_result
-        )
-
-    # Check Drying values
-    drying_check_result = check_field_values_lookup(
-        df, "Drying", "dryings.csv", False
-    )
-    if drying_check_result["status"] == 0:
-        overall_status = 0
-        issues["Drying"] = drying_check_result
-
-    # Check Ecosystem values
-    ecosystem_check_result = check_field_values_lookup(
-        df, "Ecosystem", "ecosystems.csv", False
-    )
-    if ecosystem_check_result["status"] == 0:
-        overall_status = 0
-        issues["Ecosystem"] = ecosystem_check_result
-
-    # Check Ecosystem values
-    date_collected_check_result = check_date_collected(df)
-    if date_collected_check_result["status"] == 0:
-        overall_status = 0
-        issues["Date_collected"] = date_collected_check_result
-
-    # Check Ecosystem values
-    extraction_methods_check_result = check_field_values_lookup(
-        df, "Extraction_method", "extraction_methods.csv", False
-    )
-    if extraction_methods_check_result["status"] == 0:
-        overall_status = 0
-        issues["Extraction_method"] = extraction_methods_check_result
-
-    # Check DNA_concentration_ng_ul values
-    dna_concentration_check_result = check_dna_concentration(df)
-    if dna_concentration_check_result["status"] == 0:
-        overall_status = 0
-        issues["DNA_concentration_ng_ul"] = dna_concentration_check_result
+        if "options" in column_values:
+            options_check_result = check_field_values_lookup(df, column_values["options"], column_key)
+            if options_check_result["status"] == 0:
+                overall_status = 0
+                issues[column_key] = options_check_result
+        elif "check_function" in column_values:
+            # Dynamically call the check function
+            check_function_name = column_values["check_function"]
+            if check_function_name in globals():
+                check_function = globals()[check_function_name]
+                check_result = check_function(df)
+                if check_result["status"] == 0:
+                    overall_status = 0
+                    issues[column_key] = check_result
+            else:
+                # Handle the case where the check function is not found
+                overall_status = 0
+                issues[column_key] = {"status": 0, "message": f"Check function {check_function_name} not found"}
 
     # Combine status and issues into the final result
     final_result = {"status": overall_status}
     final_result.update(issues)
 
     return final_result
+

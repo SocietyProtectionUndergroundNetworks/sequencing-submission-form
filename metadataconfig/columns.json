@@ -1,0 +1,117 @@
+{
+  "SampleID": {
+    "help_tip": "Unique sample tracking ID for your project. This should be a location name used to describe where you sampled (country or region), the year, and a sample number. I.e Patagonia22_1",
+    "check_function": "check_sample_ids"
+  },
+  "Site_name": {
+    "help_tip": "Optional, the region or local name of site collected. Can be the same name for multiple samples."
+  },
+  "Latitude": {
+    "help_tip": "Latitude of coordinates measured using WGS1984 (default on most GPS). Ideally in decimal format"
+  },
+  "Longitude": {
+    "help_tip": "Longitude of coordinates measured using WGS1984 (default on most GPS). Ideally in decimal format"
+  },
+  "Country": {
+    "help_tip": "Country you are sampling within"
+  },
+  "Vegetation": {
+    "help_tip": "List of names of local vegetation, if names unknown describe (trees, grass, forbs, etc)",
+    "check_function": "check_vegetation"
+  },
+  "Land_use": {
+    "lookup_file": "land_use.csv",
+    "help_tip": "Land use category of the site."
+  },
+  "Agricultural_land": {
+    "lookup_file": "agricultural_land.csv",
+    "help_tip": "Was the land where the sample taken agricultural?"
+  },
+  "Treatments": {
+    "help_tip": "Optional. Short description if any treatments were applied to the land for study (e.g. pesticide, drought)"
+  },
+  "Ecosystem": {
+    "lookup_file": "ecosystems.csv",
+    "help_tip": "Type of ecosystem."
+  },
+  "Grid_Size": {
+    "lookup_file": "grid_size.csv",
+    "help_tip": "Size of your sampling grid. 30m is the standard"
+  },
+  "Soil_depth": {
+    "lookup_file": "soil_depth.csv",
+    "help_tip": "Depth of soil core. 5-10cm is the SPUN standard"
+  },
+  "Transport_refrigeration": {
+    "lookup_file": "Transport_refrigeration.csv",
+    "help_tip": "Transport refrigeration method used"
+  },
+  "Drying": {
+    "lookup_file": "drying.csv",
+    "help_tip": "If airdried, select time drying. Airdrying includes drying with silica gel. Select ‘No’ if no airdrying carried out"
+  },
+  "Date_collected": {
+    "field_type":"date",
+    "help_tip": "Date the sample was collected. Must be DD/MM/YYYY format",
+    "check_function": "check_date_collected"
+  },
+  "Extraction_method": {
+    "lookup_file": "extraction_method.csv",
+    "help_tip": "Kit or protocol used for DNA extraction. ‘Conventional extraction’ refers to a laboratory protocol using common buffers and solutions (such a SDS, phenol). Conventional extraction, CTAB refers to a laboratory protocol using common buffers and solutions in addition to the CTAB buffer."
+  },
+  "DNA_concentration_ng_ul": {
+    "help_tip": "Concentration of DNA (ng/ul).",
+    "check_function": "check_dna_concentration"
+  },
+  "DNA_conc_instrument": {
+    "lookup_file": "dna_conc_instrument.csv",
+    "help_tip": "Instrument/machine used to quantify DNA"
+  },
+  "Sequencing_platform": {
+    "lookup_file": "sequencing_platform.csv",
+    "help_tip": "Platform used for sequencing."
+  },
+  "Sequencing_facility": {
+    "help_tip": "Company or core facility name",
+    "check_function": "check_sequencing_facility"
+  },
+  "Elevation": {
+    "help_tip": "Elevation in meters above sea level",
+    "check_function": "check_elevation"
+  },
+  "Sample_or_Control": {
+    "lookup_file": "sample_or_control.csv",
+    "help_tip": "Indicate ‘True sample' if the sample is a collected soil sample, 'Control' if sample is a negative control"
+  },
+  "Region_1": {
+    "lookup_file": "region.csv",
+    "help_tip": "Primary region of the fungal rDNA operon to be amplified"
+  },
+  "Region_2": {
+    "lookup_file": "region.csv",
+    "help_tip": "Secondary region of the fungal rDNA operon to be amplified"
+  },      
+  "Primer_set_1": {
+    "lookup_file": "primer_set.csv",
+    "help_tip": "First primer set used for amplicon sequencing, if applicable."
+  },
+  "Primer_set_2": {
+    "lookup_file": "primer_set.csv",
+    "help_tip": "Secondary primer set used for amplicon sequencing, if applicable."
+  }, 
+  "Expedition_lead": {
+    "help_tip": "Name of leader and Underground Explorer grant winner",
+    "check_function": "check_expedition_lead"
+  },
+  "Collaborators": {
+    "help_tip": "List of names of local collaborators for this project. (Max 150 char)",
+    "check_function": "check_collaborators"
+  },
+  "SequencingRun": {
+    "help_tip": "Leave blank unless project samples run across multiple different sequencing runs."
+  },
+  "Notes": {
+    "help_tip": "Any additional notes about the sample.",
+    "check_function": "check_notes"
+  }
+}

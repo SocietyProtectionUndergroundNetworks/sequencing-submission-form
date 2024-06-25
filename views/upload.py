@@ -51,6 +51,8 @@ logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
 upload_bp = Blueprint("upload", __name__)
 
+logger.info("Test here 1 1")
+
 
 # Custom approved_required decorator
 def approved_required(view_func):
@@ -436,6 +438,7 @@ def upload_form_resume():
 @login_required
 @approved_required
 def upload_form():
+    logger.info("Test here 1 1 in form")
     return render_template("form.html", is_admin=current_user.admin)
 
 
@@ -1041,16 +1044,3 @@ def update_reviewed_by_admin_status():
 def discord():
     init_send_message("test")
     return {}
-
-
-@upload_bp.route("/metadata_form", endpoint="metadata_form")
-@login_required
-@approved_required
-def metadata_form():
-    my_buckets = {}
-    map_key = os.environ.get("GOOGLE_MAP_API_KEY")
-    for my_bucket in current_user.buckets:
-        my_buckets[my_bucket] = Bucket.get(my_bucket)
-    return render_template(
-        "metadata_form.html", my_buckets=my_buckets, map_key=map_key
-    )

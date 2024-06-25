@@ -11,12 +11,15 @@ from flask import (
 )
 from flask_login import current_user, login_required
 from models.bucket import Bucket
-from helpers.metadata_check import check_metadata
+from helpers.metadata_check import check_metadata, get_columns_data
+import numpy as np
 
-# Get the logger instance from app.py
-logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
 metadata_bp = Blueprint("metadata", __name__)
+
+logger = logging.getLogger("my_app_logger")
+
+logger.info("Test here 4 1")
 
 
 # Custom admin_required decorator
@@ -55,12 +58,17 @@ def approved_required(view_func):
 @login_required
 @approved_required
 def metadata_form():
+    logger.info("Test here 41 1 in metadata_form")
     my_buckets = {}
     map_key = os.environ.get("GOOGLE_MAP_API_KEY")
     for my_bucket in current_user.buckets:
         my_buckets[my_bucket] = Bucket.get(my_bucket)
+    expected_columns = get_columns_data()
     return render_template(
-        "metadata_form.html", my_buckets=my_buckets, map_key=map_key
+        "metadata_form.html",
+        my_buckets=my_buckets,
+        map_key=map_key,
+        expected_columns=expected_columns,
     )
 
 
@@ -89,5 +97,17 @@ def upload_metadata_file():
     # Check metadata using the helper function
     result = check_metadata(df)
 
+    expected_columns_data = get_columns_data()
+    expected_columns = list(expected_columns_data.keys())
+
     # Return the result as JSON
-    return jsonify(result)
+    return (
+        jsonify(
+            {
+                "result": result,
+                "data": df.replace({np.nan: None}).to_dict(orient="records"),
+                "expectedColumns": expected_columns,
+            }
+        ),
+        200,
+    )
