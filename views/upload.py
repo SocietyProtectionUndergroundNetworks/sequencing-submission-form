@@ -232,7 +232,9 @@ def download_csv():
         process_id = int(process_id)
         if isinstance(process_id, int) and (process_id != 0):
             upload = Upload.get(process_id)
-            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            project_root = os.path.dirname(
+                os.path.dirname(os.path.abspath(__file__))
+            )
             path = Path(project_root, "uploads", upload.uploads_folder)
             csv_file_path = path / upload.csv_filename
 
