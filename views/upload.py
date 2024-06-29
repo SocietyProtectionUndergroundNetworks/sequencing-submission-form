@@ -184,7 +184,10 @@ def app_instructions():
 
 @upload_bp.route("/csv_sample", endpoint="csv_sample")
 def csv_sample():
-    path = Path("static", "csv")
+    project_root = os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))
+    )
+    path = Path(project_root, "static", "csv")
     csv_path = path / "csv_structure.csv"
 
     return send_file(csv_path, as_attachment=True)
@@ -200,7 +203,10 @@ def download_metadata():
         process_id = int(process_id)
         if isinstance(process_id, int) and (process_id != 0):
             upload = Upload.get(process_id)
-            path = Path("uploads", upload.uploads_folder)
+            project_root = os.path.dirname(
+                os.path.dirname(os.path.abspath(__file__))
+            )
+            path = Path(project_root, "uploads", upload.uploads_folder)
             metadata_file_path = path / upload.metadata_filename
 
             # TODO: check that the user asking for this is either an admin or
