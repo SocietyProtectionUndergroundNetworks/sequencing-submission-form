@@ -13,6 +13,7 @@
     "help_tip": "Longitude of coordinates measured using WGS1984 (default on most GPS). Ideally in decimal format"
   },
   "Country": {
+    "lookup_file": "countries.csv",
     "help_tip": "Country you are sampling within"
   },
   "Vegetation": {

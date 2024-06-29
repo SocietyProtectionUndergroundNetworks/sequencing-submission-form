@@ -328,27 +328,27 @@
 
               // Function to handle issues dynamically
               function handleIssues(fieldName, fieldData) {
-                if ((fieldData && fieldData.invalid) || (fieldData && fieldData.empty_values)) {
-                  var issueMsg = "<h4>Problems with field " + fieldName + "</h4>";
-                  $('#step_2_msg').append(issueMsg);
-                  if (fieldData && fieldData.invalid) {
-                      var issueMsg = "<p>" + fieldData.message + "</p>";
+                  if ((fieldData && fieldData.invalid) || (fieldData && fieldData.empty_values)) {
+                      var issueMsg = "<h4>Problems with field " + fieldName + "</h4>";
                       $('#step_2_msg').append(issueMsg);
-                      fieldData.invalid.forEach(function(entry) {
-                          var detailedMsg = "<p> - " + entry.value + " in row " + (entry.row + 2) + "</p>";
-                          $('#step_2_msg').append(detailedMsg);
-                      });
-                      statusClass = 'text-danger';
+                      if (fieldData && fieldData.invalid) {
+                          var issueMsg = "<p>" + fieldData.message + "</p>";
+                          $('#step_2_msg').append(issueMsg);
+                          fieldData.invalid.forEach(function(entry) {
+                              var detailedMsg = "<p> - " + entry.value + " in row " + (entry.row + 2) + "</p>";
+                              $('#step_2_msg').append(detailedMsg);
+                          });
+                          statusClass = 'text-danger';
+                      }
+                      if (fieldData && fieldData.empty_values && fieldData.empty_values.length > 0) {
+                          var emptyRows = fieldData.empty_values.map(function(row) {
+                              return row + 2; // Adjust row number by 2 (header + zero-indexing)
+                          });
+                          var emptyMsg = "<p>Empty values for field " + fieldName + " in rows: " + emptyRows.join(", ") + "</p>";
+                          $('#step_2_msg').append(emptyMsg);
+                          statusClass = 'text-danger';
+                      }
                   }
-                  if (fieldData && fieldData.empty_values && fieldData.empty_values.length > 0) {
-                      var emptyRows = fieldData.empty_values.map(function(row) {
-                          return row + 2; // Adjust row number by 2 (header + zero-indexing)
-                      });
-                      var emptyMsg = "<p>Empty values for field " + fieldName + " in rows: " + emptyRows.join(", ") + "</p>";
-                      $('#step_2_msg').append(emptyMsg);
-                      statusClass = 'text-danger';
-                  }
-                }
               }
 
               var result = response['result'];
@@ -361,17 +361,43 @@
 
               var data = response['data'];
               var expectedColumns = response['expectedColumns'];
-              data.forEach(function(row) {
+              data.forEach(function(row, rowIndex) {
                   var tableRow = '<tr>';
                   expectedColumns.forEach(function(column) {
-                      tableRow += '<td>' + (row[column] !== undefined ? row[column] : '') + '</td>';
+                      var cellValue = row[column] !== undefined ? row[column] : '';
+
+                      // Check if this field had any problems
+                      var hasIssues = result[column] && (result[column].invalid || result[column].empty_values);
+
+                      // If the cell value is null or undefined, set it to an empty string
+                      if (cellValue === null || cellValue === undefined) {
+                          cellValue = '';
+                      }
+
+                      // Check if this specific row has issues for the current column
+                      var rowHasIssues = hasIssues && result[column].invalid.some(function(entry) {
+                          return entry.row === rowIndex;
+                      });
+
+                      // If it should not be empty but is and has issues for this row, show "MISSING" in red
+                      if (!cellValue.trim() && expectedColumns.includes(column) && rowHasIssues) {
+                          tableRow += '<td><span class="text-danger">MISSING</span></td>';
+                      } else {
+                          // If there are issues for this row in this column, display the cell value in red
+                          if (rowHasIssues) {
+                              tableRow += '<td><span class="text-danger">' + cellValue + '</span></td>';
+                          } else {
+                              // Otherwise, display the cell value normally
+                              tableRow += '<td>' + cellValue + '</td>';
+                          }
+                      }
                   });
                   tableRow += '</tr>';
                   $('#dataTable tbody').append(tableRow);
               });
 
               // Show success message if no issues found
-              if (response.status === 1 && Object.keys(response).length === 1) {
+              if (response.status === 1 && Object.keys(result).length === 1) {
                   $('#step_2_msg').append("<p>No problems found.</p>");
               }
 
@@ -384,6 +410,7 @@
           }
       });
   }
+
 
 
 
