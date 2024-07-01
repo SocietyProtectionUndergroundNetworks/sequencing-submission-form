@@ -20,5 +20,5 @@ jobs:
         run: |
             pwd
             ls -al
-            sudo cp -r * ${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY }}
+            cp -r * ${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY }}
             echo ${{ github.event.repository.name }}
