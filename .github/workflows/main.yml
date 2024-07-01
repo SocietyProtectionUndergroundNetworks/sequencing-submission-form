@@ -16,7 +16,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4.1.1
 
-      - name: Ensure known_hosts file exists
+      - name: Create SSH directory
+        run: mkdir -p ~/.ssh
+
+      - name: Create known_hosts file
         run: touch ~/.ssh/known_hosts
 
       - name: Add host key to known_hosts
