@@ -33,4 +33,4 @@ jobs:
           script: |
             sudo rm -rf ${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY }}
             mkdir -p ${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY }}
-            scp -o UserKnownHostsFile=~/.ssh/known_hosts -r ./* ${{ secrets.SERVER_DEPLOYMENT_USERNAME }}@${{ secrets.SERVER_DEPLOYMENT_IP }}:${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY }}
+            cat ~/.ssh/known_hosts
