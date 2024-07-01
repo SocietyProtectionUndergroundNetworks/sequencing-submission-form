@@ -19,11 +19,10 @@ jobs:
       - name: Create SSH directory
         run: mkdir -p ~/.ssh
 
-      - name: Create known_hosts file
-        run: touch ~/.ssh/known_hosts
-
       - name: Add host key to known_hosts
-        run: ssh-keyscan -t rsa ${{ secrets.SERVER_DEPLOYMENT_IP }} >> ~/.ssh/known_hosts
+        run: |
+          ssh-keyscan -t rsa ${{ secrets.SERVER_DEPLOYMENT_IP }} >> ~/.ssh/known_hosts
+          cat ~/.ssh/known_hosts
 
       - name: Copy code to server via SSH
         uses: appleboy/ssh-action@master
@@ -34,6 +33,4 @@ jobs:
           script: |
             sudo rm -rf ${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY }}
             mkdir -p ${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY }}
-            scp -r ./* ${{ secrets.SERVER_DEPLOYMENT_USERNAME }}@${{ secrets.SERVER_DEPLOYMENT_IP }}:${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY }}
-
-      # Additional steps can be added here for further customization, such as restarting services or running migrations.
+            scp -o UserKnownHostsFile=~/.ssh/known_hosts -r ./* ${{ secrets.SERVER_DEPLOYMENT_USERNAME }}@${{ secrets.SERVER_DEPLOYMENT_IP }}:${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY }}
