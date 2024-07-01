@@ -30,4 +30,4 @@ jobs:
             mkdir -p ${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY }}
             ssh-keyscan -t rsa ${{ secrets.SERVER_DEPLOYMENT_IP }} >> ~/.ssh/known_hosts
             cat ~/.ssh/known_hosts
-            scp -o UserKnownHostsFile=~/.ssh/known_hosts -r ./* ${{ secrets.SERVER_DEPLOYMENT_USERNAME }}@${{ secrets.SERVER_DEPLOYMENT_IP }}:${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY }}
+            echo ${{ secrets.SERVER_DEPLOYMENT_USERNAME }}@${{ secrets.SERVER_DEPLOYMENT_IP }}:${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY }}
