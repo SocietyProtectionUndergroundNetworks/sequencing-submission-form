@@ -10,24 +10,15 @@ env:
 
 jobs:
   deploy_to_server:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4.1.1
 
-      - name: Create SSH directory
-        run: mkdir -p ~/.ssh
-
-      - name: Copy code to server via SSH
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SERVER_DEPLOYMENT_IP }}
-          username: ${{ secrets.SERVER_DEPLOYMENT_USERNAME }}
-          key: ${{ secrets.SERVER_DEPLOYMENT_PRIVATE_KEY }}
-          script: |
-            sudo rm -rf ${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY }}
-            mkdir -p ${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY }}
-            ssh-keyscan -t rsa ${{ secrets.SERVER_DEPLOYMENT_IP }} >> ~/.ssh/known_hosts
-            cat ~/.ssh/known_hosts
-            echo ${{ secrets.SERVER_DEPLOYMENT_USERNAME }}@${{ secrets.SERVER_DEPLOYMENT_IP }}:${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY }}
+      - name: Copy server code into APP DIRECTORY
+        run: |
+            pwd
+            ls -al
+            sudo cp -r ${{ github.event.repository.name }} ${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY }}
+            echo ${{ github.event.repository.name }}
