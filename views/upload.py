@@ -184,9 +184,7 @@ def app_instructions():
 
 @upload_bp.route("/csv_sample", endpoint="csv_sample")
 def csv_sample():
-    project_root = os.path.dirname(
-        os.path.dirname(os.path.abspath(__file__))
-    )
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     path = Path(project_root, "static", "csv")
     csv_path = path / "csv_structure.csv"
 
