@@ -24,4 +24,7 @@ jobs:
           chmod 600 ~/private_key_file
           
           # Securely copy repository code to the server
-          scp -i ~/private_key_file -o UserKnownHostsFile=~/.ssh/known_hosts -r ./* ${{ secrets.SERVER_DEPLOYMENT_USERNAME }}@${{ secrets.SERVER_DEPLOYMENT_IP }}:${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY_2 }}
+          scp -i ~/private_key_file -o UserKnownHostsFile=~/.ssh/known_hosts -r ./* ${{ secrets.SERVER_DEPLOYMENT_USERNAME }}@${{ secrets.SERVER_DEPLOYMENT_IP }}:${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY }}
+
+          # Run the make migrate command
+          ssh -i ~/private_key_file -o UserKnownHostsFile=~/.ssh/known_hosts ${{ secrets.SERVER_DEPLOYMENT_USERNAME }}@${{ secrets.SERVER_DEPLOYMENT_IP }} "cd ${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY }} && make migrate"
