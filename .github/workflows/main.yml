@@ -27,4 +27,4 @@ jobs:
           scp -i ~/private_key_file -o UserKnownHostsFile=~/.ssh/known_hosts -r ./* ${{ secrets.SERVER_DEPLOYMENT_USERNAME }}@${{ secrets.SERVER_DEPLOYMENT_IP }}:${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY }}
 
           # Run the make migrate command
-          ssh -i ~/private_key_file -o UserKnownHostsFile=~/.ssh/known_hosts ${{ secrets.SERVER_DEPLOYMENT_USERNAME }}@${{ secrets.SERVER_DEPLOYMENT_IP }} "cd ${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY }} && make migrate"
+          ssh -i ~/private_key_file -o UserKnownHostsFile=~/.ssh/known_hosts ${{ secrets.SERVER_DEPLOYMENT_USERNAME }}@${{ secrets.SERVER_DEPLOYMENT_IP }} "cd ${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY }} && pwd && ls -la && make migrate"
