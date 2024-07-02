@@ -5,20 +5,24 @@ on:
     branches:
       - test-server
 
-env:
-  REPO_NAME: ${{ github.event.repository.name }}
-
 jobs:
   deploy_to_server:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4.1.1
-
-      - name: Copy server code into APP DIRECTORY
+      - name: Set up SSH and copy code to server
         run: |
-            pwd
-            ls -al
-            cp -r * ${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY }}
-            echo ${{ github.event.repository.name }}
+          # Create SSH directory and known_hosts file
+          mkdir -p ~/.ssh
+          ssh-keyscan -t rsa ${{ secrets.SERVER_DEPLOYMENT_IP }} >> ~/.ssh/known_hosts
+          
+          # Create private key file
+          echo "${{ secrets.SERVER_DEPLOYMENT_PRIVATE_KEY }}" > ~/private_key_file
+          chmod 600 ~/private_key_file
+          
+          # Create a sample code directory and file for demonstration
+          mkdir -p code_directory
+          echo "print('Hello World')" > code_directory/main.py
+          
+          # Securely copy code to the server
+          scp -i ~/private_key_file -o UserKnownHostsFile=~/.ssh/known_hosts -r code_directory/* ${{ secrets.SERVER_DEPLOYMENT_USERNAME }}@${{ secrets.SERVER_DEPLOYMENT_IP }}:${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY_2 }}
