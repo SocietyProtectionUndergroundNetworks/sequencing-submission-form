@@ -10,6 +10,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.1.1
+
       - name: Set up SSH and copy code to server
         run: |
           # Create SSH directory and known_hosts file
@@ -20,9 +23,5 @@ jobs:
           echo "${{ secrets.SERVER_DEPLOYMENT_PRIVATE_KEY }}" > ~/private_key_file
           chmod 600 ~/private_key_file
           
-          # Create a sample code directory and file for demonstration
-          mkdir -p code_directory
-          echo "print('Hello World')" > code_directory/main.py
-          
-          # Securely copy code to the server
-          scp -i ~/private_key_file -o UserKnownHostsFile=~/.ssh/known_hosts -r code_directory/* ${{ secrets.SERVER_DEPLOYMENT_USERNAME }}@${{ secrets.SERVER_DEPLOYMENT_IP }}:${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY_2 }}
+          # Securely copy repository code to the server
+          scp -i ~/private_key_file -o UserKnownHostsFile=~/.ssh/known_hosts -r ./* ${{ secrets.SERVER_DEPLOYMENT_USERNAME }}@${{ secrets.SERVER_DEPLOYMENT_IP }}:${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY_2 }}
