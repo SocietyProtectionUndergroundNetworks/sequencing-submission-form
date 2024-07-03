@@ -78,6 +78,9 @@ dbbackup:
 sshvm:
 	gcloud compute ssh ${GOOGLE_VM_PROPERTY}
 
+ssh:
+	ssh ubuntu@${SERVER_IP}
+
 copyssh:
 	gcloud compute scp ~/.ssh/id_rsa.pub ${GOOGLE_VM_PROPERTY}:~/
 
