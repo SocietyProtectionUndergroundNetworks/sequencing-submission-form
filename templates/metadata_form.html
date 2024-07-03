@@ -6,6 +6,8 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnSuA4Ss2PkkikSOLtYs8BlYIeeIK1h99ty4YfvRPAlzr377vr3CXDb7sb7eEEBYjDtcYj+AjBH3FLv5uSJuXg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js" integrity="sha512-7Pi/otdlbbCR+LnW+F7PwFcSDJOuUJB3OxtEHbg4vSMvzvJjde4Po1v4BR9Gdc9aXNUNFVUY+SK51wWT8WF0Gg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAw6r8DeUDlEO8iZdnMmPSkzWUmIYbbOPY&libraries=marker"></script>
+
     <title>Upload data</title>
 </head>
 <body>
@@ -326,6 +328,17 @@
               $('#step_2_msg').empty().removeClass('text-success text-danger');
               var statusClass = 'text-success';
 
+              // Clear previous markers from the map
+              if (window.markersArray) {
+                  markersArray.forEach(function(marker) {
+                      marker.setMap(null);
+                  });
+              } else {
+                  window.markersArray = [];
+              }
+
+              var bounds = new google.maps.LatLngBounds();
+
               // Function to handle issues dynamically
               function handleIssues(fieldName, fieldData) {
                   if ((fieldData && fieldData.invalid) || (fieldData && fieldData.empty_values)) {
@@ -361,26 +374,37 @@
 
               var data = response['data'];
               var expectedColumns = response['expectedColumns'];
+
               data.forEach(function(row, rowIndex) {
                   var tableRow = '<tr>';
+                  var latitudeValue = null;
+                  var longitudeValue = null;
+                  var latitudeValid = false;
+                  var longitudeValid = false;
+
                   expectedColumns.forEach(function(column) {
-                      var cellValue = row[column] !== undefined ? row[column] : '';
+                      var cellValue = row[column];
+                      if (cellValue !== undefined && cellValue !== null) {
+                          cellValue = cellValue.toString();
+                      } else {
+                          cellValue = '';
+                      }
 
                       // Check if this field had any problems
                       var hasIssues = result[column] && (result[column].invalid || result[column].empty_values);
 
-                      // If the cell value is null or undefined, set it to an empty string
-                      if (cellValue === null || cellValue === undefined) {
-                          cellValue = '';
-                      }
-
                       // Check if this specific row has issues for the current column
-                      var rowHasIssues = hasIssues && result[column].invalid.some(function(entry) {
+                      var rowHasIssues = hasIssues && result[column].invalid && result[column].invalid.some(function(entry) {
                           return entry.row === rowIndex;
                       });
 
+                      // Check if this row has empty values for the current column
+                      var rowHasEmptyValues = hasIssues && result[column].empty_values && result[column].empty_values.includes(rowIndex);
+
                       // If it should not be empty but is and has issues for this row, show "MISSING" in red
-                      if (!cellValue.trim() && expectedColumns.includes(column) && rowHasIssues) {
+                      if (rowHasEmptyValues) {
+                          tableRow += '<td><span class="text-danger">MISSING</span></td>';
+                      } else if (!cellValue && expectedColumns.includes(column) && rowHasIssues) {
                           tableRow += '<td><span class="text-danger">MISSING</span></td>';
                       } else {
                           // If there are issues for this row in this column, display the cell value in red
@@ -391,10 +415,47 @@
                               tableRow += '<td>' + cellValue + '</td>';
                           }
                       }
+
+                      // Extract latitude and longitude values
+                      if (column === 'Latitude') {
+                          latitudeValue = cellValue;
+                          latitudeValid = !rowHasIssues && !rowHasEmptyValues && !isNaN(parseFloat(latitudeValue));
+                      }
+                      if (column === 'Longitude') {
+                          longitudeValue = cellValue;
+                          longitudeValid = !rowHasIssues && !rowHasEmptyValues && !isNaN(parseFloat(longitudeValue));
+                      }
                   });
                   tableRow += '</tr>';
                   $('#dataTable tbody').append(tableRow);
+
+                  // Check if both latitude and longitude are valid
+                  if (latitudeValid && longitudeValid && latitudeValue && longitudeValue) {
+                      var location = { lat: parseFloat(latitudeValue), lng: parseFloat(longitudeValue) };
+                      if (!isNaN(location.lat) && !isNaN(location.lng)) {
+                          var marker = new google.maps.marker.AdvancedMarkerElement({
+                              position: location,
+                              map: map
+                          });
+                          markersArray.push(marker); // Store marker in array
+                          bounds.extend(location); // Extend the bounds to include this marker
+                      } else {
+                          console.error("Invalid latitude or longitude values.");
+                      }
+                  }
               });
+
+              // Adjust the map's viewport to fit all markers
+              if (markersArray.length > 0) {
+                  map.fitBounds(bounds);
+
+                  // Optionally, set a minimum zoom level
+                  var maxZoom = 14;
+                  var listener = google.maps.event.addListener(map, "idle", function() {
+                      if (map.getZoom() > maxZoom) map.setZoom(maxZoom);
+                      google.maps.event.removeListener(listener);
+                  });
+              }
 
               // Show success message if no issues found
               if (response.status === 1 && Object.keys(result).length === 1) {
@@ -414,14 +475,12 @@
 
 
 
+
   </script>
+
+
   <script>
-    (g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({
-      key: "{{ map_key }}",
-      v: "weekly",
-      // Use the 'v' parameter to indicate the version to use (weekly, beta, alpha, etc.).
-      // Add other bootstrap parameters as needed, using camel case.
-    });
+
     let map;
 
     async function initMap() {

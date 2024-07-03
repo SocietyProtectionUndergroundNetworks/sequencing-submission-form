@@ -2,19 +2,9 @@ import os
 import re
 import logging
 import json
+import pandas as pd
 
 logger = logging.getLogger("my_app_logger")
-
-
-def check_sample_id(sample_id):
-    """
-    Check if a given SampleID follows the format:
-    location name (letters), followed by year (two digits),
-    an underscore, and a sample number (one or more digits).
-    """
-    sample_id_pattern = re.compile(r"^[A-Za-z]+[0-9]{2}_[0-9]+$")
-    return bool(sample_id_pattern.match(sample_id))
-
 
 def get_columns_data():
     current_dir = os.path.dirname(__file__)
@@ -70,89 +60,55 @@ def check_expected_columns(df, expected_columns_data):
     return issues
 
 
-def check_sample_ids(df):
+def check_sample_id(sample_id):
     """
-    Check the SampleID column for correct format.
+    Check if a given SampleID follows the format:
+    location name (letters), followed by year (two digits),
+    an underscore, and a sample number (one or more digits).
     """
-    
-    invalid_sample_ids = []
-    for idx, sample_id in df["SampleID"].items():
-        if not check_sample_id(sample_id):
-            invalid_sample_ids.append({"row": idx, "value": sample_id})
+    sample_id_pattern = re.compile(r"^[A-Za-z]+[0-9]{2}_[0-9]+$")
+    if not sample_id_pattern.match(str(sample_id)):
+        return {"status": 0, "message": "Invalid value"}
+    else:
+        return {"status": 1, "message": "Valid value"}
 
-    if invalid_sample_ids:
-        return {
-            "status": 0,
-            "invalid": invalid_sample_ids,
-            "message": "Some SampleID do not follow the required format.",
-        }
+def check_sequencing_facility(value):
+    return check_field_length_value(value, 150)
 
-    return {"status": 1}
 
-def check_field_length(df, field_name, limit):
+def check_vegetation(value):
+    return check_field_length_value(value, 200)
+
+
+def check_expedition_lead(value):
+    return check_field_length_value(value, 150)
+
+
+def check_notes(value):
+    return check_field_length_value(value, 200)
+
+def check_collaborators_value(value):
+    return check_field_length_value(value, 150)
+
+def check_field_length_value(value, max_length):
     """
-    Check if the field values exceed limit characters.
+    Check if a single value's length does not exceed the specified maximum length.
     """
-    # Replace NaN values with empty strings
-    df[field_name] = df[field_name].fillna("")
-
-    # Find entries that exceed the length limit
-    long_entries = [
-        {"row": idx, "value": value[:20] + "..."}
-        for idx, value in df[df[field_name].str.len() > limit][field_name].items()
-    ]
-
-    if long_entries:
-        return {
-            "status": 0,
-            "invalid": long_entries,
-            "message": f"Invalid {field_name} values exceed {limit} characters.",
-        }
-
-    return {"status": 1}
-
-def check_sequencing_facility(df):
-    result = check_field_length(df, "Sequencing_facility", 150)
-    return result
-
-def check_vegetation(df):
-    result = check_field_length(df, "Vegetation", 200)
-    return result
+    if len(str(value)) > max_length:
+        return {"status": 0, "message": f"Value exceeds maximum length of {max_length}"}
+    else:
+        return {"status": 1, "message": "Valid value"}
 
 
-def check_expedition_lead(df):
-    result = check_field_length(df, "Expedition_lead", 150)
-    return result
-
-
-def check_notes(df):
-    result = check_field_length(df, "Notes", 200)
-    return result
-
-def check_collaborators(df):
-    result = check_field_length(df, "Collaborators", 150)
-    return result
-
-
-def check_agricultural_land_values(df):
+def check_agricultural_land_value(value):
     """
-    Check if the Agricultural_land column values are valid ('yes' or 'no').
+    Check if a single Agricultural_land value is valid ('yes' or 'no').
     """
-    invalid_values = (
-        df["Agricultural_land"].dropna().unique()
-    )  # Drop NaN and get unique values
-    invalid_values = [
-        value for value in invalid_values if value not in ["yes", "no"]
-    ]
+    if value not in ["yes", "no"]:
+        return {"status": 0, "message": "Invalid value"}
+    else:
+        return {"status": 1, "message": "Valid value"}
 
-    if invalid_values:
-        return {
-            "status": 0,
-            "invalid": invalid_values,
-            "message": "Invalid Agricultural_land values (not 'yes' or 'no')",
-        }
-
-    return {"status": 1}
 
 
 def check_field_values_lookup(df, valid_values, field_name, allow_empty=True):
@@ -163,8 +119,10 @@ def check_field_values_lookup(df, valid_values, field_name, allow_empty=True):
     invalid_values = [
         {"row": idx, "value": value}
         for idx, value in df[field_name].dropna().items()
-        if ((value.strip() == "" and not allow_empty) or
-            (value.strip().lower() not in [v.lower() for v in valid_values]))
+        if (
+            (value.strip() == "" and not allow_empty)
+            or (value.strip().lower() not in [v.lower() for v in valid_values])
+        )
     ]
 
     # Identify empty values
@@ -190,105 +148,38 @@ def check_field_values_lookup(df, valid_values, field_name, allow_empty=True):
         return {"status": 1}
 
 
-def check_date_collected(df):
+def check_date_collected(date):
     """
-    Check if Date_collected values are in DD/MM/YYYY
-    format and logical coherence.
+    Check if a single Date_collected value is in DD/MM/YYYY format.
     """
     date_format = r"\b(?:0[1-9]|[12][0-9]|3[01])/(?:0[1-9]|1[0-2])/\d{4}\b"
 
-    def validate_date(date):
-        return re.match(date_format, date)
-
-    dates = df["Date_collected"].dropna()
-
-    invalid_dates = []
-    empty_values = []
-
-    for idx, date in dates.items():  # Use items() instead of iteritems()
-        if not validate_date(date):
-            invalid_dates.append({"row": idx, "value": date})
-
-    empty_values = df[
-        df["Date_collected"].isna()
-        | df["Date_collected"].astype(str).str.strip().eq("")
-    ].index.tolist()
-
-    result = {
-        "status": 0 if invalid_dates or empty_values else 1,
-        "message": (
-            "Invalid Date_collected values"
-            if invalid_dates
-            else "Date_collected values are valid"
-        ),
-        "invalid": invalid_dates,
-        "empty_values": empty_values,
-    }
-
-    return result
+    if not re.match(date_format, str(date)):
+        return {"status": 0, "message": "Invalid value"}
+    else:
+        return {"status": 1, "message": "Valid value"}
 
 
-def check_dna_concentration(df):
+def check_dna_concentration(value):
     """
-    Check if DNA_concentration_ng_ul values are valid numeric
-    decimal values and not empty.
+    Check if a single DNA_concentration_ng_ul value is a valid numeric value.
     """
-    invalid_entries = []
-    empty_values = []
-
-    for idx, value in df["DNA_concentration_ng_ul"].items():
-        if not is_numeric(value):
-            invalid_entries.append({"row": idx, "value": value})
-
-    empty_values = df[
-        df["DNA_concentration_ng_ul"].isna()
-        | df["DNA_concentration_ng_ul"].astype(str).str.strip().eq("")
-    ].index.tolist()
-
-    result = {
-        "status": (1 if not invalid_entries and not empty_values else 0),
-        "message": (
-            "Invalid DNA_concentration_ng_ul values"
-            if invalid_entries or empty_values
-            else "DNA_concentration_ng_ul values are valid"
-        ),
-        "invalid": invalid_entries,
-        "empty_values": empty_values,
-    }
-
-    return result
+    if not is_numeric(value):
+        return {"status": 0, "message": "Invalid value"}
+    else:
+        return {"status": 1, "message": "Valid value"}
 
 
-def check_elevation(df):
+
+def check_elevation_value(value):
     """
-    Check if elevation values are valid numeric
-    integer values and not empty.
+    Check if a single elevation value is a valid positive integer.
     """
-    invalid_entries = []
-    empty_values = []
+    if not is_positive_integer(value):
+        return {"status": 0, "message": "Invalid value"}
+    else:
+        return {"status": 1, "message": "Valid value"}
 
-    invalid_entries = [
-        {"row": idx, "value": value}
-        for idx, value in df["Elevation"].dropna().items()
-        if not is_positive_integer(value)
-    ]
-
-    empty_values = df[
-        df["Elevation"].isna() | df["Elevation"].astype(str).str.strip().eq("")
-    ].index.tolist()
-
-    result = {
-        "status": (1 if not invalid_entries and not empty_values else 0),
-        "message": (
-            "Invalid Elevation values"
-            if invalid_entries or empty_values
-            else "Elevation values are valid"
-        ),
-        "invalid": invalid_entries,
-        "empty_values": empty_values,
-    }
-
-    return result
 
 
 def is_numeric(value):
@@ -317,60 +208,87 @@ def is_positive_integer(value):
     except ValueError:
         return False
 
+def check_latitude_longitude(value):
+    """
+    Check if a single latitude or longitude value is in decimal format (WGS1984) and valid.
+    """
+
+    try:
+        float_value = float(value)
+        if -90 <= float_value <= 90:  # Valid latitude range
+            if re.match(r'^-?\d+(\.\d{1,6})?$', str(float_value)):  # Check precision up to 6 decimal places
+                return {"status": 1, "message": "Valid latitude"}
+            else:
+                return {"status": 0, "message": "Invalid value: incorrect precision"}
+        elif -180 <= float_value <= 180:  # Valid longitude range
+            if re.match(r'^-?\d+(\.\d{1,6})?$', str(float_value)):  # Check precision up to 6 decimal places
+                return {"status": 1, "message": "Valid longitude"}
+            else:
+                return {"status": 0, "message": "Invalid value: incorrect precision"}
+        else:
+            return {"status": 0, "message": "Invalid value: out of range"}
+    except ValueError:
+        return {"status": 0, "message": "Invalid value: not a valid number"}
+
 
 def check_metadata(df):
     """
     Check metadata including columns, and validity of fields.
     """
-    expected_columns_data = get_columns_data()
-    result = check_expected_columns(df, expected_columns_data)
-    # Initialize the result to collect all issues
+    expected_columns_data = get_columns_data()  # Replace with your function to fetch column metadata
     overall_status = 1
     issues = {}
 
-    # Identify missing and extra columns
-    missing_columns = set()
-    extra_columns = set()
-    
-    if isinstance(result, list):  # Check if result is a list of issues
-        for issue in result:
-            if issue["status"] == 0:
-                overall_status = 0
-                if issue['message'] == "Missing columns":
-                    missing_columns.update(issue["invalid"])
-                    issues["missing_columns"] = issue
-                elif issue['message'] == "Extra columns":
-                    extra_columns.update(issue["invalid"])
-                    issues["extra_columns"] = issue
-    
-
-    # Iterate through expected columns data, skipping any missing columns
     for column_key, column_values in expected_columns_data.items():
-        if column_key in missing_columns:
-            continue  # Skip checks for missing columns
-
-        if "options" in column_values:
-            options_check_result = check_field_values_lookup(df, column_values["options"], column_key)
-            if options_check_result["status"] == 0:
+        if column_key not in df.columns:
+            if column_values.get("required", False):
+                issues[column_key] = {
+                    "status": 0,
+                    "message": f"Required column {column_key} is missing",
+                    "empty_values": True  # Indicate that the column is required but missing
+                }
                 overall_status = 0
-                issues[column_key] = options_check_result
-        elif "check_function" in column_values:
-            # Dynamically call the check function
+            continue  # Skip further checks for missing columns
+
+        # Check if the field is required but has empty values
+        column_data = df[column_key]
+        if column_values.get("required", False):
+            empty_values = column_data.isna() | column_data.astype(str).str.strip().eq("")
+            if empty_values.any():
+                issues[column_key] = {
+                    "status": 0,
+                    "message": f"Required column {column_key} has empty values",
+                    "empty_values": empty_values[empty_values].index.tolist()
+                }
+                overall_status = 0
+                continue  # Skip further checks for this column if empty values found
+
+        # Perform specific checks based on the type of validation
+        if "check_function" in column_values:
             check_function_name = column_values["check_function"]
             if check_function_name in globals():
                 check_function = globals()[check_function_name]
-                check_result = check_function(df)
-                if check_result["status"] == 0:
+                invalid_entries = []
+                for idx, value in column_data.items():
+                    check_result = check_function(value)
+                    if check_result["status"] == 0:
+                        invalid_entries.append({"row": idx, "value": value, "message": check_result["message"]})
+                
+                if invalid_entries:
                     overall_status = 0
-                    issues[column_key] = check_result
+                    issues[column_key] = {
+                        "status": 0,
+                        "invalid": invalid_entries,
+                        "message": f"Column {column_key} has invalid values"
+                    }
             else:
-                # Handle the case where the check function is not found
                 overall_status = 0
-                issues[column_key] = {"status": 0, "message": f"Check function {check_function_name} not found"}
+                issues[column_key] = {
+                    "status": 0,
+                    "message": f"Check function {check_function_name} not found",
+                }
 
-    # Combine status and issues into the final result
     final_result = {"status": overall_status}
     final_result.update(issues)
 
     return final_result
-

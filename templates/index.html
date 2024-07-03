@@ -65,7 +65,7 @@
       {% endif %}
       {% if current_user.is_authenticated and current_user.admin %}
       
-        <a href="{{ url_for('upload.metadata_form') }}">
+        <a href="{{ url_for('metadata.metadata_form') }}">
           <div class="page-menu-item">
             <h3>(ADMIN ONLY. IN DEVELOPMENT). Metadata Submition form</h3>
           </div>
