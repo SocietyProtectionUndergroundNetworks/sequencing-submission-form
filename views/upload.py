@@ -23,7 +23,6 @@ from flask_login import (
 )
 
 from helpers.csv import validate_csv, get_csv_data
-from helpers.discord import init_send_message
 from helpers.bucket import (
     bucket_chunked_upload,
     get_progress_db_bucket,
@@ -186,7 +185,8 @@ def app_instructions():
 
 @upload_bp.route("/csv_sample", endpoint="csv_sample")
 def csv_sample():
-    path = Path("static", "csv")
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    path = Path(project_root, "static", "csv")
     csv_path = path / "csv_structure.csv"
 
     return send_file(csv_path, as_attachment=True)
@@ -202,7 +202,10 @@ def download_metadata():
         process_id = int(process_id)
         if isinstance(process_id, int) and (process_id != 0):
             upload = Upload.get(process_id)
-            path = Path("uploads", upload.uploads_folder)
+            project_root = os.path.dirname(
+                os.path.dirname(os.path.abspath(__file__))
+            )
+            path = Path(project_root, "uploads", upload.uploads_folder)
             metadata_file_path = path / upload.metadata_filename
 
             # TODO: check that the user asking for this is either an admin or
@@ -234,7 +237,10 @@ def download_csv():
         process_id = int(process_id)
         if isinstance(process_id, int) and (process_id != 0):
             upload = Upload.get(process_id)
-            path = Path("uploads", upload.uploads_folder)
+            project_root = os.path.dirname(
+                os.path.dirname(os.path.abspath(__file__))
+            )
+            path = Path(project_root, "uploads", upload.uploads_folder)
             csv_file_path = path / upload.csv_filename
 
             # TODO: check that the user asking for this is either an
@@ -507,12 +513,6 @@ def upload_csv():
     process_id = Upload.create(
         user_id=current_user.id,
         uploads_folder=uploads_folder,
-    )
-    init_send_message(
-        "STARTING: An upload was initiated by uploading csv by the user "
-        + current_user.name
-        + ". The id of the upload is: "
-        + str(process_id)
     )
     send_message_to_slack(
         "STARTING: An upload was initiated by uploading metadata by the user "
@@ -860,13 +860,6 @@ def upload_final_files_route():
 
     init_upload_final_files_to_storage(process_id)
 
-    init_send_message(
-        "FINISHING: The last step (upload final files to storage)"
-        + " was initiated by the user "
-        + current_user.name
-        + ". The id of the upload is: "
-        + str(process_id)
-    )
     send_message_to_slack(
         "FINISHING: The last step (upload final files to storage)"
         + " was initiated by the user "
@@ -1040,7 +1033,14 @@ def update_reviewed_by_admin_status():
         return redirect("/all_uploads?order_by=" + order_by)
 
 
-@upload_bp.route("/discord", endpoint="discord")
-def discord():
-    init_send_message("test")
-    return {}
+@upload_bp.route("/metadata_form", endpoint="metadata_form")
+@login_required
+@approved_required
+def metadata_form():
+    my_buckets = {}
+    map_key = os.environ.get("GOOGLE_MAP_API_KEY")
+    for my_bucket in current_user.buckets:
+        my_buckets[my_bucket] = Bucket.get(my_bucket)
+    return render_template(
+        "metadata_form.html", my_buckets=my_buckets, map_key=map_key
+    )

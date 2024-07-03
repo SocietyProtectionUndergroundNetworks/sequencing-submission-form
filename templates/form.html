@@ -443,8 +443,11 @@
 
         function updateCsvTable(matching_files_db) {
           $('#cvs_records_body tr').each(function() {
-            var sequencerId = $(this).find('td:eq(2)').text().trim();
-            var lastTd = $(this).find('td:last');
+            var sampleId = $(this).find('td:eq(1)').text().trim(); // Sample ID
+            var sequencerId = $(this).find('td:eq(2)').text().trim(); // Sequencer ID
+            var project = $(this).find('td:eq(4)').text().trim(); // Project
+            var region = $(this).find('td:eq(5)').text().trim(); // Region
+            var lastTd = $(this).find('td:eq(8)'); // Matched files column
             lastTd.empty();
 
             var matchedFilesCount = 0;
@@ -454,15 +457,26 @@
                 var sequencerIdPrefix = sequencerId.split('_S')[0]; // Extracting prefix before "_S"
                 var filenamePrefix = filename.split('_S')[0]; // Extracting prefix before "_S"
 
-                if (filename.startsWith(sequencerId)) {
-                  lastTd.append(filename + '<br>');
+                if (filename.startsWith(sequencerIdPrefix + '_S')) {
+                  // Extract the portion after '_S' from the matching file
+                  var extension = filename.split('_S')[1];
+
+                  // Replace 'RIBO' with 'SSU' in the 'sampleId' if present
+                  var newName = sampleId.includes('RIBO') ? sampleId.replace('RIBO', 'SSU') : sampleId;
+
+                  // Create the new file name
+                  var newFileName = newName + '_S' + extension;
+
+                  lastTd.append(`${filename} → ${newFileName}<br>`);
                   matchedFilesCount++;
                 }
               });
             }
 
             if (matchedFilesCount === 1) {
-              lastTd.append('<div class="text-danger">Only a single file matched </div>');
+              lastTd.append('<div class="text-danger">Only a single file matched</div>');
+            } else if (matchedFilesCount === 0) {
+              lastTd.append('<div class="text-danger">No files matched</div>');
             }
           });
         }

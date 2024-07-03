@@ -6,7 +6,6 @@ from helpers.bucket import (
 )
 from helpers.unzip import unzip_raw_file
 from helpers.fastqc import fastqc_multiqc_files
-from helpers.discord import send_message
 
 
 @celery_app.task
@@ -32,11 +31,3 @@ def upload_final_files_to_storage_async(process_id):
 @celery_app.task
 def download_bucket_contents_async(bucket):
     download_bucket_contents(bucket)
-
-
-@celery_app.task
-def send_message_async(message):
-    import asyncio
-
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(send_message(message))
