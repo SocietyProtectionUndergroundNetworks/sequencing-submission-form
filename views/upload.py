@@ -23,7 +23,6 @@ from flask_login import (
 )
 
 from helpers.csv import validate_csv, get_csv_data
-from helpers.discord import init_send_message
 from helpers.bucket import (
     bucket_chunked_upload,
     get_progress_db_bucket,
@@ -515,12 +514,6 @@ def upload_metadata():
         uploads_folder=uploads_folder,
         metadata_filename=filename,
     )
-    init_send_message(
-        "STARTING: An upload was initiated by uploading metadata by the user "
-        + current_user.name
-        + ". The id of the upload is: "
-        + str(process_id)
-    )
     send_message_to_slack(
         "STARTING: An upload was initiated by uploading metadata by the user "
         + current_user.name
@@ -904,13 +897,6 @@ def upload_final_files_route():
 
     init_upload_final_files_to_storage(process_id)
 
-    init_send_message(
-        "FINISHING: The last step (upload final files to storage)"
-        + " was initiated by the user "
-        + current_user.name
-        + ". The id of the upload is: "
-        + str(process_id)
-    )
     send_message_to_slack(
         "FINISHING: The last step (upload final files to storage)"
         + " was initiated by the user "
@@ -1082,12 +1068,6 @@ def update_reviewed_by_admin_status():
         )
     else:
         return redirect("/all_uploads?order_by=" + order_by)
-
-
-@upload_bp.route("/discord", endpoint="discord")
-def discord():
-    init_send_message("test")
-    return {}
 
 
 @upload_bp.route("/metadata_form", endpoint="metadata_form")
