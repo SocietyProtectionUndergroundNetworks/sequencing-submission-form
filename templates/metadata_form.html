@@ -188,7 +188,6 @@
                 </div>
             </div>
         {% endfor %}
-<h1> here here </h1>
 
         <button type="submit" class="btn btn-primary">Submit</button>
       </form>
@@ -198,8 +197,31 @@
   </div>
 
   <script type="application/javascript">
-  let marker;
+  var markersArray = [];
   var project_common_data = JSON.parse('{{ project_common_data|tojson|safe }}');
+  //var expected_columns = JSON.parse('{{ expected_columns|tojson|safe }}');
+
+  function addMarker(lat, lng) {
+      var location = { lat: parseFloat(lat), lng: parseFloat(lng) };
+      if (!isNaN(location.lat) && !isNaN(location.lng)) {
+          var marker = new google.maps.marker.AdvancedMarkerElement({
+              position: location,
+              map: map
+          });
+          //var bounds = new google.maps.LatLngBounds();
+          markersArray.push(marker);
+          bounds.extend(location);
+          map.fitBounds(bounds);
+
+          var maxZoom = 14;
+          var listener = google.maps.event.addListener(map, "idle", function () {
+              if (map.getZoom() > maxZoom) map.setZoom(maxZoom);
+              google.maps.event.removeListener(listener);
+          });
+      } else {
+          console.error("Invalid latitude or longitude values.");
+      }
+  }
 
   $(document).ready(function() {
       // Function to enable the form
@@ -303,20 +325,6 @@
       }
     });
 
-    $('#sampleID').on('input', function() {
-      console.log('Input event triggered');
-      var sampleIDValue = $(this).val();
-      console.log('Sample ID value:', sampleIDValue);
-      var sampleIDPattern = /^[a-zA-Z]+[0-9]{2}_[0-9]+$/;
-
-      if (!sampleIDPattern.test(sampleIDValue)) {
-        console.log('Invalid Sample ID');
-        $('#sampleIDHelp').text('Please enter a valid Sample ID. This should be a location name used to describe where you sampled (country or region), the year, and a sample number. I.e Patagonia22_1').addClass('text-danger');
-      } else {
-        console.log('Valid Sample ID');
-        $('#sampleIDHelp').text('Unique sample tracking ID for your project. This should be a location name used to describe where you sampled (country or region), the year, and a sample number. I.e Patagonia22_1').removeClass('text-danger');
-      }
-    });
 
     $('#latitude, #longitude').on('input', function() {
         var latitudeValue = $('#latitude').val().trim();
@@ -361,12 +369,6 @@
         }
     });
 
-    // Function to validate form fields
-    function validateForm() {
-        // Implement your validation logic here
-        // Return true if all fields are valid, false otherwise
-        return true; // Placeholder, replace with actual validation logic
-    }
 
     // Function to populate table with form data
     function populateTable() {
@@ -413,27 +415,100 @@
         $('#dataTable tbody').append(tableRow);
     }
 
+
+
+
+
     // Submit form event handler
     $('#metadataForm').submit(function(event) {
-        // Prevent default form submission
-        event.preventDefault();
+        event.preventDefault(); // Prevent default form submission
 
-        // Validate form fields
-        if (validateForm()) {
-            // Populate table with form data
-            populateTable();
-
-            // Reset form fields
-            $(this)[0].reset();
-
-            // Submit form data to specified URL
-            //$.post('/metadata_submit', $(this).serialize(), function(response) {
-                // Handle response if needed
-          //  });
-        } else {
-            // Handle case where form fields are not valid
-            // You can display an error message or perform any other action here
+        // Function to clear all error messages
+        function clearErrors() {
+            $('.error-message').remove();
         }
+
+        function formatDateToDDMMYYYY(dateString) {
+            const [year, month, day] = dateString.split("-");
+            return `${day}/${month}/${year}`;
+        }
+
+        // Function to display error message
+        function showError(input, message) {
+            var errorElement = $(input).closest('.form-group').find('.error-message');
+            if (errorElement.length === 0) {
+                errorElement = $('<small class="form-text text-danger error-message"></small>');
+                $(input).closest('.form-group').append(errorElement);
+            }
+            errorElement.text(message).show();
+        }
+
+        clearErrors(); // Clear existing error messages
+
+        var formData = $(this).serializeArray();
+        // Convert date fields to DD/MM/YYYY format
+        formData.forEach(field => {
+            // Find the corresponding input element
+            var inputElement = $(`[name="${field.name}"]`);
+
+            // Check if the input element is of type 'date'
+            if (inputElement.attr('type') === 'date') {
+                field.value = formatDateToDDMMYYYY(field.value);
+            }
+        });
+
+        // Serialize the formData back to a URL-encoded string
+        var serializedData = $.param(formData);
+
+        // Send the form fields via AJAX to metadata_validate_row
+        $.ajax({
+            url: '/metadata_validate_row', // Adjust URL as needed
+            type: 'POST',
+            data: formData,
+            dataType: 'json',
+            success: function(response) {
+              if (response.result.status === 0) {
+                  Object.keys(response.result).forEach(field => {
+                      if (field !== 'status') {
+                          var fieldResult = response.result[field];
+                          if (fieldResult.empty_values || fieldResult.invalid) {
+                              var inputElement = $(`[name="${field}"]`);
+                              inputElement.addClass('error');
+
+                              var errorMessage = fieldResult.message;
+                              if (fieldResult.invalid && fieldResult.invalid.length > 0) {
+                                  errorMessage += ': ' + fieldResult.invalid[0].message;
+                              }
+
+                              inputElement.after(`<div class="text-danger error-message">${errorMessage}</div>`);
+                          }
+                      }
+                  });
+              } else {
+                  // Extract latitude and longitude values if valid
+                  var latitudeValue = '';
+                  var longitudeValue = '';
+                  formData.forEach(field => {
+                      if (field.name === 'Latitude') latitudeValue = field.value;
+                      if (field.name === 'Longitude') longitudeValue = field.value;
+                  });
+
+                  // Add marker if latitude and longitude are valid
+                  if (latitudeValue && longitudeValue) {
+                      addMarker(latitudeValue, longitudeValue);
+                  }
+                  console.log('Form submitted successfully');
+              }
+            },
+            error: function(xhr, status, error) {
+                $('#form_message').text('An error occurred. Please try again later.').addClass('text-danger').removeClass('text-success text-info').show();
+            }
+        });
+    });
+
+    // Clear error messages when user starts typing or selects an option
+    $('#metadataForm :input').on('input change', function() {
+        $(this).closest('.form-group').find('.error-message').remove();
     });
   });
 
@@ -483,7 +558,7 @@
                   window.markersArray = [];
               }
 
-              var bounds = new google.maps.LatLngBounds();
+              bounds = new google.maps.LatLngBounds();
 
               // Function to handle issues dynamically
               function handleIssues(fieldName, fieldData) {
@@ -628,6 +703,7 @@
   <script>
 
     let map;
+    let bounds = new google.maps.LatLngBounds();;
 
     async function initMap() {
       const { Map } = await google.maps.importLibrary("maps");

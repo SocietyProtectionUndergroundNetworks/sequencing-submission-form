@@ -202,7 +202,7 @@ def check_dna_concentration(value):
         return {"status": 1, "message": "Valid value"}
 
 
-def check_elevation_value(value):
+def check_elevation(value):
     """
     Check if a single elevation value is a valid positive integer.
     """

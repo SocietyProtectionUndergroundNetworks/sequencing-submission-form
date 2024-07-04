@@ -67,11 +67,6 @@
     "check_function": "check_date_collected",
     "required": "True"
   },
-  "Extraction_method": {
-    "lookup_file": "extraction_method.csv",
-    "help_tip": "Kit or protocol used for DNA extraction. ‘Conventional extraction’ refers to a laboratory protocol using common buffers and solutions (such a SDS, phenol). Conventional extraction, CTAB refers to a laboratory protocol using common buffers and solutions in addition to the CTAB buffer.",
-    "required": "True"
-  },
   "DNA_concentration_ng_ul": {
     "help_tip": "Concentration of DNA (ng/ul).",
     "check_function": "check_dna_concentration",

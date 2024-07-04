@@ -43,5 +43,10 @@
     "lookup_file": "primer_set.csv",
     "help_tip": "Secondary primer set used for amplicon sequencing, if applicable.",
     "required": "IfNotScripps"
-  }      
+  },
+  "Extraction_method": {
+    "lookup_file": "extraction_method.csv",
+    "help_tip": "Kit or protocol used for DNA extraction. ‘Conventional extraction’ refers to a laboratory protocol using common buffers and solutions (such a SDS, phenol). Conventional extraction, CTAB refers to a laboratory protocol using common buffers and solutions in addition to the CTAB buffer.",
+    "required": "True"
+  }    
 }

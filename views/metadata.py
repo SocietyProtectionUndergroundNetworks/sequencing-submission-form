@@ -74,6 +74,38 @@ def metadata_form():
 
 
 @metadata_bp.route(
+    "/metadata_validate_row", methods=["POST"], endpoint="metadata_validate_row"
+)
+@login_required
+@approved_required
+def metadata_validate_row():
+    # we have panda available, and because we want to reuse the same 
+    # existing functions, we want to put all the data from the form
+    # into a df
+    # Read the data of the form in a df
+    
+    # Parse form data from the request
+    form_data = request.form.to_dict()
+
+    # Convert form data to a DataFrame
+    df = pd.DataFrame([form_data])
+    logger.info("\n%s", df.to_string())
+    # Check metadata using the helper function
+    result = check_metadata(df, "yes")
+
+    # Return the result as JSON
+    return (
+        jsonify(
+            {
+                "result": result,
+                "data": df.replace({np.nan: None}).to_dict(orient="records")
+            }
+        ),
+        200,
+    )
+
+
+@metadata_bp.route(
     "/upload_metadata_file", methods=["POST"], endpoint="upload_metadata_file"
 )
 @login_required
