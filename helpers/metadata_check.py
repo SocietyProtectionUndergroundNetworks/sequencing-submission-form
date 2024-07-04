@@ -34,6 +34,31 @@ def get_columns_data():
 
     return data
 
+def get_project_common_data():
+    current_dir = os.path.dirname(__file__)
+    base_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
+    columns_file_path = os.path.join(
+        base_dir, "metadataconfig", "project_common_data.json"
+    )
+
+    with open(columns_file_path, "r") as columns_file:
+        data = json.load(columns_file)
+
+    for key, value in data.items():
+        lookup_file = value.get("lookup_file")
+        if (
+            lookup_file and lookup_file.strip()
+        ):  # Check if lookup_file is not empty
+            lookup_file_path = os.path.join(
+                base_dir, "metadataconfig", lookup_file
+            )
+            if os.path.exists(lookup_file_path):
+                with open(lookup_file_path, "r") as lookup:
+                    value["options"] = lookup.read().strip().split("\n")
+            else:
+                value["options"] = []  # or handle missing file as needed
+
+    return data
 
 def check_expected_columns(df, expected_columns_data):
     """
@@ -295,7 +320,12 @@ def check_metadata(df, using_scripps):
                 continue  # Skip further checks for this column if empty values found
 
         # Perform specific checks based on the type of validation
-        if "check_function" in column_values:
+        if "options" in column_values:
+            options_check_result = check_field_values_lookup(df, column_values["options"], column_key)
+            if options_check_result["status"] == 0:
+                overall_status = 0
+                issues[column_key] = options_check_result        
+        elif "check_function" in column_values:
             check_function_name = column_values["check_function"]
             if check_function_name in globals():
                 check_function = globals()[check_function_name]

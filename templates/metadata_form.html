@@ -59,24 +59,56 @@
     <div id="step_2" class="form-step-item">
       <h3> Step 2: Tell us how your are going to run the sequencing</h3>
       <form id="step_2_form">
-        <div class="form-check">
-          <input class="form-check-input" type="radio" name="using_scripps" id="using_scripps_yes" value="1">
-          <label class="form-check-label" for="using_scripps_yes">
-            We are using scripps and the data will be picked up by SPUN
-          </label>
-        </div>
-        <div class="form-check">
-          <input class="form-check-input" type="radio" name="using_scripps" id="using_scripps_no" value="2">
-          <label class="form-check-label" for="using_scripps_no">
-            We have done our analysis and we will upload the data here.
-          </label>
-        </div>
+        <fieldset>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="using_scripps" id="using_scripps_yes" value="1">
+            <label class="form-check-label" for="using_scripps_yes">
+              We are using scripps and the data will be picked up by SPUN
+            </label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="using_scripps" id="using_scripps_no" value="2">
+            <label class="form-check-label" for="using_scripps_no">
+              We have done our analysis and we will upload the data here.
+            </label>
+          </div>
+        </fieldset>
       </form>
     </div>
     <div id="step_3" class="form-step-item">
-      <h3> Step 3: Select how you are going to give us the metadata</h3>
-      <div>You can give us the metadata either by </div>
+      <h3> Step 3: Give us the common data for your project</h3>
       <form id="step_3_form">
+        <fieldset disabled="disabled">
+            {% for column_key, column_values in project_common_data.items() %}
+                <div class="form-group row mb-3" data-condition="{{ column_values.get('required', '') }}">
+                    <small class="form-text text-danger error-message" style="display: none;"></small>
+                    <label for="{{ column_key }}" class="col-sm-3 col-form-label">{{ column_key }}</label>
+                    <div class="col-sm-9">
+                        <small id="{{ column_key }}Help" class="form-text">{{ column_values['help_tip'] }}</small>
+                        {% if 'options' in column_values %}
+                            <select class="form-control" id="{{ column_key }}" name="{{ column_key }}">
+                                <option value="0">------</option>
+                                {% for option in column_values['options'] %}
+                                    <option value="{{ option }}">{{ option }}</option>
+                                {% endfor %}
+                            </select>
+                        {% elif column_values.get('field_type') == 'date' %}
+                            <input type="date" class="form-control" id="{{ column_key }}" name="{{ column_key }}">
+                        {% else %}
+                            <input type="text" class="form-control" id="{{ column_key }}" name="{{ column_key }}" placeholder="{{ column_key }}">
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+            <button type="button" class="btn btn-secondary" id="step_3_button">Process</button>
+        </fieldset>
+      </form>
+      <div id="step_3_msg"></div>
+    </div>
+    <div id="step_4" class="form-step-item">
+      <h3> Step 4: Select how you are going to give us the metadata</h3>
+      <div>You can give us the metadata either by </div>
+      <form id="step_4_form">
         <fieldset disabled="disabled">
           <div class="form-check">
             <input class="form-check-input" type="radio" name="upload_method" id="upload_method_1" value="1">
@@ -92,7 +124,7 @@
           </div>
         </fieldset>
       </form>
-      <div id="step_3_explanation_case_1" class="explanation" style="display:none;">
+      <div id="step_4_explanation_case_1" class="explanation" style="display:none;">
         <p>You have to upload a csv or xls file that the column names EXACTLY as they appear bellow. </p>
         <p>You can read the <a href="/metadata_fields_explanation" class="link" target="_blank">description of each field here TODO</a></p>
         <p>You can download the <a href="/metadata_xls_template" class="link" target="_blank">XLS template TODO</a></p>
@@ -101,17 +133,17 @@
             method="POST"
             action="/upload_metadata_file"
             enctype="multipart/form-data"
-            id="step_3_file_upload"
+            id="step_4_file_upload"
         >
           <input type="hidden" name="project_id" value="{{ project_id }}">
-          <input type="file" id="step_3_file_upload_button" accept=".csv, .xls, .xlsx">
+          <input type="file" id="step_4_file_upload_button" accept=".csv, .xls, .xlsx">
         </form>
       </div>
-      <div id="step_3_explanation_case_2" class="explanation" style="display:none;">
+      <div id="step_4_explanation_case_2" class="explanation" style="display:none;">
         <p>Fill in the form bellow once for each sample. Pay very good attention to the coordinates.</p>
         <p>When you enter the coordinates the map should be showing you where this was.</p>
       </div>
-      <div id="step_3_msg" class="explanation">
+      <div id="step_4_msg" class="explanation">
 
       </div>
     </div>
@@ -167,34 +199,106 @@
 
   <script type="application/javascript">
   let marker;
+  var project_common_data = JSON.parse('{{ project_common_data|tojson|safe }}');
 
   $(document).ready(function() {
       // Function to enable the form
-      function enableForm3() {
+      function updateFields_step_3() {
+        var usingScrippsNoChecked = $('#using_scripps_no').is(':checked');
+
+        $('#step_3_form .form-group').each(function() {
+          var condition = $(this).data('condition');
+          if (condition === "IfNotScripps") {
+            if (usingScrippsNoChecked) {
+              $(this).show(); // Show the form group if condition matches and using_scripps_no is checked
+            } else {
+              $(this).hide(); // Hide the form group if condition matches and using_scripps_no is not checked
+            }
+          }
+        });
+      }
+
+      function enableForm_step_3() {
           $('#step_3_form fieldset').removeAttr('disabled');
+          $('#step_2_form fieldset').attr('disabled', 'disabled');
+      }
+
+      function enableForm_step_4() {
+          $('#step_4_form fieldset').removeAttr('disabled');
+          $('#step_3_form fieldset').attr('disabled', 'disabled');
       }
 
       // Listen for changes in the radio buttons
       $('input[name="using_scripps"]').change(function() {
           // Check if any radio button is checked
           if ($('input[name="using_scripps"]:checked').length > 0) {
-              enableForm3(); // Enable the form
+              enableForm_step_3(); // Enable the form
           } else {
               $('#step_3_form fieldset').attr('disabled', 'disabled'); // Ensure the form is disabled if no radio button is checked
           }
+
+          updateFields_step_3();
       });
+
+      // Function to validate Step 3 fields
+      function validateFields_step_3() {
+          var isValid = true;
+
+          $('#step_3_form .form-group').each(function() {
+              var condition = $(this).data('condition');
+              var input = $(this).find(':input');
+              var errorMessage = $(this).find('.error-message');
+
+              if ((condition === "True") || (condition === "IfNotScripps" && $('#using_scripps_no').is(':checked'))) {
+                  // If condition requires field to be validated and using_scripps_no is not checked
+                  if (input.is('select')) {
+                      if (input.val() === "0") { // Assuming "0" is the default value
+                          isValid = false;
+                          errorMessage.text('Please select an option.').show();
+                      } else {
+                          errorMessage.text('').hide();
+                      }
+                  } else if (input.is('input[type="text"], input[type="date"]')) {
+                      if (input.val() === "") {
+                          isValid = false;
+                          errorMessage.text('This field is required.').show();
+                      } else {
+                          errorMessage.text('').hide();
+                      }
+                  }
+              } else {
+                  errorMessage.text('').hide(); // Clear error message if condition is not met
+              }
+          });
+
+          return isValid;
+      }
+
+
+      // Validate Step 3 fields and enable Step 4 form on button click
+      $('#step_3_button').click(function() {
+          if (validateFields_step_3()) {
+              enableForm_step_4(); // Enable Step 4 form if Step 3 fields are valid
+              $('#step_3_msg').text(`All data check out`).addClass('text-success').removeClass('text-info');
+          } else {
+              // Optionally, show error message or handle validation errors
+              $('#step_3_msg').text(`Please fill out all required fields in Step 3.`).addClass('text-info').removeClass('text-success');
+          }
+      });
+
+      updateFields_step_3();
   });
 
 
   $(document).ready(function() {
     $('input[name="upload_method"]').change(function() {
       if (this.value == '1') {
-        $('#step_3_explanation_case_1').show();
-        $('#step_3_explanation_case_2').hide();
+        $('#step_4_explanation_case_1').show();
+        $('#step_4_explanation_case_2').hide();
         $('#metadataForm').hide();
       } else if (this.value == '2') {
-        $('#step_3_explanation_case_1').hide();
-        $('#step_3_explanation_case_2').show();
+        $('#step_4_explanation_case_1').hide();
+        $('#step_4_explanation_case_2').show();
         $('#metadataForm').show();
       }
     });
@@ -334,13 +438,13 @@
   });
 
   $(document).ready(function () {
-      $('#step_3_file_upload_button').on('change', function () {
+      $('#step_4_file_upload_button').on('change', function () {
           uploadFile();
       });
   });
 
   function uploadFile() {
-      var fileInput = $('#step_3_file_upload_button')[0];
+      var fileInput = $('#step_4_file_upload_button')[0];
       var file = fileInput.files[0];
 
       if (!file) {
@@ -367,7 +471,7 @@
               console.log(response);
 
               // Clear previous messages and reset status class
-              $('#step_3_msg').empty().removeClass('text-success text-danger');
+              $('#step_4_msg').empty().removeClass('text-success text-danger');
               var statusClass = 'text-success';
 
               // Clear previous markers from the map
@@ -385,13 +489,13 @@
               function handleIssues(fieldName, fieldData) {
                   if ((fieldData && fieldData.invalid) || (fieldData && fieldData.empty_values)) {
                       var issueMsg = "<h4>Problems with field " + fieldName + "</h4>";
-                      $('#step_3_msg').append(issueMsg);
+                      $('#step_4_msg').append(issueMsg);
                       if (fieldData && fieldData.invalid) {
                           var issueMsg = "<p>" + fieldData.message + "</p>";
-                          $('#step_3_msg').append(issueMsg);
+                          $('#step_4_msg').append(issueMsg);
                           fieldData.invalid.forEach(function(entry) {
                               var detailedMsg = "<p> - " + entry.value + " in row " + (entry.row + 2) + "</p>";
-                              $('#step_3_msg').append(detailedMsg);
+                              $('#step_4_msg').append(detailedMsg);
                           });
                           statusClass = 'text-danger';
                       }
@@ -400,7 +504,7 @@
                               return row + 2; // Adjust row number by 2 (header + zero-indexing)
                           });
                           var emptyMsg = "<p>Empty values for field " + fieldName + " in rows: " + emptyRows.join(", ") + "</p>";
-                          $('#step_3_msg').append(emptyMsg);
+                          $('#step_4_msg').append(emptyMsg);
                           statusClass = 'text-danger';
                       }
                   }
@@ -501,15 +605,15 @@
 
               // Show success message if no issues found
               if (response.status === 1 && Object.keys(result).length === 1) {
-                  $('#step_3_msg').append("<p>No problems found.</p>");
+                  $('#step_4_msg').append("<p>No problems found.</p>");
               }
 
               // Apply the appropriate status class
-              $('#step_3_msg').addClass(statusClass);
+              $('#step_4_msg').addClass(statusClass);
           },
           error: function(xhr, status, error) {
               console.error('Error:', error);
-              $('#step_3_msg').html("<p>An error occurred while processing the file.</p>").removeClass('text-success').addClass('text-danger');
+              $('#step_4_msg').html("<p>An error occurred while processing the file.</p>").removeClass('text-success').addClass('text-danger');
           }
       });
   }

@@ -11,7 +11,7 @@ from flask import (
 )
 from flask_login import current_user, login_required
 from models.bucket import Bucket
-from helpers.metadata_check import check_metadata, get_columns_data
+from helpers.metadata_check import check_metadata, get_columns_data, get_project_common_data
 import numpy as np
 
 
@@ -63,11 +63,13 @@ def metadata_form():
     for my_bucket in current_user.buckets:
         my_buckets[my_bucket] = Bucket.get(my_bucket)
     expected_columns = get_columns_data()
+    project_common_data = get_project_common_data()
     return render_template(
         "metadata_form.html",
         my_buckets=my_buckets,
         map_key=map_key,
         expected_columns=expected_columns,
+        project_common_data=project_common_data,
     )
 
 
