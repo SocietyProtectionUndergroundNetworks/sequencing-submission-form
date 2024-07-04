@@ -77,18 +77,20 @@
       <h3> Step 3: Select how you are going to give us the metadata</h3>
       <div>You can give us the metadata either by </div>
       <form id="step_3_form">
-        <div class="form-check">
-          <input class="form-check-input" type="radio" name="upload_method" id="upload_method_1" value="1">
-          <label class="form-check-label" for="sequencing_method_1">
-            Uploading a file of the format .xls or .csv
-          </label>
-        </div>
-        <div class="form-check">
-          <input class="form-check-input" type="radio" name="upload_method" id="upload_method_2" value="2">
-          <label class="form-check-label" for="sequencing_method_2">
-            Filling in the form once for each of your samples
-          </label>
-        </div>
+        <fieldset disabled="disabled">
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="upload_method" id="upload_method_1" value="1">
+            <label class="form-check-label" for="sequencing_method_1">
+              Uploading a file of the format .xls or .csv
+            </label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="upload_method" id="upload_method_2" value="2">
+            <label class="form-check-label" for="sequencing_method_2">
+              Filling in the form once for each of your samples
+            </label>
+          </div>
+        </fieldset>
       </form>
       <div id="step_3_explanation_case_1" class="explanation" style="display:none;">
         <p>You have to upload a csv or xls file that the column names EXACTLY as they appear bellow. </p>
@@ -165,6 +167,25 @@
 
   <script type="application/javascript">
   let marker;
+
+  $(document).ready(function() {
+      // Function to enable the form
+      function enableForm3() {
+          $('#step_3_form fieldset').removeAttr('disabled');
+      }
+
+      // Listen for changes in the radio buttons
+      $('input[name="using_scripps"]').change(function() {
+          // Check if any radio button is checked
+          if ($('input[name="using_scripps"]:checked').length > 0) {
+              enableForm3(); // Enable the form
+          } else {
+              $('#step_3_form fieldset').attr('disabled', 'disabled'); // Ensure the form is disabled if no radio button is checked
+          }
+      });
+  });
+
+
   $(document).ready(function() {
     $('input[name="upload_method"]').change(function() {
       if (this.value == '1') {

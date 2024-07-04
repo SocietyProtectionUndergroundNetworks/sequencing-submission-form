@@ -7,6 +7,7 @@ import pandas as pd
 
 logger = logging.getLogger("my_app_logger")
 
+
 def get_columns_data():
     current_dir = os.path.dirname(__file__)
     base_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
@@ -89,15 +90,20 @@ def check_expedition_lead(value):
 def check_notes(value):
     return check_field_length_value(value, 200)
 
+
 def check_collaborators_value(value):
     return check_field_length_value(value, 150)
+
 
 def check_field_length_value(value, max_length):
     """
     Check if a single value's length does not exceed the specified maximum length.
     """
     if len(str(value)) > max_length:
-        return {"status": 0, "message": f"Value exceeds maximum length of {max_length}"}
+        return {
+            "status": 0,
+            "message": f"Value exceeds maximum length of {max_length}",
+        }
     else:
         return {"status": 1, "message": "Valid value"}
 
@@ -110,7 +116,6 @@ def check_agricultural_land_value(value):
         return {"status": 0, "message": "Invalid value"}
     else:
         return {"status": 1, "message": "Valid value"}
-
 
 
 def check_field_values_lookup(df, valid_values, field_name, allow_empty=True):
@@ -172,7 +177,6 @@ def check_dna_concentration(value):
         return {"status": 1, "message": "Valid value"}
 
 
-
 def check_elevation_value(value):
     """
     Check if a single elevation value is a valid positive integer.
@@ -181,7 +185,6 @@ def check_elevation_value(value):
         return {"status": 0, "message": "Invalid value"}
     else:
         return {"status": 1, "message": "Valid value"}
-
 
 
 def is_numeric(value):
@@ -210,6 +213,7 @@ def is_positive_integer(value):
     except ValueError:
         return False
 
+
 def check_latitude_longitude(value):
     """
     Check if a single latitude or longitude value is in decimal format (WGS1984) and valid.
@@ -218,15 +222,25 @@ def check_latitude_longitude(value):
     try:
         float_value = float(value)
         if -90 <= float_value <= 90:  # Valid latitude range
-            if re.match(r'^-?\d+(\.\d{1,6})?$', str(float_value)):  # Check precision up to 6 decimal places
+            if re.match(
+                r"^-?\d+(\.\d{1,6})?$", str(float_value)
+            ):  # Check precision up to 6 decimal places
                 return {"status": 1, "message": "Valid latitude"}
             else:
-                return {"status": 0, "message": "Invalid value: incorrect precision"}
+                return {
+                    "status": 0,
+                    "message": "Invalid value: incorrect precision",
+                }
         elif -180 <= float_value <= 180:  # Valid longitude range
-            if re.match(r'^-?\d+(\.\d{1,6})?$', str(float_value)):  # Check precision up to 6 decimal places
+            if re.match(
+                r"^-?\d+(\.\d{1,6})?$", str(float_value)
+            ):  # Check precision up to 6 decimal places
                 return {"status": 1, "message": "Valid longitude"}
             else:
-                return {"status": 0, "message": "Invalid value: incorrect precision"}
+                return {
+                    "status": 0,
+                    "message": "Invalid value: incorrect precision",
+                }
         else:
             return {"status": 0, "message": "Invalid value: out of range"}
     except ValueError:
@@ -237,9 +251,22 @@ def check_metadata(df, using_scripps):
     """
     Check metadata including columns, and validity of fields.
     """
-    expected_columns_data = get_columns_data()  # Replace with your function to fetch column metadata
+    expected_columns_data = (
+        get_columns_data()
+    )  # Replace with your function to fetch column metadata
     overall_status = 1
     issues = {}
+
+    for key, value in expected_columns_data.items():
+        if (
+            "required" in value
+            and value["required"] == "IfNotScripps"
+        ):
+            if using_scripps == "no":
+                value["required"] = True
+            else:
+                value["required"] = False                
+            
 
     for column_key, column_values in expected_columns_data.items():
         if column_key not in df.columns:
@@ -247,7 +274,7 @@ def check_metadata(df, using_scripps):
                 issues[column_key] = {
                     "status": 0,
                     "message": f"Required column {column_key} is missing",
-                    "empty_values": True  # Indicate that the column is required but missing
+                    "empty_values": True,  # Indicate that the column is required but missing
                 }
                 overall_status = 0
             continue  # Skip further checks for missing columns
@@ -255,12 +282,14 @@ def check_metadata(df, using_scripps):
         # Check if the field is required but has empty values
         column_data = df[column_key]
         if column_values.get("required", False):
-            empty_values = column_data.isna() | column_data.astype(str).str.strip().eq("")
+            empty_values = column_data.isna() | column_data.astype(
+                str
+            ).str.strip().eq("")
             if empty_values.any():
                 issues[column_key] = {
                     "status": 0,
                     "message": f"Required column {column_key} has empty values",
-                    "empty_values": empty_values[empty_values].index.tolist()
+                    "empty_values": empty_values[empty_values].index.tolist(),
                 }
                 overall_status = 0
                 continue  # Skip further checks for this column if empty values found
@@ -273,19 +302,29 @@ def check_metadata(df, using_scripps):
                 invalid_entries = []
                 for idx, value in column_data.items():
                     # Skip validation for empty, None, or NaN values
-                    if value is None or value == "" or (isinstance(value, float) and math.isnan(value)):
+                    if (
+                        value is None
+                        or value == ""
+                        or (isinstance(value, float) and math.isnan(value))
+                    ):
                         continue
-                    
+
                     check_result = check_function(value)
                     if check_result["status"] == 0:
-                        invalid_entries.append({"row": idx, "value": value, "message": check_result["message"]})
-                
+                        invalid_entries.append(
+                            {
+                                "row": idx,
+                                "value": value,
+                                "message": check_result["message"],
+                            }
+                        )
+
                 if invalid_entries:
                     overall_status = 0
                     issues[column_key] = {
                         "status": 0,
                         "invalid": invalid_entries,
-                        "message": f"Column {column_key} has invalid values"
+                        "message": f"Column {column_key} has invalid values",
                     }
             else:
                 overall_status = 0

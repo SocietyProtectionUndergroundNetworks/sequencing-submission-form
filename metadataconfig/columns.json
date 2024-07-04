@@ -112,19 +112,19 @@
     "help_tip": "Primary region of the fungal rDNA operon to be amplified",
     "required": "True"
   },
+  "Primer_set_1": {
+    "lookup_file": "primer_set.csv",
+    "help_tip": "First primer set used for amplicon sequencing, if applicable.",
+    "required": "IfNotScripps"
+  },  
   "Region_2": {
     "lookup_file": "region.csv",
     "help_tip": "Secondary region of the fungal rDNA operon to be amplified"
   },
-  "Primer_set_1": {
-    "lookup_file": "primer_set.csv",
-    "help_tip": "First primer set used for amplicon sequencing, if applicable.",
-    "required": "IfScripps"
-  },
   "Primer_set_2": {
     "lookup_file": "primer_set.csv",
     "help_tip": "Secondary primer set used for amplicon sequencing, if applicable.",
-    "required": "IfScrippsAndRegion_2"
+    "required": "IfNotScrippsAndRegion_2"
   }, 
   "Expedition_lead": {
     "help_tip": "Name of leader and Underground Explorer grant winner",
