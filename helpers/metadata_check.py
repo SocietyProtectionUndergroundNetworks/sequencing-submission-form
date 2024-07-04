@@ -1,5 +1,6 @@
 import os
 import re
+import math
 import logging
 import json
 import pandas as pd
@@ -71,6 +72,7 @@ def check_sample_id(sample_id):
         return {"status": 0, "message": "Invalid value"}
     else:
         return {"status": 1, "message": "Valid value"}
+
 
 def check_sequencing_facility(value):
     return check_field_length_value(value, 150)
@@ -231,7 +233,7 @@ def check_latitude_longitude(value):
         return {"status": 0, "message": "Invalid value: not a valid number"}
 
 
-def check_metadata(df):
+def check_metadata(df, using_scripps):
     """
     Check metadata including columns, and validity of fields.
     """
@@ -270,6 +272,10 @@ def check_metadata(df):
                 check_function = globals()[check_function_name]
                 invalid_entries = []
                 for idx, value in column_data.items():
+                    # Skip validation for empty, None, or NaN values
+                    if value is None or value == "" or (isinstance(value, float) and math.isnan(value)):
+                        continue
+                    
                     check_result = check_function(value)
                     if check_result["status"] == 0:
                         invalid_entries.append({"row": idx, "value": value, "message": check_result["message"]})

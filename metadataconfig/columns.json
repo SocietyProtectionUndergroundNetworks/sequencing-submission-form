@@ -1,7 +1,8 @@
 {
   "SampleID": {
     "help_tip": "Unique sample tracking ID for your project. This should be a location name used to describe where you sampled (country or region), the year, and a sample number. I.e Patagonia22_1",
-    "check_function": "check_sample_id"
+    "check_function": "check_sample_id",
+    "required": "True"
   },
   "Site_name": {
     "help_tip": "Optional, the region or local name of site collected. Can be the same name for multiple samples.",
@@ -117,11 +118,13 @@
   },
   "Primer_set_1": {
     "lookup_file": "primer_set.csv",
-    "help_tip": "First primer set used for amplicon sequencing, if applicable."
+    "help_tip": "First primer set used for amplicon sequencing, if applicable.",
+    "required": "IfScripps"
   },
   "Primer_set_2": {
     "lookup_file": "primer_set.csv",
-    "help_tip": "Secondary primer set used for amplicon sequencing, if applicable."
+    "help_tip": "Secondary primer set used for amplicon sequencing, if applicable.",
+    "required": "IfScrippsAndRegion_2"
   }, 
   "Expedition_lead": {
     "help_tip": "Name of leader and Underground Explorer grant winner",

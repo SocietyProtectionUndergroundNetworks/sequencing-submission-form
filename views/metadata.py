@@ -58,7 +58,6 @@ def approved_required(view_func):
 @login_required
 @approved_required
 def metadata_form():
-    logger.info("Test here 41 1 in metadata_form")
     my_buckets = {}
     map_key = os.environ.get("GOOGLE_MAP_API_KEY")
     for my_bucket in current_user.buckets:
@@ -79,7 +78,7 @@ def metadata_form():
 @approved_required
 def upload_metadata_file():
     file = request.files.get("file")
-
+    using_scripps = request.form.get("using_scripps")
     if not file:
         return jsonify({"error": "No file uploaded"}), 400
 
@@ -95,7 +94,7 @@ def upload_metadata_file():
         return jsonify({"error": "Unsupported file type"}), 400
 
     # Check metadata using the helper function
-    result = check_metadata(df)
+    result = check_metadata(df, using_scripps)
 
     expected_columns_data = get_columns_data()
     expected_columns = list(expected_columns_data.keys())
