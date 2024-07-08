@@ -805,6 +805,20 @@ def start_raw_and_unzip():
     return jsonify({"result_1": result, "result2": result2}), 200
 
 
+@upload_bp.route(
+    "/start_unzip_all", methods=["GET"], endpoint="start_unzip_all"
+)
+@login_required
+@admin_required
+@approved_required
+def start_unzip_all():
+    process_id = request.args.get("process_id")
+    gz_filedata = Upload.get_gz_filedata(process_id)
+    for filename, file_data in gz_filedata.items():
+        result = unzip_raw(process_id, filename)
+    return jsonify({"result": "ok"}), 200
+
+
 @upload_bp.route("/upload", methods=["GET"], endpoint="check_chunk")
 @login_required
 @approved_required

@@ -40,43 +40,39 @@ def rename_files(csv_file_path, directory_path, files_json):
 
         # Iterate through each row in the CSV file
         for row in csv_reader:
-            sampleid = str(row[sequencer_id_index])
-            name = str(row[sample_id_index])
+            sequencer_id = str(row[sequencer_id_index])
+            sample_id = str(row[sample_id_index])
             bucket = str(row[bucket_index])
             bucket_folder = str(row[bucket_folder_index])
-
-            # Check if sampleid contains "_S"
-            if "_S" in sampleid:
-                prefix = sampleid.split("_S", 1)[0] + "_S"
-            else:
-                prefix = sampleid
 
             # Find the matching filenames based on the Sequencer_ID
             matching_files = [
                 filename
                 for filename in file_names
-                if filename.startswith(prefix)
+                if filename.startswith(sequencer_id)
             ]
             for matching_file in matching_files:
                 # Get the full path of the matching file
                 old_file_path = os.path.join(directory_path, matching_file)
 
                 # Extract the portion after '_S' from the matching file
-                extension = matching_file.split("_S")[-1]
+                parts = matching_file.split("_", 1)
+                extension = parts[1] if len(parts) > 1 else ""
 
-                # Replace 'RIBO' with 'SSU' in the 'Name' column
-                if "RIBO" in name:
-                    new_name = name.replace("RIBO", "SSU")
-                else:
-                    new_name = name
+                # Replace 'RIBO' with 'SSU' in the 'Sample_ID' column
+                new_sample_id = (
+                    sample_id.replace("RIBO", "SSU")
+                    if "RIBO" in sample_id
+                    else sample_id
+                )
 
                 # Create the new file name based on the extracted extension,
-                # modified 'Name' column, and the 'CCBB' prefix
-                new_file_name = new_name + "_S" + extension
+                # modified 'Sample_ID' column, and the 'CCBB' prefix
+                new_file_name = new_sample_id + "_" + extension
 
                 if new_file_name == matching_file:
                     results[matching_file] = (
-                        f"New and old names the same for {new_file_name}"
+                        f"New and old names are the same for {new_file_name}"
                     )
                     matching_files_dict[matching_file][
                         "new_filename"
@@ -85,12 +81,13 @@ def rename_files(csv_file_path, directory_path, files_json):
                     matching_files_dict[matching_file][
                         "folder"
                     ] = bucket_folder
-                    matching_files_dict[matching_file]["csv_sample_id"] = name
+                    matching_files_dict[matching_file][
+                        "csv_sample_id"
+                    ] = sample_id
                 elif new_file_name in file_names:
                     # Check for duplicate names
                     results[matching_file] = (
-                        f"Duplicate file name: {new_file_name}. "
-                        "Skipping renaming"
+                        f"Duplicate file name: {new_file_name}. Skipping renaming"
                     )
                 else:
                     # Get the full path of the new file name
@@ -98,8 +95,6 @@ def rename_files(csv_file_path, directory_path, files_json):
 
                     # Rename the file
                     os.rename(old_file_path, new_file_path)
-                    # results.append(f"Renamed {matching_file} to
-                    # {new_file_name}")
                     results[matching_file] = f"Renamed to {new_file_name}"
 
                     matching_files_dict[matching_file][
@@ -109,10 +104,12 @@ def rename_files(csv_file_path, directory_path, files_json):
                     matching_files_dict[matching_file][
                         "folder"
                     ] = bucket_folder
-                    matching_files_dict[matching_file]["csv_sample_id"] = name
+                    matching_files_dict[matching_file][
+                        "csv_sample_id"
+                    ] = sample_id
 
             if not matching_files:
-                not_found.append(sampleid)
+                not_found.append(sequencer_id)
     return results, not_found, matching_files_dict
 
 
