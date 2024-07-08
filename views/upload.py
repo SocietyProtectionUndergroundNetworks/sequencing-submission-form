@@ -815,7 +815,7 @@ def start_unzip_all():
     process_id = request.args.get("process_id")
     gz_filedata = Upload.get_gz_filedata(process_id)
     for filename, file_data in gz_filedata.items():
-        result = unzip_raw(process_id, filename)
+        unzip_raw(process_id, filename)
     return jsonify({"result": "ok"}), 200
 
 
