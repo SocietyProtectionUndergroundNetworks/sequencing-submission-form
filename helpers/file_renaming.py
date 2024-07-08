@@ -45,11 +45,17 @@ def rename_files(csv_file_path, directory_path, files_json):
             bucket = str(row[bucket_index])
             bucket_folder = str(row[bucket_folder_index])
 
+            # Check if sampleid contains "_S"
+            if "_S" in sampleid:
+                prefix = sampleid.split("_S", 1)[0] + "_S"
+            else:
+                prefix = sampleid
+
             # Find the matching filenames based on the Sequencer_ID
             matching_files = [
                 filename
                 for filename in file_names
-                if filename.startswith(sampleid.split("_S", 1)[0] + "_S")
+                if filename.startswith(prefix)
             ]
             for matching_file in matching_files:
                 # Get the full path of the matching file
