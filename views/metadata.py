@@ -11,7 +11,11 @@ from flask import (
 )
 from flask_login import current_user, login_required
 from models.bucket import Bucket
-from helpers.metadata_check import check_metadata, get_columns_data, get_project_common_data
+from helpers.metadata_check import (
+    check_metadata,
+    get_columns_data,
+    get_project_common_data,
+)
 import numpy as np
 
 
@@ -74,16 +78,18 @@ def metadata_form():
 
 
 @metadata_bp.route(
-    "/metadata_validate_row", methods=["POST"], endpoint="metadata_validate_row"
+    "/metadata_validate_row",
+    methods=["POST"],
+    endpoint="metadata_validate_row",
 )
 @login_required
 @approved_required
 def metadata_validate_row():
-    # we have panda available, and because we want to reuse the same 
+    # we have panda available, and because we want to reuse the same
     # existing functions, we want to put all the data from the form
     # into a df
     # Read the data of the form in a df
-    
+
     # Parse form data from the request
     form_data = request.form.to_dict()
 
@@ -98,7 +104,7 @@ def metadata_validate_row():
         jsonify(
             {
                 "result": result,
-                "data": df.replace({np.nan: None}).to_dict(orient="records")
+                "data": df.replace({np.nan: None}).to_dict(orient="records"),
             }
         ),
         200,
