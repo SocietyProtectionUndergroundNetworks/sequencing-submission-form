@@ -62,6 +62,12 @@ delete_expired_files:
 migrate:
 	docker-compose exec flask alembic upgrade head
 
+lint:
+	docker-compose run flake8
+
+black:
+	docker-compose run black
+
 runmysql:
 	docker-compose run --rm db mysql -h${MYSQL_HOST} -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE}
 

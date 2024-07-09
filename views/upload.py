@@ -38,7 +38,11 @@ from helpers.fastqc import (
     init_fastqc_multiqc_files,
     get_multiqc_report,
 )
-from helpers.file_renaming import calculate_md5, rename_all_files
+from helpers.file_renaming import (
+    calculate_md5,
+    rename_all_files,
+    get_all_files_new_names,
+)
 
 from models.upload import Upload
 from models.user import User
@@ -86,7 +90,7 @@ def admin_required(view_func):
 
 
 def recreate_matching_files(process_id):
-
+    sequence_sample_dict, renames = get_all_files_new_names(process_id)
     upload = Upload.get(process_id)
     uploads_folder = upload.uploads_folder
     extract_directory = Path("processing", uploads_folder)
@@ -106,30 +110,23 @@ def recreate_matching_files(process_id):
             filename: {"new_filename": "", "fastqc": ""}
             for filename in matching_files
         }
-
-        # Update for non standard sequencing data. Find out the bucket and
-        # folder from here, because we skip the renaming step
-        path = Path("uploads", upload.uploads_folder)
-        cvs_path = path / upload.csv_filename
-        cvs_records = get_csv_data(cvs_path)
-
+        logger.info(matching_files_dict)
         # Iterate over keys in matching_files_dict
         for file_key in matching_files_dict.keys():
+            logger.info("#############################")
+            logger.info("File key is: " + str(file_key))
+            if file_key in renames:
+                file_data = renames[file_key]
+                matching_files_dict[file_key]["bucket"] = file_data["bucket"]
+                matching_files_dict[file_key]["folder"] = file_data["region"]
+                matching_files_dict[file_key]["new_filename"] = file_data[
+                    "new_filename"
+                ]
+                matching_files_dict[file_key]["sample_id"] = file_data[
+                    "sample_id"
+                ]
+                logger.info(matching_files_dict[file_key])
 
-            # Find matching row in CSV data
-            for row in cvs_records.values():
-                sequencer_identifier = row["sequencer_id"].split("_S")[0]
-                if file_key.startswith(sequencer_identifier):
-                    # Assign project and region to the matching file
-                    matching_files_dict[file_key]["bucket"] = row["project"]
-                    matching_files_dict[file_key]["folder"] = row["region"]
-                    break  # Break the loop once a match is found
-                    logger.info(
-                        "Found one file_key: "
-                        + file_key
-                        + " for project "
-                        + row["project"]
-                    )
         Upload.update_files_json(process_id, matching_files_dict)
     return nr_files
 
@@ -768,6 +765,20 @@ def start_raw_and_unzip():
     return jsonify({"result_1": result, "result2": result2}), 200
 
 
+@upload_bp.route(
+    "/start_unzip_all", methods=["GET"], endpoint="start_unzip_all"
+)
+@login_required
+@admin_required
+@approved_required
+def start_unzip_all():
+    process_id = request.args.get("process_id")
+    gz_filedata = Upload.get_gz_filedata(process_id)
+    for filename, file_data in gz_filedata.items():
+        unzip_raw(process_id, filename)
+    return jsonify({"result": "ok"}), 200
+
+
 @upload_bp.route("/upload", methods=["GET"], endpoint="check_chunk")
 @login_required
 @approved_required
@@ -1006,6 +1017,16 @@ def reset_flag():
     elif flag == "fastqc":
         Upload.reset_fastqc(process_id)
     return {"status": "Unrecognised flag"}
+
+
+@upload_bp.route("/get_process_renames", endpoint="get_process_renames")
+@login_required
+@approved_required
+def get_process_renames():
+
+    process_id = request.args.get("process_id")
+    sequence_sample_dict, renames = get_all_files_new_names(process_id)
+    return {"sequence_sample_dict": sequence_sample_dict, "renames": renames}
 
 
 @upload_bp.route(

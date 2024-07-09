@@ -1,2 +1,2 @@
 # Delete expired archive files. Once per hour
-25 * * * *      DC_PATH=/usr/local/bin/ make -C /home/runner/sequencing-submission-form-app delete_expired_files
+25 * * * *      DC_PATH=/usr/local/bin/ make -C /home/ubuntu/sequencing-submission-form delete_expired_files
