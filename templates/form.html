@@ -476,21 +476,14 @@
 
             if (matching_files_db) {
               $.each(matching_files_db, function(filename, filesData) {
-                var sequencerIdPrefix = sequencerId.split('_S')[0]; // Extracting prefix before "_S"
-                var filenamePrefix = filename.split('_S')[0]; // Extracting prefix before "_S"
-
-                if (filename.startsWith(sequencerIdPrefix + '_S')) {
-                  // Extract the portion after '_S' from the matching file
-                  var extension = filename.split('_S')[1];
-
-                  // Replace 'RIBO' with 'SSU' in the 'sampleId' if present
-                  var newName = sampleId.includes('RIBO') ? sampleId.replace('RIBO', 'SSU') : sampleId;
-
-                  // Create the new file name
-                  var newFileName = newName + '_S' + extension;
-
-                  lastTd.append(`${filename} → ${newFileName}<br>`);
-                  matchedFilesCount++;
+                console.log(filename)
+                console.log(filesData)
+                if (filesData['sample_id']==sampleId) {
+                  new_filename = filesData['new_filename']
+                  if (new_filename!='') {
+                    lastTd.append(`${filename} → ${new_filename}<br>`);
+                    matchedFilesCount++;
+                  }
                 }
               });
             }
@@ -578,6 +571,7 @@
             tableBody.find('tr').each(function(index) {
                 $(this).find('th').text(index + 1);
             });
+            console.log(filesDict);
             updateCsvTable(filesDict);
         }
 
