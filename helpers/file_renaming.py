@@ -10,6 +10,7 @@ import hashlib
 import logging
 from pathlib import Path
 from models.upload import Upload
+from helpers.csv import get_csv_data
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -43,44 +44,32 @@ def generate_new_filename(current_filename, csv_sequence_dict):
     return None
 
 
-def get_csv_sequence_dict(csv_file_path):
+def get_csv_sequence_dict(data):
     csv_sequence_dict = {}
-    with open(
-        csv_file_path, "r", newline="", encoding="utf-8-sig"
-    ) as csv_file:
-        csv_reader = csv.reader(csv_file)
-        # Assuming the first row contains headers
-        headers = next(csv_reader)
 
-        # Find the indices of the required columns
-        sequencer_id_index = headers.index("Sequencer_ID")
-        sample_id_index = headers.index("Sample_ID")
-        bucket_index = headers.index("Project")
-        bucket_folder_index = headers.index("Region")
+    # Loop through the data dictionary and build the sequence dictionary
+    for sample_id_safe, row in data.items():
+        sequencer_id = row["sequencer_id"]
+        sample_id = row["sample_id"]
+        bucket = row["project"]
+        region = row["region"]
 
-        # Create a dictionary to map Sequencer_ID to Sample_ID
-        for row in csv_reader:
-            sequencer_id = str(row[sequencer_id_index])
-            sample_id = str(row[sample_id_index])
-            bucket = str(row[bucket_index])
-            region = str(row[bucket_folder_index])
-            csv_sequence_dict[sequencer_id] = {
-                "sample_id": sample_id,
-                "bucket": bucket,
-                "region": region,
-            }
+        csv_sequence_dict[sequencer_id] = {
+            "sample_id": sample_id,
+            "bucket": bucket,
+            "region": region,
+        }
+
     return csv_sequence_dict
 
 
 def get_all_files_new_names(process_id):
-    logger.info(process_id)
     upload = Upload.get(process_id)
-    logger.info(upload)
     uploads_folder = upload.uploads_folder
     path = Path("uploads", uploads_folder)
     csv_filepath = path / upload.csv_filename
-
-    csv_sequence_dict = get_csv_sequence_dict(csv_filepath)
+    cvs_records = get_csv_data(csv_filepath)
+    csv_sequence_dict = get_csv_sequence_dict(cvs_records)
     extract_directory = Path("processing", uploads_folder)
 
     # Get a list of all file names in the directory
@@ -103,7 +92,8 @@ def rename_files(csv_file_path, directory_path, files_json):
     results = {}
     not_found = []
 
-    csv_sequence_dict = get_csv_sequence_dict(csv_file_path)
+    cvs_records = get_csv_data(csv_file_path)
+    csv_sequence_dict = get_csv_sequence_dict(cvs_records)
 
     # Get a list of all file names in the directory
     file_names = os.listdir(directory_path)
