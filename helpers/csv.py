@@ -107,10 +107,6 @@ def validate_csv_buckets(data, column_names):
     not_found = []
     wrong_regions = []
 
-    # Assuming the fourth column is 'Project' and the fifth column is 'Region'
-    project_index = column_names.index("Project")
-    region_index = column_names.index("Region")
-
     for sample_id_safe, row in data.items():
         csv_bucket_value = row["project"]
         csv_region_value = row["region"]

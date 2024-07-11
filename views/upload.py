@@ -112,7 +112,7 @@ def recreate_matching_files(process_id):
         for file_key in matching_files_dict.keys():
             if file_key in renames:
                 file_data = renames[file_key]
-                if file_data != None:
+                if file_data is not None:
                     if "bucket" in file_data:
                         matching_files_dict[file_key]["bucket"] = file_data[
                             "bucket"
