@@ -4,7 +4,6 @@
 # as an argument.
 
 import os
-import csv
 import json
 import hashlib
 import logging
