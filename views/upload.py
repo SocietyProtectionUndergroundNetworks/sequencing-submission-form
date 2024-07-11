@@ -108,22 +108,27 @@ def recreate_matching_files(process_id):
             filename: {"new_filename": "", "fastqc": ""}
             for filename in matching_files
         }
-        logger.info(matching_files_dict)
         # Iterate over keys in matching_files_dict
         for file_key in matching_files_dict.keys():
-            logger.info("#############################")
-            logger.info("File key is: " + str(file_key))
             if file_key in renames:
                 file_data = renames[file_key]
-                matching_files_dict[file_key]["bucket"] = file_data["bucket"]
-                matching_files_dict[file_key]["folder"] = file_data["region"]
-                matching_files_dict[file_key]["new_filename"] = file_data[
-                    "new_filename"
-                ]
-                matching_files_dict[file_key]["sample_id"] = file_data[
-                    "sample_id"
-                ]
-                logger.info(matching_files_dict[file_key])
+                if file_data != None:
+                    if "bucket" in file_data:
+                        matching_files_dict[file_key]["bucket"] = file_data[
+                            "bucket"
+                        ]
+                    if "region" in file_data:
+                        matching_files_dict[file_key]["folder"] = file_data[
+                            "region"
+                        ]
+                    if "new_filename" in file_data:
+                        matching_files_dict[file_key]["new_filename"] = (
+                            file_data["new_filename"]
+                        )
+                    if "sample_id" in file_data:
+                        matching_files_dict[file_key]["sample_id"] = file_data[
+                            "sample_id"
+                        ]
 
         Upload.update_files_json(process_id, matching_files_dict)
     return nr_files
@@ -287,8 +292,6 @@ def upload_form_resume():
             is_admin=current_user.admin,
         )
     else:
-
-        logger.info(process_id)
 
         # TODO: check if the current user is admin or owner of this upload.
         # Else redirect them.
