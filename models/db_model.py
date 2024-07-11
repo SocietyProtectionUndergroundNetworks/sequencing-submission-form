@@ -75,3 +75,59 @@ class UploadTable(Base):
     renamed_sent_to_bucket = Column(Boolean, default=False)
     renamed_sent_to_bucket_progress = Column(Integer, default=0)
     reviewed_by_admin = Column(Boolean, default=False)
+
+
+class SequencingUploadsTable(Base):
+    __tablename__ = "sequencing_uploads"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"))
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(
+        DateTime, default=func.now(), onupdate=func.now(), nullable=True
+    )
+    project_id = Column(
+        String(250), ForeignKey("buckets.id", ondelete="CASCADE")
+    )
+    latest_metadata_filename = Column(String(255), nullable=True)
+    final_metadata_filename = Column(String(255), nullable=True)
+    uploads_folder = Column(String(20), nullable=True)
+    sequencing_upload_filedata = Column(JSON(none_as_null=True))
+    Country = Column(String(255), nullable=True)
+    Sequencing_platform = Column(String(255), nullable=True)
+    Sequencing_facility = Column(String(255), nullable=True)
+    Expedition_lead = Column(String(255), nullable=True)
+    Collaborators = Column(String(255), nullable=True)
+    Primer_set_1 = Column(String(255), nullable=True)
+    Primer_set_2 = Column(String(255), nullable=True)
+    Extraction_method = Column(String(255), nullable=True)
+    Multiple_sequencing_runs = Column(String(255), nullable=True)
+
+
+class SequencingSamplesTable(Base):
+    __tablename__ = "sequencing_samples"
+    id = Column(Integer, primary_key=True)
+    sequencingUploadId = Column(
+        Integer, ForeignKey("sequencing_uploads.id", ondelete="CASCADE")
+    )
+    SampleID = Column(String(255), nullable=True)
+    SequencerID = Column(String(255), nullable=True)
+    Site_name = Column(String(255), nullable=True)
+    Latitude = Column(String(255), nullable=True)
+    Longitude = Column(String(255), nullable=True)
+    Vegetation = Column(String(255), nullable=True)
+    Land_use = Column(String(255), nullable=True)
+    Agricultural_land = Column(String(255), nullable=True)
+    Treatments = Column(String(255), nullable=True)
+    Ecosystem = Column(String(255), nullable=True)
+    Grid_Size = Column(String(255), nullable=True)
+    Soil_depth = Column(String(255), nullable=True)
+    Transport_refrigeration = Column(String(255), nullable=True)
+    Drying = Column(String(255), nullable=True)
+    Date_collected = Column(String(255), nullable=True)
+    DNA_concentration_ng_ul = Column(String(255), nullable=True)
+    DNA_conc_instrument = Column(String(255), nullable=True)
+    Elevation = Column(String(255), nullable=True)
+    Sample_or_Control = Column(String(255), nullable=True)
+    SequencingRun = Column(String(255), nullable=True)
+    Notes = Column(String(255), nullable=True)

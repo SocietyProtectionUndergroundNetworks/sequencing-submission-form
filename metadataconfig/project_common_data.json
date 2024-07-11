@@ -24,19 +24,9 @@
     "check_function": "check_collaborators",
     "required": "True"
   },
-  "Region_1": {
-    "lookup_file": "region.csv",
-    "help_tip": "Primary region of the fungal rDNA operon to be amplified",
-    "required": "IfNotScripps"
-  },
   "Primer_set_1": {
     "lookup_file": "primer_set.csv",
     "help_tip": "First primer set used for amplicon sequencing, if applicable.",
-    "required": "IfNotScripps"
-  },  
-  "Region_2": {
-    "lookup_file": "region.csv",
-    "help_tip": "Secondary region of the fungal rDNA operon to be amplified",
     "required": "IfNotScripps"
   },
   "Primer_set_2": {
@@ -48,5 +38,10 @@
     "lookup_file": "extraction_method.csv",
     "help_tip": "Kit or protocol used for DNA extraction. ‘Conventional extraction’ refers to a laboratory protocol using common buffers and solutions (such a SDS, phenol). Conventional extraction, CTAB refers to a laboratory protocol using common buffers and solutions in addition to the CTAB buffer.",
     "required": "True"
-  }    
+  },
+  "Multiple_sequencing_runs": {
+    "lookup_file": "multiple_sequencing_runs.csv",
+    "help_tip": "Were your samples run across multiple sequencing runs (if known)? ",
+    "required": "True"
+  }
 }

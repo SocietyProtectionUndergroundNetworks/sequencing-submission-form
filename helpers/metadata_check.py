@@ -34,6 +34,7 @@ def get_columns_data():
 
     return data
 
+
 def get_project_common_data():
     current_dir = os.path.dirname(__file__)
     base_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
@@ -59,6 +60,7 @@ def get_project_common_data():
                 value["options"] = []  # or handle missing file as needed
 
     return data
+
 
 def check_expected_columns(df, expected_columns_data):
     """
@@ -272,26 +274,29 @@ def check_latitude_longitude(value):
         return {"status": 0, "message": "Invalid value: not a valid number"}
 
 
-def check_metadata(df, using_scripps):
+def check_metadata(df, using_scripps, multiple_sequencing_runs=False):
     """
     Check metadata including columns, and validity of fields.
     """
-    expected_columns_data = (
-        get_columns_data()
-    )  # Replace with your function to fetch column metadata
+    expected_columns_data = get_columns_data()
     overall_status = 1
     issues = {}
 
     for key, value in expected_columns_data.items():
-        if (
-            "required" in value
-            and value["required"] == "IfNotScripps"
-        ):
+        if "required" in value and value["required"] == "IfNotScripps":
             if using_scripps == "no":
                 value["required"] = True
             else:
-                value["required"] = False                
-            
+                value["required"] = False
+    logger.info(
+        "The multiple_sequencing_runs is " + str(multiple_sequencing_runs)
+    )
+
+    if multiple_sequencing_runs == "Yes":
+        logger.info("Inside first if ")
+        if "SequencingRun" in expected_columns_data:
+            logger.info("Inside second if ")
+            expected_columns_data["SequencingRun"]["required"] = True
 
     for column_key, column_values in expected_columns_data.items():
         if column_key not in df.columns:
@@ -304,66 +309,126 @@ def check_metadata(df, using_scripps):
                 overall_status = 0
             continue  # Skip further checks for missing columns
 
-        # Check if the field is required but has empty values
-        column_data = df[column_key]
-        if column_values.get("required", False):
-            empty_values = column_data.isna() | column_data.astype(
-                str
-            ).str.strip().eq("")
-            if empty_values.any():
-                issues[column_key] = {
-                    "status": 0,
-                    "message": f"Required column {column_key} has empty values",
-                    "empty_values": empty_values[empty_values].index.tolist(),
-                }
-                overall_status = 0
-                continue  # Skip further checks for this column if empty values found
-
-        # Perform specific checks based on the type of validation
-        if "options" in column_values:
-            options_check_result = check_field_values_lookup(df, column_values["options"], column_key)
-            if options_check_result["status"] == 0:
-                overall_status = 0
-                issues[column_key] = options_check_result        
-        elif "check_function" in column_values:
-            check_function_name = column_values["check_function"]
-            if check_function_name in globals():
-                check_function = globals()[check_function_name]
-                invalid_entries = []
-                for idx, value in column_data.items():
-                    # Skip validation for empty, None, or NaN values
-                    if (
-                        value is None
-                        or value == ""
-                        or (isinstance(value, float) and math.isnan(value))
-                    ):
-                        continue
-
-                    check_result = check_function(value)
-                    if check_result["status"] == 0:
-                        invalid_entries.append(
-                            {
-                                "row": idx,
-                                "value": value,
-                                "message": check_result["message"],
-                            }
-                        )
-
-                if invalid_entries:
-                    overall_status = 0
-                    issues[column_key] = {
-                        "status": 0,
-                        "invalid": invalid_entries,
-                        "message": f"Column {column_key} has invalid values",
-                    }
-            else:
-                overall_status = 0
-                issues[column_key] = {
-                    "status": 0,
-                    "message": f"Check function {check_function_name} not found",
-                }
+    # Check each row using the check_row function
+    for idx, row in df.iterrows():
+        row_result = check_row(row, expected_columns_data)
+        if row_result["status"] == 0:
+            overall_status = 0
+            for key, value in row_result.items():
+                if key != "status":
+                    if key not in issues:
+                        issues[key] = {
+                            "status": 0,
+                            "invalid": [],
+                            "message": value["message"],
+                        }
+                    issues[key]["invalid"].extend(value["invalid"])
 
     final_result = {"status": overall_status}
     final_result.update(issues)
 
     return final_result
+
+
+def check_row(row, expected_columns_data):
+    """
+    Validate a single row of data.
+    """
+    # Skip checks if "Sample_or_Control" column exists and its value is "Control"
+    if (
+        "Sample_or_Control" in row.index
+        and row["Sample_or_Control"] == "Control"
+    ):
+        return {"status": 1}
+
+    row_issues = {}
+    row_status = 1
+
+    for column_key, column_values in expected_columns_data.items():
+        if column_key not in row.index:
+            continue  # Skip missing columns
+
+        # Check if the field is required but has empty values
+        column_data = row[column_key]
+        if column_values.get("required", False):
+            if (
+                column_data is None
+                or column_data == ""
+                or (isinstance(column_data, float) and math.isnan(column_data))
+            ):
+                row_issues[column_key] = {
+                    "status": 0,
+                    "invalid": [
+                        {
+                            "row": row.name,
+                            "value": "",
+                            "message": f"Required column {column_key} has empty values",
+                        }
+                    ],
+                    "message": f"Required column {column_key} has empty values",
+                }
+                row_status = 0
+                continue  # Skip further checks for this column if empty values found
+
+        # Perform specific checks based on the type of validation
+        if "options" in column_values:
+            options_check_result = check_field_values_lookup(
+                pd.DataFrame([row]), column_values["options"], column_key
+            )
+            if options_check_result["status"] == 0:
+                row_status = 0
+                row_issues[column_key] = {
+                    "status": 0,
+                    "invalid": [
+                        {
+                            "row": row.name,
+                            "value": column_data,
+                            "message": options_check_result["message"],
+                        }
+                    ],
+                    "message": options_check_result["message"],
+                }
+        elif "check_function" in column_values:
+            check_function_name = column_values["check_function"]
+            if check_function_name in globals():
+                check_function = globals()[check_function_name]
+                if not (
+                    column_data is None
+                    or column_data == ""
+                    or (
+                        isinstance(column_data, float)
+                        and math.isnan(column_data)
+                    )
+                ):
+                    check_result = check_function(column_data)
+                    if check_result["status"] == 0:
+                        row_status = 0
+                        row_issues[column_key] = {
+                            "status": 0,
+                            "invalid": [
+                                {
+                                    "row": row.name,
+                                    "value": column_data,
+                                    "message": check_result["message"],
+                                }
+                            ],
+                            "message": f"Column {column_key} has invalid values",
+                        }
+            else:
+                row_status = 0
+                row_issues[column_key] = {
+                    "status": 0,
+                    "invalid": [
+                        {
+                            "row": row.name,
+                            "value": column_data,
+                            "message": f"Check function {check_function_name} not found",
+                        }
+                    ],
+                    "message": f"Check function {check_function_name} not found",
+                }
+
+    row_result = {"status": row_status}
+    row_result.update(row_issues)
+
+    return row_result

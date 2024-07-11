@@ -119,6 +119,7 @@ def metadata_validate_row():
 def upload_metadata_file():
     file = request.files.get("file")
     using_scripps = request.form.get("using_scripps")
+    multiple_sequencing_runs = request.form.get("Multiple_sequencing_runs")
     if not file:
         return jsonify({"error": "No file uploaded"}), 400
 
@@ -134,7 +135,7 @@ def upload_metadata_file():
         return jsonify({"error": "Unsupported file type"}), 400
 
     # Check metadata using the helper function
-    result = check_metadata(df, using_scripps)
+    result = check_metadata(df, using_scripps, multiple_sequencing_runs)
 
     expected_columns_data = get_columns_data()
     expected_columns = list(expected_columns_data.keys())
@@ -150,3 +151,33 @@ def upload_metadata_file():
         ),
         200,
     )
+    
+    
+@metadata_bp.route(
+    "/upload_process_common_fields", methods=["POST"], endpoint="upload_process_common_fields"
+)
+@login_required
+@approved_required
+def upload_process_common_fields():
+    # Parse form data from the request
+    form_data = request.form.to_dict()
+    logger.info(form_data)
+
+    # if they have selected Scripps on step 2, we update the 
+    # relevant values
+    if ("using_scripps" in form_data) and (form_data["using_scripps"]=="yes"):
+        form_data["Sequencing_facility"] = "Scripps"
+        
+    
+
+    # Return the result as JSON
+    return (
+        jsonify(
+            {
+                "result": "ok",
+            }
+        ),
+        200,
+    )    
+    
+    

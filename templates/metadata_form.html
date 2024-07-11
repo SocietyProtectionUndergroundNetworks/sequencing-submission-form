@@ -35,6 +35,8 @@
 
     <div id="step_1" class="form-step-item">
       <h3> Step 1: Project ID allocated to user </h3>
+      <form id="step_1_form">
+        <fieldset>
         {% if my_buckets|length == 0 %}
           <div>You have no assigned project. Please contact the program coordinator</div>
         {% elif my_buckets|length == 1 %}
@@ -42,11 +44,11 @@
             <p>The only assigned project for this user is {{ my_buckets|list|first }}. If the data are for this project, proceed.</p>
             <p>If you believe your data should be in a different project, please stop the process and contact the program coordinator</p>
           </div>
-          <input type="hidden" id="assigned-project-id" value="{{ my_buckets|list|first }}"/>
+          <input type="hidden" id="sequence-project-id" value="{{ my_buckets|list|first }}"/>
         {% else %}
           <div>
-            <label for="bucket-select">Select your project:</label>
-            <select id="bucket-select" name="bucket">
+            <label for="sequence-project-id">Select your project:</label>
+            <select id="sequence-project-id" name="bucket">
               <option value="0">------</option>
               {% for bucket_name in my_buckets %}
                 <option value="{{ bucket_name }}">{{ bucket_name }}</option>
@@ -55,11 +57,17 @@
             <p>If you you dont see your assigned project in the list, please stop the process and contact the program coordinator</p>
           </div>
         {% endif %}
+        </fieldset>
+      </form>
     </div>
     <div id="step_2" class="form-step-item">
       <h3> Step 2: Tell us how your are going to run the sequencing</h3>
       <form id="step_2_form">
-        <fieldset>
+        <fieldset
+          {% if my_buckets|length != 1 %}
+           disabled="disabled"
+          {% endif %}
+        >
           <div class="form-check">
             <input class="form-check-input" type="radio" name="using_scripps" id="using_scripps_yes" value="1">
             <label class="form-check-label" for="using_scripps_yes">
@@ -79,6 +87,11 @@
       <h3> Step 3: Give us the common data for your project</h3>
       <form id="step_3_form">
         <fieldset disabled="disabled">
+          {% if my_buckets|length == 1 %}
+            <input type="hidden" id="step_3_sequenceProjectId" value="{{ my_buckets|list|first }}"/>
+          {% else %}
+            <input type="hidden" id="step_3_sequenceProjectId" value=""/>
+          {% endif %}
             {% for column_key, column_values in project_common_data.items() %}
                 <div class="form-group row mb-3" data-condition="{{ column_values.get('required', '') }}">
                     <small class="form-text text-danger error-message" style="display: none;"></small>
@@ -240,6 +253,11 @@
         });
       }
 
+      function enableForm_step_2() {
+          $('#step_2_form fieldset').removeAttr('disabled');
+          $('#step_1_form fieldset').attr('disabled', 'disabled');
+      }
+
       function enableForm_step_3() {
           $('#step_3_form fieldset').removeAttr('disabled');
           $('#step_2_form fieldset').attr('disabled', 'disabled');
@@ -250,11 +268,20 @@
           $('#step_3_form fieldset').attr('disabled', 'disabled');
       }
 
-      // Listen for changes in the radio buttons
+      // Listen for changes in the select drop down project_id (bucket)
+      $('#sequence-project-id').change(function() {
+          var selectedValue = $(this).val();
+          enableForm_step_2(); // Enable the next form
+          $('#step_3_sequenceProjectId').val(selectedValue);
+          console.log('Selected value:', selectedValue);
+          // You can add more code here to handle the change event
+      });
+
+      // Listen for changes in the radio buttons using_scripps
       $('input[name="using_scripps"]').change(function() {
           // Check if any radio button is checked
           if ($('input[name="using_scripps"]:checked').length > 0) {
-              enableForm_step_3(); // Enable the form
+              enableForm_step_3(); // Enable the next form
           } else {
               $('#step_3_form fieldset').attr('disabled', 'disabled'); // Ensure the form is disabled if no radio button is checked
           }
@@ -263,12 +290,21 @@
       });
 
       // Function to validate Step 3 fields
-      function validateFields_step_3() {
+      function validateFieldsAndUpload_step_3() {
           var isValid = true;
+
+          var formData = new FormData();
+          // Get the value of the selected radio button from the using_scripps form
+          var usingScrippsValue = $('input[name="using_scripps"]:checked').val();
+          var usingScrippsText = usingScrippsValue == "1" ? "yes" : "no";
+          formData.append('using_scripps', usingScrippsText);
 
           $('#step_3_form .form-group').each(function() {
               var condition = $(this).data('condition');
               var input = $(this).find(':input');
+              var fieldName = input.attr('name');
+              var fieldValue = input.val();
+              formData.append(fieldName, fieldValue);
               var errorMessage = $(this).find('.error-message');
 
               if ((condition === "True") || (condition === "IfNotScripps" && $('#using_scripps_no').is(':checked'))) {
@@ -293,13 +329,40 @@
               }
           });
 
+
+
+          $.ajax({
+              url: '/upload_process_common_fields',
+              type: 'POST',
+              data: formData,
+              contentType: false,
+              processData: false,
+              success: function(response) {
+                  console.log(response);
+
+                  // Clear previous messages and reset status class
+                  $('#step_3_msg').empty().removeClass('text-success text-danger');
+
+                  // Show success message if no issues found
+                  if (response.status === 1 && Object.keys(result).length === 1) {
+                      $('#step_3_msg').append("<p>No problems found.</p>");
+                  }
+
+              },
+              error: function(xhr, status, error) {
+                  console.error('Error:', error);
+                  $('#step_3_msg').html("<p>An error occurred while processing the file.</p>").removeClass('text-success').addClass('text-danger');
+
+              }
+          });
+
           return isValid;
       }
 
 
       // Validate Step 3 fields and enable Step 4 form on button click
       $('#step_3_button').click(function() {
-          if (validateFields_step_3()) {
+          if (validateFieldsAndUpload_step_3()) {
               enableForm_step_4(); // Enable Step 4 form if Step 3 fields are valid
               $('#step_3_msg').text(`All data check out`).addClass('text-success').removeClass('text-info');
           } else {
@@ -368,55 +431,6 @@
             }
         }
     });
-
-
-    // Function to populate table with form data
-    function populateTable() {
-        // Extract data from form fields
-        var formData = {
-            sampleID: $('#sampleID').val(),
-            projectSpecificID: $('#projectSpecificID').val(),
-            siteName: $('#siteName').val(),
-            latitude: $('#latitude').val(),
-            longitude: $('#longitude').val(),
-            country: $('#country').val(),
-            vegetation: $('#vegetation').val(),
-            landUse: $('#landUse').val(),
-            ecosystem: $('#ecosystem').val(),
-            gridSize: $('#gridSize').val(),
-            soilDepth: $('#soilDepth').val(),
-            transportRefrigeration: $('input[name="transportRefrigeration"]:checked').val(),
-            drying: $('#drying').val(),
-            extractionMethod: $('#extractionMethod').val(),
-            dateCollected: $('#dateCollected').val(),
-            dnaConcentration: $('#dnaConcentration').val(),
-            dnaConcInstrument: $('#dnaConcInstrument').val(),
-            sequencingPlatform: $('#sequencingPlatform').val(),
-            sequencingFacility: $('#sequencingFacility').val(),
-            elevation: $('#elevation').val(),
-            sampleOrControl: $('input[name="sampleOrControl"]:checked').val(),
-            primers: $('#primers').val(),
-            expeditionLeader: $('#expeditionLeader').val(),
-            collaborators: $('#collaborators').val(),
-            sequencingRun: $('#sequencingRun').val(),
-            notes: $('#notes').val(),
-
-        };
-        console.log(formData);
-
-        // Construct table row HTML using form data
-        var tableRow = '<tr>';
-        for (var key in formData) {
-            tableRow += '<td>' + formData[key] + '</td>';
-        }
-        tableRow += '</tr>';
-
-        // Append table row to table body
-        $('#dataTable tbody').append(tableRow);
-    }
-
-
-
 
 
     // Submit form event handler
@@ -514,11 +528,11 @@
 
   $(document).ready(function () {
       $('#step_4_file_upload_button').on('change', function () {
-          uploadFile();
+          uploadMetadataFile();
       });
   });
 
-  function uploadFile() {
+  function uploadMetadataFile() {
       var fileInput = $('#step_4_file_upload_button')[0];
       var file = fileInput.files[0];
 
@@ -526,6 +540,9 @@
           alert("Please select a file.");
           return;
       }
+
+      // Clear previous table data
+      $('#dataTable tbody').empty();
 
       // Get the value of the selected radio button from the using_scripps form
       var usingScrippsValue = $('input[name="using_scripps"]:checked').val();
@@ -535,6 +552,14 @@
       formData.append('file', file);
       formData.append('project_id', 1);
       formData.append('using_scripps', usingScrippsText);
+
+      // Append data from step 3 form
+      $('#step_3_form .form-group').each(function() {
+          var input = $(this).find(':input');
+          var fieldName = input.attr('name');
+          var fieldValue = input.val();
+          formData.append(fieldName, fieldValue);
+      });
 
       $.ajax({
           url: '/upload_metadata_file',
@@ -685,10 +710,16 @@
 
               // Apply the appropriate status class
               $('#step_4_msg').addClass(statusClass);
+
+              // Reset the file input
+              fileInput.value = "";
           },
           error: function(xhr, status, error) {
               console.error('Error:', error);
               $('#step_4_msg').html("<p>An error occurred while processing the file.</p>").removeClass('text-success').addClass('text-danger');
+
+              // Reset the file input
+              fileInput.value = "";
           }
       });
   }
