@@ -304,7 +304,7 @@ def check_metadata(df, using_scripps, multiple_sequencing_runs=False):
                 issues[column_key] = {
                     "status": 0,
                     "message": f"Required column {column_key} is missing",
-                    "empty_values": True,  # Indicate that the column is required but missing
+                    "missing": True
                 }
                 overall_status = 0
             continue  # Skip further checks for missing columns

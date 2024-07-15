@@ -11,11 +11,13 @@ from flask import (
 )
 from flask_login import current_user, login_required
 from models.bucket import Bucket
+from models.sequencing_upload import SequencingUpload
 from helpers.metadata_check import (
     check_metadata,
     get_columns_data,
     get_project_common_data,
 )
+from helpers.model import model_to_dict
 import numpy as np
 
 
@@ -68,12 +70,21 @@ def metadata_form():
         my_buckets[my_bucket] = Bucket.get(my_bucket)
     expected_columns = get_columns_data()
     project_common_data = get_project_common_data()
+    process_data = None
+    process_id = request.args.get("process_id", "")
+    if process_id:
+        process_data = SequencingUpload.get(process_id)
+        logger.info(process_data)
+        process_data = model_to_dict(process_data)  # Convert to dictionary
+    
     return render_template(
         "metadata_form.html",
         my_buckets=my_buckets,
         map_key=map_key,
         expected_columns=expected_columns,
         project_common_data=project_common_data,
+        process_data=process_data,
+        process_id=process_id
     )
 
 
@@ -151,10 +162,12 @@ def upload_metadata_file():
         ),
         200,
     )
-    
-    
+
+
 @metadata_bp.route(
-    "/upload_process_common_fields", methods=["POST"], endpoint="upload_process_common_fields"
+    "/upload_process_common_fields",
+    methods=["POST"],
+    endpoint="upload_process_common_fields",
 )
 @login_required
 @approved_required
@@ -163,21 +176,26 @@ def upload_process_common_fields():
     form_data = request.form.to_dict()
     logger.info(form_data)
 
-    # if they have selected Scripps on step 2, we update the 
+    # if they have selected Scripps on step 2, we update the
     # relevant values
-    if ("using_scripps" in form_data) and (form_data["using_scripps"]=="yes"):
+    if ("using_scripps" in form_data) and (
+        form_data["using_scripps"] == "yes"
+    ):
+        logger.info('we are switching the Sequencing_facility to Scripps')
+        logger.info(form_data["using_scripps"])
         form_data["Sequencing_facility"] = "Scripps"
-        
-    
+
+    process_id = SequencingUpload.create(
+        datadict=form_data
+    )
 
     # Return the result as JSON
     return (
         jsonify(
             {
                 "result": "ok",
+                "process_id": process_id
             }
         ),
         200,
-    )    
-    
-    
+    )

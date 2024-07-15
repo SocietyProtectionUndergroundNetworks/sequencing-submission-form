@@ -61,21 +61,39 @@
       </form>
     </div>
     <div id="step_2" class="form-step-item">
-      <h3> Step 2: Tell us how your are going to run the sequencing</h3>
+      <h3> Step 2: Tell us how you are going to run the sequencing</h3>
       <form id="step_2_form">
         <fieldset
-          {% if my_buckets|length != 1 %}
+          {% if my_buckets|length != 1 or process_data %}
            disabled="disabled"
           {% endif %}
         >
           <div class="form-check">
-            <input class="form-check-input" type="radio" name="using_scripps" id="using_scripps_yes" value="1">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="using_scripps"
+              id="using_scripps_yes"
+              value="1"
+              {% if process_data and process_data.using_scripps %}
+                checked
+              {% endif %}
+            >
             <label class="form-check-label" for="using_scripps_yes">
               We are using scripps and the data will be picked up by SPUN
             </label>
           </div>
           <div class="form-check">
-            <input class="form-check-input" type="radio" name="using_scripps" id="using_scripps_no" value="2">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="using_scripps"
+              id="using_scripps_no"
+              value="2"
+              {% if process_data and not process_data.using_scripps %}
+                checked
+              {% endif %}
+            >
             <label class="form-check-label" for="using_scripps_no">
               We have done our analysis and we will upload the data here.
             </label>
@@ -83,6 +101,7 @@
         </fieldset>
       </form>
     </div>
+
     <div id="step_3" class="form-step-item">
       <h3> Step 3: Give us the common data for your project</h3>
       <form id="step_3_form">
@@ -92,37 +111,52 @@
           {% else %}
             <input type="hidden" id="step_3_sequenceProjectId" value=""/>
           {% endif %}
-            {% for column_key, column_values in project_common_data.items() %}
-                <div class="form-group row mb-3" data-condition="{{ column_values.get('required', '') }}">
-                    <small class="form-text text-danger error-message" style="display: none;"></small>
-                    <label for="{{ column_key }}" class="col-sm-3 col-form-label">{{ column_key }}</label>
-                    <div class="col-sm-9">
-                        <small id="{{ column_key }}Help" class="form-text">{{ column_values['help_tip'] }}</small>
-                        {% if 'options' in column_values %}
-                            <select class="form-control" id="{{ column_key }}" name="{{ column_key }}">
-                                <option value="0">------</option>
-                                {% for option in column_values['options'] %}
-                                    <option value="{{ option }}">{{ option }}</option>
-                                {% endfor %}
-                            </select>
-                        {% elif column_values.get('field_type') == 'date' %}
-                            <input type="date" class="form-control" id="{{ column_key }}" name="{{ column_key }}">
-                        {% else %}
-                            <input type="text" class="form-control" id="{{ column_key }}" name="{{ column_key }}" placeholder="{{ column_key }}">
+          {% for column_key, column_values in project_common_data.items() %}
+            <div class="form-group row mb-3" data-condition="{{ column_values.get('required', '') }}">
+              <small class="form-text text-danger error-message" style="display: none;"></small>
+              <label for="{{ column_key }}" class="col-sm-3 col-form-label">{{ column_key }}</label>
+              <div class="col-sm-9">
+                <small id="{{ column_key }}Help" class="form-text">{{ column_values['help_tip'] }}</small>
+                {% if 'options' in column_values %}
+                  <select class="form-control" id="{{ column_key }}" name="{{ column_key }}">
+                    <option value="0">------</option>
+                    {% for option in column_values['options'] %}
+                      <option value="{{ option }}"
+                        {% if process_data and process_data[column_key] == option %}
+                          selected
                         {% endif %}
-                    </div>
-                </div>
-            {% endfor %}
-            <button type="button" class="btn btn-secondary" id="step_3_button">Process</button>
+                      >{{ option }}</option>
+                    {% endfor %}
+                  </select>
+                {% elif column_values.get('field_type') == 'date' %}
+                  <input type="date" class="form-control" id="{{ column_key }}" name="{{ column_key }}"
+                    {% if process_data and process_data[column_key] %}
+                      value="{{ process_data[column_key] }}"
+                    {% endif %}
+                  >
+                {% else %}
+                  <input type="text" class="form-control" id="{{ column_key }}" name="{{ column_key }}"
+                    placeholder="{{ column_key }}"
+                    {% if process_data and process_data[column_key] %}
+                      value="{{ process_data[column_key] }}"
+                    {% endif %}
+                  >
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+          <button type="button" class="btn btn-secondary" id="step_3_button">Process</button>
         </fieldset>
       </form>
       <div id="step_3_msg"></div>
     </div>
+
+
     <div id="step_4" class="form-step-item">
       <h3> Step 4: Select how you are going to give us the metadata</h3>
       <div>You can give us the metadata either by </div>
       <form id="step_4_form">
-        <fieldset disabled="disabled">
+        <fieldset {% if not process_data %}disabled="disabled"{% endif %}>
           <div class="form-check">
             <input class="form-check-input" type="radio" name="upload_method" id="upload_method_1" value="1">
             <label class="form-check-label" for="sequencing_method_1">
@@ -149,6 +183,7 @@
             id="step_4_file_upload"
         >
           <input type="hidden" name="project_id" value="{{ project_id }}">
+          <input type="hidden" name="process_id" value="{{ process_id }}">
           <input type="file" id="step_4_file_upload_button" accept=".csv, .xls, .xlsx">
         </form>
       </div>
@@ -299,6 +334,19 @@
           var usingScrippsText = usingScrippsValue == "1" ? "yes" : "no";
           formData.append('using_scripps', usingScrippsText);
 
+          if ($('#sequence-project-id').is('input')) {
+              var project_id = $('#sequence-project-id').val();
+              console.log("Project ID from input field:", project_id);
+          }
+          // Check if the element is a select field
+          else if ($('#sequence-project-id').is('select')) {
+              $('#sequence-project-id').change(function() {
+                  var project_id = $(this).val();
+                  console.log("Selected Project ID from select field:", project_id);
+              });
+          }
+          formData.append('project_id', project_id);
+
           $('#step_3_form .form-group').each(function() {
               var condition = $(this).data('condition');
               var input = $(this).find(':input');
@@ -339,13 +387,9 @@
               processData: false,
               success: function(response) {
                   console.log(response);
-
-                  // Clear previous messages and reset status class
-                  $('#step_3_msg').empty().removeClass('text-success text-danger');
-
-                  // Show success message if no issues found
-                  if (response.status === 1 && Object.keys(result).length === 1) {
-                      $('#step_3_msg').append("<p>No problems found.</p>");
+                  console.log(response.process_id);
+                  if (response.result=="ok") {
+                    window.location.replace("/metadata_form?process_id=" + response.process_id);
                   }
 
               },
@@ -587,7 +631,7 @@
 
               // Function to handle issues dynamically
               function handleIssues(fieldName, fieldData) {
-                  if ((fieldData && fieldData.invalid) || (fieldData && fieldData.empty_values)) {
+                  if ((fieldData && fieldData.invalid) || (fieldData && fieldData.empty_values) || (fieldData && fieldData.missing)) {
                       var issueMsg = "<h4>Problems with field " + fieldName + "</h4>";
                       $('#step_4_msg').append(issueMsg);
                       if (fieldData && fieldData.invalid) {
@@ -607,6 +651,11 @@
                           $('#step_4_msg').append(emptyMsg);
                           statusClass = 'text-danger';
                       }
+                      if (fieldData && fieldData.missing) {
+                          var missingMsg = "<p>" + fieldData.message + "</p>";
+                          $('#step_4_msg').append(missingMsg);
+                          statusClass = 'text-danger';
+                      }
                   }
               }
 
@@ -620,6 +669,15 @@
 
               var data = response['data'];
               var expectedColumns = response['expectedColumns'];
+
+              // Generate table header
+              var headerRow = '<tr>';
+              expectedColumns.forEach(function(column) {
+                  var hasIssues = result[column] && result[column].missing;
+                  headerRow += '<th' + (hasIssues ? ' class="text-danger"' : '') + '>' + column + '</th>';
+              });
+              headerRow += '</tr>';
+              $('#dataTable thead').html(headerRow);
 
               data.forEach(function(row, rowIndex) {
                   var tableRow = '<tr>';
@@ -723,6 +781,7 @@
           }
       });
   }
+
 
 
 
