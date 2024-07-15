@@ -112,6 +112,7 @@ class SequencingSamplesTable(Base):
     )
     SampleID = Column(String(255), nullable=True)
     SequencerID = Column(String(255), nullable=True)
+    Region = Column(String(25), nullable=True)
     Site_name = Column(String(255), nullable=True)
     Latitude = Column(String(255), nullable=True)
     Longitude = Column(String(255), nullable=True)

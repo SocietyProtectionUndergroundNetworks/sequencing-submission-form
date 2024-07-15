@@ -48,6 +48,7 @@ def upgrade() -> None:
     sa.Column('sequencingUploadId', sa.Integer(), nullable=True),
     sa.Column('SampleID', sa.String(length=255), nullable=True),
     sa.Column('SequencerID', sa.String(length=255), nullable=True),
+    sa.Column('Region', sa.String(length=25), nullable=True),
     sa.Column('Site_name', sa.String(length=255), nullable=True),
     sa.Column('Latitude', sa.String(length=255), nullable=True),
     sa.Column('Longitude', sa.String(length=255), nullable=True),
