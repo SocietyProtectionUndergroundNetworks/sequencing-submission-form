@@ -138,13 +138,16 @@ def validate_csv_buckets(data, column_names):
 
     return True
 
+
 def validate_unique_sample_id(data):
     sample_id_map = {}  # To store the first occurrence of each Sample_ID
     duplicates = []
 
-    for row_index, row in enumerate(data.values(), start=2):  # Start from 2 to account for the header
+    for row_index, row in enumerate(
+        data.values(), start=2
+    ):  # Start from 2 to account for the header
         sample_id = row["sample_id"]
-        
+
         if sample_id in sample_id_map:
             # Record the duplicate occurrence
             duplicates.append((sample_id_map[sample_id], row_index))
@@ -160,7 +163,7 @@ def validate_unique_sample_id(data):
         return "; ".join(duplicate_messages)
 
     return True
-    
+
 
 def validate_csv(file_path):
     column_names = get_csv_columns(file_path)
@@ -169,11 +172,11 @@ def validate_csv(file_path):
 
     if valid_names is True:
         data = get_csv_data(file_path)
-        
+
         unique_sample_id_validation = validate_unique_sample_id(data)
         if unique_sample_id_validation is not True:
             return unique_sample_id_validation
-        
+
         valid_buckets = validate_csv_buckets(data, column_names)
         if valid_buckets is True:
             return True
