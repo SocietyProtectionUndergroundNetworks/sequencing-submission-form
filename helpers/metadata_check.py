@@ -5,6 +5,7 @@ import logging
 import json
 import pandas as pd
 
+
 logger = logging.getLogger("my_app_logger")
 
 
@@ -124,7 +125,8 @@ def check_collaborators_value(value):
 
 def check_field_length_value(value, max_length):
     """
-    Check if a single value's length does not exceed the specified maximum length.
+    Check if a single value's length does not exceed
+    the specified maximum length.
     """
     if len(str(value)) > max_length:
         return {
@@ -243,7 +245,8 @@ def is_positive_integer(value):
 
 def check_latitude_longitude(value):
     """
-    Check if a single latitude or longitude value is in decimal format (WGS1984) and valid.
+    Check if a single latitude or longitude value is in decimal
+    format (WGS1984) and valid.
     """
 
     try:
@@ -304,7 +307,7 @@ def check_metadata(df, using_scripps, multiple_sequencing_runs=False):
                 issues[column_key] = {
                     "status": 0,
                     "message": f"Required column {column_key} is missing",
-                    "missing": True
+                    "missing": True,
                 }
                 overall_status = 0
             continue  # Skip further checks for missing columns
@@ -334,7 +337,8 @@ def check_row(row, expected_columns_data):
     """
     Validate a single row of data.
     """
-    # Skip checks if "Sample_or_Control" column exists and its value is "Control"
+    # Skip checks if "Sample_or_Control" column
+    # exists and its value is "Control"
     if (
         "Sample_or_Control" in row.index
         and row["Sample_or_Control"] == "Control"
@@ -362,13 +366,19 @@ def check_row(row, expected_columns_data):
                         {
                             "row": row.name,
                             "value": "",
-                            "message": f"Required column {column_key} has empty values",
+                            "message": (
+                                f"Required column {column_key} \
+                                has empty values"
+                            ),
                         }
                     ],
-                    "message": f"Required column {column_key} has empty values",
+                    "message": (
+                        f"Required column {column_key} has empty values"
+                    ),
                 }
                 row_status = 0
-                continue  # Skip further checks for this column if empty values found
+                # Skip further checks for this column if empty values found
+                continue
 
         # Perform specific checks based on the type of validation
         if "options" in column_values:
@@ -412,7 +422,9 @@ def check_row(row, expected_columns_data):
                                     "message": check_result["message"],
                                 }
                             ],
-                            "message": f"Column {column_key} has invalid values",
+                            "message": (
+                                f"Column {column_key} has invalid values"
+                            ),
                         }
             else:
                 row_status = 0
@@ -422,10 +434,15 @@ def check_row(row, expected_columns_data):
                         {
                             "row": row.name,
                             "value": column_data,
-                            "message": f"Check function {check_function_name} not found",
+                            "message": (
+                                f"Check function \
+                                {check_function_name} not found"
+                            ),
                         }
                     ],
-                    "message": f"Check function {check_function_name} not found",
+                    "message": (
+                        f"Check function {check_function_name} not found"
+                    ),
                 }
 
     row_result = {"status": row_status}

@@ -20,7 +20,7 @@ def create_app():
             logging.StreamHandler(),  # Log to console
         ],
     )
-    logger = logging.getLogger("my_app_logger")
+    logger = logging.getLogger("my_app_logger")  # noqa: F841
     # Register Blueprints
     app.register_blueprint(user_bp)
     app.register_blueprint(upload_bp)

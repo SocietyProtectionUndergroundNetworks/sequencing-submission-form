@@ -191,6 +191,7 @@
         <p>Fill in the form bellow once for each sample. Pay very good attention to the coordinates.</p>
         <p>When you enter the coordinates the map should be showing you where this was.</p>
       </div>
+      <div id="step_4_filename"></div>
       <div id="step_4_msg" class="explanation">
 
       </div>
@@ -200,15 +201,28 @@
       <table id="dataTable" class="table-bordered">
         <thead>
           <tr>
+            <th scope="col">DbID</th>
             {% for expectedColumn in expected_columns.keys() %}
               <th scope="col">{{ expectedColumn }}</th>
             {% endfor %}
           </tr>
         </thead>
         <tbody>
+          <!-- Check if samples_data is not empty -->
+          {% if samples_data %}
+            <!-- Iterate over each row in samples_data -->
+            {% for row in samples_data %}
+              <tr>
+                <td>{{ row.id }}</td>
+                <!-- Iterate over each column value for the row -->
+                {% for column in expected_columns.keys() %}
+                  <td>{{ row[column] }}</td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          {% endif %}
         </tbody>
       </table>
-
     </div>
 
     <div class="container">
@@ -247,30 +261,20 @@
   <script type="application/javascript">
   var markersArray = [];
   var project_common_data = JSON.parse('{{ project_common_data|tojson|safe }}');
-  //var expected_columns = JSON.parse('{{ expected_columns|tojson|safe }}');
 
-  function addMarker(lat, lng) {
-      var location = { lat: parseFloat(lat), lng: parseFloat(lng) };
-      if (!isNaN(location.lat) && !isNaN(location.lng)) {
-          var marker = new google.maps.marker.AdvancedMarkerElement({
-              position: location,
-              map: map
-          });
-          //var bounds = new google.maps.LatLngBounds();
-          markersArray.push(marker);
-          bounds.extend(location);
-          map.fitBounds(bounds);
+  ////// ############################################# /////////
+  ////// ############ STEP 2 STARTS HERE ############# /////////
+  ////// ############################################# /////////
+  $(document).ready(function() {
+    function enableForm_step_2() {
+        $('#step_2_form fieldset').removeAttr('disabled');
+        $('#step_1_form fieldset').attr('disabled', 'disabled');
+    }    
+  });
 
-          var maxZoom = 14;
-          var listener = google.maps.event.addListener(map, "idle", function () {
-              if (map.getZoom() > maxZoom) map.setZoom(maxZoom);
-              google.maps.event.removeListener(listener);
-          });
-      } else {
-          console.error("Invalid latitude or longitude values.");
-      }
-  }
-
+  ////// ############################################# /////////
+  ////// ############ STEP 3 STARTS HERE ############# /////////
+  ////// ############################################# /////////
   $(document).ready(function() {
       // Function to enable the form
       function updateFields_step_3() {
@@ -288,19 +292,9 @@
         });
       }
 
-      function enableForm_step_2() {
-          $('#step_2_form fieldset').removeAttr('disabled');
-          $('#step_1_form fieldset').attr('disabled', 'disabled');
-      }
-
       function enableForm_step_3() {
           $('#step_3_form fieldset').removeAttr('disabled');
           $('#step_2_form fieldset').attr('disabled', 'disabled');
-      }
-
-      function enableForm_step_4() {
-          $('#step_4_form fieldset').removeAttr('disabled');
-          $('#step_3_form fieldset').attr('disabled', 'disabled');
       }
 
       // Listen for changes in the select drop down project_id (bucket)
@@ -417,9 +411,21 @@
 
       updateFields_step_3();
   });
-
-
+  ////// ############################################# /////////
+  ////// ############ STEP 3 ENDS HERE ############### /////////
+  ////// ############################################# /////////
+  
+  
+  ////// ############################################# /////////
+  ////// ####### STEP 4 CHOOSE METHOD STARTS HERE #### /////////
+  ////// ############################################# /////////
   $(document).ready(function() {
+    function enableForm_step_4() {
+        $('#step_4_form fieldset').removeAttr('disabled');
+        $('#step_3_form fieldset').attr('disabled', 'disabled');
+    }
+    
+    ////// Choose upload method (form or file) ///////
     $('input[name="upload_method"]').change(function() {
       if (this.value == '1') {
         $('#step_4_explanation_case_1').show();
@@ -431,52 +437,258 @@
         $('#metadataForm').show();
       }
     });
-
-
-    $('#latitude, #longitude').on('input', function() {
-        var latitudeValue = $('#latitude').val().trim();
-        var longitudeValue = $('#longitude').val().trim();
-
-        // Regular expressions to match latitude and longitude in WGS1984 format
-        var latitudePattern = /^[-+]?([1-8]?\d(\.\d+)?|90(\.0+)?)$/;
-        var longitudePattern = /^[-+]?([1-9]?\d(\.\d+)?|1[0-7]\d(\.\d+)?|180(\.0+)?)$/;
-
-        var latitudeValid = latitudePattern.test(latitudeValue);
-        var longitudeValid = longitudePattern.test(longitudeValue);
-
-        // Update help text and styles for latitude input
-        if (!latitudeValid) {
-            $('#latitudeHelp').text('Please enter a valid latitude in the WGS1984 format. Ideally in decimal format.').addClass('text-danger');
-        } else {
-            $('#latitudeHelp').text('Latitude of coordinates measured using WGS1984 (default on most GPS). Ideally in decimal format').removeClass('text-danger');
-        }
-
-        // Update help text and styles for longitude input
-        if (!longitudeValid) {
-            $('#longitudeHelp').text('Please enter a valid longitude in the WGS1984 format. Ideally in decimal format.').addClass('text-danger');
-        } else {
-            $('#longitudeHelp').text('Longitude of coordinates measured using WGS1984 (default on most GPS). Ideally in decimal format').removeClass('text-danger');
-        }
-
-        // Check if both latitude and longitude are valid
-        if (latitudeValid && longitudeValid) {
-            // Refresh the map and show marker at the specified coordinates
-            var location = { lat: parseFloat(latitudeValue), lng: parseFloat(longitudeValue) };
-            map.panTo(location);
-            map.setZoom(14); // Set higher zoom level
-            if (marker) {
-                marker.position = location;
-            } else {
-              console.log(location);
-                marker = new google.maps.marker.AdvancedMarkerElement({
-                    position: location,
-                    map: map
-                });
-            }
-        }
+    
+    
+  });
+  ////// ############################################# /////////
+  ////// ####### STEP 4 CHOOSE METHOD ENDS HERE ###### /////////
+  ////// ############################################# /////////
+  
+    
+  ////// ############################################# /////////
+  ////// ####### STEP 4 UPLOAD FILE STARTS HERE ###### /////////
+  ////// ############################################# /////////
+  $(document).ready(function() {
+    $('#step_4_file_upload_button').on('change', function () {
+        uploadMetadataFile();
     });
+    function uploadMetadataFile() {
+        var fileInput = $('#step_4_file_upload_button')[0];
+        var file = fileInput.files[0];
 
+        if (file) {
+            var fileName = file.name;
+            console.log('Selected file: ' + fileName);
+            $('#step_4_filename').html("<h4>File uploaded: " + fileName + "</h4>");    
+        }
 
+        if (!file) {
+            alert("Please select a file.");
+            return;
+        }
+
+        // Clear previous table data
+        $('#dataTable tbody').empty();
+
+        // Get the value of the selected radio button from the using_scripps form
+        var usingScrippsValue = $('input[name="using_scripps"]:checked').val();
+        var usingScrippsText = usingScrippsValue == "1" ? "yes" : "no";
+
+        var formData = new FormData();
+        formData.append('file', file);
+        // formData.append('project_id', 1);
+        formData.append('using_scripps', usingScrippsText);
+        
+        var form = $('#step_4_file_upload_button').closest('form');
+        var processId = form.find('input[name="process_id"]').val();
+        formData.append('process_id', processId);
+        
+        // Append data from step 3 form
+        $('#step_3_form .form-group').each(function() {
+            var input = $(this).find(':input');
+            var fieldName = input.attr('name');
+            var fieldValue = input.val();
+            formData.append(fieldName, fieldValue);
+        });
+
+        $.ajax({
+            url: '/upload_metadata_file',
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function(response) {
+                console.log(response);
+
+                // Clear previous messages and reset status class
+                $('#step_4_msg').empty().removeClass('text-success text-danger');
+                var statusClass = 'text-success';
+
+                // Clear previous markers from the map
+                if (window.markersArray) {
+                    markersArray.forEach(function(marker) {
+                        marker.setMap(null);
+                    });
+                } else {
+                    window.markersArray = [];
+                }
+
+                bounds = new google.maps.LatLngBounds();
+
+                // Function to handle issues dynamically
+                function handleIssues(fieldName, fieldData) {
+                    if ((fieldData && fieldData.invalid) || (fieldData && fieldData.empty_values) || (fieldData && fieldData.missing)) {
+                        var issueMsg = "<h4>Problems with field " + fieldName + "</h4>";
+                        $('#step_4_msg').append(issueMsg);
+                        if (fieldData && fieldData.invalid) {
+                            var issueMsg = "<p>" + fieldData.message + "</p>";
+                            $('#step_4_msg').append(issueMsg);
+                            fieldData.invalid.forEach(function(entry) {
+                                var detailedMsg = "<p> - " + entry.value + " in row " + (entry.row + 2) + "</p>";
+                                $('#step_4_msg').append(detailedMsg);
+                            });
+                            statusClass = 'text-danger';
+                        }
+                        if (fieldData && fieldData.empty_values && fieldData.empty_values.length > 0) {
+                            var emptyRows = fieldData.empty_values.map(function(row) {
+                                return row + 2; // Adjust row number by 2 (header + zero-indexing)
+                            });
+                            var emptyMsg = "<p>Empty values for field " + fieldName + " in rows: " + emptyRows.join(", ") + "</p>";
+                            $('#step_4_msg').append(emptyMsg);
+                            statusClass = 'text-danger';
+                        }
+                        if (fieldData && fieldData.missing) {
+                            var missingMsg = "<p>" + fieldData.message + "</p>";
+                            $('#step_4_msg').append(missingMsg);
+                            statusClass = 'text-danger';
+                        }
+                    }
+                }
+
+                var result = response['result'];
+                // Dynamically handle all issues in response
+                Object.keys(result).forEach(function(key) {
+                    if (key !== 'status') {
+                        handleIssues(key, result[key]);
+                    }
+                });
+
+                var data = response['data'];
+                var expectedColumns = response['expectedColumns'];
+
+                // Generate table header
+                var headerRow = '<tr>';
+                headerRow += '<th>DbID</th>';
+                expectedColumns.forEach(function(column) {
+                    var hasIssues = result[column] && result[column].missing;
+                    headerRow += '<th' + (hasIssues ? ' class="text-danger"' : '') + '>' + column + '</th>';
+                });
+                headerRow += '</tr>';
+                $('#dataTable thead').html(headerRow);
+
+                data.forEach(function(row, rowIndex) {
+                    console.log(row);
+                    var tableRow = '<tr>';
+                    var latitudeValue = null;
+                    var longitudeValue = null;
+                    var latitudeValid = false;
+                    var longitudeValid = false;
+                    if (row["id"] == null) {
+                      tableRow += '<td>-</td>';
+                    } else {
+                      tableRow += '<td>' + row['id'] + '</td>';
+                    }
+                    
+                    expectedColumns.forEach(function(column) {
+                        var cellValue = row[column];
+                        if (cellValue !== undefined && cellValue !== null) {
+                            cellValue = cellValue.toString();
+                        } else {
+                            cellValue = '';
+                        }
+
+                        // Check if this field had any problems
+                        var hasIssues = result[column] && (result[column].invalid || result[column].empty_values);
+
+                        // Check if this specific row has issues for the current column
+                        var rowHasIssues = hasIssues && result[column].invalid && result[column].invalid.some(function(entry) {
+                            return entry.row === rowIndex;
+                        });
+
+                        // Check if this row has empty values for the current column
+                        var rowHasEmptyValues = hasIssues && result[column].empty_values && result[column].empty_values.includes(rowIndex);
+
+                        // If it should not be empty but is and has issues for this row, show "MISSING" in red
+                        if (rowHasEmptyValues) {
+                            tableRow += '<td><span class="text-danger">MISSING</span></td>';
+                        } else if (!cellValue && expectedColumns.includes(column) && rowHasIssues) {
+                            tableRow += '<td><span class="text-danger">MISSING</span></td>';
+                        } else {
+                            // If there are issues for this row in this column, display the cell value in red
+                            if (rowHasIssues) {
+                                tableRow += '<td><span class="text-danger">' + cellValue + '</span></td>';
+                            } else {
+                                // Otherwise, display the cell value normally
+                                tableRow += '<td>' + cellValue + '</td>';
+                            }
+                        }
+
+                        // Extract latitude and longitude values
+                        if (column === 'Latitude') {
+                            latitudeValue = cellValue;
+                            latitudeValid = !rowHasIssues && !rowHasEmptyValues && !isNaN(parseFloat(latitudeValue));
+                        }
+                        if (column === 'Longitude') {
+                            longitudeValue = cellValue;
+                            longitudeValid = !rowHasIssues && !rowHasEmptyValues && !isNaN(parseFloat(longitudeValue));
+                        }
+                    });
+                    tableRow += '</tr>';
+                    $('#dataTable tbody').append(tableRow);
+
+                    // Check if both latitude and longitude are valid
+                    if (latitudeValid && longitudeValid && latitudeValue && longitudeValue) {
+                        var location = { lat: parseFloat(latitudeValue), lng: parseFloat(longitudeValue) };
+                        if (!isNaN(location.lat) && !isNaN(location.lng)) {
+                            var marker = new google.maps.marker.AdvancedMarkerElement({
+                                position: location,
+                                map: map
+                            });
+                            markersArray.push(marker); // Store marker in array
+                            bounds.extend(location); // Extend the bounds to include this marker
+                        } else {
+                            console.error("Invalid latitude or longitude values.");
+                        }
+                    }
+                });
+
+                // Adjust the map's viewport to fit all markers
+                if (markersArray.length > 0) {
+                    map.fitBounds(bounds);
+
+                    // Optionally, set a minimum zoom level
+                    var maxZoom = 14;
+                    var listener = google.maps.event.addListener(map, "idle", function() {
+                        if (map.getZoom() > maxZoom) map.setZoom(maxZoom);
+                        google.maps.event.removeListener(listener);
+                    });
+                }
+
+                // Show success message if no issues found
+                if (response.status === 1 && Object.keys(result).length === 1) {
+                    $('#step_4_msg').append("<p>No problems found.</p>");
+                }
+
+                // Apply the appropriate status class
+                $('#step_4_msg').addClass(statusClass);
+
+                // Reset the file input
+                fileInput.value = "";
+            },
+            error: function(xhr, status, error) {
+                console.error('Error:', error);
+                $('#step_4_msg').html("<p>An error occurred while processing the file.</p>").removeClass('text-success').addClass('text-danger');
+
+                // Reset the file input
+                fileInput.value = "";
+            }
+        });
+    }
+    
+  });      
+  ////// ############################################# /////////
+  ////// ####### STEP 4 UPLOAD FILE ENDS HERE ###### /////////
+  ////// ############################################# /////////    
+
+  ////// ############################################# /////////
+  ////// ###### STEP 4 FILL IN FORM STARTS HERE ###### /////////
+  ////// ############################################# /////////
+  $(document).ready(function() {
+    // Clear error messages when user starts typing or selects an option
+    $('#metadataForm :input').on('input change', function() {
+        $(this).closest('.form-group').find('.error-message').remove();
+    });
+        
     // Submit form event handler
     $('#metadataForm').submit(function(event) {
         event.preventDefault(); // Prevent default form submission
@@ -563,251 +775,105 @@
             }
         });
     });
+    
+  });      
+  ////// ############################################# /////////
+  ////// ####### STEP 4 FILL IN FORM ENDS HERE ####### /////////
+  ////// ############################################# /////////    
 
-    // Clear error messages when user starts typing or selects an option
-    $('#metadataForm :input').on('input change', function() {
-        $(this).closest('.form-group').find('.error-message').remove();
+  
+  ////// ############################################# /////////
+  ////// ###### MAP HELPER FUNCTIONS START HERE ###### /////////
+  ////// ############################################# /////////  
+  $(document).ready(function() {
+    $('#latitude, #longitude').on('input', function() {
+        var latitudeValue = $('#latitude').val().trim();
+        var longitudeValue = $('#longitude').val().trim();
+
+        // Regular expressions to match latitude and longitude in WGS1984 format
+        var latitudePattern = /^[-+]?([1-8]?\d(\.\d+)?|90(\.0+)?)$/;
+        var longitudePattern = /^[-+]?([1-9]?\d(\.\d+)?|1[0-7]\d(\.\d+)?|180(\.0+)?)$/;
+
+        var latitudeValid = latitudePattern.test(latitudeValue);
+        var longitudeValid = longitudePattern.test(longitudeValue);
+
+        // Update help text and styles for latitude input
+        if (!latitudeValid) {
+            $('#latitudeHelp').text('Please enter a valid latitude in the WGS1984 format. Ideally in decimal format.').addClass('text-danger');
+        } else {
+            $('#latitudeHelp').text('Latitude of coordinates measured using WGS1984 (default on most GPS). Ideally in decimal format').removeClass('text-danger');
+        }
+
+        // Update help text and styles for longitude input
+        if (!longitudeValid) {
+            $('#longitudeHelp').text('Please enter a valid longitude in the WGS1984 format. Ideally in decimal format.').addClass('text-danger');
+        } else {
+            $('#longitudeHelp').text('Longitude of coordinates measured using WGS1984 (default on most GPS). Ideally in decimal format').removeClass('text-danger');
+        }
+
+        // Check if both latitude and longitude are valid
+        if (latitudeValid && longitudeValid) {
+            // Refresh the map and show marker at the specified coordinates
+            var location = { lat: parseFloat(latitudeValue), lng: parseFloat(longitudeValue) };
+            map.panTo(location);
+            map.setZoom(14); // Set higher zoom level
+            if (marker) {
+                marker.position = location;
+            } else {
+              console.log(location);
+                marker = new google.maps.marker.AdvancedMarkerElement({
+                    position: location,
+                    map: map
+                });
+            }
+        }
     });
+    
+    function addMarker(lat, lng) {
+        var location = { lat: parseFloat(lat), lng: parseFloat(lng) };
+        if (!isNaN(location.lat) && !isNaN(location.lng)) {
+            var marker = new google.maps.marker.AdvancedMarkerElement({
+                position: location,
+                map: map
+            });
+            //var bounds = new google.maps.LatLngBounds();
+            markersArray.push(marker);
+            bounds.extend(location);
+            map.fitBounds(bounds);
+
+            var maxZoom = 14;
+            var listener = google.maps.event.addListener(map, "idle", function () {
+                if (map.getZoom() > maxZoom) map.setZoom(maxZoom);
+                google.maps.event.removeListener(listener);
+            });
+        } else {
+            console.error("Invalid latitude or longitude values.");
+        }
+    }
+    
   });
+  
+  let map;
+  let bounds = new google.maps.LatLngBounds();;
 
-  $(document).ready(function () {
-      $('#step_4_file_upload_button').on('change', function () {
-          uploadMetadataFile();
-      });
-  });
+  async function initMap() {
+    const { Map } = await google.maps.importLibrary("maps");
+    const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker");
 
-  function uploadMetadataFile() {
-      var fileInput = $('#step_4_file_upload_button')[0];
-      var file = fileInput.files[0];
-
-      if (!file) {
-          alert("Please select a file.");
-          return;
-      }
-
-      // Clear previous table data
-      $('#dataTable tbody').empty();
-
-      // Get the value of the selected radio button from the using_scripps form
-      var usingScrippsValue = $('input[name="using_scripps"]:checked').val();
-      var usingScrippsText = usingScrippsValue == "1" ? "yes" : "no";
-
-      var formData = new FormData();
-      formData.append('file', file);
-      formData.append('project_id', 1);
-      formData.append('using_scripps', usingScrippsText);
-
-      // Append data from step 3 form
-      $('#step_3_form .form-group').each(function() {
-          var input = $(this).find(':input');
-          var fieldName = input.attr('name');
-          var fieldValue = input.val();
-          formData.append(fieldName, fieldValue);
-      });
-
-      $.ajax({
-          url: '/upload_metadata_file',
-          type: 'POST',
-          data: formData,
-          contentType: false,
-          processData: false,
-          success: function(response) {
-              console.log(response);
-
-              // Clear previous messages and reset status class
-              $('#step_4_msg').empty().removeClass('text-success text-danger');
-              var statusClass = 'text-success';
-
-              // Clear previous markers from the map
-              if (window.markersArray) {
-                  markersArray.forEach(function(marker) {
-                      marker.setMap(null);
-                  });
-              } else {
-                  window.markersArray = [];
-              }
-
-              bounds = new google.maps.LatLngBounds();
-
-              // Function to handle issues dynamically
-              function handleIssues(fieldName, fieldData) {
-                  if ((fieldData && fieldData.invalid) || (fieldData && fieldData.empty_values) || (fieldData && fieldData.missing)) {
-                      var issueMsg = "<h4>Problems with field " + fieldName + "</h4>";
-                      $('#step_4_msg').append(issueMsg);
-                      if (fieldData && fieldData.invalid) {
-                          var issueMsg = "<p>" + fieldData.message + "</p>";
-                          $('#step_4_msg').append(issueMsg);
-                          fieldData.invalid.forEach(function(entry) {
-                              var detailedMsg = "<p> - " + entry.value + " in row " + (entry.row + 2) + "</p>";
-                              $('#step_4_msg').append(detailedMsg);
-                          });
-                          statusClass = 'text-danger';
-                      }
-                      if (fieldData && fieldData.empty_values && fieldData.empty_values.length > 0) {
-                          var emptyRows = fieldData.empty_values.map(function(row) {
-                              return row + 2; // Adjust row number by 2 (header + zero-indexing)
-                          });
-                          var emptyMsg = "<p>Empty values for field " + fieldName + " in rows: " + emptyRows.join(", ") + "</p>";
-                          $('#step_4_msg').append(emptyMsg);
-                          statusClass = 'text-danger';
-                      }
-                      if (fieldData && fieldData.missing) {
-                          var missingMsg = "<p>" + fieldData.message + "</p>";
-                          $('#step_4_msg').append(missingMsg);
-                          statusClass = 'text-danger';
-                      }
-                  }
-              }
-
-              var result = response['result'];
-              // Dynamically handle all issues in response
-              Object.keys(result).forEach(function(key) {
-                  if (key !== 'status') {
-                      handleIssues(key, result[key]);
-                  }
-              });
-
-              var data = response['data'];
-              var expectedColumns = response['expectedColumns'];
-
-              // Generate table header
-              var headerRow = '<tr>';
-              expectedColumns.forEach(function(column) {
-                  var hasIssues = result[column] && result[column].missing;
-                  headerRow += '<th' + (hasIssues ? ' class="text-danger"' : '') + '>' + column + '</th>';
-              });
-              headerRow += '</tr>';
-              $('#dataTable thead').html(headerRow);
-
-              data.forEach(function(row, rowIndex) {
-                  var tableRow = '<tr>';
-                  var latitudeValue = null;
-                  var longitudeValue = null;
-                  var latitudeValid = false;
-                  var longitudeValid = false;
-
-                  expectedColumns.forEach(function(column) {
-                      var cellValue = row[column];
-                      if (cellValue !== undefined && cellValue !== null) {
-                          cellValue = cellValue.toString();
-                      } else {
-                          cellValue = '';
-                      }
-
-                      // Check if this field had any problems
-                      var hasIssues = result[column] && (result[column].invalid || result[column].empty_values);
-
-                      // Check if this specific row has issues for the current column
-                      var rowHasIssues = hasIssues && result[column].invalid && result[column].invalid.some(function(entry) {
-                          return entry.row === rowIndex;
-                      });
-
-                      // Check if this row has empty values for the current column
-                      var rowHasEmptyValues = hasIssues && result[column].empty_values && result[column].empty_values.includes(rowIndex);
-
-                      // If it should not be empty but is and has issues for this row, show "MISSING" in red
-                      if (rowHasEmptyValues) {
-                          tableRow += '<td><span class="text-danger">MISSING</span></td>';
-                      } else if (!cellValue && expectedColumns.includes(column) && rowHasIssues) {
-                          tableRow += '<td><span class="text-danger">MISSING</span></td>';
-                      } else {
-                          // If there are issues for this row in this column, display the cell value in red
-                          if (rowHasIssues) {
-                              tableRow += '<td><span class="text-danger">' + cellValue + '</span></td>';
-                          } else {
-                              // Otherwise, display the cell value normally
-                              tableRow += '<td>' + cellValue + '</td>';
-                          }
-                      }
-
-                      // Extract latitude and longitude values
-                      if (column === 'Latitude') {
-                          latitudeValue = cellValue;
-                          latitudeValid = !rowHasIssues && !rowHasEmptyValues && !isNaN(parseFloat(latitudeValue));
-                      }
-                      if (column === 'Longitude') {
-                          longitudeValue = cellValue;
-                          longitudeValid = !rowHasIssues && !rowHasEmptyValues && !isNaN(parseFloat(longitudeValue));
-                      }
-                  });
-                  tableRow += '</tr>';
-                  $('#dataTable tbody').append(tableRow);
-
-                  // Check if both latitude and longitude are valid
-                  if (latitudeValid && longitudeValid && latitudeValue && longitudeValue) {
-                      var location = { lat: parseFloat(latitudeValue), lng: parseFloat(longitudeValue) };
-                      if (!isNaN(location.lat) && !isNaN(location.lng)) {
-                          var marker = new google.maps.marker.AdvancedMarkerElement({
-                              position: location,
-                              map: map
-                          });
-                          markersArray.push(marker); // Store marker in array
-                          bounds.extend(location); // Extend the bounds to include this marker
-                      } else {
-                          console.error("Invalid latitude or longitude values.");
-                      }
-                  }
-              });
-
-              // Adjust the map's viewport to fit all markers
-              if (markersArray.length > 0) {
-                  map.fitBounds(bounds);
-
-                  // Optionally, set a minimum zoom level
-                  var maxZoom = 14;
-                  var listener = google.maps.event.addListener(map, "idle", function() {
-                      if (map.getZoom() > maxZoom) map.setZoom(maxZoom);
-                      google.maps.event.removeListener(listener);
-                  });
-              }
-
-              // Show success message if no issues found
-              if (response.status === 1 && Object.keys(result).length === 1) {
-                  $('#step_4_msg').append("<p>No problems found.</p>");
-              }
-
-              // Apply the appropriate status class
-              $('#step_4_msg').addClass(statusClass);
-
-              // Reset the file input
-              fileInput.value = "";
-          },
-          error: function(xhr, status, error) {
-              console.error('Error:', error);
-              $('#step_4_msg').html("<p>An error occurred while processing the file.</p>").removeClass('text-success').addClass('text-danger');
-
-              // Reset the file input
-              fileInput.value = "";
-          }
-      });
+    map = new Map(document.getElementById("map"), {
+      center: { lat: -34.397, lng: 150.644 },
+      zoom: 8,
+      mapId: "SEQ_SAMPLE_POSITION",
+    });
   }
 
-
-
-
-
+  initMap();  
+  ////// ############################################# /////////
+  ////// ###### MAP HELPER FUNCTIONS END HERE ######## /////////
+  ////// ############################################# /////////  
 
   </script>
 
-
-  <script>
-
-    let map;
-    let bounds = new google.maps.LatLngBounds();;
-
-    async function initMap() {
-      const { Map } = await google.maps.importLibrary("maps");
-      const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker");
-
-      map = new Map(document.getElementById("map"), {
-        center: { lat: -34.397, lng: 150.644 },
-        zoom: 8,
-        mapId: "SEQ_SAMPLE_POSITION",
-      });
-    }
-
-    initMap();
-  </script>
   <style>
     #map {
       height: 100%;

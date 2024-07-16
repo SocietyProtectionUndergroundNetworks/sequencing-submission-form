@@ -1,18 +1,9 @@
-import json
-import os
-import shutil
 import logging
-from collections import OrderedDict
 from helpers.dbm import connect_db, get_session
-from models.db_model import SequencingUploadsTable, UserTable
-from sqlalchemy import desc, or_
-from sqlalchemy.exc import SQLAlchemyError
+from models.db_model import SequencingUploadsTable
+from models.db_model import SequencingSamplesTable
 from pathlib import Path
-
-from flask_login import (
-    current_user,
-    login_required,
-)
+from flask_login import current_user
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -28,7 +19,9 @@ class SequencingUpload:
         db_engine = connect_db()
         session = get_session(db_engine)
 
-        upload_db = session.query(SequencingUploadsTable).filter_by(id=id).first()
+        upload_db = (
+            session.query(SequencingUploadsTable).filter_by(id=id).first()
+        )
 
         session.close()
 
@@ -50,6 +43,34 @@ class SequencingUpload:
 
         return upload
 
+    @classmethod
+    def get_samples(self, sequencingUploadId):
+        # Connect to the database and create a session
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        # Fetch related samples
+        samples = (
+            session.query(SequencingSamplesTable)
+            .filter_by(sequencingUploadId=sequencingUploadId)
+            .all()
+        )
+
+        # Define the as_dict method within this function
+        def as_dict(instance):
+            """Convert SQLAlchemy model instance to a dictionary."""
+            return {
+                column.name: getattr(instance, column.name)
+                for column in instance.__table__.columns
+            }
+
+        # Convert each sample instance to a dictionary
+        samples_list = [as_dict(sample) for sample in samples]
+
+        # Close the session
+        session.close()
+
+        return samples_list
 
     @classmethod
     def create(cls, datadict):
@@ -64,7 +85,7 @@ class SequencingUpload:
         # Dynamically set attributes from datadict
         for key, value in datadict.items():
             if key == "using_scripps":
-                value = value.lower() == "yes"            
+                value = value.lower() == "yes"
             if hasattr(new_upload, key):
                 setattr(new_upload, key, value)
 
@@ -79,4 +100,3 @@ class SequencingUpload:
         session.close()
 
         return new_upload_id
-

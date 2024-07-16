@@ -93,7 +93,7 @@ class SequencingUploadsTable(Base):
     final_metadata_filename = Column(String(255), nullable=True)
     uploads_folder = Column(String(20), nullable=True)
     sequencing_upload_filedata = Column(JSON(none_as_null=True))
-    using_scripps = Column(Boolean, default=False) 
+    using_scripps = Column(Boolean, default=False)
     Country = Column(String(255), nullable=True)
     Sequencing_platform = Column(String(255), nullable=True)
     Sequencing_facility = Column(String(255), nullable=True)

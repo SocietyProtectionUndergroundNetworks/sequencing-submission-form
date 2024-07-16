@@ -12,6 +12,7 @@ from flask import (
 from flask_login import current_user, login_required
 from models.bucket import Bucket
 from models.sequencing_upload import SequencingUpload
+from models.sequencing_sample import SequencingSample
 from helpers.metadata_check import (
     check_metadata,
     get_columns_data,
@@ -72,11 +73,15 @@ def metadata_form():
     project_common_data = get_project_common_data()
     process_data = None
     process_id = request.args.get("process_id", "")
+    samples_data = []
     if process_id:
         process_data = SequencingUpload.get(process_id)
-        logger.info(process_data)
+
         process_data = model_to_dict(process_data)  # Convert to dictionary
-    
+        logger.info(process_data)
+        samples_data = SequencingUpload.get_samples(process_id)
+        logger.info(samples_data)
+
     return render_template(
         "metadata_form.html",
         my_buckets=my_buckets,
@@ -84,7 +89,8 @@ def metadata_form():
         expected_columns=expected_columns,
         project_common_data=project_common_data,
         process_data=process_data,
-        process_id=process_id
+        process_id=process_id,
+        samples_data=samples_data,
     )
 
 
@@ -130,6 +136,7 @@ def metadata_validate_row():
 def upload_metadata_file():
     file = request.files.get("file")
     using_scripps = request.form.get("using_scripps")
+    process_id = request.form.get("process_id")
     multiple_sequencing_runs = request.form.get("Multiple_sequencing_runs")
     if not file:
         return jsonify({"error": "No file uploaded"}), 400
@@ -150,7 +157,31 @@ def upload_metadata_file():
 
     expected_columns_data = get_columns_data()
     expected_columns = list(expected_columns_data.keys())
+    logger.info(result)
+    if result["status"] == 1:
+        logger.info("the process id is")
+        logger.info(process_id)
+        # Create a list to hold the sample line IDs
+        sample_line_ids = []
+        # All the data that was uploaded was ok. Lets save them
+        df = df.replace({np.nan: None})
+        # Iterate over rows and create samples
+        for _, row in df.iterrows():
+            # Convert the row to a dictionary
+            datadict = row.to_dict()
+            # Call the create method of SequencingSample and
+            # capture the sample_line_id
+            sample_line_id = SequencingSample.create(
+                sequencingUploadId=process_id, datadict=datadict
+            )
+            # Append the sample_line_id to the list
+            sample_line_ids.append(sample_line_id)
 
+        # Update DataFrame with sample_line_id
+        df["id"] = sample_line_ids
+    else:
+        # When status is not 1, leave 'id' column as None or empty
+        df["id"] = None
     # Return the result as JSON
     return (
         jsonify(
@@ -181,21 +212,14 @@ def upload_process_common_fields():
     if ("using_scripps" in form_data) and (
         form_data["using_scripps"] == "yes"
     ):
-        logger.info('we are switching the Sequencing_facility to Scripps')
+        logger.info("we are switching the Sequencing_facility to Scripps")
         logger.info(form_data["using_scripps"])
         form_data["Sequencing_facility"] = "Scripps"
 
-    process_id = SequencingUpload.create(
-        datadict=form_data
-    )
+    process_id = SequencingUpload.create(datadict=form_data)
 
     # Return the result as JSON
     return (
-        jsonify(
-            {
-                "result": "ok",
-                "process_id": process_id
-            }
-        ),
+        jsonify({"result": "ok", "process_id": process_id}),
         200,
     )

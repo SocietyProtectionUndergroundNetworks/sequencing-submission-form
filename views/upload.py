@@ -46,7 +46,6 @@ from helpers.file_renaming import (
 
 from models.upload import Upload
 from models.user import User
-from models.bucket import Bucket
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
