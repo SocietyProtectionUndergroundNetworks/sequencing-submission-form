@@ -43,5 +43,10 @@
     "lookup_file": "multiple_sequencing_runs.csv",
     "help_tip": "Were your samples run across multiple sequencing runs (if known)? ",
     "required": "True"
+  },
+  "Sequencing_regions_number": {
+    "lookup_file": "sequencing_regions_number.csv",
+    "help_tip": "How many sequencing regions are you going to analyse ",
+    "required": "IfNotScripps"
   }
 }

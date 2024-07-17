@@ -63,6 +63,18 @@ def get_project_common_data():
     return data
 
 
+def get_regions():
+    current_dir = os.path.dirname(__file__)
+    base_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
+    regions_file_path = os.path.join(base_dir, "metadataconfig", "region.csv")
+    data = []
+
+    with open(regions_file_path, "r") as lookup:
+        data = lookup.read().strip().split("\n")
+
+    return data
+
+
 def check_expected_columns(df, expected_columns_data):
     """
     Check for missing and extra columns in the DataFrame.

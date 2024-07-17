@@ -1,7 +1,10 @@
 import logging
 from helpers.dbm import connect_db, get_session
-from models.db_model import SequencingUploadsTable
-from models.db_model import SequencingSamplesTable
+from models.db_model import (
+    SequencingUploadsTable,
+    SequencingSamplesTable,
+    SequencingSequencerIDsTable,
+)
 from pathlib import Path
 from flask_login import current_user
 
@@ -100,3 +103,37 @@ class SequencingUpload:
         session.close()
 
         return new_upload_id
+
+    @classmethod
+    def get_sequencer_ids(self, sequencingUploadId):
+        # Connect to the database and create a session
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        # Query to get all SequencingSequencerIDsTable
+        # entries associated with the given process_id
+        sequencer_ids = (
+            session.query(SequencingSequencerIDsTable)
+            .join(SequencingSamplesTable)
+            .join(SequencingUploadsTable)
+            .filter(SequencingUploadsTable.id == sequencingUploadId)
+            .all()
+        )
+
+        # Define the as_dict method within this function
+        def as_dict(instance):
+            """Convert SQLAlchemy model instance to a dictionary."""
+            return {
+                column.name: getattr(instance, column.name)
+                for column in instance.__table__.columns
+            }
+
+        # Convert each sample instance to a dictionary
+        sequencer_ids_list = [
+            as_dict(sequencer_id) for sequencer_id in sequencer_ids
+        ]
+
+        # Close the session
+        session.close()
+
+        return sequencer_ids_list

@@ -103,6 +103,7 @@ class SequencingUploadsTable(Base):
     Primer_set_2 = Column(String(255), nullable=True)
     Extraction_method = Column(String(255), nullable=True)
     Multiple_sequencing_runs = Column(String(255), nullable=True)
+    Sequencing_regions_number = Column(Integer, nullable=True)
 
 
 class SequencingSamplesTable(Base):
@@ -112,8 +113,6 @@ class SequencingSamplesTable(Base):
         Integer, ForeignKey("sequencing_uploads.id", ondelete="CASCADE")
     )
     SampleID = Column(String(255), nullable=True)
-    SequencerID = Column(String(255), nullable=True)
-    Region = Column(String(25), nullable=True)
     Site_name = Column(String(255), nullable=True)
     Latitude = Column(String(255), nullable=True)
     Longitude = Column(String(255), nullable=True)
@@ -133,3 +132,23 @@ class SequencingSamplesTable(Base):
     Sample_or_Control = Column(String(255), nullable=True)
     SequencingRun = Column(String(255), nullable=True)
     Notes = Column(String(255), nullable=True)
+
+
+class SequencingSequencerIDsTable(Base):
+    __tablename__ = "sequencing_sequencer_ids"
+    id = Column(Integer, primary_key=True)
+    sequencingSampleId = Column(
+        Integer, ForeignKey("sequencing_samples.id", ondelete="CASCADE")
+    )
+    SequencerID = Column(String(255), nullable=True)
+    Region = Column(String(25), nullable=True)
+
+
+class SequencingFilesUploadedTable(Base):
+    __tablename__ = "sequencing_files_uploaded"
+    id = Column(Integer, primary_key=True)
+    sequencerId = Column(
+        Integer, ForeignKey("sequencing_sequencer_ids.id", ondelete="CASCADE")
+    )
+    original_filename = Column(String(255), nullable=True)
+    new_name = Column(String(25), nullable=True)
