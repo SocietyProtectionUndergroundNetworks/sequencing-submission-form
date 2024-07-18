@@ -156,7 +156,11 @@
       <h3> Step 4: Select how you are going to give us the metadata</h3>
       <div>You can give us the metadata either by </div>
       <form id="step_4_form">
-        <fieldset {% if not process_data %}disabled="disabled"{% endif %}>
+        <fieldset 
+          {% if not process_data or process_data["metadata_upload_confirmed"] %}
+            disabled="disabled"
+          {% endif %}
+        >
           <div class="form-check">
             <input class="form-check-input" type="radio" name="upload_method" id="upload_method_1" value="1">
             <label class="form-check-label" for="sequencing_method_1">
@@ -272,151 +276,276 @@
       <h3> Step 5: Confirm your locations</h3>
       <form id="step_5_form">
         <fieldset
-          {% if not samples_data %}
+          {% if ((not samples_data) or process_data["metadata_upload_confirmed"]) %}
            disabled="disabled"
           {% endif %}
           
         >        
           <p>All my metadata have been uploaded and I have checked the map and all the samples seem to be in the correct locations.</p>
+          <input type="hidden" name="process_id" value="{{ process_id }}">
           <input type="button" id="step_5_button" value="I confirm">
         </fieldset>
       </form>
+      <div id="step_5_msg"></div>
     </div>
 
-
-    <div id="step_6" class="form-step-item">
-      <h3> Step 6: Provide the sequencer ID</h3>
-        
-      <form id="step_6_form">
-        <fieldset
-          {% if my_buckets|length != 1 or process_data %}
-           disabled="disabled"
-          {% endif %}
-        >        
-        <p>
-          For each sample we expect two different pairs of sequencing fastq files, on two different sequencing regions - i.e. four files in total.
-        </p>
-        <p>
-          Your sequencing provider should generate two files (one forward and one reverse) for each region.
-        </p>
-        <p>
-          For each region, the pair of files should have in their filename, a common first part, and then the number 1 or 2 followed by some more text and an ending of .fastq.gz
-        </p>
-        <p>
-          For example, in a previous sequencing process, the for the sample Greece22_1 , there were 4 files produced:
-          <ul>
-            <li>Forward file for region ITS2: <span class="blue">071id071_R</span><span class="red">1</span><span class="green">_001</span><span class="orange">.fastq.gz</span> </li>
-            <li>Reverse file for region ITS2: <span class="blue">071id071_R</span><span class="red">2</span><span class="green">_001</span><span class="orange">.fastq.gz</span></li>
-            <li>Forward file for region SSU: <span class="blue">194id194_R</span><span class="red">1</span><span class="green">_001</span><span class="orange">.fastq.gz</span></li>
-            <li>Reverse file for region SSU: <span class="blue">194id194_R</span><span class="red">2</span><span class="green">_001</span><span class="orange">.fastq.gz</span></li>
-          </ul>
-          In the example of the first two files<br/>
-          <ul>
-            <li><span class="blue">071id071_R</span> was the common part of the filename for a sequencing region</li>
-            <li><span class="red">1</span> and <span class="red">2</span> was the part that was indicating the forward and reverse reads</li>
-            <li><span class="green">_001</span> was another part of the name that we are not interested in at this moment</li>
-            <li><span class="orange">.fastq.gz</span> was the file type</li>
-          </ul>
-          We will call <span class="fw-bold">SequencerID</span> the <span class="blue">blue part of the filename</span>, and we will need you to provide us this information so that we can match the files to your samples
-        </p>
-        <p>
-          You can either upload a .xls, .xlsx, .csv file with the following data, or you can fill it in using the form bellow.
-        </p>
-        <p>          
-          Your .xls, .xlsx, .csv file should have three columns with <span class="fw-bold">exactly</span> those column names:
-          <ul>
-            <li><span class="fw-bold">SampleID</span>, which should match the SampleID from your metadata</li>
-            <li><span class="fw-bold">Region</span>, which should be the region sequenced. i.e. One of:
-              <ul>
-                {% for region in regions %}
-                  <li>{{ region }}</li>
-                {% endfor %}                
-              </ul>
-            </li>
-            <li><span class="fw-bold">SequencerID</span>, which should be the blue part (the common part) of the filenames as the example above</li>            
-          </ul>
-        </p>
-          <div class="form-check">
-            <input
-              class="form-check-input"
-              type="radio"
-              name="upload_sequencerids_method"
-              id="upload_sequencerids_method_file"
-              value="1"
-            >
-            <label class="form-check-label" for="upload_sequencerids_method_file">
-              I am going to upload a .xls, .xlsx, .csv file
-            </label>
-          </div>
-          <div class="form-check">
-            <input
-              class="form-check-input"
-              type="radio"
-              name="upload_sequencerids_method"
-              id="upload_sequencerids_method_form"
-              value="2"
-            >
-            <label class="form-check-label" for="upload_sequencerids_method_form">
-              I am going to fill in the form with my data
-            </label>
-          </div>                  
-        </fieldset>
-      </form>
-      <div id="step_6_case_1" class="explanation" style="display:none;">
-        <form
-            method="POST"
-            action="/upload_sequencer_ids_file"
-            enctype="multipart/form-data"
-            id="step_6_file_upload"
-        >
-          <input type="hidden" name="process_id" value="{{ process_id }}">
-          <input type="file" id="step_6_file_upload_button" accept=".csv, .xls, .xlsx">
+    <div id="step_6-container">
+      <div id="step_6" class="form-step-item">
+        <h3> Step 6: Provide the sequencer ID</h3>
+          
+        <form id="step_6_form">
+          <fieldset
+            {% if not process_data["metadata_upload_confirmed"] %}
+             disabled="disabled"
+            {% endif %}
+          >        
+          <p>
+            For each sample we expect two different pairs of sequencing fastq files, on two different sequencing regions - i.e. four files in total.
+          </p>
+          <p>
+            Your sequencing provider should generate two files (one forward and one reverse) for each region.
+          </p>
+          <p>
+            For each region, the pair of files should have in their filename, a common first part, and then the number 1 or 2 followed by some more text and an ending of .fastq.gz
+          </p>
+          <p>
+            For example, in a previous sequencing process, the for the sample Greece22_1 , there were 4 files produced:
+            <ul>
+              <li>Forward file for region ITS2: <span class="blue">071id071_R</span><span class="red">1</span><span class="green">_001</span><span class="orange">.fastq.gz</span> </li>
+              <li>Reverse file for region ITS2: <span class="blue">071id071_R</span><span class="red">2</span><span class="green">_001</span><span class="orange">.fastq.gz</span></li>
+              <li>Forward file for region SSU: <span class="blue">194id194_R</span><span class="red">1</span><span class="green">_001</span><span class="orange">.fastq.gz</span></li>
+              <li>Reverse file for region SSU: <span class="blue">194id194_R</span><span class="red">2</span><span class="green">_001</span><span class="orange">.fastq.gz</span></li>
+            </ul>
+            In the example of the first two files<br/>
+            <ul>
+              <li><span class="blue">071id071_R</span> was the common part of the filename for a sequencing region</li>
+              <li><span class="red">1</span> and <span class="red">2</span> was the part that was indicating the forward and reverse reads</li>
+              <li><span class="green">_001</span> was another part of the name that we are not interested in at this moment</li>
+              <li><span class="orange">.fastq.gz</span> was the file type</li>
+            </ul>
+            We will call <span class="fw-bold">SequencerID</span> the <span class="blue">blue part of the filename</span>, and we will need you to provide us this information so that we can match the files to your samples
+          </p>
+          <p>
+            You can either upload a .xls, .xlsx, .csv file with the following data, or you can fill it in using the form bellow.
+          </p>
+          <p>          
+            Your .xls, .xlsx, .csv file should have three columns with <span class="fw-bold">exactly</span> those column names:
+            <ul>
+              <li><span class="fw-bold">SampleID</span>, which should match the SampleID from your metadata</li>
+              <li><span class="fw-bold">Region</span>, which should be the region sequenced. i.e. One of:
+                <ul>
+                  {% for region in regions %}
+                    <li>{{ region }}</li>
+                  {% endfor %}                
+                </ul>
+              </li>
+              <li><span class="fw-bold">SequencerID</span>, which should be the blue part (the common part) of the filenames as the example above</li>            
+            </ul>
+          </p>
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="radio"
+                name="upload_sequencerids_method"
+                id="upload_sequencerids_method_file"
+                value="1"
+              >
+              <label class="form-check-label" for="upload_sequencerids_method_file">
+                I am going to upload a .xls, .xlsx, .csv file
+              </label>
+            </div>
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="radio"
+                name="upload_sequencerids_method"
+                id="upload_sequencerids_method_form"
+                value="2"
+              >
+              <label class="form-check-label" for="upload_sequencerids_method_form">
+                I am going to fill in the form with my data
+              </label>
+            </div>                  
+          </fieldset>
         </form>
-      </div>
-      <div id="step_6_case_2" class="explanation" style="display:none;">
-        <form id="sequencerIdsForm" style="display:none">
-          <input type="hidden" name="process_id" value="{{ process_id }}">
-          <div class="form-group row mb-3">
-              <label for="sequencer_sample_id" class="col-sm-3 col-form-label">SampleID</label>
-              <div class="col-sm-9">
-                  <small id="sequencer_sample_idHelp" class="form-text">Select one of the provided sample IDs</small>
-                    <select class="form-control" id="sequencer_sample_id" name="sequencer_sample_id">
-                        <option value="0">------</option>
-                        {% for sample in samples_data %}
-                            <option value="{{ sample['id'] }}">{{ sample['SampleID'] }}</option>
-                        {% endfor %}
-                    </select>
-              </div>
-          </div>
+        <div id="step_6_case_1" class="explanation" style="display:none;">
+          <form
+              method="POST"
+              action="/upload_sequencer_ids_file"
+              enctype="multipart/form-data"
+              id="step_6_file_upload"
+          >
+            <input type="hidden" name="process_id" value="{{ process_id }}">
+            <input type="file" id="step_6_file_upload_button" accept=".csv, .xls, .xlsx">
+          </form>
+        </div>
+        <div id="step_6_case_2" class="explanation" style="display:none;">
+          <form id="sequencerIdsForm" style="display:none">
+            <input type="hidden" name="process_id" value="{{ process_id }}">
+            <div class="form-group row mb-3">
+                <label for="sequencer_sample_id" class="col-sm-3 col-form-label">SampleID</label>
+                <div class="col-sm-9">
+                    <small id="sequencer_sample_idHelp" class="form-text">Select one of the provided sample IDs</small>
+                      <select class="form-control" id="sequencer_sample_id" name="sequencer_sample_id">
+                          <option value="0">------</option>
+                          {% for sample in samples_data %}
+                              <option value="{{ sample['id'] }}">{{ sample['SampleID'] }}</option>
+                          {% endfor %}
+                      </select>
+                </div>
+            </div>
 
-          <div class="form-group row mb-3">
-              <label for="sequencer_region" class="col-sm-3 col-form-label">Region</label>
-              <div class="col-sm-9">
-                  <small id="sequencer_regionHelp" class="form-text">Select one of the provided regions</small>
-                    <select class="form-control" id="sequencer_region" name="sequencer_region">
-                        <option value="0">------</option>
-                        {% for region in regions %}
-                            <option value="{{ region }}">{{ region }}</option>
-                        {% endfor %}
-                    </select>
-              </div>
-          </div>
-          
-          <div class="form-group row mb-3">
-              <label for="sequencer_id" class="col-sm-3 col-form-label">SequencerID</label>
-              <div class="col-sm-9">
-                  <small id="sequencer_idHelp" class="form-text">Provide the sequencer ID as explained above</small>
-                  <input type="text" class="form-control" id="sequencer_id" name="sequencer_id" >
-              </div>
-          </div>          
-          
-          
-          <button type="submit" class="btn btn-primary">Submit</button>
-        </form>
-        <div id="sequencerIdsForm_message"></div>
+            <div class="form-group row mb-3">
+                <label for="sequencer_region" class="col-sm-3 col-form-label">Region</label>
+                <div class="col-sm-9">
+                    <small id="sequencer_regionHelp" class="form-text">Select one of the provided regions</small>
+                      <select class="form-control" id="sequencer_region" name="sequencer_region">
+                          <option value="0">------</option>
+                          {% for region in regions %}
+                              <option value="{{ region }}">{{ region }}</option>
+                          {% endfor %}
+                      </select>
+                </div>
+            </div>
+            
+            <div class="form-group row mb-3">
+                <label for="sequencer_id" class="col-sm-3 col-form-label">SequencerID</label>
+                <div class="col-sm-9">
+                    <small id="sequencer_idHelp" class="form-text">Provide the sequencer ID as explained above</small>
+                    <input type="text" class="form-control" id="sequencer_id" name="sequencer_id" >
+                </div>
+            </div>          
+            
+            
+            <button type="submit" class="btn btn-primary">Submit</button>
+          </form>
+          <div id="sequencerIdsForm_message"></div>
+        </div>
+        <div id="step_6_filename"></div>    
+        <div id="step_6_msg"></div>  
       </div>
-      <div id="step_6_filename"></div>    
-      <div id="step_6_msg"></div>  
+      <div id="next_to_step_6" class="next-to-step">
+        <table id="samplesTable" class="table-bordered">      
+            <thead>
+                <tr>
+                    <th scope="col" class="bg-gray">DbID</th>
+                    <th scope="col" class="bg-gray">SampleID</th>
+                    <th scope="col" class="bg-gray"><span class="grey">____</span>Sequencer ID<span class="grey">____</span></th>
+                    <th scope="col" class="bg-gray"><span class="grey">____</span>Region<span class="grey">____</span></th>
+                    <th scope="col" class="bg-gray">Files</th>
+                </tr>
+            </thead>
+
+            <tbody>
+              {% set nr_files_per_sequence = 2 %}
+              
+              
+              {% set seq_data_dict = {} %}
+
+              {# First, populate seq_data_dict with sequencer data grouped by row.id #}
+              {% for row in samples_data %}
+                  {% set seq_data_list = [] %}
+                  {% for seq in sequencer_ids %}
+                      {% if seq.sequencingSampleId == row.id %}
+                          {% set seq_data = {'SequencerID': seq.SequencerID, 'Region': seq.Region} %}
+                          {% set _ = seq_data_list.append(seq_data) %}
+                      {% endif %}
+                  {% endfor %}
+                  {% set _ = seq_data_dict.update({row.id: seq_data_list}) %}
+              {% endfor %}
+
+              {% if nr_files_per_sequence == 2 %}
+                <!-- Iterate over each row in samples_data -->
+                {% for row in samples_data %}
+                    <tr>
+                        <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"]* nr_files_per_sequence }}">{{ row.id }}</td>
+                        <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"]* nr_files_per_sequence }}">{{ row["SampleID"] }}</td>                            
+                        <td id="S_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
+                          {% if seq_data_dict[row.id][0] %}
+                            {{ seq_data_dict[row.id][0]["SequencerID"] }}
+                          {% endif %}
+                        </td>
+                        <td id="R_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
+                          {% if seq_data_dict[row.id][0] %}
+                            {{ seq_data_dict[row.id][0]["Region"] }}
+                          {% endif %}
+                        </td>
+                        <td id="F_{{ row.id }}_1_A"> <span class="red"> Not uploaded </span> </td>
+                    </tr>
+                    <tr>
+                      <td id="F_{{ row.id }}_1_B"> <span class="red"> Not uploaded </span> </td>
+                    </tr>
+                    
+
+                    {% if process_data["Sequencing_regions_number"]>1 %}  
+                      <tr>
+                        <td id="S_{{ row.id }}_2" rowspan="{{ nr_files_per_sequence }}">
+                          {% if seq_data_dict[row.id][1] %}
+                            {{ seq_data_dict[row.id][1]["SequencerID"] }}
+                          {% endif %}
+                        </td>
+                        <td id="R_{{ row.id }}_2" rowspan="{{ nr_files_per_sequence }}">
+                          {% if seq_data_dict[row.id][1] %}
+                            {{ seq_data_dict[row.id][1]["Region"] }}
+                          {% endif %}
+                        </td>                          
+                        <td id="F_{{ row.id }}_2_A"> <span class="red"> Not uploaded </span> </td>
+                      </tr>
+                      <tr>                          
+                        <td id="F_{{ row.id }}_2_B"> <span class="red"> Not uploaded </span> </td>
+                      </tr>
+                    {% endif %}
+                    
+                    {% if process_data["Sequencing_regions_number"]>2 %}  
+                      <tr>
+                        <td id="S_{{ row.id }}_3" rowspan="{{ nr_files_per_sequence }}">
+                          {% if seq_data_dict[row.id][2] %}
+                            {{ seq_data_dict[row.id][2]["SequencerID"] }}
+                          {% endif %}
+                        </td>
+                        <td id="R_{{ row.id }}_3" rowspan="{{ nr_files_per_sequence }}">
+                          {% if seq_data_dict[row.id][2] %}
+                            {{ seq_data_dict[row.id][2]["Region"] }}
+                          {% endif %}
+                        </td>                          
+                        <td id="F_{{ row.id }}_3_A"> <span class="red"> Not uploaded </span> </td>
+                      </tr>
+                      <tr>                          
+                        <td id="F_{{ row.id }}_3_B"> <span class="red"> Not uploaded </span> </td>
+                      </tr>
+                    {% endif %}                    
+                {% endfor %}
+              {% endif %}
+              
+              {% if nr_files_per_sequence == 1 %}
+                {% for row in samples_data %}
+                    <tr>
+                        <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"] }}">{{ row.id }}</td>
+                        <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"] }}">{{ row["SampleID"] }}</td>                            
+                        <td id="S_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
+                          S {{ row.id }} 1
+                        </td>
+                        <td id="R_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
+                          R {{ row.id }} 1
+                        </td>
+                        <td id="F_{{ row.id }}_1_A">F {{ row.id }} 1 A</td>
+                    </tr>
+
+                    <tr>
+                      <td id="S_{{ row.id }}_2" rowspan="{{ nr_files_per_sequence }}">
+                        S {{ row.id }} 2
+                      </td>
+                      <td id="R_{{ row.id }}_2"rowspan="{{ nr_files_per_sequence }}">
+                        R {{ row.id }} 2
+                      </td>                          
+                      <td id="F_{{ row.id }}_2_A">F {{ row.id }} 2 A</td>
+                    </tr>                                            
+                {% endfor %}
+              {% endif %}
+
+            </tbody>
+        </table>        
+      </div>
     </div>
   </div>
 
@@ -424,7 +553,12 @@
   var markersArray = [];
   var project_common_data = JSON.parse('{{ project_common_data|tojson|safe }}');
   var samples_data = JSON.parse('{{ samples_data|tojson|safe }}');
-
+  var sequencers_expecting_pairs = [
+    'Illumina NextSeq',
+    'Illumina MiSeq',
+    'Illumina NovaSeq',
+    'Element Biosciences AVITI'
+  ]
   ////// ############################################# /////////
   ////// ############ STEP 2 STARTS HERE ############# /////////
   ////// ############################################# /////////
@@ -469,11 +603,6 @@
     });
   }    
   $(document).ready(function() {
-      // Function to enable the form
-
-
-
-
       // Listen for changes in the select drop down project_id (bucket)
       $('#sequence-project-id').change(function() {
           var selectedValue = $(this).val();
@@ -966,7 +1095,34 @@
   }      
   $(document).ready(function() {
     $('#step_5_button').click(function() {
-        enableForm_step_6();    
+      
+      var formData = new FormData();
+      var form = $('#step_5_button').closest('form');
+      var processId = form.find('input[name="process_id"]').val();
+      formData.append('process_id', processId);
+      
+      $.ajax({
+          url: '/sequencing_confirm_metadata',
+          type: 'POST',
+          data: formData,
+          contentType: false,
+          processData: false,
+          success: function(response) {
+              console.log(response);
+              if (response.result==1) {
+                window.location.reload();
+              }
+          },
+          error: function(xhr, status, error) {
+              console.error('Error:', error);
+              $('#step_5_msg').html("<p>An error occurred.</p>").removeClass('text-success').addClass('text-danger');
+
+              // Reset the file input
+              fileInput.value = "";
+          }
+      });
+      
+      enableForm_step_6();    
     });
   });    
   ////// ############################################# /////////
@@ -1085,10 +1241,7 @@
           processData: false,
           success: function(response) {
               console.log(response);
-
-              // Clear previous messages and reset status class
-              $('#step_6_msg').html('File uploaded successfully. Records added to the metadata table above').removeClass('text-danger').addClass('text-success');
-  
+              $('#step_6_msg').html('').removeClass('text-danger text-success');
               // Reset the file input
               fileInput.value = "";
               if (response.result == 0) {
@@ -1100,6 +1253,41 @@
                           .addClass('text-danger')
                           .appendTo('#step_6_msg');
                   });
+              } else {
+                console.log(response.data);
+                response.data.forEach(function(sequencer_id) {
+                  
+                  sequencerSampleId = sequencer_id["db_sample_id"]
+                  console.log(sequencerSampleId)
+                  $('#dataTable tbody tr').each(function() {
+                      var rowId = $(this).find('td:first').text().trim();
+                      if (String(rowId) === String(sequencerSampleId)) {
+                          sequencerRegion = sequencer_id["Region"]
+                          sequencerId = sequencer_id["SequencerID"]
+                          // Update the second cell in the matched row
+                          var cell = $(this).find('td').eq(1);
+                          cell.append(' ' + sequencerRegion + ' : ' + sequencerId + '<br/>');
+                      }
+                  });  
+                  // HERE HERE  
+                  // Find the element S_ row id _1
+                  console.log($('#S_' + sequencerSampleId + '_1').html())
+                  if ($('#S_' + sequencerSampleId + '_1').html().trim() === '') {
+                    $('#S_' + sequencerSampleId + '_1').html(sequencer_id["SequencerID"])
+                    $('#R_' + sequencerSampleId + '_1').html(sequencer_id["Region"])
+                  } else if ($('#S_' + sequencerSampleId + '_2').html().trim()=='') {
+                    $('#S_' + sequencerSampleId + '_2').html(sequencer_id["SequencerID"])
+                    $('#R_' + sequencerSampleId + '_2').html(sequencer_id["Region"])
+                  } else if ($('#S_' + sequencerSampleId + '_3').html().trim()=='') {
+                    $('#S_' + sequencerSampleId + '_3').html(sequencer_id["SequencerID"])
+                    $('#R_' + sequencerSampleId + '_3').html(sequencer_id["Region"])
+                  }
+                  
+                })
+           
+                
+                // Clear previous messages and reset status class
+                $('#step_6_msg').html('File uploaded successfully. Records added to the metadata table above').addClass('text-success');
               }
           },
           error: function(xhr, status, error) {
@@ -1240,10 +1428,6 @@
         overflow-x: auto; /* Enable horizontal scrolling */
     }
     
-    .form-step-item {
-      margin-top: 20px;
-    }
-    
     .blue {
       color: blue;
     }
@@ -1264,7 +1448,21 @@
     }
     #dataTable {
         table-layout: auto;
-    }    
+    } 
+    
+    #step_6-container {
+      display: flex;
+    }
+
+    #step_6 {
+        flex: 1;
+    }
+
+    #next_to_step_6 {
+        flex: 1;
+        margin-left: 20px; /* Adjust margin as needed */
+        margin-top: 20px;
+    }
   </style>
 </body>
 </html>

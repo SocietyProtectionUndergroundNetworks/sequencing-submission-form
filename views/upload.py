@@ -46,7 +46,6 @@ from helpers.file_renaming import (
 
 from models.upload import Upload
 from models.user import User
-from models.bucket import Bucket
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -1092,16 +1091,3 @@ def update_reviewed_by_admin_status():
         )
     else:
         return redirect("/all_uploads?order_by=" + order_by)
-
-
-@upload_bp.route("/metadata_form", endpoint="metadata_form")
-@login_required
-@approved_required
-def metadata_form():
-    my_buckets = {}
-    map_key = os.environ.get("GOOGLE_MAP_API_KEY")
-    for my_bucket in current_user.buckets:
-        my_buckets[my_bucket] = Bucket.get(my_bucket)
-    return render_template(
-        "metadata_form.html", my_buckets=my_buckets, map_key=map_key
-    )

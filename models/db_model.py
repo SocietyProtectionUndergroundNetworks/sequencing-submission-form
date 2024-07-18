@@ -104,6 +104,7 @@ class SequencingUploadsTable(Base):
     Extraction_method = Column(String(255), nullable=True)
     Multiple_sequencing_runs = Column(String(255), nullable=True)
     Sequencing_regions_number = Column(Integer, nullable=True)
+    metadata_upload_confirmed = Column(Boolean, default=False)
 
 
 class SequencingSamplesTable(Base):

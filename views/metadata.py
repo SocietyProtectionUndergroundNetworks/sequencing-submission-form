@@ -285,72 +285,27 @@ def upload_sequencing_file():
     else:
         return jsonify({"error": "Unsupported file type"}), 400
 
-    result = 1
-    messages = []
-    # check the columns
-    uploaded_columns = df.columns.tolist()
-    logger.info(uploaded_columns)
-    if "SampleID" not in uploaded_columns:
-        result = 1
-        messages = []
-
-    expected_columns = ["SampleID", "Region", "SequencerID"]
-    for expected_column in expected_columns:
-        if expected_column not in uploaded_columns:
-            result = 0
-            messages.append(
-                "Expected column " + expected_column + " is missing"
-            )
-
-    if result == 1:
-        # check each row to see if they are as expected.
-        samples_data = SequencingUpload.get_samples(process_id)
-        if samples_data is not None:
-            sample_ids = [row["SampleID"] for row in samples_data]
-            logger.info(sample_ids)
-            for index, row in df.iterrows():
-                if row["SampleID"] not in sample_ids:
-                    result = 0
-                    messages.append(
-                        "SampleID: in row "
-                        + str(index + 1)
-                        + " with the value '"
-                        + row["SampleID"]
-                        + "' is not in the list of expected"
-                        + "' SampleIDs from the metadata"
-                    )
-
-        else:
-            result = 0
-            messages.append("No sample data found for this upload")
-
-        regions = get_regions()
-        for index, row in df.iterrows():
-            if row["Region"] not in regions:
-                result = 0
-                messages.append(
-                    "Region: in row "
-                    + str(index + 1)
-                    + " with the value '"
-                    + row["Region"]
-                    + "' is not in the list of expected Regions"
-                )
-
-            if pd.isna(row["SequencerID"]):
-                result = 0
-                messages.append(
-                    "SequencerID: in row "
-                    + str(index + 1)
-                    + " cannot be empty"
-                )
-
-    return (
-        jsonify(
-            {
-                "result": result,
-                "data": df.replace({np.nan: None}).to_dict(orient="records"),
-                "messages": messages,
-            }
-        ),
-        200,
+    process_data = SequencingUpload.get(process_id)
+    process_data = model_to_dict(process_data)
+    result = SequencingSequencerId.check_df_and_add_records(
+        process_id=process_id,
+        df=df,
+        sequencing_regions_number=process_data["Sequencing_regions_number"],
     )
+
+    return (jsonify(result), 200)
+
+
+@metadata_bp.route(
+    "/sequencing_confirm_metadata",
+    methods=["POST"],
+    endpoint="sequencing_confirm_metadata",
+)
+@login_required
+@approved_required
+def sequencing_confirm_metadata():
+    process_id = request.form.get("process_id")
+
+    SequencingUpload.mark_upload_confirmed_as_true(process_id)
+
+    return (jsonify({"result": 1}), 200)

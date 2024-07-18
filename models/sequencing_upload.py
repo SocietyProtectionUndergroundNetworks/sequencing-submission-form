@@ -137,3 +137,23 @@ class SequencingUpload:
         session.close()
 
         return sequencer_ids_list
+
+    @classmethod
+    def mark_upload_confirmed_as_true(cls, process_id):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        upload = (
+            session.query(SequencingUploadsTable)
+            .filter_by(id=process_id)
+            .first()
+        )
+
+        if upload:
+            upload.metadata_upload_confirmed = True
+            session.commit()
+            session.close()
+            return True
+        else:
+            session.close()
+            return False
