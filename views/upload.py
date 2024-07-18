@@ -46,14 +46,13 @@ from helpers.file_renaming import (
 
 from models.upload import Upload
 from models.user import User
+from models.bucket import Bucket
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
 
 upload_bp = Blueprint("upload", __name__)
-
-logger.info("Test here 1 1")
 
 
 # Custom approved_required decorator
@@ -421,6 +420,8 @@ def upload_form_resume():
                 process_id=upload.id,
                 csv_uploaded=upload.csv_uploaded,
                 csv_filename=upload.csv_filename,
+                metadata_uploaded=(upload.metadata_filename is not None),
+                metadata_filename=upload.metadata_filename,
                 gz_filedata=gz_filedata if gz_filedata else {},
                 files_renamed=upload.files_renamed,
                 renaming_skipped=upload.renaming_skipped,
@@ -443,7 +444,6 @@ def upload_form_resume():
 @login_required
 @approved_required
 def upload_form():
-    logger.info("Test here 1 1 in form")
     return render_template("form.html", is_admin=current_user.admin)
 
 
@@ -484,6 +484,62 @@ def clear_file_upload():
     return jsonify({"status": 1})
 
 
+@upload_bp.route(
+    "/uploadmetadata", methods=["POST"], endpoint="upload_metadata"
+)
+@login_required
+@approved_required
+def upload_metadata():
+    # Handle metadata file upload separately
+    file = request.files.get("file")
+    if not file:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    # lets create a directory only for this process.
+    uploads_folder = datetime.datetime.now().strftime("%Y%m%d") + "".join(
+        random.choices(string.ascii_uppercase + string.digits, k=6)
+    )
+
+    # Process the CSV file (e.g., save it or perform specific operations)
+    filename = secure_filename(file.filename)
+
+    path = Path("uploads", uploads_folder)
+    path.mkdir(parents=True, exist_ok=True)
+    save_path = path / filename
+    # save_path = Path("uploads", filename)
+    file.save(save_path)  # Save the CSV file to a specific location
+
+    process_id = Upload.create(
+        user_id=current_user.id,
+        uploads_folder=uploads_folder,
+        metadata_filename=filename,
+    )
+    send_message_to_slack(
+        "STARTING: An upload was initiated by uploading metadata by the user "
+        + current_user.name
+        + ". The id of the upload is: "
+        + str(process_id)
+    )
+
+    bucket_chunked_upload(
+        save_path,
+        "uploads/" + uploads_folder,
+        filename,
+        process_id,
+        "metadata_file",
+    )
+    return (
+        jsonify(
+            {
+                "msg": "Metadata file uploaded successfully.",
+                "process_id": process_id,
+                "upload_folder": uploads_folder,
+            }
+        ),
+        200,
+    )
+
+
 @upload_bp.route("/uploadcsv", methods=["POST"], endpoint="upload_csv")
 @login_required
 @approved_required
@@ -498,28 +554,7 @@ def upload_csv():
     # Process the CSV file (e.g., save it or perform specific operations)
     filename = secure_filename(file.filename)
 
-    # lets create a directory only for this process.
-    uploads_folder = datetime.datetime.now().strftime("%Y%m%d") + "".join(
-        random.choices(string.ascii_uppercase + string.digits, k=6)
-    )
-
-    path = Path("uploads", uploads_folder)
-    path.mkdir(parents=True, exist_ok=True)
-    save_path = path / filename
-    # save_path = Path("uploads", filename)
-    file.save(save_path)  # Save the CSV file to a specific location
-
-    process_id = Upload.create(
-        user_id=current_user.id,
-        uploads_folder=uploads_folder,
-    )
-    send_message_to_slack(
-        "STARTING: An upload was initiated by uploading metadata by the user "
-        + current_user.name
-        + ". The id of the upload is: "
-        + str(process_id)
-    )
-
+    process_id = request.form.get("process_id")
     logger.info(
         "Uploading csv for process_id "
         + str(process_id)
@@ -528,12 +563,17 @@ def upload_csv():
         + "filename "
         + filename
     )
+    upload = Upload.get(process_id)
+    uploads_folder = upload.uploads_folder
+    path = Path("uploads", uploads_folder)
+    save_path = path / filename
+    # save_path = Path("uploads", filename)
+    file.save(save_path)  # Save the CSV file to a specific location
 
     cvs_results = validate_csv(save_path)
 
     if cvs_results is True:
         cvs_records = get_csv_data(save_path)
-        upload = Upload.get(process_id)
         matching_files_db = upload.get_files_json()
         Upload.update_csv_filename_and_method(
             process_id, filename, sequencing_method
@@ -551,8 +591,6 @@ def upload_csv():
                     "msg": "CSV file uploaded successfully. Checks passed",
                     "cvs_records": cvs_records,
                     "matching_files_db": matching_files_db,
-                    "process_id": process_id,
-                    "upload_folder": uploads_folder,
                 }
             ),
             200,
@@ -1054,3 +1092,16 @@ def update_reviewed_by_admin_status():
         )
     else:
         return redirect("/all_uploads?order_by=" + order_by)
+
+
+@upload_bp.route("/metadata_form", endpoint="metadata_form")
+@login_required
+@approved_required
+def metadata_form():
+    my_buckets = {}
+    map_key = os.environ.get("GOOGLE_MAP_API_KEY")
+    for my_bucket in current_user.buckets:
+        my_buckets[my_bucket] = Bucket.get(my_bucket)
+    return render_template(
+        "metadata_form.html", my_buckets=my_buckets, map_key=map_key
+    )
