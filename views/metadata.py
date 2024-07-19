@@ -83,8 +83,6 @@ def metadata_form():
         nr_files_per_sequence = get_nr_files_per_sequence(
             process_data.Sequencing_platform
         )
-        logger.info("---- nr_files_per_sequence ----")
-        logger.info(nr_files_per_sequence)
 
         process_data = model_to_dict(process_data)  # Convert to dictionary
         samples_data = SequencingUpload.get_samples(process_id)

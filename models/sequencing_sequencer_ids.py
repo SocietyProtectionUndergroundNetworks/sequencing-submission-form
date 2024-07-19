@@ -55,7 +55,6 @@ class SequencingSequencerId:
                 and_(
                     SequencingSequencerIDsTable.sequencingSampleId
                     == sample_id,
-                    SequencingSequencerIDsTable.SequencerID == sequencer_id,
                     SequencingSequencerIDsTable.Region == region,
                 )
             )

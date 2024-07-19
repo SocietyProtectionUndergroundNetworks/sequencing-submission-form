@@ -289,7 +289,12 @@
       <div id="step_5_msg"></div>
     </div>
 
-    <div id="step_6-container">
+    <div 
+      id="step_6-container"
+      {% if process_data and process_data.using_scripps %}
+        style="display:none"
+      {% endif %}
+    >
       <div id="step_6" class="form-step-item">
         <h3> Step 6: Provide the sequencer ID</h3>
           
@@ -391,25 +396,37 @@
                 <label for="sequencer_sample_id" class="col-sm-3 col-form-label">SampleID</label>
                 <div class="col-sm-9">
                     <small id="sequencer_sample_idHelp" class="form-text">Select one of the provided sample IDs</small>
-                      <select class="form-control" id="sequencer_sample_id" name="sequencer_sample_id">
-                          <option value="0">------</option>
-                          {% for sample in samples_data %}
-                              <option value="{{ sample['id'] }}">{{ sample['SampleID'] }}</option>
-                          {% endfor %}
-                      </select>
+                    <select class="form-control" id="sequencer_sample_id" name="sequencer_sample_id">
+                      <option value="0">------</option>
+                      {% for sample in samples_data %}
+                          <option value="{{ sample['id'] }}">{{ sample['SampleID'] }}</option>
+                      {% endfor %}
+                    </select>
                 </div>
             </div>
-
+            
             <div class="form-group row mb-3">
                 <label for="sequencer_region" class="col-sm-3 col-form-label">Region</label>
                 <div class="col-sm-9">
-                    <small id="sequencer_regionHelp" class="form-text">Select one of the provided regions</small>
+                    
+                    {% if regions|length == 1 %}
+                      <input type="hidden" name="sequencer_region" value="{{ regions[0] }}">
+                      <small id="sequencer_regionHelp" class="form-text">You have chosen a single Primer set, and the region is:</small>
+                      <select class="form-control" name="sequencer_region_dummy" disabled>
+                          {% for region in regions %}
+                              <option value="{{ region }}">{{ region }}</option>
+                          {% endfor %}
+                      </select>                      
+                    {% else %}
+                      <small id="sequencer_regionHelp" class="form-text">Select one of the provided regions</small>
                       <select class="form-control" id="sequencer_region" name="sequencer_region">
                           <option value="0">------</option>
                           {% for region in regions %}
                               <option value="{{ region }}">{{ region }}</option>
                           {% endfor %}
                       </select>
+                    {% endif %}                      
+
                 </div>
             </div>
             
@@ -549,6 +566,7 @@
   var markersArray = [];
   var project_common_data = JSON.parse('{{ project_common_data|tojson|safe }}');
   var samples_data = JSON.parse('{{ samples_data|tojson|safe }}');
+  var sequencing_regions_number = {{ process_data["Sequencing_regions_number"] if process_data["Sequencing_regions_number"] else 0 }};
   ////// ############################################# /////////
   ////// ############ STEP 2 STARTS HERE ############# /////////
   ////// ############################################# /////////
@@ -568,6 +586,12 @@
         }
 
         updateFields_step_3();
+        
+        // Hide step 6 if they choose scripps
+        var usingScrippsYesChecked = $('#using_scripps_yes').is(':checked');
+        if (usingScrippsYesChecked) {
+          $('#step_6-container').hide();
+        }
     });      
   });
 
@@ -1161,7 +1185,9 @@
                 sequencerId = item.value;
             }
         });
-        if ((sequencerId != null) && (sequencerId != '')) {
+        
+        console.log(formData)
+        if ((sequencerId != null) && (sequencerId != '') && (sequencerRegion != '')) {
 
           // Send the form fields via AJAX to metadata_validate_row
           $.ajax({
@@ -1172,8 +1198,6 @@
                   if (response.result.status === 0) {
                       console.log('There was an error');
                   } else {
-                      console.log(response);
-                      console.log('Form submitted successfully');
 
                       if (response.existing == "new") {
                         // Find the table row that matches the sequencerSampleId
@@ -1185,9 +1209,20 @@
                                 cell.append(' ' + sequencerRegion + ' : ' + sequencerId + '<br/>');
                             }
                         });
+                        
+                        //find the id of the table cell for the sequence and the region. 
+                        var s_td_id = ''
+                        var r_td_id = ''
+                        for (let i = 1; i <= sequencing_regions_number; i++) {
+                          s_td_id = '#S_' + sequencerSampleId + '_' + String(i)
+                          if ($(s_td_id).html().trim() === '') {
+                            $(s_td_id).html(sequencerId)
+                          }
+                        }                  
+                        
                         $('#sequencerIdsForm_message').text('Record added above in the metadata table. Fill in the form to add new record.').addClass('text-success').removeClass('text-danger text-info').show();
                       } else {
-                        $('#sequencerIdsForm_message').text('Record already exists. Fill in the form to add new record.').addClass('text-success').removeClass('text-danger text-info').show();
+                        $('#sequencerIdsForm_message').text('Record already exists for this sample and region. Fill in the form to add new record.').addClass('text-danger').removeClass('text-success').show();
                       }
                       $('#sequencerIdsForm').trigger('reset');
                   }
