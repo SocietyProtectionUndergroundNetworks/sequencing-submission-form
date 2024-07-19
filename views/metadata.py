@@ -19,6 +19,7 @@ from helpers.metadata_check import (
     get_columns_data,
     get_project_common_data,
     get_regions,
+    get_nr_files_per_sequence,
 )
 from helpers.model import model_to_dict
 import numpy as np
@@ -27,8 +28,6 @@ import numpy as np
 metadata_bp = Blueprint("metadata", __name__)
 
 logger = logging.getLogger("my_app_logger")
-
-logger.info("Test here 4 1")
 
 
 # Custom admin_required decorator
@@ -78,14 +77,19 @@ def metadata_form():
     samples_data = []
     sequencer_ids = []
     regions = get_regions()
-    logger.info(regions)
+    nr_files_per_sequence = 1
     if process_id:
         process_data = SequencingUpload.get(process_id)
+        nr_files_per_sequence = get_nr_files_per_sequence(
+            process_data.Sequencing_platform
+        )
+        logger.info("---- nr_files_per_sequence ----")
+        logger.info(nr_files_per_sequence)
 
         process_data = model_to_dict(process_data)  # Convert to dictionary
         samples_data = SequencingUpload.get_samples(process_id)
         sequencer_ids = SequencingUpload.get_sequencer_ids(process_id)
-        logger.info(sequencer_ids)
+        regions = get_regions(process_data)
 
     return render_template(
         "metadata_form.html",
@@ -98,6 +102,7 @@ def metadata_form():
         samples_data=samples_data,
         regions=regions,
         sequencer_ids=sequencer_ids,
+        nr_files_per_sequence=nr_files_per_sequence,
     )
 
 
@@ -158,7 +163,7 @@ def upload_metadata_file():
         df = pd.read_excel(file, engine="openpyxl")
     else:
         return jsonify({"error": "Unsupported file type"}), 400
-
+    df = df.dropna(how="all")
     # Check metadata using the helper function
     result = check_metadata(df, using_scripps, multiple_sequencing_runs)
 
@@ -219,9 +224,7 @@ def upload_process_common_fields():
     if ("using_scripps" in form_data) and (
         form_data["using_scripps"] == "yes"
     ):
-        logger.info("we are switching the Sequencing_facility to Scripps")
         logger.info(form_data["using_scripps"])
-        form_data["Sequencing_facility"] = "Scripps"
 
     process_id = SequencingUpload.create(datadict=form_data)
 
@@ -242,7 +245,6 @@ def upload_process_common_fields():
 def add_sequencer_id():
     # Parse form data from the request
     form_data = request.form.to_dict()
-    logger.info(form_data)
     # Return the result as JSON
     sequencer_id, existing = SequencingSequencerId.create(
         sample_id=form_data["sequencer_sample_id"],
@@ -290,7 +292,7 @@ def upload_sequencing_file():
     result = SequencingSequencerId.check_df_and_add_records(
         process_id=process_id,
         df=df,
-        sequencing_regions_number=process_data["Sequencing_regions_number"],
+        process_data=process_data,
     )
 
     return (jsonify(result), 200)

@@ -85,6 +85,17 @@ class SequencingUpload:
             user_id=current_user.id,
         )
 
+        if datadict["using_scripps"] == "yes":
+            datadict["Primer_set_1"] = "ITS3/ITS4"
+            datadict["Primer_set_2"] = "WANDA/AML2"
+            datadict["Sequencing_platform"] = "Element Biosciences AVITI"
+            datadict["Sequencing_facility"] = "Scripps Research"
+
+        if datadict["Primer_set_2"] == "0":
+            datadict["Sequencing_regions_number"] = 1
+        else:
+            datadict["Sequencing_regions_number"] = 2
+
         # Dynamically set attributes from datadict
         for key, value in datadict.items():
             if key == "using_scripps":

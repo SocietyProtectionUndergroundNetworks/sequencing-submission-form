@@ -63,14 +63,32 @@ def get_project_common_data():
     return data
 
 
-def get_regions():
+def get_regions(process_data=None):
     current_dir = os.path.dirname(__file__)
     base_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
-    regions_file_path = os.path.join(base_dir, "metadataconfig", "region.csv")
-    data = []
+    regions_file_path = os.path.join(
+        base_dir, "metadataconfig", "primer_set_regions.json"
+    )
 
-    with open(regions_file_path, "r") as lookup:
-        data = lookup.read().strip().split("\n")
+    # Load the JSON file
+    with open(regions_file_path, "r") as f:
+        primer_set_region = json.load(f)
+
+    # Check if process_data exists
+    if process_data is None:
+        # If process_data does not exist, return all available regions
+        data = list(primer_set_region.values())
+    else:
+        # If process_data exists, get the relevant regions for the
+        # specified primer sets
+        primer_set_1 = process_data.get("Primer_set_1")
+        primer_set_2 = process_data.get("Primer_set_2")
+
+        data = []
+        if primer_set_1 in primer_set_region:
+            data.append(primer_set_region[primer_set_1])
+        if primer_set_2 in primer_set_region:
+            data.append(primer_set_region[primer_set_2])
 
     return data
 
@@ -461,3 +479,19 @@ def check_row(row, expected_columns_data):
     row_result.update(row_issues)
 
     return row_result
+
+
+def get_nr_files_per_sequence(sequencing_platform):
+    sequencers_expecting_pairs = [
+        "Illumina NextSeq",
+        "Illumina MiSeq",
+        "Illumina NovaSeq",
+        "Element Biosciences AVITI",
+    ]
+
+    # Strip whitespace
+    sequencing_platform = sequencing_platform.strip()
+
+    if sequencing_platform in sequencers_expecting_pairs:
+        return 2
+    return 1

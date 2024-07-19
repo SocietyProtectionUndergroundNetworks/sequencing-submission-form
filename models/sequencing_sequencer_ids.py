@@ -78,9 +78,8 @@ class SequencingSequencerId:
             return new_record.id, "new"
 
     @classmethod
-    def check_df_and_add_records(
-        cls, process_id, df, sequencing_regions_number
-    ):
+    def check_df_and_add_records(cls, process_id, df, process_data):
+
         result = 1
         messages = []
         # check the columns
@@ -120,7 +119,7 @@ class SequencingSequencerId:
                 result = 0
                 messages.append("No sample data found for this upload")
 
-            regions = get_regions()
+            regions = get_regions(process_data)
             for index, row in df.iterrows():
                 if row["Region"] not in regions:
                     result = 0
@@ -144,6 +143,9 @@ class SequencingSequencerId:
             region_counts = df.groupby("SampleID")["Region"].nunique()
             # Checking for discrepancies
             for sample_id, count in region_counts.items():
+                sequencing_regions_number = process_data[
+                    "Sequencing_regions_number"
+                ]
                 if count != sequencing_regions_number:
                     result = 0
                     message = (

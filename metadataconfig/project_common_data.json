@@ -7,7 +7,7 @@
   "Sequencing_platform": {
     "lookup_file": "sequencing_platform.csv",
     "help_tip": "Platform used for sequencing.",
-    "required": "True"
+    "required": "IfNotScripps"
   },
   "Sequencing_facility": {
     "help_tip": "Company or core facility name",
@@ -32,7 +32,7 @@
   "Primer_set_2": {
     "lookup_file": "primer_set.csv",
     "help_tip": "Secondary primer set used for amplicon sequencing, if applicable.",
-    "required": "IfNotScripps"
+    "required": "OptionalIfNotScripps"
   },
   "Extraction_method": {
     "lookup_file": "extraction_method.csv",
@@ -43,10 +43,5 @@
     "lookup_file": "multiple_sequencing_runs.csv",
     "help_tip": "Were your samples run across multiple sequencing runs (if known)? ",
     "required": "True"
-  },
-  "Sequencing_regions_number": {
-    "lookup_file": "sequencing_regions_number.csv",
-    "help_tip": "How many sequencing regions are you going to analyse ",
-    "required": "IfNotScripps"
   }
 }
