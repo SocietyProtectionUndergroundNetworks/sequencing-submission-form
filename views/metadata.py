@@ -22,6 +22,10 @@ from helpers.metadata_check import (
     get_nr_files_per_sequence,
 )
 from helpers.model import model_to_dict
+from helpers.create_xls_template import (
+    create_template,
+    create_template_one_drive
+)
 import numpy as np
 
 
@@ -308,5 +312,18 @@ def sequencing_confirm_metadata():
     process_id = request.form.get("process_id")
 
     SequencingUpload.mark_upload_confirmed_as_true(process_id)
+
+    return (jsonify({"result": 1}), 200)
+
+
+@metadata_bp.route(
+    "/create_xls_template",
+    endpoint="create_xls_template",
+)
+@login_required
+@approved_required
+def create_xls_template():
+    create_template()
+    create_template_one_drive()
 
     return (jsonify({"result": 1}), 200)
