@@ -284,6 +284,7 @@ def upload_sequencing_file():
         df = pd.read_excel(file, engine="openpyxl")
     else:
         return jsonify({"error": "Unsupported file type"}), 400
+    df = df.dropna(how="all")
 
     process_data = SequencingUpload.get(process_id)
     process_data = model_to_dict(process_data)

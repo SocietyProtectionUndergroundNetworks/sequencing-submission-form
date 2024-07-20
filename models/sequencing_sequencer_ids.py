@@ -78,10 +78,9 @@ class SequencingSequencerId:
 
     @classmethod
     def check_df_and_add_records(cls, process_id, df, process_data):
-
         result = 1
         messages = []
-        # check the columns
+        # Check the columns
         uploaded_columns = df.columns.tolist()
         if "SampleID" not in uploaded_columns:
             result = 1
@@ -97,7 +96,7 @@ class SequencingSequencerId:
                 )
 
         if result == 1:
-            # check each row to see if they are as expected.
+            # Check each row to see if they are as expected.
             samples_data = SequencingUpload.get_samples(process_id)
             if samples_data is not None:
                 sample_ids = [row["SampleID"] for row in samples_data]
@@ -109,7 +108,7 @@ class SequencingSequencerId:
                             "SampleID: in row "
                             + str(index + 1)
                             + " with the value '"
-                            + row["SampleID"]
+                            + str(row["SampleID"])
                             + "' is not in the list of expected"
                             + "' SampleIDs from the metadata"
                         )
@@ -126,7 +125,7 @@ class SequencingSequencerId:
                         "Region: in row "
                         + str(index + 1)
                         + " with the value '"
-                        + row["Region"]
+                        + str(row["Region"])
                         + "' is not in the list of expected Regions"
                     )
 
@@ -137,6 +136,27 @@ class SequencingSequencerId:
                         + str(index + 1)
                         + " cannot be empty"
                     )
+
+        # New Check for duplicate SampleID and Region combinations
+        if result == 1:
+            duplicate_combinations = df[
+                df.duplicated(subset=["SampleID", "Region"], keep=False)
+            ]
+            if not duplicate_combinations.empty:
+                result = 0
+                for (
+                    sample_id,
+                    region,
+                ), group in duplicate_combinations.groupby(
+                    ["SampleID", "Region"]
+                ):
+                    indices = group.index.tolist()
+                    messages.append(
+                        f"Lines {indices} are assigning "
+                        f"sequencerID to the same "
+                        f"SampleID/Region ({sample_id}/{region})"
+                    )
+
         if result == 1:
             # Counting the regions per SampleID
             region_counts = df.groupby("SampleID")["Region"].nunique()
