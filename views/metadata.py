@@ -23,8 +23,8 @@ from helpers.metadata_check import (
 )
 from helpers.model import model_to_dict
 from helpers.create_xls_template import (
-    create_template,
-    create_template_one_drive
+    create_template_with_options_sheet,
+    create_template_google_sheets
 )
 import numpy as np
 
@@ -323,7 +323,9 @@ def sequencing_confirm_metadata():
 @login_required
 @approved_required
 def create_xls_template():
-    create_template()
-    create_template_one_drive()
+    # create_template()
+    # create_template_one_drive()
+    create_template_with_options_sheet()
+    create_template_google_sheets()
 
     return (jsonify({"result": 1}), 200)
