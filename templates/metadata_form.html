@@ -177,9 +177,9 @@
       </form>
       <div id="step_4_explanation_case_1" class="explanation" style="display:none;">
         <p>You have to upload a csv or xls file that the column names EXACTLY as they appear bellow. </p>
-        <p>You can read the <a href="/metadata_fields_explanation" class="link" target="_blank">description of each field here TODO</a></p>
-        <p>You can download the <a href="/metadata_xls_template" class="link" target="_blank">XLS template TODO</a></p>
-        <p>Or the <a href="/metadata_csv_template" class="link" target="_blank">CSV template TODO</a></p>
+        <p>You can read the <a href="/metadata_instructions" class="link" target="_blank">description of each field here </a></p>
+        <p>You can download the <a href="/xls_sample" class="link" target="_blank">XLS template</a></p>
+        <p>Or you can copy the <a href="{{ google_sheets_template_url }}" class="link" target="_blank">Template Google sheet</a>, then make a copy ("File"->"Make a copy") and work on your copy</p>       
         <form
             method="POST"
             action="/upload_metadata_file"
@@ -977,6 +977,13 @@
                 if (response.result.status === 1) {
                     $('#step_4_msg').append("<p>No problems found.</p>");
                     enableForm_step_5();
+                }
+
+                // Check if there are any messages and display them
+                if (response.result.messages && response.result.messages.length > 0) {
+                    response.result.messages.forEach(function(message) {
+                        $('#step_4_msg').append("<p>" + message + "</p>");
+                    });
                 }
 
                 // Apply the appropriate status class

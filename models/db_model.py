@@ -105,6 +105,7 @@ class SequencingUploadsTable(Base):
     Multiple_sequencing_runs = Column(String(255), nullable=True)
     Sequencing_regions_number = Column(Integer, nullable=True)
     metadata_upload_confirmed = Column(Boolean, default=False)
+    DNA_conc_instrument = Column(String(255), nullable=True)
 
 
 class SequencingSamplesTable(Base):
@@ -120,7 +121,6 @@ class SequencingSamplesTable(Base):
     Vegetation = Column(String(255), nullable=True)
     Land_use = Column(String(255), nullable=True)
     Agricultural_land = Column(String(255), nullable=True)
-    Treatments = Column(String(255), nullable=True)
     Ecosystem = Column(String(255), nullable=True)
     Grid_Size = Column(String(255), nullable=True)
     Soil_depth = Column(String(255), nullable=True)
@@ -128,7 +128,6 @@ class SequencingSamplesTable(Base):
     Drying = Column(String(255), nullable=True)
     Date_collected = Column(String(255), nullable=True)
     DNA_concentration_ng_ul = Column(String(255), nullable=True)
-    DNA_conc_instrument = Column(String(255), nullable=True)
     Elevation = Column(String(255), nullable=True)
     Sample_or_Control = Column(String(255), nullable=True)
     SequencingRun = Column(String(255), nullable=True)

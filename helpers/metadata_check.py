@@ -16,9 +16,11 @@ def get_columns_data():
         base_dir, "metadataconfig", "columns.json"
     )
 
+    # Load the main configuration JSON
     with open(columns_file_path, "r") as columns_file:
         data = json.load(columns_file)
 
+    # Process each item in the data
     for key, value in data.items():
         lookup_file = value.get("lookup_file")
         if (
@@ -27,11 +29,13 @@ def get_columns_data():
             lookup_file_path = os.path.join(
                 base_dir, "metadataconfig", lookup_file
             )
-            if os.path.exists(lookup_file_path):
+            if os.path.exists(lookup_file_path) and lookup_file_path.endswith(
+                ".json"
+            ):
                 with open(lookup_file_path, "r") as lookup:
-                    value["options"] = lookup.read().strip().split("\n")
+                    value["options"] = json.load(lookup)
             else:
-                value["options"] = []  # or handle missing file as needed
+                value["options"] = []  # Handle missing or unsupported files
 
     return data
 
@@ -43,9 +47,11 @@ def get_project_common_data():
         base_dir, "metadataconfig", "project_common_data.json"
     )
 
+    # Load the primary JSON configuration
     with open(columns_file_path, "r") as columns_file:
         data = json.load(columns_file)
 
+    # Process each item in the data
     for key, value in data.items():
         lookup_file = value.get("lookup_file")
         if (
@@ -54,11 +60,13 @@ def get_project_common_data():
             lookup_file_path = os.path.join(
                 base_dir, "metadataconfig", lookup_file
             )
-            if os.path.exists(lookup_file_path):
+            if os.path.exists(lookup_file_path) and lookup_file_path.endswith(
+                ".json"
+            ):
                 with open(lookup_file_path, "r") as lookup:
-                    value["options"] = lookup.read().strip().split("\n")
+                    value["options"] = json.load(lookup)
             else:
-                value["options"] = []  # or handle missing file as needed
+                value["options"] = []  # Handle missing or unsupported files
 
     return data
 
@@ -216,9 +224,11 @@ def check_field_values_lookup(df, valid_values, field_name, allow_empty=True):
 
 def check_date_collected(date):
     """
-    Check if a single Date_collected value is in DD/MM/YYYY format.
+    Check if a single Date_collected value is in YYYY-MM-DD format.
     """
-    date_format = r"\b(?:0[1-9]|[12][0-9]|3[01])/(?:0[1-9]|1[0-2])/\d{4}\b"
+    # Regular expression for YYYY-MM-DD format
+    date_format = r"\b\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])\b"
+    logger.info(date)
 
     if not re.match(date_format, str(date)):
         return {"status": 0, "message": "Invalid value"}
@@ -281,28 +291,43 @@ def check_latitude_longitude(value):
 
     try:
         float_value = float(value)
-        if -90 <= float_value <= 90:  # Valid latitude range
+
+        # Define regex pattern for up to 15 decimal places
+        pattern = r"^-?\d+(\.\d{1,15})?$"
+
+        # Check if it's a valid latitude
+        if -90 <= float_value <= 90:
             if re.match(
-                r"^-?\d+(\.\d{1,6})?$", str(float_value)
-            ):  # Check precision up to 6 decimal places
+                pattern, str(float_value)
+            ):  # Check precision up to 15 decimal places
                 return {"status": 1, "message": "Valid latitude"}
             else:
                 return {
                     "status": 0,
-                    "message": "Invalid value: incorrect precision",
+                    "message": (
+                        "Invalid value: incorrect "
+                        "precision for latitude"
+                    ),
                 }
-        elif -180 <= float_value <= 180:  # Valid longitude range
+
+        # Check if it's a valid longitude
+        elif -180 <= float_value <= 180:
             if re.match(
-                r"^-?\d+(\.\d{1,6})?$", str(float_value)
-            ):  # Check precision up to 6 decimal places
+                pattern, str(float_value)
+            ):  # Check precision up to 15 decimal places
                 return {"status": 1, "message": "Valid longitude"}
             else:
                 return {
                     "status": 0,
-                    "message": "Invalid value: incorrect precision",
+                    "message": (
+                        "Invalid value: incorrect "
+                        "precision for longitude"
+                    ),
                 }
+
         else:
             return {"status": 0, "message": "Invalid value: out of range"}
+
     except ValueError:
         return {"status": 0, "message": "Invalid value: not a valid number"}
 
@@ -314,6 +339,7 @@ def check_metadata(df, using_scripps, multiple_sequencing_runs=False):
     expected_columns_data = get_columns_data()
     overall_status = 1
     issues = {}
+    messages = []
 
     for key, value in expected_columns_data.items():
         if "required" in value and value["required"] == "IfNotScripps":
@@ -321,15 +347,32 @@ def check_metadata(df, using_scripps, multiple_sequencing_runs=False):
                 value["required"] = True
             else:
                 value["required"] = False
-    logger.info(
-        "The multiple_sequencing_runs is " + str(multiple_sequencing_runs)
-    )
+
+    # Check for presence of "Control" in "Sample_or_Control" column
+    if "Sample_or_Control" in df.columns:
+        if "Control" not in df["Sample_or_Control"].values:
+            messages.append(
+                "Please note: There is no control in your samples."
+            )
 
     if multiple_sequencing_runs == "Yes":
-        logger.info("Inside first if ")
         if "SequencingRun" in expected_columns_data:
-            logger.info("Inside second if ")
             expected_columns_data["SequencingRun"]["required"] = True
+
+            # Check if there is more than one unique value in
+            # the SequencingRun field
+            unique_sequencing_runs = df["SequencingRun"].nunique()
+            if unique_sequencing_runs <= 1:
+                issues["SequencingRun"] = {
+                    "status": 0,
+                    "message": (
+                        "Multiple sequencing runs indicated but "
+                        "only one unique value "
+                        "found in SequencingRun field"
+                    ),
+                    "invalid": [],
+                }
+                overall_status = 0
 
     for column_key, column_values in expected_columns_data.items():
         if column_key not in df.columns:
@@ -359,6 +402,9 @@ def check_metadata(df, using_scripps, multiple_sequencing_runs=False):
 
     final_result = {"status": overall_status}
     final_result.update(issues)
+
+    if messages:
+        final_result["messages"] = messages
 
     return final_result
 

@@ -23,46 +23,43 @@
     "required": "True"
   },
   "Land_use": {
-    "lookup_file": "land_use.csv",
+    "lookup_file": "land_use.json",
     "help_tip": "Land use category of the site.",
     "required": "True"
   },
   "Agricultural_land": {
-    "lookup_file": "agricultural_land.csv",
+    "lookup_file": "agricultural_land.json",
     "help_tip": "Was the land where the sample taken agricultural?",
     "required": "True"
   },
-  "Treatments": {
-    "help_tip": "Optional. Short description if any treatments were applied to the land for study (e.g. pesticide, drought)"
-  },
   "Ecosystem": {
-    "lookup_file": "ecosystems.csv",
+    "lookup_file": "ecosystems.json",
     "help_tip": "Type of ecosystem.",
     "required": "True"
   },
   "Grid_Size": {
-    "lookup_file": "grid_size.csv",
+    "lookup_file": "grid_size.json",
     "help_tip": "Size of your sampling grid. 30m is the standard",
     "required": "True"
   },
   "Soil_depth": {
-    "lookup_file": "soil_depth.csv",
+    "lookup_file": "soil_depth.json",
     "help_tip": "Depth of soil core. 5-10cm is the SPUN standard",
     "required": "True"
   },
   "Transport_refrigeration": {
-    "lookup_file": "Transport_refrigeration.csv",
+    "lookup_file": "transport_refrigeration.json",
     "help_tip": "Transport refrigeration method used",
     "required": "True"
   },
   "Drying": {
-    "lookup_file": "drying.csv",
+    "lookup_file": "drying.json",
     "help_tip": "If airdried, select time drying. Airdrying includes drying with silica gel. Select ‘No’ if no airdrying carried out",
     "required": "True"
   },
   "Date_collected": {
     "field_type":"date",
-    "help_tip": "Date the sample was collected. Must be DD/MM/YYYY format",
+    "help_tip": "Date the sample was collected. Must be YYYY-DD-MM format",
     "check_function": "check_date_collected",
     "required": "True"
   },
@@ -71,18 +68,13 @@
     "check_function": "check_dna_concentration",
     "required": "True"
   },
-  "DNA_conc_instrument": {
-    "lookup_file": "dna_conc_instrument.csv",
-    "help_tip": "Instrument/machine used to quantify DNA",
-    "required": "True"
-  },
   "Elevation": {
     "help_tip": "Elevation in meters above sea level",
     "check_function": "check_elevation",
     "required": "True"
   },
   "Sample_or_Control": {
-    "lookup_file": "sample_or_control.csv",
+    "lookup_file": "sample_or_control.json",
     "help_tip": "Indicate ‘True sample' if the sample is a collected soil sample, 'Control' if sample is a negative control",
     "required": "True"
   },

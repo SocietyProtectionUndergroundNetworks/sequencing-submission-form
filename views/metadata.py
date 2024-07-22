@@ -8,6 +8,7 @@ from flask import (
     request,
     url_for,
     jsonify,
+    send_file,
 )
 from flask_login import current_user, login_required
 from models.bucket import Bucket
@@ -24,10 +25,9 @@ from helpers.metadata_check import (
 from helpers.model import model_to_dict
 from helpers.create_xls_template import (
     create_template_one_drive_and_excel,
-    create_template_google_sheets,
 )
 import numpy as np
-
+from pathlib import Path
 
 metadata_bp = Blueprint("metadata", __name__)
 
@@ -72,6 +72,7 @@ def approved_required(view_func):
 def metadata_form():
     my_buckets = {}
     map_key = os.environ.get("GOOGLE_MAP_API_KEY")
+    google_sheets_template_url = os.environ.get("GOOGLE_SPREADSHEET_TEMPLATE")
     for my_bucket in current_user.buckets:
         my_buckets[my_bucket] = Bucket.get(my_bucket)
     expected_columns = get_columns_data()
@@ -105,6 +106,7 @@ def metadata_form():
         regions=regions,
         sequencer_ids=sequencer_ids,
         nr_files_per_sequence=nr_files_per_sequence,
+        google_sheets_template_url=google_sheets_template_url,
     )
 
 
@@ -166,6 +168,19 @@ def upload_metadata_file():
     else:
         return jsonify({"error": "Unsupported file type"}), 400
     df = df.dropna(how="all")
+
+    if "Date_collected" in df.columns:
+        # Convert the 'Date_collected' column to datetime format
+        df["Date_collected"] = pd.to_datetime(
+            df["Date_collected"], errors="coerce"
+        )
+
+        # Drop rows where conversion failed
+        df = df.dropna(subset=["Date_collected"])
+
+        # Convert datetime to 'DD/MM/YYYY' format
+        df["Date_collected"] = df["Date_collected"].dt.strftime("%Y-%m-%d")
+
     # Check metadata using the helper function
     result = check_metadata(df, using_scripps, multiple_sequencing_runs)
 
@@ -317,6 +332,32 @@ def sequencing_confirm_metadata():
 
 
 @metadata_bp.route(
+    "/metadata_instructions",
+    endpoint="metadata_instructions",
+)
+@login_required
+@approved_required
+def metadata_instructions():
+    expected_columns = get_columns_data()
+    google_sheets_template_url = os.environ.get("GOOGLE_SPREADSHEET_TEMPLATE")
+
+    return render_template(
+        "metadata_instructions.html",
+        expected_columns=expected_columns,
+        google_sheets_template_url=google_sheets_template_url,
+    )
+
+
+@metadata_bp.route("/xls_sample", endpoint="xls_sample")
+def xls_sample():
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    path = Path(project_root, "static", "xls")
+    xls_path = path / "template_with_dropdowns_for_one_drive_and_excel.xlsx"
+
+    return send_file(xls_path, as_attachment=True)
+
+
+@metadata_bp.route(
     "/create_xls_template",
     endpoint="create_xls_template",
 )
@@ -324,6 +365,5 @@ def sequencing_confirm_metadata():
 @approved_required
 def create_xls_template():
     create_template_one_drive_and_excel()
-    create_template_google_sheets()
 
     return (jsonify({"result": 1}), 200)

@@ -1,11 +1,11 @@
 {
   "Country": {
-    "lookup_file": "countries.csv",
+    "lookup_file": "countries.json",
     "help_tip": "Country you are sampling within",
     "required": "True"
   },
   "Sequencing_platform": {
-    "lookup_file": "sequencing_platform.csv",
+    "lookup_file": "sequencing_platform.json",
     "help_tip": "Platform used for sequencing.",
     "required": "IfNotScripps"
   },
@@ -25,22 +25,27 @@
     "required": "True"
   },
   "Primer_set_1": {
-    "lookup_file": "primer_set.csv",
+    "lookup_file": "primer_set.json",
     "help_tip": "First primer set used for amplicon sequencing, if applicable.",
     "required": "IfNotScripps"
   },
   "Primer_set_2": {
-    "lookup_file": "primer_set.csv",
+    "lookup_file": "primer_set.json",
     "help_tip": "Secondary primer set used for amplicon sequencing, if applicable.",
     "required": "OptionalIfNotScripps"
   },
   "Extraction_method": {
-    "lookup_file": "extraction_method.csv",
+    "lookup_file": "extraction_method.json",
     "help_tip": "Kit or protocol used for DNA extraction. ‘Conventional extraction’ refers to a laboratory protocol using common buffers and solutions (such a SDS, phenol). Conventional extraction, CTAB refers to a laboratory protocol using common buffers and solutions in addition to the CTAB buffer.",
     "required": "True"
   },
+  "DNA_conc_instrument": {
+    "lookup_file": "dna_conc_instrument.json",
+    "help_tip": "Instrument/machine used to quantify DNA",
+    "required": "True"
+  },  
   "Multiple_sequencing_runs": {
-    "lookup_file": "multiple_sequencing_runs.csv",
+    "lookup_file": "multiple_sequencing_runs.json",
     "help_tip": "Were your samples run across multiple sequencing runs (if known)? ",
     "required": "True"
   }
