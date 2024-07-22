@@ -15,7 +15,7 @@ Optional (but really helpfull)
 
 ## Preparation:
 
-#### The following three steps you can avoid by asking an other developer the json credentials of the existing service account used for development
+#### The following two steps you can avoid by asking an other developer the json credentials of the existing service account used for development
 - On your google cloud project, create a service account with necessary permissions to access the buckets. Or ask an other developer to give you access to an existing one. 
 - Download the json file with the credentials of the service account and store it
 
@@ -50,21 +50,11 @@ Everytime a commit happens in the master, a github workflow runs an action and d
 - GCP_VM_INSTANCE : The name of the VM instance inside the above google cloud project. Visible from the google cloud VM admin page. 
 - GCP_ZONE : The zone where the instance is created (for example: `us-central1-a`). Visible from the google cloud VM admin page. 
 
-# Known problems
+## Template file
+There is a function in the flask application for creating the template file for the metadata based on the csv files configuration. 
 
-Until it gets fixed by the google-github-actions/auth and google-github-actions/setup-gcloud processes, each deployment adds a key to the os-login profile.
-This causes that after (quite a number) of deployments the profile becomes very big and deployments fail with the error message: 
-`ERROR: (gcloud.compute.ssh) INVALID_ARGUMENT: Login profile size exceeds 32 KiB. Delete profile values to make additional space.`
-
-The error is described in the [google documentation](https://cloud.google.com/compute/docs/troubleshooting/troubleshoot-os-login#invalid_argument)
-To avoid this happening the keys should be added with an expiration time with `To prevent this issue from occurring in the future, add an expiry time for SSH keys` [described here](https://cloud.google.com/compute/docs/connect/add-ssh-keys#os-login)
-
-But this is not possible when we are using google-github-actions/auth which does the key management on its own.
-
-Until this is fixed, the solution is as described in the documentation.
-
-- Login to the vm
-- Run `gcloud compute os-login describe-profile` to see the profile
-- For each key you want to delete, run `gcloud compute os-login ssh-keys remove --key=XXXXXXXX`
-
+There does not exist a link from inside the application (as this does not need to be used every by final users, and can even run locally on any developers computer). 
+To create the templates, visit /create_xls_template  (aka in a dev environment : http://127.0.0.1/create_xls_template ). This should create two files: 
+- template_with_dropdowns_for_google_sheets.xlsx
+- template_with_dropdowns_for_one_drive_and_excel.xlsx
 
