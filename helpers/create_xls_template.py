@@ -8,6 +8,9 @@ from helpers.metadata_check import get_columns_data
 
 logger = logging.getLogger("my_app_logger")
 
+
+# Documentation at:
+# https://openpyxl.readthedocs.io/en/latest/validation.html
 def create_template_google_sheets():
     # Fetch the metadata
     metadata = get_columns_data()
@@ -45,7 +48,6 @@ def create_template_google_sheets():
             )
             ws.add_data_validation(dv)
             col_idx = df.columns.get_loc(col) + 1  # Get column index (1-based)
-            col_letter = get_column_letter(col_idx)
             # Apply validation to each cell individually
             for row in range(
                 2, 102
@@ -61,7 +63,8 @@ def create_template_google_sheets():
     except Exception as e:
         logger.error(f"Failed to save the workbook: {e}")
 
-def create_template_with_options_sheet():
+
+def create_template_one_drive_and_excel():
 
     metadata = get_columns_data()
     logger.debug(f"Metadata: {metadata}")
@@ -89,10 +92,13 @@ def create_template_with_options_sheet():
             col_letter = get_column_letter(col_idx)
             # Write options to the options sheet
             for i, option in enumerate(category_options, start=1):
-                ws_options.cell(row=i, column=col_idx, value=option)    
+                ws_options.cell(row=i, column=col_idx, value=option)
 
             # Directly reference the options range in the DataValidation
-            option_range = f"Options!${col_letter}$1:${col_letter}${len(category_options)}"
+            option_range = (
+                f"Options!${col_letter}$1:"
+                f"${col_letter}${len(category_options)}"
+            )
             dv_category = DataValidation(
                 type="list", formula1=f"={option_range}", showDropDown=False
             )
@@ -100,7 +106,8 @@ def create_template_with_options_sheet():
             # Add data validation to the 'Category' column
             ws_data.add_data_validation(dv_category)
 
-            # Apply data validation to each cell in the column (first 100 rows for example)
+            # Apply data validation to each cell in the column
+            # first 100 rows for example)
             for row in range(2, 102):
                 dv_category.add(ws_data.cell(row=row, column=col_idx))
 
