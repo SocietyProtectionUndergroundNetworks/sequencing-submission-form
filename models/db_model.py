@@ -132,7 +132,7 @@ class SequencingSamplesTable(Base):
     Sample_or_Control = Column(String(255), nullable=True)
     SequencingRun = Column(String(255), nullable=True)
     Notes = Column(String(255), nullable=True)
-
+    sequencer_ids = relationship("SequencingSequencerIDsTable", backref="sample")
 
 class SequencingSequencerIDsTable(Base):
     __tablename__ = "sequencing_sequencer_ids"

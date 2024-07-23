@@ -80,6 +80,7 @@ def metadata_form():
     sequencer_ids = []
     regions = SequencingUpload.get_regions()
     nr_files_per_sequence = 1
+    valid_samples = False
     if process_id:
         process_data = SequencingUpload.get(process_id)
 
@@ -88,6 +89,7 @@ def metadata_form():
 
         samples_data = SequencingUpload.get_samples(process_id)
         sequencer_ids = SequencingUpload.get_sequencer_ids(process_id)
+        valid_samples = SequencingUpload.validate_samples(process_id)
 
     return render_template(
         "metadata_form.html",
@@ -102,6 +104,7 @@ def metadata_form():
         sequencer_ids=sequencer_ids,
         nr_files_per_sequence=nr_files_per_sequence,
         google_sheets_template_url=google_sheets_template_url,
+        valid_samples=valid_samples
     )
 
 

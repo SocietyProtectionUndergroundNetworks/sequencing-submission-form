@@ -9,6 +9,7 @@ from models.db_model import (
 )
 from pathlib import Path
 from flask_login import current_user
+from sqlalchemy.orm import joinedload
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -94,7 +95,6 @@ class SequencingUpload:
             data = list(primer_set_region.values())
         else:
             data = []
-            logger.info("here")
             if primer_set_1 in primer_set_region:
                 data.append(primer_set_region[primer_set_1])
             if primer_set_2 in primer_set_region:
@@ -225,3 +225,41 @@ class SequencingUpload:
         else:
             session.close()
             return False
+
+    @classmethod
+    def validate_samples(cls, id):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        # Get the upload instance
+        upload = session.query(SequencingUploadsTable).filter_by(id=id).first()
+        if not upload:
+            session.close()
+            return False  # Upload not found
+
+        # Query to get all samples and their sequencer IDs
+        samples = session.query(SequencingSamplesTable).options(
+            joinedload(SequencingSamplesTable.sequencer_ids)
+        ).filter_by(sequencingUploadId=id).all()
+
+        session.close()
+        
+        upload = cls.get(id)
+        
+        nr_files_per_sequence = cls.determine_nr_files_per_sequence(
+            upload["Sequencing_platform"]
+        )
+        regions = cls.get_regions(
+            upload["Primer_set_1"],upload["Primer_set_2"]
+        )
+        
+        for sample in samples:
+            sequencer_ids = sample.sequencer_ids  # Assuming `sequencer_ids` is a relationship
+            if len(sequencer_ids) != nr_files_per_sequence:
+                return False  # Incorrect number of sequencer IDs
+
+            sample_regions = {sid.Region for sid in sequencer_ids if sid.Region}
+            if not sample_regions.issubset(set(regions)):
+                return False  # Incorrect regions
+
+        return True

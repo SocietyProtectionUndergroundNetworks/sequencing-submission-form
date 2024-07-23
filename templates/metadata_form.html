@@ -569,7 +569,7 @@
         enctype="multipart/form-data"
       >
         <fieldset
-          {% if not process_data["sequencing_records_confirmed"] %}
+          {% if not valid_samples %}
            disabled="disabled"
           {% endif %}
         >        
