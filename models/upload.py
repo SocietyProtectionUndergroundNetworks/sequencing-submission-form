@@ -222,6 +222,22 @@ class Upload:
             return False
 
     @classmethod
+    def reset_gz_filedata(cls, upload_id, new_gz_filedata):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+        upload = session.query(UploadTable).filter_by(id=upload_id).first()
+
+        if upload:
+            # Convert the updated gz_filedata dictionary back to JSON string
+            upload.gz_filedata = json.dumps(new_gz_filedata)
+            session.commit()
+            session.close()
+            return True
+        else:
+            session.close()
+            return False
+
+    @classmethod
     def get_gz_filedata(cls, upload_id):
         db_engine = connect_db()
         session = get_session(db_engine)
