@@ -305,8 +305,8 @@ def check_latitude_longitude(value):
                 return {
                     "status": 0,
                     "message": (
-                        "Invalid value: incorrect "
-                        "precision for latitude"
+                        "Invalid value: incorrect \
+                        precision for latitude"
                     ),
                 }
 
@@ -320,8 +320,7 @@ def check_latitude_longitude(value):
                 return {
                     "status": 0,
                     "message": (
-                        "Invalid value: incorrect "
-                        "precision for longitude"
+                        "Invalid value: incorrect " "precision for longitude"
                     ),
                 }
 
@@ -525,19 +524,3 @@ def check_row(row, expected_columns_data):
     row_result.update(row_issues)
 
     return row_result
-
-
-def get_nr_files_per_sequence(sequencing_platform):
-    sequencers_expecting_pairs = [
-        "Illumina NextSeq",
-        "Illumina MiSeq",
-        "Illumina NovaSeq",
-        "Element Biosciences AVITI",
-    ]
-
-    # Strip whitespace
-    sequencing_platform = sequencing_platform.strip()
-
-    if sequencing_platform in sequencers_expecting_pairs:
-        return 2
-    return 1

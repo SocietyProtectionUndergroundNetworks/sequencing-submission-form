@@ -19,10 +19,7 @@ from helpers.metadata_check import (
     check_metadata,
     get_columns_data,
     get_project_common_data,
-    get_regions,
-    get_nr_files_per_sequence,
 )
-from helpers.model import model_to_dict
 from helpers.create_xls_template import (
     create_template_one_drive_and_excel,
 )
@@ -81,18 +78,16 @@ def metadata_form():
     process_id = request.args.get("process_id", "")
     samples_data = []
     sequencer_ids = []
-    regions = get_regions()
+    regions = SequencingUpload.get_regions()
     nr_files_per_sequence = 1
     if process_id:
         process_data = SequencingUpload.get(process_id)
-        nr_files_per_sequence = get_nr_files_per_sequence(
-            process_data.Sequencing_platform
-        )
 
-        process_data = model_to_dict(process_data)  # Convert to dictionary
+        nr_files_per_sequence = process_data["nr_files_per_sequence"]
+        regions = process_data["regions"]
+
         samples_data = SequencingUpload.get_samples(process_id)
         sequencer_ids = SequencingUpload.get_sequencer_ids(process_id)
-        regions = get_regions(process_data)
 
     return render_template(
         "metadata_form.html",
@@ -306,7 +301,6 @@ def upload_sequencing_file():
     df = df.dropna(how="all")
 
     process_data = SequencingUpload.get(process_id)
-    process_data = model_to_dict(process_data)
     result = SequencingSequencerId.check_df_and_add_records(
         process_id=process_id,
         df=df,

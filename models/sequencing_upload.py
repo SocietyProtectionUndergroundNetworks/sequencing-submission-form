@@ -1,4 +1,6 @@
 import logging
+import os
+import json
 from helpers.dbm import connect_db, get_session
 from models.db_model import (
     SequencingUploadsTable,
@@ -15,10 +17,11 @@ logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 class SequencingUpload:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
-        self.path = Path("uploads", self.uploads_folder)
+        self.nr_files_per_sequence = 1
+        self.regions = []
 
     @classmethod
-    def get(self, id):
+    def get(cls, id):
         db_engine = connect_db()
         session = get_session(db_engine)
 
@@ -41,10 +44,64 @@ class SequencingUpload:
             if not key.startswith("_")
         }
 
-        # Create an instance of YourClass using the dictionary
-        upload = SequencingUploadsTable(**filtered_dict)
+        # Create an instance of SequencingUpload using the dictionary
+        upload = cls(**filtered_dict)
 
-        return upload
+        upload.nr_files_per_sequence = cls.determine_nr_files_per_sequence(
+            filtered_dict["Sequencing_platform"]
+        )
+
+        upload.regions = cls.get_regions(
+            filtered_dict["Primer_set_1"], filtered_dict["Primer_set_2"]
+        )
+
+        # Convert the instance to a dictionary including the custom attribute
+        upload_dict = upload.__dict__
+
+        return upload_dict
+
+    @staticmethod
+    def determine_nr_files_per_sequence(sequencing_platform):
+        sequencers_expecting_pairs = [
+            "Illumina NextSeq",
+            "Illumina MiSeq",
+            "Illumina NovaSeq",
+            "Element Biosciences AVITI",
+        ]
+
+        # Strip whitespace
+        sequencing_platform = sequencing_platform.strip()
+
+        if sequencing_platform in sequencers_expecting_pairs:
+            return 2
+        return 1
+
+    @classmethod
+    def get_regions(cls, primer_set_1=None, primer_set_2=None):
+        current_dir = os.path.dirname(__file__)
+        base_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
+        regions_file_path = os.path.join(
+            base_dir, "metadataconfig", "primer_set_regions.json"
+        )
+
+        # Load the JSON file
+        with open(regions_file_path, "r") as f:
+            primer_set_region = json.load(f)
+
+        # Check if process_data exists
+        if primer_set_1 is None and primer_set_2 is None:
+            # If process_data does not exist, return all available regions
+            data = list(primer_set_region.values())
+        else:
+            data = []
+            logger.info("here")
+            if primer_set_1 in primer_set_region:
+                data.append(primer_set_region[primer_set_1])
+            if primer_set_2 in primer_set_region:
+                data.append(primer_set_region[primer_set_2])
+
+        data = list(set(data))
+        return data
 
     @classmethod
     def get_samples(self, sequencingUploadId):

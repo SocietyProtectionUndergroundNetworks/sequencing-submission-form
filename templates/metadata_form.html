@@ -560,6 +560,24 @@
         </table>        
       </div>
     </div>
+    
+    <div id="step_7" class="form-step-item">
+      <form
+        method="POST"
+        action="/upload"
+        id="step_7_form"
+        enctype="multipart/form-data"
+      >
+        <fieldset
+          {% if not process_data["sequencing_records_confirmed"] %}
+           disabled="disabled"
+          {% endif %}
+        >        
+          <input type="file" id="step_4_button" name="file" multiple />
+          <input type="hidden" name="process_id" value="{{ process_id }}">
+        </fieldset>
+      </form>
+    </div>
   </div>
 
   <script type="application/javascript">
@@ -1286,7 +1304,6 @@
                           .appendTo('#step_6_msg');
                   });
               } else {
-                console.log(response.data);
                 response.data.forEach(function(sequencer_id) {
                   
                   sequencerSampleId = sequencer_id["db_sample_id"]
@@ -1303,7 +1320,6 @@
                   });  
                   // HERE HERE  
                   // Find the element S_ row id _1
-                  console.log($('#S_' + sequencerSampleId + '_1').html())
                   if ($('#S_' + sequencerSampleId + '_1').html().trim() === '') {
                     $('#S_' + sequencerSampleId + '_1').html(sequencer_id["SequencerID"])
                     $('#R_' + sequencerSampleId + '_1').html(sequencer_id["Region"])
@@ -1337,6 +1353,18 @@
   ////// ############################################# /////////
   ////// ############ STEP 6 ENDS HERE ############### /////////
   ////// ############################################# /////////  
+
+  ////// ############################################# /////////
+  ////// ############ STEP 7 STARTS HERE ############# /////////
+  ////// ############################################# /////////
+  function enableForm_step_7() {
+      $('#step_7_form fieldset').removeAttr('disabled');
+  }
+  ////// ############################################# /////////
+  ////// ############ STEP 6 ENDS HERE ############### /////////
+  ////// ############################################# ///////// 
+
+
   
   ////// ############################################# /////////
   ////// ###### MAP HELPER FUNCTIONS START HERE ###### /////////
