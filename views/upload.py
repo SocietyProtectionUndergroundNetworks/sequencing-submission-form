@@ -1066,7 +1066,7 @@ def reset_uploaded_file():
             # Remove the entry from the JSON data
             del gz_filedata[filename_to_reset]
 
-            # Update the gz_filedata field with the new JSON data 
+            # Update the gz_filedata field with the new JSON data
             # using the class method
             Upload.reset_gz_filedata(upload.id, gz_filedata)
 
