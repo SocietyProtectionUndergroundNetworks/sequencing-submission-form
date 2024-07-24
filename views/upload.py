@@ -5,6 +5,7 @@ import os
 import re
 import logging
 import psutil
+import json
 from pathlib import Path
 from werkzeug.utils import secure_filename
 from flask import (
@@ -1038,6 +1039,39 @@ def recreate_process_matching_files():
     process_id = request.args.get("process_id")
     nr_files = recreate_matching_files(process_id)
     return {"nr_files": nr_files}
+
+
+@upload_bp.route(
+    "/reset_uploaded_file",
+    endpoint="reset_uploaded_file",
+)
+@login_required
+@approved_required
+@admin_required
+def reset_uploaded_file():
+    process_id = request.args.get("process_id")
+    filename_to_reset = request.args.get("filename")
+    logger.info(filename_to_reset)
+    upload = Upload.get(process_id)
+
+    if upload.gz_filedata:
+        # Load the gz_filedata JSON
+        gz_filedata = json.loads(upload.gz_filedata)
+
+        # Check if the filename_to_reset exists in the JSON data
+        if filename_to_reset in gz_filedata:
+            logger.info(f"Found and removing: {filename_to_reset}")
+
+            # Remove the entry from the JSON data
+            del gz_filedata[filename_to_reset]
+
+            # Update the gz_filedata field with the new JSON data
+            # using the class method
+            Upload.reset_gz_filedata(upload.id, gz_filedata)
+
+        return jsonify(gz_filedata)
+
+    return jsonify({"error": "No data found"}), 404
 
 
 @upload_bp.route("/reset_flag", methods=["POST"], endpoint="reset_flag")

@@ -264,125 +264,133 @@
       </div>
       <div id="step_6_msg"></div>
     </div>
-    <div id="step_7" class="form-step-item">
-      <h3 id="step_7_title">
-        Step 7:
-        {% if sequencing_method and sequencing_method>1 %}
-          Not Applicable to this sequencing method
-        {% elif renaming_skipped and renaming_skipped==True  %}
-          Renaming skipped
-        {% else %}
-          Rename files
-        {% endif %}
-      </h3>
-      {% if (files_renamed) %}
-        <div id="step_7_msg" class="text-success">Files renamed</div>
-        <h4 id="step_7_warning" class="text-warning"></h4>
+      <div 
         {% if (is_admin) %}
-          <button type="button" class="btn btn-secondary" id="step_7_reset_button" data-process_id="{{ process_id }}">Reset step flag</button>
-        {% endif %}
-      {% elif renaming_skipped and renaming_skipped==True %}
-        <div id="step_7_msg" class="text-success">Renaming skipped</div>
-        <h4 id="step_7_warning" class="text-warning"></h4>
-        {% if (is_admin) %}
-          <button type="button" class="btn btn-secondary" id="step_7_reset_button" data-process_id="{{ process_id }}">Reset step flag</button>
-        {% endif %}
-      {% else %}
-        <h4 id="step_7_warning" class="text-warning"> ONLY start this when you have uploaded successfully all your files and the unzip process has finished for all your files</h4>
-        <div>
-          <form
-              id="step_7_form"
-              method="POST"
-              action="/renamefiles"
-              {% if files_renamed %} style="display: none;" {% endif %}
-          >
-            <input type="hidden" name="process_id" value="{{ process_id }}">
-            <input type="hidden" name="skip" value="false">
-            <input type="submit" class="btn btn-primary" id="step_7_button">
-            {% if (is_admin) %}
-              <button type="button" class="btn btn-secondary" id="step_7_skip_button">Skip renaming</button>
+          style="display:block"
+        {% else %}    
+          style="display:none"
+        {% endif %}    
+      >
+
+        <div id="step_7" class="form-step-item">
+          <h3 id="step_7_title">
+            Step 7:
+            {% if sequencing_method and sequencing_method>1 %}
+              Not Applicable to this sequencing method
+            {% elif renaming_skipped and renaming_skipped==True  %}
+              Renaming skipped
+            {% else %}
+              Rename files
             {% endif %}
-          </form>
+          </h3>
+          {% if (files_renamed) %}
+            <div id="step_7_msg" class="text-success">Files renamed</div>
+            <h4 id="step_7_warning" class="text-warning"></h4>
+            {% if (is_admin) %}
+              <button type="button" class="btn btn-secondary" id="step_7_reset_button" data-process_id="{{ process_id }}">Reset step flag</button>
+            {% endif %}
+          {% elif renaming_skipped and renaming_skipped==True %}
+            <div id="step_7_msg" class="text-success">Renaming skipped</div>
+            <h4 id="step_7_warning" class="text-warning"></h4>
+            {% if (is_admin) %}
+              <button type="button" class="btn btn-secondary" id="step_7_reset_button" data-process_id="{{ process_id }}">Reset step flag</button>
+            {% endif %}
+          {% else %}
+            <h4 id="step_7_warning" class="text-warning"> ONLY start this when you have uploaded successfully all your files and the unzip process has finished for all your files</h4>
+            <div>
+              <form
+                  id="step_7_form"
+                  method="POST"
+                  action="/renamefiles"
+                  {% if files_renamed %} style="display: none;" {% endif %}
+              >
+                <input type="hidden" name="process_id" value="{{ process_id }}">
+                <input type="hidden" name="skip" value="false">
+                <input type="submit" class="btn btn-primary" id="step_7_button">
+                {% if (is_admin) %}
+                  <button type="button" class="btn btn-secondary" id="step_7_skip_button">Skip renaming</button>
+                {% endif %}
+              </form>
+            </div>
+            <div id="step_7_msg"></div>
+            <div id="step_7_details"></div>
+          {% endif %}
         </div>
-        <div id="step_7_msg"></div>
-        <div id="step_7_details"></div>
-      {% endif %}
-    </div>
-    <div id="step_8" {% if not files_renamed %} style="opacity: 0.5;" {% endif %} class="form-step-item">
-      <h3 id="step_8_title">
-        Step 8:
-        {% if sequencing_method and sequencing_method>1 %}
-          Not Applicable to this sequencing method
-        {% else  %}
-          Run fastqc
-        {% endif %}
-      </h3>
+        <div id="step_8" {% if not files_renamed %} style="opacity: 0.5;" {% endif %} class="form-step-item">
+          <h3 id="step_8_title">
+            Step 8:
+            {% if sequencing_method and sequencing_method>1 %}
+              Not Applicable to this sequencing method
+            {% else  %}
+              Run fastqc
+            {% endif %}
+          </h3>
 
-      {% if fastqc_run %}
-        <div id="step_8_msg" class="text-success">Fastqc and multiqc processes run</div>
-        {% if (is_admin) %}
-          <button type="button" class="btn btn-secondary" id="step_8_reset_button" data-process_id="{{ process_id }}">Reset step flag</button>
-        {% endif %}
-      {% else %}
-        <div>
-          <form
-              id="step_8_form"
-              method="POST"
-              action="/fastqcfiles"
-              {% if ((not files_renamed) or (fastqc_run)) %} style="display: none;" {% endif %}
-          >
-            <input type="hidden" name="process_id" value="{{ process_id }}">
-            <input type="submit" class="btn btn-primary" id="step_8_button">
-          </form>
+          {% if fastqc_run %}
+            <div id="step_8_msg" class="text-success">Fastqc and multiqc processes run</div>
+            {% if (is_admin) %}
+              <button type="button" class="btn btn-secondary" id="step_8_reset_button" data-process_id="{{ process_id }}">Reset step flag</button>
+            {% endif %}
+          {% else %}
+            <div>
+              <form
+                  id="step_8_form"
+                  method="POST"
+                  action="/fastqcfiles"
+                  {% if ((not files_renamed) or (fastqc_run)) %} style="display: none;" {% endif %}
+              >
+                <input type="hidden" name="process_id" value="{{ process_id }}">
+                <input type="submit" class="btn btn-primary" id="step_8_button">
+              </form>
+            </div>
+            <div id="step_8_msg"></div>
+            <div id="step_8_details"></div>
+          {% endif %}
         </div>
-        <div id="step_8_msg"></div>
-        <div id="step_8_details"></div>
-      {% endif %}
-    </div>
-    <div id="step_9" {% if not fastqc_run %} style="opacity: 0.5;" {% endif %} class="form-step-item">
-      <h3 id="step_9_title">
-        Step 9:
-        {% if sequencing_method and sequencing_method>1 %}
-          Not Applicable to this sequencing method
-        {% else  %}
-          Upload fastqc and multiqc files to bucket
-        {% endif %}
-      </h3>
-      {% if fastqc_run %}
-        <div id="step_9_msg" class="text-success">Multiqc report uploaded to bucket</div>
-      {% else %}
-        <div id="step_9_msg" class="text-success"></div>
-      {% endif %}
-    </div>
-    <div id="step_10" {% if (not files_renamed) and (renaming_skipped and renaming_skipped==False) %} style="opacity: 0.5;" {% endif %} class="form-step-item">
-      <h3 id="step_10_title">
-        Step 10:
-        {% if sequencing_method and sequencing_method>1 %}
-          Upload fastq.gz files to project backets
-        {% else  %}
-          Upload renamed fastq.gz files to project backets
-        {% endif %}
-      </h3>
-      {% if renamed_sent_to_bucket %}
-        <div id="step_10_msg" class="text-success">Renamed files sent to buckets</div>
-        {% if (is_admin) %}
-          <button type="button" class="btn btn-secondary" id="step_10_reset_button" data-process_id="{{ process_id }}">Reset step flag</button>
-        {% endif %}
-      {% else %}
-        <div>
-          <form
-              id="step_10_form"
-              method="POST"
-              action="/uploadfinalfiles"
-          >
-            <input type="hidden" name="process_id" value="{{ process_id }}">
-            <input type="submit" class="btn btn-primary" id="step_10_button">
-          </form>
+        <div id="step_9" {% if not fastqc_run %} style="opacity: 0.5;" {% endif %} class="form-step-item">
+          <h3 id="step_9_title">
+            Step 9:
+            {% if sequencing_method and sequencing_method>1 %}
+              Not Applicable to this sequencing method
+            {% else  %}
+              Upload fastqc and multiqc files to bucket
+            {% endif %}
+          </h3>
+          {% if fastqc_run %}
+            <div id="step_9_msg" class="text-success">Multiqc report uploaded to bucket</div>
+          {% else %}
+            <div id="step_9_msg" class="text-success"></div>
+          {% endif %}
         </div>
-        <div id="step_10_msg"></div>
-      {% endif %}
-    </div>
-
+        <div id="step_10" {% if (not files_renamed) and (renaming_skipped and renaming_skipped==False) %} style="opacity: 0.5;" {% endif %} class="form-step-item">
+          <h3 id="step_10_title">
+            Step 10:
+            {% if sequencing_method and sequencing_method>1 %}
+              Upload fastq.gz files to project backets
+            {% else  %}
+              Upload renamed fastq.gz files to project backets
+            {% endif %}
+          </h3>
+          {% if renamed_sent_to_bucket %}
+            <div id="step_10_msg" class="text-success">Renamed files sent to buckets</div>
+            {% if (is_admin) %}
+              <button type="button" class="btn btn-secondary" id="step_10_reset_button" data-process_id="{{ process_id }}">Reset step flag</button>
+            {% endif %}
+          {% else %}
+            <div>
+              <form
+                  id="step_10_form"
+                  method="POST"
+                  action="/uploadfinalfiles"
+              >
+                <input type="hidden" name="process_id" value="{{ process_id }}">
+                <input type="submit" class="btn btn-primary" id="step_10_button">
+              </form>
+            </div>
+            <div id="step_10_msg"></div>
+          {% endif %}
+        </div>
+      </div>
 
     <h3> Unzipped files</h3>
     <div id="files_table">
