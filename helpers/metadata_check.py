@@ -386,11 +386,13 @@ def check_metadata(df, using_scripps, multiple_sequencing_runs=False):
         if not duplicates.empty:
             duplicate_entries = []
             for idx, value in duplicates.iterrows():
-                duplicate_entries.append({
-                    "row": idx,
-                    "value": value["SampleID"],
-                    "message": "Duplicate SampleID value found"
-                })
+                duplicate_entries.append(
+                    {
+                        "row": idx,
+                        "value": value["SampleID"],
+                        "message": "Duplicate SampleID value found",
+                    }
+                )
             issues["SampleID"] = {
                 "status": 0,
                 "message": "Duplicate SampleID values found.",
@@ -420,7 +422,6 @@ def check_metadata(df, using_scripps, multiple_sequencing_runs=False):
         final_result["messages"] = messages
 
     return final_result
-
 
 
 def check_row(row, expected_columns_data):

@@ -87,7 +87,7 @@ class SequencingSequencerId:
             messages = []
         logger.info(df)
 
-        expected_columns = ["SampleID", "Region", "SequencerID"]
+        expected_columns = ["SampleID", "Region", "SequencerID", "Index_1", "Index_2"]
         for expected_column in expected_columns:
             if expected_column not in uploaded_columns:
                 result = 0
@@ -172,6 +172,29 @@ class SequencingSequencerId:
                         f"while we expected {sequencing_regions_number}"
                     )
                     messages.append(message)
+
+        if result == 1:
+            indexes = ["Index_1", "Index_2"]
+            for index_x in indexes:
+                logger.info('Checking for ' + index_x)
+                # Check index_1 if present
+                for index, row in df.iterrows():              
+                    if index_x in row:
+                        logger.info('it exists in the row')
+                        index_value = row[index_x]
+                        if pd.notna(index_value):
+                            # Check length
+                            if len(index_value) > 100:
+                                result = 0
+                                messages.append(
+                                    f"{ index_x } in row {index + 1} is longer than 100 characters"
+                                )
+                            # Check if only contains ATGC
+                            if not all(char in "ATGC" for char in index_value):
+                                result = 0
+                                messages.append(
+                                    f"{ index_x } in row {index + 1} contains invalid characters (only ATGC are allowed)"
+                                )            
 
         # No problems found, so lets add these records
         if result == 1:
