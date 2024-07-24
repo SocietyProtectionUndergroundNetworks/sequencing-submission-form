@@ -238,27 +238,34 @@ class SequencingUpload:
             return False  # Upload not found
 
         # Query to get all samples and their sequencer IDs
-        samples = session.query(SequencingSamplesTable).options(
-            joinedload(SequencingSamplesTable.sequencer_ids)
-        ).filter_by(sequencingUploadId=id).all()
+        samples = (
+            session.query(SequencingSamplesTable)
+            .options(joinedload(SequencingSamplesTable.sequencer_ids))
+            .filter_by(sequencingUploadId=id)
+            .all()
+        )
 
         session.close()
-        
+
         upload = cls.get(id)
-        
+
         nr_files_per_sequence = cls.determine_nr_files_per_sequence(
             upload["Sequencing_platform"]
         )
         regions = cls.get_regions(
-            upload["Primer_set_1"],upload["Primer_set_2"]
+            upload["Primer_set_1"], upload["Primer_set_2"]
         )
-        
+
         for sample in samples:
-            sequencer_ids = sample.sequencer_ids  # Assuming `sequencer_ids` is a relationship
+            sequencer_ids = (
+                sample.sequencer_ids
+            )  # Assuming `sequencer_ids` is a relationship
             if len(sequencer_ids) != nr_files_per_sequence:
                 return False  # Incorrect number of sequencer IDs
 
-            sample_regions = {sid.Region for sid in sequencer_ids if sid.Region}
+            sample_regions = {
+                sid.Region for sid in sequencer_ids if sid.Region
+            }
             if not sample_regions.issubset(set(regions)):
                 return False  # Incorrect regions
 

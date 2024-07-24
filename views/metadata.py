@@ -104,7 +104,7 @@ def metadata_form():
         sequencer_ids=sequencer_ids,
         nr_files_per_sequence=nr_files_per_sequence,
         google_sheets_template_url=google_sheets_template_url,
-        valid_samples=valid_samples
+        valid_samples=valid_samples,
     )
 
 
@@ -168,16 +168,15 @@ def upload_metadata_file():
     df = df.dropna(how="all")
 
     if "Date_collected" in df.columns:
-        # Convert the 'Date_collected' column to datetime format
-        df["Date_collected"] = pd.to_datetime(
-            df["Date_collected"], errors="coerce"
+        # Attempt to convert 'Date_collected' to datetime
+        # format, invalid parsing will be NaT
+        temp_dates = pd.to_datetime(df["Date_collected"], errors="coerce")
+
+        # Update only the rows where conversion was successful
+        mask = temp_dates.notna()
+        df.loc[mask, "Date_collected"] = temp_dates[mask].dt.strftime(
+            "%Y-%m-%d"
         )
-
-        # Drop rows where conversion failed
-        df = df.dropna(subset=["Date_collected"])
-
-        # Convert datetime to 'DD/MM/YYYY' format
-        df["Date_collected"] = df["Date_collected"].dt.strftime("%Y-%m-%d")
 
     # Check metadata using the helper function
     result = check_metadata(df, using_scripps, multiple_sequencing_runs)
