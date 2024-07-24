@@ -45,7 +45,7 @@ class SequencingSequencerId:
         return sequencer_id
 
     @classmethod
-    def create(cls, sample_id, sequencer_id, region):
+    def create(cls, sample_id, sequencer_id, region, index_1, index_2):
         db_engine = connect_db()
         session = get_session(db_engine)
 
@@ -70,6 +70,8 @@ class SequencingSequencerId:
                 sequencingSampleId=sample_id,
                 SequencerID=sequencer_id,
                 Region=region,
+                Index_1=index_1,
+                Index_2=index_2,
             )
             session.add(new_record)
             session.commit()
@@ -86,6 +88,12 @@ class SequencingSequencerId:
             result = 1
             messages = []
         logger.info(df)
+
+        # Ensure no NaN values in 'Index_1' and 'Index_2'
+        if 'Index_1' in df.columns:
+            df['Index_1'] = df['Index_1'].apply(lambda x: None if pd.isna(x) else x)
+        if 'Index_2' in df.columns:
+            df['Index_2'] = df['Index_2'].apply(lambda x: None if pd.isna(x) else x)
 
         expected_columns = ["SampleID", "Region", "SequencerID", "Index_1", "Index_2"]
         for expected_column in expected_columns:
@@ -180,8 +188,9 @@ class SequencingSequencerId:
                 # Check index_1 if present
                 for index, row in df.iterrows():              
                     if index_x in row:
-                        logger.info('it exists in the row')
+                        
                         index_value = row[index_x]
+                        logger.info(index_value)
                         if pd.notna(index_value):
                             # Check length
                             if len(index_value) > 100:
@@ -213,6 +222,8 @@ class SequencingSequencerId:
                     sample_id=db_sample_id,
                     sequencer_id=row["SequencerID"],
                     region=row["Region"],
+                    index_1=row["Index_1"],
+                    index_2=row["Index_2"],
                 )
 
         return {

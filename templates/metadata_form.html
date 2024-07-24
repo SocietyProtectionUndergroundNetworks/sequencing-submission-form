@@ -456,6 +456,8 @@
                     <th scope="col" class="bg-gray">SampleID</th>
                     <th scope="col" class="bg-gray"><span class="grey">____</span>Sequencer ID<span class="grey">____</span></th>
                     <th scope="col" class="bg-gray"><span class="grey">____</span>Region<span class="grey">____</span></th>
+                    <th scope="col" class="bg-gray"><span class="grey">____</span>Index_1<span class="grey">____</span></th>
+                    <th scope="col" class="bg-gray"><span class="grey">____</span>Index_2<span class="grey">____</span></th>
                     <th scope="col" class="bg-gray">Files</th>
                 </tr>
             </thead>
@@ -468,7 +470,7 @@
                   {% set seq_data_list = [] %}
                   {% for seq in sequencer_ids %}
                       {% if seq.sequencingSampleId == row.id %}
-                          {% set seq_data = {'SequencerID': seq.SequencerID, 'Region': seq.Region} %}
+                          {% set seq_data = {'SequencerID': seq.SequencerID, 'Region': seq.Region, 'Index_1': seq.Index_1, 'Index_2': seq.Index_2} %}
                           {% set _ = seq_data_list.append(seq_data) %}
                       {% endif %}
                   {% endfor %}
@@ -491,6 +493,16 @@
                             {{ seq_data_dict[row.id][0]["Region"] }}
                           {% endif %}
                         </td>
+                        <td id="I1_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
+                          {% if seq_data_dict[row.id][0] %}
+                            {{ seq_data_dict[row.id][0]["Index_1"] }}
+                          {% endif %}
+                        </td>
+                        <td id="I2_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
+                          {% if seq_data_dict[row.id][0] %}
+                            {{ seq_data_dict[row.id][0]["Index_2"] }}
+                          {% endif %}
+                        </td>                                               
                         <td id="F_{{ row.id }}_1_A"> <span class="red"> Not uploaded </span> </td>
                     </tr>
                       
@@ -509,7 +521,17 @@
                           {% if seq_data_dict[row.id][1] %}
                             {{ seq_data_dict[row.id][1]["Region"] }}
                           {% endif %}
-                        </td>                          
+                        </td>
+                        <td id="I1_{{ row.id }}_2" rowspan="{{ nr_files_per_sequence }}">
+                          {% if seq_data_dict[row.id][1] %}
+                            {{ seq_data_dict[row.id][1]["Index_1"] }}
+                          {% endif %}
+                        </td>
+                        <td id="I2_{{ row.id }}_2" rowspan="{{ nr_files_per_sequence }}">
+                          {% if seq_data_dict[row.id][1] %}
+                            {{ seq_data_dict[row.id][1]["Index_2"] }}
+                          {% endif %}
+                        </td>
                         <td id="F_{{ row.id }}_2_A"> <span class="red"> Not uploaded </span> </td>
                       </tr>
                       <tr>                          
@@ -535,6 +557,16 @@
                             {{ seq_data_dict[row.id][0]["Region"] }}
                           {% endif %}
                         </td>
+                        <td id="I1_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
+                          {% if seq_data_dict[row.id][0] %}
+                            {{ seq_data_dict[row.id][0]["Index_1"] }}
+                          {% endif %}
+                        </td>
+                        <td id="I2_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
+                          {% if seq_data_dict[row.id][0] %}
+                            {{ seq_data_dict[row.id][0]["Index_2"] }}
+                          {% endif %}
+                        </td>  
                         <td id="F_{{ row.id }}_1_A"><span class="red"> Not uploaded </span></td>
                     </tr>
                     
@@ -549,7 +581,17 @@
                           {% if seq_data_dict[row.id][1] %}
                             {{ seq_data_dict[row.id][1]["Region"] }}
                           {% endif %}
-                        </td>                          
+                        </td> 
+                        <td id="I1_{{ row.id }}_2"rowspan="{{ nr_files_per_sequence }}">
+                          {% if seq_data_dict[row.id][1] %}
+                            {{ seq_data_dict[row.id][1]["Index_1"] }}
+                          {% endif %}
+                        </td>
+                        <td id="I2_{{ row.id }}_2"rowspan="{{ nr_files_per_sequence }}">
+                          {% if seq_data_dict[row.id][1] %}
+                            {{ seq_data_dict[row.id][1]["Index_2"] }}
+                          {% endif %}
+                        </td> 
                         <td id="F_{{ row.id }}_2_A"><span class="red"> Not uploaded </span></td>
                       </tr>
                     {% endif %}                                          
@@ -1333,12 +1375,13 @@
                   if ($('#S_' + sequencerSampleId + '_1').html().trim() === '') {
                     $('#S_' + sequencerSampleId + '_1').html(sequencer_id["SequencerID"])
                     $('#R_' + sequencerSampleId + '_1').html(sequencer_id["Region"])
+                    $('#I1_' + sequencerSampleId + '_1').html(sequencer_id["Index_1"])
+                    $('#I2_' + sequencerSampleId + '_1').html(sequencer_id["Index_2"])
                   } else if ($('#S_' + sequencerSampleId + '_2').html().trim()=='') {
                     $('#S_' + sequencerSampleId + '_2').html(sequencer_id["SequencerID"])
                     $('#R_' + sequencerSampleId + '_2').html(sequencer_id["Region"])
-                  } else if ($('#S_' + sequencerSampleId + '_3').html().trim()=='') {
-                    $('#S_' + sequencerSampleId + '_3').html(sequencer_id["SequencerID"])
-                    $('#R_' + sequencerSampleId + '_3').html(sequencer_id["Region"])
+                    $('#I1_' + sequencerSampleId + '_2').html(sequencer_id["Index_1"])
+                    $('#I2_' + sequencerSampleId + '_2').html(sequencer_id["Index_2"])
                   }
                   
                 })

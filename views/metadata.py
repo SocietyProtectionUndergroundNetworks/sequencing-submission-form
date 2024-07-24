@@ -89,6 +89,7 @@ def metadata_form():
 
         samples_data = SequencingUpload.get_samples(process_id)
         sequencer_ids = SequencingUpload.get_sequencer_ids(process_id)
+        logger.info(sequencer_ids)
         valid_samples = SequencingUpload.validate_samples(process_id)
 
     return render_template(
