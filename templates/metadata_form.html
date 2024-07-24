@@ -841,14 +841,24 @@
                         var issueMsg = "<h4>Problems with field " + fieldName + "</h4>";
                         $('#step_4_msg').append(issueMsg);
                         if (fieldData && fieldData.invalid) {
-                            var issueMsg = "<p>" + fieldData.message + "</p>";
-                            $('#step_4_msg').append(issueMsg);
+
+                            // Use a Set to track already displayed messages
+                            var displayedMessages = new Set();
+
                             fieldData.invalid.forEach(function(entry) {
+                                if (!displayedMessages.has(entry.message)) {
+                                    var reasonMsg = "<p>" + entry.message + "</p>";
+                                    $('#step_4_msg').append(reasonMsg);
+                                    displayedMessages.add(entry.message); // Add message to set
+                                }
+
                                 var detailedMsg = "<p> - " + entry.value + " in row " + (entry.row + 2) + "</p>";
                                 $('#step_4_msg').append(detailedMsg);
                             });
+
                             statusClass = 'text-danger';
                         }
+
                         if (fieldData && fieldData.empty_values && fieldData.empty_values.length > 0) {
                             var emptyRows = fieldData.empty_values.map(function(row) {
                                 return row + 2; // Adjust row number by 2 (header + zero-indexing)

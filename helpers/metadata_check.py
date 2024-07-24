@@ -342,10 +342,7 @@ def check_metadata(df, using_scripps, multiple_sequencing_runs=False):
 
     for key, value in expected_columns_data.items():
         if "required" in value and value["required"] == "IfNotScripps":
-            if using_scripps == "no":
-                value["required"] = True
-            else:
-                value["required"] = False
+            value["required"] = using_scripps.lower() != "yes"
 
     # Check for presence of "Control" in "Sample_or_Control" column
     if "Sample_or_Control" in df.columns:
@@ -366,8 +363,7 @@ def check_metadata(df, using_scripps, multiple_sequencing_runs=False):
                     "status": 0,
                     "message": (
                         "Multiple sequencing runs indicated but "
-                        "only one unique value "
-                        "found in SequencingRun field"
+                        "only one unique value found in SequencingRun field"
                     ),
                     "invalid": [],
                 }
@@ -383,6 +379,24 @@ def check_metadata(df, using_scripps, multiple_sequencing_runs=False):
                 }
                 overall_status = 0
             continue  # Skip further checks for missing columns
+
+    # Check for duplicate SampleID values
+    if "SampleID" in df.columns:
+        duplicates = df[df.duplicated(subset="SampleID", keep=False)]
+        if not duplicates.empty:
+            duplicate_entries = []
+            for idx, value in duplicates.iterrows():
+                duplicate_entries.append({
+                    "row": idx,
+                    "value": value["SampleID"],
+                    "message": "Duplicate SampleID value found"
+                })
+            issues["SampleID"] = {
+                "status": 0,
+                "message": "Duplicate SampleID values found.",
+                "invalid": duplicate_entries,
+            }
+            overall_status = 0
 
     # Check each row using the check_row function
     for idx, row in df.iterrows():
@@ -406,6 +420,7 @@ def check_metadata(df, using_scripps, multiple_sequencing_runs=False):
         final_result["messages"] = messages
 
     return final_result
+
 
 
 def check_row(row, expected_columns_data):
