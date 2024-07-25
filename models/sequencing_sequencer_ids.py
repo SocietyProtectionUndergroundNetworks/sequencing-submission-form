@@ -245,30 +245,32 @@ class SequencingSequencerId:
     @classmethod
     def get_matching_sequencer_ids(cls, process_id, filename):
         db_engine = connect_db()
-        session = get_session(db_engine)        
+        session = get_session(db_engine)
+        
         # Extract the prefix from the filename, considering both with and without _
-        filename_prefix = filename.split(".")[
-            0
-        ]  # Get the filename without the extension
-
-        # Query to get all SequencerIDs related to the given process_id
+        filename_prefix = filename.split(".")[0]  # Get the filename without the extension
+        
+        # Query to get all ids and SequencerIDs related to the given process_id
         sequencer_ids = (
-            session.query(SequencingSequencerIDsTable.SequencerID)
+            session.query(SequencingSequencerIDsTable.id, SequencingSequencerIDsTable.SequencerID)
             .join(SequencingSamplesTable)
             .filter(SequencingSamplesTable.sequencingUploadId == process_id)
             .all()
         )
-
-        # Extract sequencer IDs from the query result
-        sequencer_ids = [seq_id for seq_id, in sequencer_ids]
-        logger.info('the sequencer ids are:')
+        
+        # Extract id and SequencerID pairs from the query result
+        sequencer_ids = [(id, seq_id) for id, seq_id in sequencer_ids]
+        logger.info("The sequencer ids and SequencerIDs are:")
         logger.info(sequencer_ids)
-        # Find matching sequencer IDs
-        matching_sequencer_ids = [
-            seq_id
-            for seq_id in sequencer_ids
+        
+        # Find matching sequencer IDs and return the corresponding ids
+        matching_ids = [
+            id
+            for id, seq_id in sequencer_ids
             if filename_prefix.startswith(seq_id)
         ]
-        logger.info('the matching_sequencer_ids ids are:')
-        logger.info(matching_sequencer_ids)        
-        return matching_sequencer_ids
+        logger.info("The matching SequencingSequencerIDsTable ids are:")
+        logger.info(matching_ids)
+        
+        return matching_ids
+

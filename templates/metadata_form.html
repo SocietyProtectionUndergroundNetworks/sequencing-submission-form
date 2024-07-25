@@ -470,7 +470,7 @@
                   {% set seq_data_list = [] %}
                   {% for seq in sequencer_ids %}
                       {% if seq.sequencingSampleId == row.id %}
-                          {% set seq_data = {'SequencerID': seq.SequencerID, 'Region': seq.Region, 'Index_1': seq.Index_1, 'Index_2': seq.Index_2} %}
+                          {% set seq_data = {'id': seq.id, 'SequencerID': seq.SequencerID, 'Region': seq.Region, 'Index_1': seq.Index_1, 'Index_2': seq.Index_2} %}
                           {% set _ = seq_data_list.append(seq_data) %}
                       {% endif %}
                   {% endfor %}
@@ -503,11 +503,11 @@
                             {{ seq_data_dict[row.id][0]["Index_2"] }}
                           {% endif %}
                         </td>                                               
-                        <td id="F_{{ row.id }}_1_A"> <span class="red"> Not uploaded </span> </td>
+                        <td id="F_{{ seq_data_dict[row.id][0]["id"] }}_A"> <span class="red"> Not uploaded </span> </td>
                     </tr>
                       
                     <tr>
-                      <td id="F_{{ row.id }}_1_B"> <span class="red"> Not uploaded </span> </td>
+                      <td id="F_{{ seq_data_dict[row.id][0]["id"] }}_B"> <span class="red"> Not uploaded </span> </td>
                     </tr>
 
                     {% if process_data["Sequencing_regions_number"]>1 %}
@@ -532,10 +532,10 @@
                             {{ seq_data_dict[row.id][1]["Index_2"] }}
                           {% endif %}
                         </td>
-                        <td id="F_{{ row.id }}_2_A"> <span class="red"> Not uploaded </span> </td>
+                        <td id="F_{{ seq_data_dict[row.id][1]["id"] }}_A"> <span class="red"> Not uploaded </span> </td>
                       </tr>
                       <tr>                          
-                        <td id="F_{{ row.id }}_2_B"> <span class="red"> Not uploaded </span> </td>
+                        <td id="F_{{ seq_data_dict[row.id][1]["id"] }}_B"> <span class="red"> Not uploaded </span> </td>
                       </tr>
                     {% endif %}
                     
@@ -567,7 +567,7 @@
                             {{ seq_data_dict[row.id][0]["Index_2"] }}
                           {% endif %}
                         </td>  
-                        <td id="F_{{ row.id }}_1_A"><span class="red"> Not uploaded </span></td>
+                        <td id="F_{{ seq_data_dict[row.id][0]["id"] }}_A"><span class="red"> Not uploaded </span></td>
                     </tr>
                     
                     {% if process_data["Sequencing_regions_number"]>1 %}
@@ -592,7 +592,7 @@
                             {{ seq_data_dict[row.id][1]["Index_2"] }}
                           {% endif %}
                         </td> 
-                        <td id="F_{{ row.id }}_2_A"><span class="red"> Not uploaded </span></td>
+                        <td id="F_{{ seq_data_dict[row.id][1]["id"] }}_A"><span class="red"> Not uploaded </span></td>
                       </tr>
                     {% endif %}                                          
                 {% endfor %}
@@ -1457,8 +1457,34 @@
 
 
                 // Show success message if no issues found
-                if (response.result.status === 1) {
-                    $('#step_7_msg').append("<p>No problems found.</p>").addClass('text-success');
+                if (response.result === 1) {
+                    var matchingSequencerIds = response.matching_sequencer_ids;
+                    
+                    if (matchingSequencerIds.length === 1) {
+                        // Show success message
+                        $('#step_7_msg').append("<p>No problems found.</p>").addClass('text-success');
+
+                        // Process the single matching sequencer ID
+                        var sequencerId = matchingSequencerIds[0];
+
+                        // Find the first available cell in the table
+                        var cellsA = $(`#F_${sequencerId}_A`);
+                        var cellsB = $(`#F_${sequencerId}_B`);
+
+                        if (cellsA.length && cellsA.text().trim() === 'Not uploaded') {
+                            cellsA.html(fileName).removeClass('red').addClass('text-success');
+                        } else if (cellsB.length && cellsB.text().trim() === 'Not uploaded') {
+                            cellsB.html(fileName).removeClass('red').addClass('text-success');
+                        }
+                    } else if (matchingSequencerIds.length > 1) {
+                        // Show error message if there are multiple matches
+                        $('#step_7_msg').append("<p>Multiple matches found. Please check the file and try again.</p>")
+                                        .removeClass('text-success').addClass('text-danger');
+                    }
+                } else {
+                    // Handle other response results if needed
+                    $('#step_7_msg').append("<p>An error occurred. Please try again.</p>")
+                                    .removeClass('text-success').addClass('text-danger');
                 }
 
                 // Reset the file input
