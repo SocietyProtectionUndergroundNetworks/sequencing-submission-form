@@ -18,19 +18,25 @@ logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 def generate_new_filename(current_filename, csv_sequence_dict):
     # List of separators to try
     separators = ["_", "-"]
-    
+
     # Try matching using each separator
     for separator in separators:
         # Split the filename into parts
         parts = current_filename.split(separator)
-        # Try matching the longest possible prefix from the parts with the dictionary keys
+        # Try matching the longest possible prefix from the parts
+        # with the dictionary keys
         for i in range(len(parts), 0, -1):
             prefix = separator.join(parts[:i])
             if prefix in csv_sequence_dict:
                 sample_id = csv_sequence_dict[prefix]["sample_id"]
                 # Replace 'RIBO' with 'SSU' in the sample_id if needed
-                new_sample_id = sample_id.replace("RIBO", "SSU") if "RIBO" in sample_id else sample_id
-                # Join the new sample_id with the remaining parts of the filename
+                new_sample_id = (
+                    sample_id.replace("RIBO", "SSU")
+                    if "RIBO" in sample_id
+                    else sample_id
+                )
+                # Join the new sample_id with the remaining
+                # parts of the filename
                 new_filename = separator.join([new_sample_id] + parts[i:])
                 return {
                     "new_filename": new_filename,
