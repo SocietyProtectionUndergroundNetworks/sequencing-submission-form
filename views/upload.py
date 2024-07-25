@@ -1167,7 +1167,11 @@ def process_server_file():
         abort(400, "Invalid filename.")
 
     # Check if the file has a valid extension
-    if not (safe_filename.endswith(".zip") or safe_filename.endswith(".gz")):
+    if not (
+        safe_filename.endswith(".zip")
+        or safe_filename.endswith(".tar")
+        or safe_filename.endswith(".gz")
+    ):
         logger.warning("Invalid file extension: %s", safe_filename)
         abort(400, "Invalid file type. Only .zip and .gz files are allowed.")
 
