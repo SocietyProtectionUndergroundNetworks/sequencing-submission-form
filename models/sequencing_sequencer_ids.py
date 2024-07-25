@@ -2,7 +2,7 @@ import logging
 import pandas as pd
 import numpy as np
 from helpers.dbm import connect_db, get_session
-from models.db_model import SequencingSequencerIDsTable
+from models.db_model import SequencingSequencerIDsTable, SequencingSamplesTable
 from models.sequencing_upload import SequencingUpload
 from helpers.metadata_check import get_regions
 from sqlalchemy import and_
@@ -90,12 +90,22 @@ class SequencingSequencerId:
         logger.info(df)
 
         # Ensure no NaN values in 'Index_1' and 'Index_2'
-        if 'Index_1' in df.columns:
-            df['Index_1'] = df['Index_1'].apply(lambda x: None if pd.isna(x) else x)
-        if 'Index_2' in df.columns:
-            df['Index_2'] = df['Index_2'].apply(lambda x: None if pd.isna(x) else x)
+        if "Index_1" in df.columns:
+            df["Index_1"] = df["Index_1"].apply(
+                lambda x: None if pd.isna(x) else x
+            )
+        if "Index_2" in df.columns:
+            df["Index_2"] = df["Index_2"].apply(
+                lambda x: None if pd.isna(x) else x
+            )
 
-        expected_columns = ["SampleID", "Region", "SequencerID", "Index_1", "Index_2"]
+        expected_columns = [
+            "SampleID",
+            "Region",
+            "SequencerID",
+            "Index_1",
+            "Index_2",
+        ]
         for expected_column in expected_columns:
             if expected_column not in uploaded_columns:
                 result = 0
@@ -184,11 +194,11 @@ class SequencingSequencerId:
         if result == 1:
             indexes = ["Index_1", "Index_2"]
             for index_x in indexes:
-                logger.info('Checking for ' + index_x)
+                logger.info("Checking for " + index_x)
                 # Check index_1 if present
-                for index, row in df.iterrows():              
+                for index, row in df.iterrows():
                     if index_x in row:
-                        
+
                         index_value = row[index_x]
                         logger.info(index_value)
                         if pd.notna(index_value):
@@ -203,7 +213,7 @@ class SequencingSequencerId:
                                 result = 0
                                 messages.append(
                                     f"{ index_x } in row {index + 1} contains invalid characters (only ATGC are allowed)"
-                                )            
+                                )
 
         # No problems found, so lets add these records
         if result == 1:
@@ -231,3 +241,34 @@ class SequencingSequencerId:
             "data": df.replace({np.nan: None}).to_dict(orient="records"),
             "messages": messages,
         }
+
+    @classmethod
+    def get_matching_sequencer_ids(cls, process_id, filename):
+        db_engine = connect_db()
+        session = get_session(db_engine)        
+        # Extract the prefix from the filename, considering both with and without _
+        filename_prefix = filename.split(".")[
+            0
+        ]  # Get the filename without the extension
+
+        # Query to get all SequencerIDs related to the given process_id
+        sequencer_ids = (
+            session.query(SequencingSequencerIDsTable.SequencerID)
+            .join(SequencingSamplesTable)
+            .filter(SequencingSamplesTable.sequencingUploadId == process_id)
+            .all()
+        )
+
+        # Extract sequencer IDs from the query result
+        sequencer_ids = [seq_id for seq_id, in sequencer_ids]
+        logger.info('the sequencer ids are:')
+        logger.info(sequencer_ids)
+        # Find matching sequencer IDs
+        matching_sequencer_ids = [
+            seq_id
+            for seq_id in sequencer_ids
+            if filename_prefix.startswith(seq_id)
+        ]
+        logger.info('the matching_sequencer_ids ids are:')
+        logger.info(matching_sequencer_ids)        
+        return matching_sequencer_ids

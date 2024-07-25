@@ -332,8 +332,6 @@ def sequencing_confirm_metadata():
     "/metadata_instructions",
     endpoint="metadata_instructions",
 )
-@login_required
-@approved_required
 def metadata_instructions():
     expected_columns = get_columns_data()
     google_sheets_template_url = os.environ.get("GOOGLE_SPREADSHEET_TEMPLATE")
@@ -364,3 +362,27 @@ def create_xls_template():
     create_template_one_drive_and_excel()
 
     return (jsonify({"result": 1}), 200)
+
+
+@metadata_bp.route(
+    "/check_filename_matching",
+    methods=["POST"],
+    endpoint="check_filename_matching",
+)
+@login_required
+@approved_required
+def check_filename_matching():
+    process_id = request.form.get("process_id")
+    filename = request.form.get("filename")
+    logger.info("The filename is " + filename)
+    logger.info("The process id is " + str(process_id))
+
+    matching_sequencer_ids = SequencingSequencerId.get_matching_sequencer_ids(
+        process_id, filename
+    )
+    return (
+        jsonify(
+            {"result": 1, "matching_sequencer_ids": matching_sequencer_ids}
+        ),
+        200,
+    )

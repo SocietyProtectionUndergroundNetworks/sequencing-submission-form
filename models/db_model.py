@@ -146,7 +146,7 @@ class SequencingSequencerIDsTable(Base):
     SequencerID = Column(String(255), nullable=True)
     Region = Column(String(25), nullable=True)
     Index_1 = Column(String(100), nullable=True)
-    Index_2 = Column(String(100), nullable=True) 
+    Index_2 = Column(String(100), nullable=True)
 
 
 class SequencingFilesUploadedTable(Base):
