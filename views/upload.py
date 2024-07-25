@@ -18,7 +18,7 @@ from flask import (
     redirect,
     url_for,
     send_file,
-    abort
+    abort,
 )
 from flask_login import (
     current_user,
@@ -686,8 +686,6 @@ def handle_upload():
         # Calculate the percentage completion
         percentage = int((chunk_number / total_chunks) * 100)
 
-
-        ## HERE HERE HERE
         one_filedata = {
             "form_filename": form_filename,
             "form_filesize": form_filesize,
@@ -1145,7 +1143,9 @@ def metadata_form():
     )
 
 
-@upload_bp.route("/process_server_file", methods=["POST"], endpoint="process_server_file")
+@upload_bp.route(
+    "/process_server_file", methods=["POST"], endpoint="process_server_file"
+)
 @login_required
 @approved_required
 @admin_required
@@ -1154,40 +1154,41 @@ def process_server_file():
     filename = request.form.get("step_4_direct_file")
     logger.info(process_id)
     logger.info(filename)
-    
+
     # Sanitize filename
     safe_filename = secure_filename(filename)
-    
+
     # Check if filename was modified
     if safe_filename != filename:
-        logger.warning("Potentially dangerous filename detected and sanitized: %s", filename)
+        logger.warning(
+            "Potentially dangerous filename detected and sanitized: %s",
+            filename,
+        )
         abort(400, "Invalid filename.")
 
     # Check if the file has a valid extension
-    if not (safe_filename.endswith('.zip') or safe_filename.endswith('.gz')):
+    if not (safe_filename.endswith(".zip") or safe_filename.endswith(".gz")):
         logger.warning("Invalid file extension: %s", safe_filename)
         abort(400, "Invalid file type. Only .zip and .gz files are allowed.")
 
     # Define the file location
     upload = Upload.get(process_id)
-    uploads_folder = upload.uploads_folder  
-    
-    file_location = os.path.join('uploads', uploads_folder, safe_filename)
+    uploads_folder = upload.uploads_folder
+
+    file_location = os.path.join("uploads", uploads_folder, safe_filename)
     logger.info(file_location)
-
-
 
     # Check if the file exists
     if not os.path.exists(file_location):
         logger.error("File not found: %s", file_location)
         abort(404, "File not found.")
-    
+
     # Get file size
     file_size = os.path.getsize(file_location)
 
     # Calculate the MD5 checksum
     md5_hash = hashlib.md5()
-    with open(file_location, 'rb') as f:
+    with open(file_location, "rb") as f:
         for chunk in iter(lambda: f.read(4096), b""):
             md5_hash.update(chunk)
     md5_checksum = md5_hash.hexdigest()
@@ -1196,18 +1197,17 @@ def process_server_file():
     logger.info("File size: %d bytes", file_size)
     logger.info("MD5 checksum: %s", md5_checksum)
 
-    ## HERE HERE HERE
     one_filedata = {
         "form_filename": filename,
         "form_filesize": file_size,
         "form_filechunks": 1,
-        "form_fileidentifier": str(process_id) + '_' + str(filename),
+        "form_fileidentifier": str(process_id) + "_" + str(filename),
         "chunk_number_uploaded": 1,
         "percent_uploaded": 100,
         "expected_md5": md5_checksum,
     }
     logger.info(one_filedata)
-    Upload.update_gz_filedata(process_id, one_filedata)    
+    Upload.update_gz_filedata(process_id, one_filedata)
 
     init_send_raw_to_storage(process_id, filename)
     unzip_raw(process_id, filename)
