@@ -6,6 +6,7 @@ import re
 import logging
 import psutil
 import json
+import hashlib
 from pathlib import Path
 from werkzeug.utils import secure_filename
 from flask import (
@@ -17,6 +18,7 @@ from flask import (
     redirect,
     url_for,
     send_file,
+    abort,
 )
 from flask_login import (
     current_user,
@@ -1125,3 +1127,93 @@ def update_reviewed_by_admin_status():
         )
     else:
         return redirect("/all_uploads?order_by=" + order_by)
+
+
+@upload_bp.route("/metadata_form", endpoint="metadata_form")
+@login_required
+@approved_required
+def metadata_form():
+    my_buckets = {}
+    map_key = os.environ.get("GOOGLE_MAP_API_KEY")
+    for my_bucket in current_user.buckets:
+        my_buckets[my_bucket] = Bucket.get(my_bucket)
+    return render_template(
+        "metadata_form.html", my_buckets=my_buckets, map_key=map_key
+    )
+
+
+@upload_bp.route(
+    "/process_server_file", methods=["POST"], endpoint="process_server_file"
+)
+@login_required
+@approved_required
+@admin_required
+def process_server_file():
+    process_id = request.form.get("process_id")
+    filename = request.form.get("step_4_direct_file")
+    logger.info(process_id)
+    logger.info(filename)
+
+    # Sanitize filename
+    safe_filename = secure_filename(filename)
+
+    # Check if filename was modified
+    if safe_filename != filename:
+        logger.warning(
+            "Potentially dangerous filename detected and sanitized: %s",
+            filename,
+        )
+        abort(400, "Invalid filename.")
+
+    # Check if the file has a valid extension
+    if not (safe_filename.endswith(".zip") or safe_filename.endswith(".gz")):
+        logger.warning("Invalid file extension: %s", safe_filename)
+        abort(400, "Invalid file type. Only .zip and .gz files are allowed.")
+
+    # Define the file location
+    upload = Upload.get(process_id)
+    uploads_folder = upload.uploads_folder
+
+    file_location = os.path.join("uploads", uploads_folder, safe_filename)
+    logger.info(file_location)
+
+    # Check if the file exists
+    if not os.path.exists(file_location):
+        logger.error("File not found: %s", file_location)
+        abort(404, "File not found.")
+
+    # Get file size
+    file_size = os.path.getsize(file_location)
+
+    # Calculate the MD5 checksum
+    md5_hash = hashlib.md5()
+    with open(file_location, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            md5_hash.update(chunk)
+    md5_checksum = md5_hash.hexdigest()
+
+    # Log and respond with file information
+    logger.info("File size: %d bytes", file_size)
+    logger.info("MD5 checksum: %s", md5_checksum)
+
+    one_filedata = {
+        "form_filename": filename,
+        "form_filesize": file_size,
+        "form_filechunks": 1,
+        "form_fileidentifier": str(process_id) + "_" + str(filename),
+        "chunk_number_uploaded": 1,
+        "percent_uploaded": 100,
+        "expected_md5": md5_checksum,
+    }
+    logger.info(one_filedata)
+    Upload.update_gz_filedata(process_id, one_filedata)
+
+    init_send_raw_to_storage(process_id, filename)
+    unzip_raw(process_id, filename)
+    gz_filedata = Upload.get_gz_filedata(upload.id)
+    return jsonify(
+        {
+            "message": "File upload complete and verified",
+            "gz_filedata": gz_filedata,
+        }
+    )
