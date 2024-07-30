@@ -818,7 +818,7 @@ def start_raw_all():
     process_id = request.args.get("process_id")
     gz_filedata = Upload.get_gz_filedata(process_id)
     for filename, file_data in gz_filedata.items():
-        result = init_send_raw_to_storage(process_id, filename)
+        init_send_raw_to_storage(process_id, filename)
     return jsonify({"result": "ok"}), 200
 
 
