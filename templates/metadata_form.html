@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/resumable.js/1.1.0/resumable.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnSuA4Ss2PkkikSOLtYs8BlYIeeIK1h99ty4YfvRPAlzr377vr3CXDb7sb7eEEBYjDtcYj+AjBH3FLv5uSJuXg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js" integrity="sha512-7Pi/otdlbbCR+LnW+F7PwFcSDJOuUJB3OxtEHbg4vSMvzvJjde4Po1v4BR9Gdc9aXNUNFVUY+SK51wWT8WF0Gg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAw6r8DeUDlEO8iZdnMmPSkzWUmIYbbOPY&libraries=marker"></script>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/spark-md5/3.0.0/spark-md5.min.js"></script>
     <title>Upload data</title>
 </head>
 <body>
@@ -156,7 +157,7 @@
       <h3> Step 4: Select how you are going to give us the metadata</h3>
       <div>You can give us the metadata either by </div>
       <form id="step_4_form">
-        <fieldset 
+        <fieldset
           {% if not process_data or process_data["metadata_upload_confirmed"] %}
             disabled="disabled"
           {% endif %}
@@ -179,7 +180,7 @@
         <p>You have to upload a csv or xls file that the column names EXACTLY as they appear bellow. </p>
         <p>You can read the <a href="/metadata_instructions" class="link" target="_blank">description of each field here </a></p>
         <p>You can download the <a href="/xls_sample" class="link" target="_blank">XLS template</a></p>
-        <p>Or you can copy the <a href="{{ google_sheets_template_url }}" class="link" target="_blank">Template Google sheet</a>, then make a copy ("File"->"Make a copy") and work on your copy</p>       
+        <p>Or you can copy the <a href="{{ google_sheets_template_url }}" class="link" target="_blank">Template Google sheet</a>, then make a copy ("File"->"Make a copy") and work on your copy</p>
         <form
             method="POST"
             action="/upload_metadata_file"
@@ -204,7 +205,7 @@
     <div class="table-container">
       <h4> Your metadata </h4>
       <p>Please note: you don't need to (and you shouldn't) provide the first two columns. Our system will fill those in at a later stage</a></p>
-      <table id="dataTable" class="table-bordered">      
+      <table id="dataTable" class="table-bordered">
           <thead>
               <tr>
                   <th scope="col" class="bg-gray">DbID</th>
@@ -279,8 +280,8 @@
           {% if ((not samples_data) or process_data["metadata_upload_confirmed"]) %}
            disabled="disabled"
           {% endif %}
-          
-        >        
+
+        >
           <p>All my metadata have been uploaded and I have checked the map and all the samples seem to be in the correct locations.</p>
           <input type="hidden" name="process_id" value="{{ process_id }}">
           <input type="button" id="step_5_button" value="I confirm">
@@ -289,7 +290,7 @@
       <div id="step_5_msg"></div>
     </div>
 
-    <div 
+    <div
       id="step_6-container"
       {% if process_data and process_data.using_scripps %}
         style="display:none"
@@ -297,13 +298,13 @@
     >
       <div id="step_6" class="form-step-item">
         <h3> Step 6: Provide the sequencer ID</h3>
-          
+
         <form id="step_6_form">
           <fieldset
             {% if not process_data["metadata_upload_confirmed"] %}
              disabled="disabled"
             {% endif %}
-          >        
+          >
           <p>
             For each sample we expect two different pairs of sequencing fastq files, on two different sequencing regions - i.e. four files in total.
           </p>
@@ -333,7 +334,7 @@
           <p>
             You can either upload a .xls, .xlsx, .csv file with the following data, or you can fill it in using the form bellow.
           </p>
-          <p>          
+          <p>
             Your .xls, .xlsx, .csv file should have three columns with <span class="fw-bold">exactly</span> those column names:
             <ul>
               <li><span class="fw-bold">SampleID</span>, which should match the SampleID from your metadata</li>
@@ -349,7 +350,7 @@
                   </ul>
                 {% endif %}
               </li>
-              <li><span class="fw-bold">SequencerID</span>, which should be the part (A) (the blue part, the common part) of the filenames as the example above</li>            
+              <li><span class="fw-bold">SequencerID</span>, which should be the part (A) (the blue part, the common part) of the filenames as the example above</li>
             </ul>
           </p>
             <div class="form-check">
@@ -375,13 +376,13 @@
               <label class="form-check-label" for="upload_sequencerids_method_form">
                 I am going to fill in the form with my data
               </label>
-            </div>                  
+            </div>
           </fieldset>
         </form>
         <div id="step_6_case_1" class="explanation" style="display:none;">
           <form
               method="POST"
-              action="/upload_sequencing_file"
+              action="/upload_sequencer_ids_file"
               enctype="multipart/form-data"
               id="step_6_file_upload"
           >
@@ -404,11 +405,11 @@
                     </select>
                 </div>
             </div>
-            
+
             <div class="form-group row mb-3">
                 <label for="sequencer_region" class="col-sm-3 col-form-label">Region</label>
                 <div class="col-sm-9">
-                    
+
                     {% if regions|length == 1 %}
                       <input type="hidden" name="sequencer_region" value="{{ regions[0] }}">
                       <small id="sequencer_regionHelp" class="form-text">You have chosen a single Primer set, and the region is:</small>
@@ -416,7 +417,7 @@
                           {% for region in regions %}
                               <option value="{{ region }}">{{ region }}</option>
                           {% endfor %}
-                      </select>                      
+                      </select>
                     {% else %}
                       <small id="sequencer_regionHelp" class="form-text">Select one of the provided regions</small>
                       <select class="form-control" id="sequencer_region" name="sequencer_region">
@@ -425,31 +426,31 @@
                               <option value="{{ region }}">{{ region }}</option>
                           {% endfor %}
                       </select>
-                    {% endif %}                      
+                    {% endif %}
 
                 </div>
             </div>
-            
+
             <div class="form-group row mb-3">
                 <label for="sequencer_id" class="col-sm-3 col-form-label">SequencerID</label>
                 <div class="col-sm-9">
                     <small id="sequencer_idHelp" class="form-text">Provide the sequencer ID as explained above</small>
                     <input type="text" class="form-control" id="sequencer_id" name="sequencer_id" >
                 </div>
-            </div>          
-            
-            
+            </div>
+
+
             <button type="submit" class="btn btn-primary">Submit</button>
           </form>
           <div id="sequencerIdsForm_message"></div>
         </div>
-        <div id="step_6_filename"></div>    
-        <div id="step_6_msg"></div>  
+        <div id="step_6_filename"></div>
+        <div id="step_6_msg"></div>
       </div>
       <div id="next_to_step_6" class="next-to-step">
         <h4> Expected number of files per sequence is {{ nr_files_per_sequence }} </h4>
         <h4> Sequencing_regions_number is {{ process_data["Sequencing_regions_number"] }} </h4>
-        <table id="samplesTable" class="table-bordered">      
+        <table id="samplesTable" class="table-bordered">
             <thead>
                 <tr>
                     <th scope="col" class="bg-gray">DbID</th>
@@ -462,7 +463,7 @@
                 </tr>
             </thead>
 
-            <tbody>              
+            <tbody>
               {% set seq_data_dict = {} %}
 
               {# First, populate seq_data_dict with sequencer data grouped by row.id #}
@@ -482,7 +483,7 @@
                 {% for row in samples_data %}
                     <tr>
                         <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"]* nr_files_per_sequence }}">{{ row.id }}</td>
-                        <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"]* nr_files_per_sequence }}">{{ row["SampleID"] }}</td>                            
+                        <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"]* nr_files_per_sequence }}">{{ row["SampleID"] }}</td>
                         <td id="S_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
                           {% if seq_data_dict[row.id][0] %}
                             {{ seq_data_dict[row.id][0]["SequencerID"] }}
@@ -502,10 +503,10 @@
                           {% if seq_data_dict[row.id][0] %}
                             {{ seq_data_dict[row.id][0]["Index_2"] }}
                           {% endif %}
-                        </td>                                               
+                        </td>
                         <td id="F_{{ seq_data_dict[row.id][0]["id"] }}_A"> <span class="red"> Not uploaded </span> </td>
                     </tr>
-                      
+
                     <tr>
                       <td id="F_{{ seq_data_dict[row.id][0]["id"] }}_B"> <span class="red"> Not uploaded </span> </td>
                     </tr>
@@ -534,19 +535,19 @@
                         </td>
                         <td id="F_{{ seq_data_dict[row.id][1]["id"] }}_A"> <span class="red"> Not uploaded </span> </td>
                       </tr>
-                      <tr>                          
+                      <tr>
                         <td id="F_{{ seq_data_dict[row.id][1]["id"] }}_B"> <span class="red"> Not uploaded </span> </td>
                       </tr>
                     {% endif %}
-                    
+
                 {% endfor %}
               {% endif %}
-              
+
               {% if nr_files_per_sequence == 1 %}
                 {% for row in samples_data %}
                     <tr>
                         <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"] }}">{{ row.id }}</td>
-                        <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"] }}">{{ row["SampleID"] }}</td>                            
+                        <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"] }}">{{ row["SampleID"] }}</td>
                         <td id="S_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
                           {% if seq_data_dict[row.id][0] %}
                             {{ seq_data_dict[row.id][0]["SequencerID"] }}
@@ -566,10 +567,10 @@
                           {% if seq_data_dict[row.id][0] %}
                             {{ seq_data_dict[row.id][0]["Index_2"] }}
                           {% endif %}
-                        </td>  
+                        </td>
                         <td id="F_{{ seq_data_dict[row.id][0]["id"] }}_A"><span class="red"> Not uploaded </span></td>
                     </tr>
-                    
+
                     {% if process_data["Sequencing_regions_number"]>1 %}
                       <tr>
                         <td id="S_{{ row.id }}_2" rowspan="{{ nr_files_per_sequence }}">
@@ -581,7 +582,7 @@
                           {% if seq_data_dict[row.id][1] %}
                             {{ seq_data_dict[row.id][1]["Region"] }}
                           {% endif %}
-                        </td> 
+                        </td>
                         <td id="I1_{{ row.id }}_2"rowspan="{{ nr_files_per_sequence }}">
                           {% if seq_data_dict[row.id][1] %}
                             {{ seq_data_dict[row.id][1]["Index_1"] }}
@@ -591,18 +592,18 @@
                           {% if seq_data_dict[row.id][1] %}
                             {{ seq_data_dict[row.id][1]["Index_2"] }}
                           {% endif %}
-                        </td> 
+                        </td>
                         <td id="F_{{ seq_data_dict[row.id][1]["id"] }}_A"><span class="red"> Not uploaded </span></td>
                       </tr>
-                    {% endif %}                                          
+                    {% endif %}
                 {% endfor %}
               {% endif %}
 
             </tbody>
-        </table>        
+        </table>
       </div>
     </div>
-    
+
     <div id="step_7" class="form-step-item">
       <form
         method="POST"
@@ -614,13 +615,13 @@
           {% if not valid_samples %}
            disabled="disabled"
           {% endif %}
-        >        
+        >
           <input type="file" id="step_7_upload_file_button" name="file" multiple />
           <input type="hidden" name="process_id" value="{{ process_id }}">
         </fieldset>
       </form>
       <div id="step_7_filename"></div>
-      <div id="step_7_msg" class="explanation">      
+      <div id="step_7_msg" class="explanation">
     </div>
   </div>
 
@@ -637,7 +638,7 @@
         $('#step_2_form fieldset').removeAttr('disabled');
         $('#step_1_form fieldset').attr('disabled', 'disabled');
     }
-    
+
     // Listen for changes in the radio buttons using_scripps
     $('input[name="using_scripps"]').change(function() {
         // Check if any radio button is checked
@@ -648,13 +649,13 @@
         }
 
         updateFields_step_3();
-        
+
         // Hide step 6 if they choose scripps
         var usingScrippsYesChecked = $('#using_scripps_yes').is(':checked');
         if (usingScrippsYesChecked) {
           $('#step_6-container').hide();
         }
-    });      
+    });
   });
 
   ////// ############################################# /////////
@@ -677,7 +678,7 @@
         }
       }
     });
-  }    
+  }
   $(document).ready(function() {
       // Listen for changes in the select drop down project_id (bucket)
       $('#sequence-project-id').change(function() {
@@ -739,7 +740,7 @@
                   errorMessage.text('').hide(); // Clear error message if condition is not met
               }
           });
-          
+
           if (isValid) {
             $.ajax({
                 url: '/upload_process_common_fields',
@@ -781,8 +782,8 @@
   ////// ############################################# /////////
   ////// ############ STEP 3 ENDS HERE ############### /////////
   ////// ############################################# /////////
-  
-  
+
+
   ////// ############################################# /////////
   ////// ####### STEP 4 CHOOSE METHOD STARTS HERE #### /////////
   ////// ############################################# /////////
@@ -790,8 +791,8 @@
       $('#step_4_form fieldset').removeAttr('disabled');
       $('#step_3_form fieldset').attr('disabled', 'disabled');
   }
-  
-  $(document).ready(function() {  
+
+  $(document).ready(function() {
     ////// Choose upload method (form or file) ///////
     $('input[name="upload_method"]').change(function() {
       if (this.value == '1') {
@@ -808,8 +809,8 @@
   ////// ############################################# /////////
   ////// ####### STEP 4 CHOOSE METHOD ENDS HERE ###### /////////
   ////// ############################################# /////////
-  
-    
+
+
   ////// ############################################# /////////
   ////// ####### STEP 4 UPLOAD FILE STARTS HERE ###### /////////
   ////// ############################################# /////////
@@ -823,7 +824,7 @@
 
         if (file) {
             var fileName = file.name;
-            $('#step_4_filename').html("<h4>File uploaded: " + fileName + "</h4>");    
+            $('#step_4_filename').html("<h4>File uploaded: " + fileName + "</h4>");
         }
 
         if (!file) {
@@ -842,11 +843,11 @@
         formData.append('file', file);
         // formData.append('project_id', 1);
         formData.append('using_scripps', usingScrippsText);
-        
+
         var form = $('#step_4_file_upload_button').closest('form');
         var processId = form.find('input[name="process_id"]').val();
         formData.append('process_id', processId);
-        
+
         // Append data from step 3 form
         $('#step_3_form .form-group').each(function() {
             var input = $(this).find(':input');
@@ -947,23 +948,23 @@
                     var longitudeValue = null;
                     var latitudeValid = false;
                     var longitudeValid = false;
-                    // Add the id if one was generated in the database. 
-                    // This only exists if all the data were correct and 
+                    // Add the id if one was generated in the database.
+                    // This only exists if all the data were correct and
                     // have been added
                     if (row["id"] == null) {
                       tableRow += '<td class="bg-gray">-</td>';
                     } else {
                       tableRow += '<td class="bg-gray">' + row['id'] + '</td>';
                     }
-      
+
                     // Add the sequencersIDs if they have been added
                     // This only exists after step 6
                     if (row["sequencers"] == null) {
                       tableRow += '<td class="bg-gray">-</td>';
                     } else {
                       tableRow += '<td class="bg-gray">' + row['sequencers'] + '</td>';
-                    }      
-                    
+                    }
+
                     expectedColumns.forEach(function(column) {
                         var cellValue = row[column];
                         if (cellValue !== undefined && cellValue !== null) {
@@ -1010,11 +1011,11 @@
                     });
                     tableRow += '</tr>';
                     $('#dataTable tbody').append(tableRow);
-                    
+
                     // Add the sampleID as option to sequencer_sample_id
                     $('#sequencer_sample_id').append(
                         $('<option></option>').val(row['id']).text(row['SampleID'])
-                    );                    
+                    );
                     // Check if both latitude and longitude are valid
                     if (latitudeValid && longitudeValid && latitudeValue && longitudeValue) {
                         var location = { lat: parseFloat(latitudeValue), lng: parseFloat(longitudeValue) };
@@ -1041,10 +1042,10 @@
                         if (map.getZoom() > maxZoom) map.setZoom(maxZoom);
                         google.maps.event.removeListener(listener);
                     });
-                    
-                    $('#mapCheckMessage').html("<h4>Please check the map to make sure all your coordinates are in the places where your samples were collected.</h4>");                 
+
+                    $('#mapCheckMessage').html("<h4>Please check the map to make sure all your coordinates are in the places where your samples were collected.</h4>");
                 }
-                
+
                 // Show success message if no issues found
                 if (response.result.status === 1) {
                     $('#step_4_msg').append("<p>No problems found.</p>");
@@ -1073,11 +1074,11 @@
             }
         });
     }
-    
-  });      
+
+  });
   ////// ############################################# /////////
   ////// ####### STEP 4 UPLOAD FILE ENDS HERE ###### /////////
-  ////// ############################################# /////////    
+  ////// ############################################# /////////
 
   ////// ############################################# /////////
   ////// ###### STEP 4 FILL IN FORM STARTS HERE ###### /////////
@@ -1087,7 +1088,7 @@
     $('#metadataForm :input').on('input change', function() {
         $(this).closest('.form-group').find('.error-message').remove();
     });
-        
+
     // Submit form event handler
     $('#metadataForm').submit(function(event) {
         event.preventDefault(); // Prevent default form submission
@@ -1174,26 +1175,26 @@
             }
         });
     });
-    
-  });      
+
+  });
   ////// ############################################# /////////
   ////// ####### STEP 4 FILL IN FORM ENDS HERE ####### /////////
-  ////// ############################################# /////////    
+  ////// ############################################# /////////
 
   ////// ############################################# /////////
   ////// ############ STEP 5 STARTS HERE ############# /////////
   ////// ############################################# /////////
   function enableForm_step_5() {
       $('#step_5_form fieldset').removeAttr('disabled');
-  }      
+  }
   $(document).ready(function() {
     $('#step_5_button').click(function() {
-      
+
       var formData = new FormData();
       var form = $('#step_5_button').closest('form');
       var processId = form.find('input[name="process_id"]').val();
       formData.append('process_id', processId);
-      
+
       $.ajax({
           url: '/sequencing_confirm_metadata',
           type: 'POST',
@@ -1214,20 +1215,20 @@
               fileInput.value = "";
           }
       });
-      
-      enableForm_step_6();    
+
+      enableForm_step_6();
     });
-  });    
+  });
   ////// ############################################# /////////
   ////// ############ STEP 5 ENDS HERE ############### /////////
-  ////// ############################################# /////////  
+  ////// ############################################# /////////
 
   ////// ############################################# /////////
   ////// ############ STEP 6 STARTS HERE ############# /////////
   ////// ############################################# /////////
   function enableForm_step_6() {
       $('#step_6_form fieldset').removeAttr('disabled');
-  }  
+  }
   $(document).ready(function() {
 
     // Listen for changes in the radio buttons using_scripps
@@ -1243,8 +1244,8 @@
         $('#step_6_case_2').show();
         $('#sequencerIdsForm').show();
       }
-    }); 
-    
+    });
+
     // Submit form event handler
     $('#sequencerIdsForm').submit(function(event) {
         event.preventDefault(); // Prevent default form submission
@@ -1264,7 +1265,7 @@
                 sequencerId = item.value;
             }
         });
-        
+
         console.log(formData)
         if ((sequencerId != null) && (sequencerId != '') && (sequencerRegion != '')) {
 
@@ -1288,8 +1289,8 @@
                                 cell.append(' ' + sequencerRegion + ' : ' + sequencerId + '<br/>');
                             }
                         });
-                        
-                        //find the id of the table cell for the sequence and the region. 
+
+                        //find the id of the table cell for the sequence and the region.
                         var s_td_id = ''
                         var r_td_id = ''
                         for (let i = 1; i <= sequencing_regions_number; i++) {
@@ -1297,8 +1298,8 @@
                           if ($(s_td_id).html().trim() === '') {
                             $(s_td_id).html(sequencerId)
                           }
-                        }                  
-                        
+                        }
+
                         $('#sequencerIdsForm_message').text('Record added above in the metadata table. Fill in the form to add new record.').addClass('text-success').removeClass('text-danger text-info').show();
                       } else {
                         $('#sequencerIdsForm_message').text('Record already exists for this sample and region. Fill in the form to add new record.').addClass('text-danger').removeClass('text-success').show();
@@ -1314,14 +1315,14 @@
           $('#sequencerIdsForm_message').text('Please fill in all the required data.').addClass('text-danger').removeClass('text-success text-info').show();
         }
     });
-  
+
     $('#step_6_file_upload_button').on('change', function () {
       var fileInput = $('#step_6_file_upload_button')[0];
       var file = fileInput.files[0];
 
       if (file) {
           var fileName = file.name;
-          $('#step_6_filename').html("<h4>File uploaded: " + fileName + "</h4>");    
+          $('#step_6_filename').html("<h4>File uploaded: " + fileName + "</h4>");
       }
 
       if (!file) {
@@ -1331,14 +1332,14 @@
 
       var formData = new FormData();
       formData.append('file', file);
-      
+
       var form = $('#step_6_file_upload_button').closest('form');
       var processId = form.find('input[name="process_id"]').val();
       formData.append('process_id', processId);
-      
+
 
       $.ajax({
-          url: '/upload_sequencing_file',
+          url: '/upload_sequencer_ids_file',
           type: 'POST',
           data: formData,
           contentType: false,
@@ -1359,7 +1360,7 @@
                   });
               } else {
                 response.data.forEach(function(sequencer_id) {
-                  
+
                   sequencerSampleId = sequencer_id["db_sample_id"]
                   console.log(sequencerSampleId)
                   $('#dataTable tbody tr').each(function() {
@@ -1371,8 +1372,8 @@
                           var cell = $(this).find('td').eq(1);
                           cell.append(' ' + sequencerRegion + ' : ' + sequencerId + '<br/>');
                       }
-                  });  
-                  // HERE HERE  
+                  });
+                  // HERE HERE
                   // Find the element S_ row id _1
                   if ($('#S_' + sequencerSampleId + '_1').html().trim() === '') {
                     $('#S_' + sequencerSampleId + '_1').html(sequencer_id["SequencerID"])
@@ -1385,10 +1386,10 @@
                     $('#I1_' + sequencerSampleId + '_2').html(sequencer_id["Index_1"])
                     $('#I2_' + sequencerSampleId + '_2').html(sequencer_id["Index_2"])
                   }
-                  
+
                 })
-           
-                
+
+
                 // Clear previous messages and reset status class
                 $('#step_6_msg').html('File uploaded successfully. Records added to the metadata table above').addClass('text-success');
               }
@@ -1403,11 +1404,11 @@
       });
     });
 
-               
+
   });
   ////// ############################################# /////////
   ////// ############ STEP 6 ENDS HERE ############### /////////
-  ////// ############################################# /////////  
+  ////// ############################################# /////////
 
   ////// ############################################# /////////
   ////// ############ STEP 7 STARTS HERE ############# /////////
@@ -1415,10 +1416,197 @@
   function enableForm_step_7() {
       $('#step_7_form fieldset').removeAttr('disabled');
   }
+
+
+  function setUpResumable() {
+      var step_7_form = $('#step_7_upload_file_button').closest('form');
+      var process_id = step_7_form.find('input[name="process_id"]').val();
+      var allowedExtensions = ['gz']; // Define allowed file extensions
+      var commonOptions = {
+          target: '/sequencing_upload_chunk',
+          chunkSize: 10 * 1024 * 1024,
+          testChunks: true,
+          uploadMethod: 'POST',
+          fileType: allowedExtensions,
+          fileTypeErrorCallback: function(file, errorCount) {
+              var fileExtension = file.name.split('.').pop().toLowerCase();
+              if (!allowedExtensions.includes(fileExtension)) {
+                  alert('File type not allowed! Please select a .gz file.');
+                  return false; // Cancel the file upload
+              }
+          },
+      };
+
+      var r = new Resumable(commonOptions);
+
+      r.on('filesAdded', function(files) {
+          files.forEach(function(file) {
+              var file_msg_id = 'step_7_file_' + file.uniqueIdentifier;
+              var file_name = file.file.name;
+
+              // Add a div for each file
+              var file_row = '<div id="' + file_msg_id + '"><h4>' + file_name + '</h4></div>';
+              $('#step_7_msg').append(file_row);
+
+              var formData = new FormData();
+              formData.append('process_id', process_id);
+              formData.append('filename', file_name);
+
+              $.ajax({
+                  url: '/check_filename_matching',
+                  type: 'POST',
+                  data: formData,
+                  contentType: false,
+                  processData: false,
+                  success: function(response) {
+                      console.log(response);
+
+                      if (response.result === 1) {
+                          var matchingSequencerIds = response.matching_sequencer_ids;
+                          if (matchingSequencerIds.length === 1) {
+                              $("#" + file_msg_id).append("<p>No problems found.</p>").addClass('text-success');
+
+                              // Calculate MD5 and start upload
+                              calculateMD5(file.file, function(md5) {
+                                  // Set unique query parameters for this file
+                                  file.opts = {
+                                      query: {
+                                          process_id: process_id,
+                                          filename: file_name,
+                                          filesize: file.file.size,
+                                          filechunks: Math.ceil(file.file.size / r.opts.chunkSize),
+                                          fileindex: file.uniqueIdentifier,
+                                          md5: md5
+                                      }
+                                  };
+
+                                  $("#" + file_msg_id).append('Md5 for file ' + file_name + ' calculated: ' + md5)
+                                      .addClass('text-info').removeClass('text-danger').removeClass('text-success');
+
+                                  console.log('We will now try to upload the file');
+                                  r.upload(); // Start the upload
+                              }, function(progress) {
+                                  $("#" + file_msg_id).html('Calculating md5 for file ' + file_name + '. Progress: ' + progress.toFixed(2) + '%')
+                                      .addClass('text-info').removeClass('text-danger').removeClass('text-success');
+                              });
+                          } else if (matchingSequencerIds.length > 1) {
+                              $("#" + file_msg_id).append("<p>Multiple matches found. Please check the file and try again.</p>")
+                                  .removeClass('text-success').addClass('text-danger');
+                          } else if (matchingSequencerIds.length === 0) {
+                              $("#" + file_msg_id).append("<p>No Matching file found. Please check the filename. The filename should start with one of the sequencer IDs you provided on the previous step.</p>")
+                                  .removeClass('text-success').addClass('text-danger');
+                          }
+                      } else {
+                          $("#" + file_msg_id).append("<p>An error occurred. Please try again.</p>")
+                              .removeClass('text-success').addClass('text-danger');
+                      }
+                  },
+                  error: function(xhr, status, error) {
+                      console.error('Error:', error);
+                      $("#" + file_msg_id).html("<p>An error occurred while processing the file.</p>")
+                          .removeClass('text-success').addClass('text-danger');
+                  }
+              });
+          });
+
+          var fileInput = $('#step_7_upload_file_button')[0];
+          fileInput.value = "";
+      });
+
+      r.assignBrowse(document.getElementById('step_7_upload_file_button'));
+
+      r.on('fileSuccess', function(file, message) {
+          var file_msg_id = 'step_7_file_' + file.uniqueIdentifier;
+          console.log('File upload success', message);
+          var file_name = file.file.name;
+          var formData = new FormData();
+
+          // Ensure process_id is defined and accessible
+          if (typeof process_id === 'undefined' || !process_id) {
+              console.error('process_id is not defined.');
+              return;
+          }
+
+          formData.append('process_id', process_id);
+          formData.append('filename', file_name);
+          formData.append('fileopts', JSON.stringify(file.opts.query));
+          $.ajax({
+              url: '/sequencing_file_upload_completed',
+              type: 'POST',
+              data: formData,
+              contentType: false,
+              processData: false,
+              success: function(response) {
+                  console.log(response);
+
+                  if (response.result === 1) {
+                    $("#" + file_msg_id).append("<p>Upload completed successfully.</p>").addClass('text-success');
+                  } else {
+                      $("#" + file_msg_id).append("<p>An error occurred. The file could not be joined. Please try again.</p>")
+                          .removeClass('text-success').addClass('text-danger');
+                  }
+              },
+              error: function(xhr, status, error) {
+                  console.error('Error:', error);
+                  $("#" + file_msg_id).html("<p>An error occurred while processing the file.</p>")
+                      .removeClass('text-success').addClass('text-danger');
+              }
+          });
+      });
+
+      r.on('fileError', function(file, message) {
+          var file_msg_id = 'step_7_file_' + file.uniqueIdentifier;
+          console.log('File upload error', message);
+          $("#" + file_msg_id).append("<p>Upload failed.</p>").addClass('text-danger');
+      });
+  }
+
+
+  function calculateMD5(file, callback, updateCallback) {
+      var chunkSize = 2097152; // 2 MB chunks
+      var spark = new SparkMD5.ArrayBuffer();
+      var fileReader = new FileReader();
+      var startTime = performance.now(); // Start timer
+      var totalChunks = Math.ceil(file.size / chunkSize);
+      var chunksProcessed = 0;
+
+      fileReader.onload = function (event) {
+          spark.append(event.target.result); // Append chunk to MD5 calculation
+          chunksProcessed++;
+          if (chunksProcessed < totalChunks) {
+              loadNext();
+          } else {
+              var endTime = performance.now(); // End timer
+              var duration = endTime - startTime; // Calculate duration
+              console.log('MD5 calculated in ' + duration.toFixed(2) + ' milliseconds'); // Log duration
+              callback(spark.end());
+          }
+          updateCallback((chunksProcessed / totalChunks) * 100); // Update progress
+      };
+
+      fileReader.onerror = function () {
+          console.warn('Error reading file');
+          callback(null);
+      };
+
+      function loadNext() {
+          var start = fileReader.loaded || 0;
+          var end = Math.min(start + chunkSize, file.size);
+          fileReader.readAsArrayBuffer(file.slice(start, end));
+          fileReader.loaded = end; // Update loaded bytes
+      }
+
+      loadNext();
+  }
+
+
   $(document).ready(function() {
-    $('#step_7_upload_file_button').on('change', function () {
-        uploadSequencingFile();
-    });
+
+
+
+
+    setUpResumable()
+
     function uploadSequencingFile() {
         var fileInput = $('#step_7_upload_file_button')[0];
         var file = fileInput.files[0];
@@ -1428,13 +1616,13 @@
             console.log('here here , the filename is')
             var fileName = file.name;
             console.log(fileName)
-            $('#step_7_filename').html("<h4>File uploaded: " + fileName + "</h4>");    
+            $('#step_7_filename').html("<h4>File uploaded: " + fileName + "</h4>");
         } else {
             alert("Please select a file.");
             return;
         }
 
-        
+
         var formData = new FormData();
 
         var form = $('#step_7_upload_file_button').closest('form');
@@ -1442,75 +1630,27 @@
         formData.append('process_id', processId);
         formData.append('filename', fileName);
         console.log(formData)
-
-        $.ajax({
-            url: '/check_filename_matching',
-            type: 'POST',
-            data: formData,
-            contentType: false,
-            processData: false,
-            success: function(response) {
-                console.log(response);
-
-                // Clear previous messages and reset status class
-                $('#step_7_msg').empty().removeClass('text-success text-danger');
+        console.log('Unique Identifier for file:', file.uniqueIdentifier);
+        var file_msg_id = 'step_7_file_' + file.uniqueIdentifier;
 
 
-                // Show success message if no issues found
-                if (response.result === 1) {
-                    var matchingSequencerIds = response.matching_sequencer_ids;
-                    
-                    if (matchingSequencerIds.length === 1) {
-                        // Show success message
-                        $('#step_7_msg').append("<p>No problems found.</p>").addClass('text-success');
 
-                        // Process the single matching sequencer ID
-                        var sequencerId = matchingSequencerIds[0];
 
-                        // Find the first available cell in the table
-                        var cellsA = $(`#F_${sequencerId}_A`);
-                        var cellsB = $(`#F_${sequencerId}_B`);
 
-                        if (cellsA.length && cellsA.text().trim() === 'Not uploaded') {
-                            cellsA.html(fileName).removeClass('red').addClass('text-success');
-                        } else if (cellsB.length && cellsB.text().trim() === 'Not uploaded') {
-                            cellsB.html(fileName).removeClass('red').addClass('text-success');
-                        }
-                    } else if (matchingSequencerIds.length > 1) {
-                        // Show error message if there are multiple matches
-                        $('#step_7_msg').append("<p>Multiple matches found. Please check the file and try again.</p>")
-                                        .removeClass('text-success').addClass('text-danger');
-                    }
-                } else {
-                    // Handle other response results if needed
-                    $('#step_7_msg').append("<p>An error occurred. Please try again.</p>")
-                                    .removeClass('text-success').addClass('text-danger');
-                }
 
-                // Reset the file input
-                fileInput.value = "";
-            },
-            error: function(xhr, status, error) {
-                console.error('Error:', error);
-                $('#step_7_msg').html("<p>An error occurred while processing the file.</p>").removeClass('text-success').addClass('text-danger');
-
-                // Reset the file input
-                fileInput.value = "";
-            }
-        });
     }
-    
-  });      
-  
+
+  });
+
   ////// ############################################# /////////
   ////// ############ STEP 6 ENDS HERE ############### /////////
-  ////// ############################################# ///////// 
+  ////// ############################################# /////////
 
 
-  
+
   ////// ############################################# /////////
   ////// ###### MAP HELPER FUNCTIONS START HERE ###### /////////
-  ////// ############################################# /////////  
+  ////// ############################################# /////////
   $(document).ready(function() {
     $('#latitude, #longitude').on('input', function() {
         var latitudeValue = $('#latitude').val().trim();
@@ -1554,7 +1694,7 @@
             }
         }
     });
-    
+
     function addMarker(lat, lng) {
         var location = { lat: parseFloat(lat), lng: parseFloat(lng) };
         if (!isNaN(location.lat) && !isNaN(location.lng)) {
@@ -1576,7 +1716,7 @@
             console.error("Invalid latitude or longitude values.");
         }
     }
-    
+
     // Check if fields with the names "Latitude" and "Longitude" exist in each row
     // and if they exist, call the function bellow with those values
     // addMarker(longitude, latitude)
@@ -1587,10 +1727,10 @@
         // Call addMarker with the values
         addMarker(row['Latitude'], row['Longitude']);
       }
-    });        
-    
+    });
+
   });
-  
+
   let map;
   let bounds = new google.maps.LatLngBounds();;
 
@@ -1605,10 +1745,10 @@
     });
   }
 
-  initMap();  
+  initMap();
   ////// ############################################# /////////
   ////// ###### MAP HELPER FUNCTIONS END HERE ######## /////////
-  ////// ############################################# /////////  
+  ////// ############################################# /////////
 
   </script>
 
@@ -1629,7 +1769,7 @@
     .table-container {
         overflow-x: auto; /* Enable horizontal scrolling */
     }
-    
+
     .blue {
       color: blue;
     }
@@ -1650,8 +1790,8 @@
     }
     #dataTable {
         table-layout: auto;
-    } 
-    
+    }
+
     #step_6-container {
       display: flex;
     }

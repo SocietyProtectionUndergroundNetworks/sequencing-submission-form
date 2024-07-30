@@ -206,13 +206,16 @@ class SequencingSequencerId:
                             if len(index_value) > 100:
                                 result = 0
                                 messages.append(
-                                    f"{ index_x } in row {index + 1} is longer than 100 characters"
+                                    f"{ index_x } in row {index + 1} is "
+                                    "longer than 100 characters"
                                 )
                             # Check if only contains ATGC
                             if not all(char in "ATGC" for char in index_value):
                                 result = 0
                                 messages.append(
-                                    f"{ index_x } in row {index + 1} contains invalid characters (only ATGC are allowed)"
+                                    f"{index_x} in row {index + 1} "
+                                    "contains invalid characters "
+                                    "(only ATGC are allowed)"
                                 )
 
         # No problems found, so lets add these records
@@ -246,31 +249,33 @@ class SequencingSequencerId:
     def get_matching_sequencer_ids(cls, process_id, filename):
         db_engine = connect_db()
         session = get_session(db_engine)
-        
-        # Extract the prefix from the filename, considering both with and without _
-        filename_prefix = filename.split(".")[0]  # Get the filename without the extension
-        
-        # Query to get all ids and SequencerIDs related to the given process_id
+
+        # Extract the prefix from the filename, considering
+        # both with and without _
+        filename_prefix = filename.split(".")[
+            0
+        ]  # Get the filename without the extension
+
+        # Query to get all ids and SequencerIDs related to
+        # the given process_id
         sequencer_ids = (
-            session.query(SequencingSequencerIDsTable.id, SequencingSequencerIDsTable.SequencerID)
+            session.query(
+                SequencingSequencerIDsTable.id,
+                SequencingSequencerIDsTable.SequencerID,
+            )
             .join(SequencingSamplesTable)
             .filter(SequencingSamplesTable.sequencingUploadId == process_id)
             .all()
         )
-        
+
         # Extract id and SequencerID pairs from the query result
         sequencer_ids = [(id, seq_id) for id, seq_id in sequencer_ids]
-        logger.info("The sequencer ids and SequencerIDs are:")
-        logger.info(sequencer_ids)
-        
+
         # Find matching sequencer IDs and return the corresponding ids
         matching_ids = [
             id
             for id, seq_id in sequencer_ids
             if filename_prefix.startswith(seq_id)
         ]
-        logger.info("The matching SequencingSequencerIDsTable ids are:")
-        logger.info(matching_ids)
-        
-        return matching_ids
 
+        return matching_ids

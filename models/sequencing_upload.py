@@ -1,3 +1,6 @@
+import datetime
+import random
+import string
 import logging
 import os
 import json
@@ -167,6 +170,24 @@ class SequencingUpload:
         session.refresh(new_upload)
 
         new_upload_id = new_upload.id
+
+        id_str = f"{new_upload_id:05}"
+
+        # lets create a directory only for this process.
+        uploads_folder = (
+            id_str
+            + "_"
+            + datetime.datetime.now().strftime("%Y%m%d")
+            + "".join(
+                random.choices(string.ascii_uppercase + string.digits, k=6)
+            )
+        )
+
+        path = Path("seq_uploads", uploads_folder)
+        path.mkdir(parents=True, exist_ok=True)
+
+        new_upload.uploads_folder = uploads_folder
+        session.commit()
 
         session.close()
 

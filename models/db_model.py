@@ -157,3 +157,4 @@ class SequencingFilesUploadedTable(Base):
     )
     original_filename = Column(String(255), nullable=True)
     new_name = Column(String(25), nullable=True)
+    md5 = Column(String(50), nullable=True)

@@ -1,6 +1,7 @@
 import logging
 import pandas as pd
 import os
+import json
 from flask import (
     redirect,
     Blueprint,
@@ -15,6 +16,7 @@ from models.bucket import Bucket
 from models.sequencing_upload import SequencingUpload
 from models.sequencing_sample import SequencingSample
 from models.sequencing_sequencer_ids import SequencingSequencerId
+from models.sequencing_files_uploaded import SequencingFileUploaded
 from helpers.metadata_check import (
     check_metadata,
     get_columns_data,
@@ -24,6 +26,8 @@ from helpers.create_xls_template import (
     create_template_one_drive_and_excel,
 )
 import numpy as np
+from helpers.file_renaming import calculate_md5
+
 from pathlib import Path
 
 metadata_bp = Blueprint("metadata", __name__)
@@ -89,7 +93,6 @@ def metadata_form():
 
         samples_data = SequencingUpload.get_samples(process_id)
         sequencer_ids = SequencingUpload.get_sequencer_ids(process_id)
-        logger.info(sequencer_ids)
         valid_samples = SequencingUpload.validate_samples(process_id)
 
     return render_template(
@@ -127,7 +130,6 @@ def metadata_validate_row():
 
     # Convert form data to a DataFrame
     df = pd.DataFrame([form_data])
-    logger.info("\n%s", df.to_string())
     # Check metadata using the helper function
     result = check_metadata(df, "yes")
 
@@ -184,10 +186,7 @@ def upload_metadata_file():
 
     expected_columns_data = get_columns_data()
     expected_columns = list(expected_columns_data.keys())
-    logger.info(result)
     if result["status"] == 1:
-        logger.info("the process id is")
-        logger.info(process_id)
         # Create a list to hold the sample line IDs
         sample_line_ids = []
         # All the data that was uploaded was ok. Lets save them
@@ -232,14 +231,6 @@ def upload_metadata_file():
 def upload_process_common_fields():
     # Parse form data from the request
     form_data = request.form.to_dict()
-    logger.info(form_data)
-
-    # if they have selected Scripps on step 2, we update the
-    # relevant values
-    if ("using_scripps" in form_data) and (
-        form_data["using_scripps"] == "yes"
-    ):
-        logger.info(form_data["using_scripps"])
 
     process_id = SequencingUpload.create(datadict=form_data)
 
@@ -279,13 +270,13 @@ def add_sequencer_id():
 
 
 @metadata_bp.route(
-    "/upload_sequencing_file",
+    "/upload_sequencer_ids_file",
     methods=["POST"],
-    endpoint="upload_sequencing_file",
+    endpoint="upload_sequencer_ids_file",
 )
 @login_required
 @approved_required
-def upload_sequencing_file():
+def upload_sequencer_ids_file():
     file = request.files.get("file")
     process_id = request.form.get("process_id")
     if not file:
@@ -374,8 +365,6 @@ def create_xls_template():
 def check_filename_matching():
     process_id = request.form.get("process_id")
     filename = request.form.get("filename")
-    logger.info("The filename is " + filename)
-    logger.info("The process id is " + str(process_id))
 
     matching_sequencer_ids = SequencingSequencerId.get_matching_sequencer_ids(
         process_id, filename
@@ -386,3 +375,148 @@ def check_filename_matching():
         ),
         200,
     )
+
+
+# NOTE: The "POST" method handles
+# the upload of the file itself.
+# There is also a "GET" method
+# that checks if the chunk has
+# been uploaded
+@metadata_bp.route(
+    "/sequencing_upload_chunk",
+    methods=["POST"],
+    endpoint="sequencing_upload_chunk",
+)
+@login_required
+@approved_required
+def sequencing_upload_chunk():
+    file = request.files.get("file")
+    if file:
+        process_id = request.args.get("process_id")
+
+        process_data = SequencingUpload.get(process_id)
+        uploads_folder = process_data["uploads_folder"]
+        # Extract Resumable.js headers
+        resumable_chunk_number = request.args.get("resumableChunkNumber")
+        # resumable_chunk_size = request.args.get("resumableChunkSize")
+        # resumable_total_size = request.args.get("resumableTotalSize")
+        # expected_md5 = request.args.get("md5")
+
+        # Handle file chunks or combine chunks into a complete file
+        chunk_number = (
+            int(resumable_chunk_number) if resumable_chunk_number else 1
+        )
+
+        # Save or process the chunk
+        save_path = (
+            f"seq_uploads/{uploads_folder}/{file.filename}.part{chunk_number}"
+        )
+        file.save(save_path)
+
+        # HERE HERE : To add what happens if all are uploaded.
+
+        return jsonify({"message": f"Chunk {chunk_number} uploaded"}), 200
+    return jsonify({"message": "No file received"}), 400
+
+
+# NOTE: The "GET" method is only used on the same
+# url as the sending of the data in order
+# to determine if this chunk has been uploaded
+# There is also a "POST" method that handles
+# the upload of the file itself.
+@metadata_bp.route(
+    "/sequencing_upload_chunk",
+    methods=["GET"],
+    endpoint="sequencing_upload_chunk_check",
+)
+@login_required
+@approved_required
+def sequencing_upload_chunk_check():
+    process_id = request.args.get("process_id")
+    if process_id:
+
+        chunk_number = request.args.get("resumableChunkNumber")
+        resumable_filename = request.args.get("resumableFilename")
+        process_data = SequencingUpload.get(process_id)
+        uploads_folder = process_data["uploads_folder"]
+
+        chunk_path = (
+            f"seq_uploads/{uploads_folder}/"
+            f"{resumable_filename}.part{chunk_number}"
+        )
+
+        if os.path.exists(chunk_path):
+            return "", 200  # Chunk already uploaded, return 200
+    return "", 204  # Chunk not found, return 204
+
+
+# The resumamble library indicates to us
+# that all chunks of the file were uploaded
+# Check that this is the case
+# and if yes, rename it and complete the process
+@metadata_bp.route(
+    "/sequencing_file_upload_completed",
+    methods=["POST"],
+    endpoint="sequencing_file_upload_completed",
+)
+@login_required
+@approved_required
+def sequencing_file_upload_completed():
+    process_id = request.form.get("process_id")
+    logger.info(process_id)
+    if process_id:
+        process_data = SequencingUpload.get(process_id)
+        uploads_folder = process_data["uploads_folder"]
+
+        fileopts_json = request.form.get("fileopts")
+        logger.info("The fileopts_json are")
+        logger.info(fileopts_json)
+        fileopts = json.loads(fileopts_json)
+        form_filename = fileopts["filename"]
+        # form_filesize = fileopts["filesize"]
+        form_filechunks = fileopts["filechunks"]
+        expected_md5 = fileopts["md5"]
+
+        final_file_path = f"seq_uploads/{uploads_folder}/{form_filename}"
+        temp_file_path = f"seq_uploads/{uploads_folder}/{form_filename}.temp"
+
+        with open(temp_file_path, "ab") as temp_file:
+            for i in range(1, form_filechunks + 1):
+                chunk_path = (
+                    f"seq_uploads/{uploads_folder}/{form_filename}.part{i}"
+                )
+                with open(chunk_path, "rb") as chunk_file:
+                    temp_file.write(chunk_file.read())
+
+        actual_md5 = calculate_md5(temp_file_path)
+        # Compare MD5 hashes
+        if expected_md5 == actual_md5:
+            # MD5 hashes match, file integrity verified
+            os.rename(temp_file_path, final_file_path)
+            # Then, since it is now confirmed, lets delete the parts
+            for i in range(1, form_filechunks + 1):
+                chunk_path = (
+                    f"seq_uploads/{uploads_folder}/{form_filename}.part{i}"
+                )
+                os.remove(chunk_path)
+
+            # Save into the database the file
+            matching_sequencer_ids = (
+                SequencingSequencerId.get_matching_sequencer_ids(
+                    process_id, form_filename
+                )
+            )
+
+            if len(matching_sequencer_ids) == 1:
+                file_sequencer_id = matching_sequencer_ids[0]
+                file_dict = {
+                    "md5": expected_md5,
+                    "original_filename": form_filename,
+                }
+                SequencingFileUploaded.create(file_sequencer_id, file_dict)
+
+                return (
+                    jsonify({"result": 1}),
+                    200,
+                )
+    return "", 200
