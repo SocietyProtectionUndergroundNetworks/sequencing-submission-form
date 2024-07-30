@@ -809,6 +809,20 @@ def start_raw_and_unzip():
 
 
 @upload_bp.route(
+    "/start_raw_all", methods=["GET"], endpoint="start_raw_all"
+)
+@login_required
+@admin_required
+@approved_required
+def start_raw_all():
+    process_id = request.args.get("process_id")
+    gz_filedata = Upload.get_gz_filedata(process_id)
+    for filename, file_data in gz_filedata.items():
+        result = init_send_raw_to_storage(process_id, filename)
+    return jsonify({"result": "ok"}), 200
+
+
+@upload_bp.route(
     "/start_unzip_all", methods=["GET"], endpoint="start_unzip_all"
 )
 @login_required
