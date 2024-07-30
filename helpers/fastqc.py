@@ -129,7 +129,7 @@ def fastqc_multiqc_files(process_id):
     output_folders = {}
     nr_output_folders = 0
     files_done = 0
-    # Run fastqc on all raw fastq.gz files within the 'fastqc' environment
+
     fastq_files = [
         f
         for f in os.listdir(input_folder)
@@ -140,7 +140,6 @@ def fastqc_multiqc_files(process_id):
     ]
     nr_files = len(fastq_files)
     for fastq_file in fastq_files:
-        # check that the file exists in our files_json
         if fastq_file in new_files_json:
             bucket = new_files_json[fastq_file]["bucket"]
             folder = new_files_json[fastq_file]["folder"]
@@ -152,15 +151,13 @@ def fastqc_multiqc_files(process_id):
                 output_folders[bucket][folder] = True
                 nr_output_folders += 1
 
-            print("file we will try is " + str(fastq_file))
-
             output_folder_of_file = os.path.join(output_folder, bucket, folder)
             Path(output_folder_of_file).mkdir(parents=True, exist_ok=True)
             input_file = os.path.join(input_folder, fastq_file)
             fastqc_cmd = (
                 f"/usr/local/bin/FastQC/fastqc "
-                f"-o {output_folder_of_file} "
-                f"{input_file}"
+                f"-o '{output_folder_of_file}' "
+                f"'{input_file}'"
             )
             subprocess.run(fastqc_cmd, shell=True, executable="/bin/bash")
             files_done += 1
@@ -186,7 +183,6 @@ def fastqc_multiqc_files(process_id):
                 path_to_delete = os.path.join(multiqc_folder, file_to_delete)
                 os.remove(path_to_delete)
 
-            # upload the multiqc files to the project bucket
             bucket_upload_folder(
                 multiqc_folder,
                 folder + "/MultiQC_report/" + uploads_folder,
