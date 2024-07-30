@@ -808,6 +808,20 @@ def start_raw_and_unzip():
 
 
 @upload_bp.route(
+    "/start_raw_all", methods=["GET"], endpoint="start_raw_all"
+)
+@login_required
+@admin_required
+@approved_required
+def start_raw_all():
+    process_id = request.args.get("process_id")
+    gz_filedata = Upload.get_gz_filedata(process_id)
+    for filename, file_data in gz_filedata.items():
+        result = init_send_raw_to_storage(process_id, filename)
+    return jsonify({"result": "ok"}), 200
+
+
+@upload_bp.route(
     "/start_unzip_all", methods=["GET"], endpoint="start_unzip_all"
 )
 @login_required
@@ -1153,7 +1167,11 @@ def process_server_file():
         abort(400, "Invalid filename.")
 
     # Check if the file has a valid extension
-    if not (safe_filename.endswith(".zip") or safe_filename.endswith(".gz")):
+    if not (
+        safe_filename.endswith(".zip")
+        or safe_filename.endswith(".tar")
+        or safe_filename.endswith(".gz")
+    ):
         logger.warning("Invalid file extension: %s", safe_filename)
         abort(400, "Invalid file type. Only .zip and .gz files are allowed.")
 
