@@ -808,9 +808,7 @@ def start_raw_and_unzip():
     return jsonify({"result_1": result, "result2": result2}), 200
 
 
-@upload_bp.route(
-    "/start_raw_all", methods=["GET"], endpoint="start_raw_all"
-)
+@upload_bp.route("/start_raw_all", methods=["GET"], endpoint="start_raw_all")
 @login_required
 @admin_required
 @approved_required
