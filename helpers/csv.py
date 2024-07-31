@@ -101,7 +101,7 @@ def validate_csv_buckets(data, column_names):
     # Get bucket information
     bucket_info = list_buckets()
 
-    expected_regions = ["ITS2", "ITS1", "SSU", "LSU", "Other"]
+    expected_regions = ["ITS2", "ITS1", "SSU", "LSU", "Other", "Full_rDNA", "Full_ITS"]
 
     # To store CSV values that do not exist as buckets
     not_found = []
