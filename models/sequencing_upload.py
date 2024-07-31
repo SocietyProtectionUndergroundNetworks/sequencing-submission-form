@@ -9,6 +9,7 @@ from models.db_model import (
     SequencingUploadsTable,
     SequencingSamplesTable,
     SequencingSequencerIDsTable,
+    SequencingFilesUploadedTable,
 )
 from pathlib import Path
 from flask_login import current_user
@@ -291,3 +292,34 @@ class SequencingUpload:
                 return False  # Incorrect regions
 
         return True
+
+    @classmethod
+    def get_uploaded_files(cls, sequencingUploadId):
+        # Connect to the database and create a session
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        # Query to get all SequencingFilesUploadedTable entries associated with the given sequencingUploadId
+        uploaded_files = (
+            session.query(SequencingFilesUploadedTable)
+            .join(SequencingSequencerIDsTable, SequencingFilesUploadedTable.sequencerId == SequencingSequencerIDsTable.id)
+            .join(SequencingSamplesTable, SequencingSequencerIDsTable.sequencingSampleId == SequencingSamplesTable.id)
+            .filter(SequencingSamplesTable.sequencingUploadId == sequencingUploadId)
+            .all()
+        )
+
+        # Define the as_dict method within this function
+        def as_dict(instance):
+            """Convert SQLAlchemy model instance to a dictionary."""
+            return {
+                column.name: getattr(instance, column.name)
+                for column in instance.__table__.columns
+            }
+
+        # Convert each file instance to a dictionary
+        uploaded_files_list = [as_dict(file) for file in uploaded_files]
+
+        # Close the session
+        session.close()
+
+        return uploaded_files_list

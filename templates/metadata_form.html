@@ -202,6 +202,38 @@
       </div>
     </div>
 
+    <div class="container">
+      <form id="metadataForm" style="display:none">
+        <input type="hidden" name="process_id" value="{{ process_id }}">
+        {% for column_key, column_values in expected_columns.items() %}
+            <div class="form-group row mb-3">
+                <label for="{{ column_key }}" class="col-sm-3 col-form-label">{{ column_key }}</label>
+                <div class="col-sm-9">
+                    <small id="{{ column_key }}Help" class="form-text">{{ column_values['help_tip'] }}</small>
+                    {% if 'options' in column_values %}
+                        <select class="form-control" id="{{ column_key }}" name="{{ column_key }}">
+                            <option value="0">------</option>
+                            {% for option in column_values['options'] %}
+                                <option value="{{ option }}">{{ option }}</option>
+                            {% endfor %}
+                        </select>
+                    {% elif column_values.get('field_type') == 'date' %}
+                        <input type="date" class="form-control" id="{{ column_key }}" name="{{ column_key }}">
+                    {% else %}
+                        <input type="text" class="form-control" id="{{ column_key }}" name="{{ column_key }}" placeholder="{{ column_key }}">
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+
+        <button type="submit" class="btn btn-primary">Submit</button>
+      </form>
+      <div id="mapWrapper">
+        <div id="map"></div>
+      </div>
+      <div id="mapCheckMessage"></div>
+    </div>
+
     <div class="table-container">
       <h4> Your metadata </h4>
       <p>Please note: you don't need to (and you shouldn't) provide the first two columns. Our system will fill those in at a later stage</a></p>
@@ -240,37 +272,6 @@
               {% endif %}
           </tbody>
       </table>
-    </div>
-
-    <div class="container">
-      <div id="mapWrapper">
-        <div id="map"></div>
-      </div>
-      <div id="mapCheckMessage"></div>
-      <form id="metadataForm" style="display:none">
-        {% for column_key, column_values in expected_columns.items() %}
-            <div class="form-group row mb-3">
-                <label for="{{ column_key }}" class="col-sm-3 col-form-label">{{ column_key }}</label>
-                <div class="col-sm-9">
-                    <small id="{{ column_key }}Help" class="form-text">{{ column_values['help_tip'] }}</small>
-                    {% if 'options' in column_values %}
-                        <select class="form-control" id="{{ column_key }}" name="{{ column_key }}">
-                            <option value="0">------</option>
-                            {% for option in column_values['options'] %}
-                                <option value="{{ option }}">{{ option }}</option>
-                            {% endfor %}
-                        </select>
-                    {% elif column_values.get('field_type') == 'date' %}
-                        <input type="date" class="form-control" id="{{ column_key }}" name="{{ column_key }}">
-                    {% else %}
-                        <input type="text" class="form-control" id="{{ column_key }}" name="{{ column_key }}" placeholder="{{ column_key }}">
-                    {% endif %}
-                </div>
-            </div>
-        {% endfor %}
-
-        <button type="submit" class="btn btn-primary">Submit</button>
-      </form>
     </div>
 
     <div id="step_5" class="form-step-item">
@@ -449,13 +450,13 @@
       </div>
       <div id="next_to_step_6" class="next-to-step">
         <h4> Expected number of files per sequence is {{ nr_files_per_sequence }} </h4>
-        <h4> Sequencing_regions_number is {{ process_data["Sequencing_regions_number"] }} </h4>
+        <h4> Number of sequencing regions is {{ process_data["Sequencing_regions_number"] }} </h4>
         <table id="samplesTable" class="table-bordered">
             <thead>
                 <tr>
                     <th scope="col" class="bg-gray">DbID</th>
                     <th scope="col" class="bg-gray">SampleID</th>
-                    <th scope="col" class="bg-gray"><span class="grey">____</span>Sequencer ID<span class="grey">____</span></th>
+                    <th scope="col" class="bg-gray"><span class="grey">____</span>Sequencer<span class="grey">_</span>ID<span class="grey">____</span></th>
                     <th scope="col" class="bg-gray"><span class="grey">____</span>Region<span class="grey">____</span></th>
                     <th scope="col" class="bg-gray"><span class="grey">____</span>Index_1<span class="grey">____</span></th>
                     <th scope="col" class="bg-gray"><span class="grey">____</span>Index_2<span class="grey">____</span></th>
@@ -471,16 +472,28 @@
                   {% set seq_data_list = [] %}
                   {% for seq in sequencer_ids %}
                       {% if seq.sequencingSampleId == row.id %}
-                          {% set seq_data = {'id': seq.id, 'SequencerID': seq.SequencerID, 'Region': seq.Region, 'Index_1': seq.Index_1, 'Index_2': seq.Index_2} %}
+                          {% set seq_data = {
+                              'id': seq.id,
+                              'SequencerID': seq.SequencerID,
+                              'Region': seq.Region,
+                              'Index_1': seq.Index_1,
+                              'Index_2': seq.Index_2
+                          } %}
                           {% set _ = seq_data_list.append(seq_data) %}
                       {% endif %}
                   {% endfor %}
                   {% set _ = seq_data_dict.update({row.id: seq_data_list}) %}
               {% endfor %}
-
+              {{ seq_data_dict }}
               {% if nr_files_per_sequence == 2 %}
                 <!-- Iterate over each row in samples_data -->
                 {% for row in samples_data %}
+                    {% set seq_data = seq_data_dict[row.id] %}
+                    {% if seq_data and seq_data|length > 0 %}
+                        {% set files = uploaded_files | selectattr("sequencerId", "equalto", seq_data[0]["id"]) | list %}
+                    {% else %}
+                        {% set files = [] %}
+                    {% endif %}
                     <tr>
                         <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"]* nr_files_per_sequence }}">{{ row.id }}</td>
                         <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"]* nr_files_per_sequence }}">{{ row["SampleID"] }}</td>
@@ -504,11 +517,23 @@
                             {{ seq_data_dict[row.id][0]["Index_2"] }}
                           {% endif %}
                         </td>
-                        <td id="F_{{ seq_data_dict[row.id][0]["id"] }}_A"> <span class="red"> Not uploaded </span> </td>
+                        <td id="F_{{ seq_data_dict[row.id][0]["id"] }}_A">
+                          {% if files and files[0] %}
+                            {{ files[0].original_filename }}
+                          {% else %}
+                            <span class="red"> Not uploaded </span>
+                          {% endif %}
+                        </td>
                     </tr>
 
                     <tr>
-                      <td id="F_{{ seq_data_dict[row.id][0]["id"] }}_B"> <span class="red"> Not uploaded </span> </td>
+                      <td id="F_{{ seq_data_dict[row.id][0]["id"] }}_B">
+                        {% if files and files|length > 1 %}
+                          {{ files[1].original_filename }}
+                        {% else %}
+                          <span class="red"> Not uploaded </span>
+                        {% endif %}
+                      </td>
                     </tr>
 
                     {% if process_data["Sequencing_regions_number"]>1 %}
@@ -533,10 +558,22 @@
                             {{ seq_data_dict[row.id][1]["Index_2"] }}
                           {% endif %}
                         </td>
-                        <td id="F_{{ seq_data_dict[row.id][1]["id"] }}_A"> <span class="red"> Not uploaded </span> </td>
+                        <td id="F_{{ seq_data_dict[row.id][1]["id"] }}_A">
+                          {% if files and files[0] %}
+                            {{ files[0].original_filename }}
+                          {% else %}
+                            <span class="red"> Not uploaded </span>
+                          {% endif %}
+                        </td>
                       </tr>
                       <tr>
-                        <td id="F_{{ seq_data_dict[row.id][1]["id"] }}_B"> <span class="red"> Not uploaded </span> </td>
+                        <td id="F_{{ seq_data_dict[row.id][1]["id"] }}_B">
+                          {% if files and files|length > 1 %}
+                            {{ files[1].original_filename }}
+                          {% else %}
+                            <span class="red"> Not uploaded </span>
+                          {% endif %}
+                        </td>
                       </tr>
                     {% endif %}
 
@@ -544,58 +581,77 @@
               {% endif %}
 
               {% if nr_files_per_sequence == 1 %}
+                <!-- Iterate over each row in samples_data -->
                 {% for row in samples_data %}
-                    <tr>
-                        <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"] }}">{{ row.id }}</td>
-                        <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"] }}">{{ row["SampleID"] }}</td>
-                        <td id="S_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
-                          {% if seq_data_dict[row.id][0] %}
-                            {{ seq_data_dict[row.id][0]["SequencerID"] }}
-                          {% endif %}
-                        </td>
-                        <td id="R_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
-                          {% if seq_data_dict[row.id][0] %}
-                            {{ seq_data_dict[row.id][0]["Region"] }}
-                          {% endif %}
-                        </td>
-                        <td id="I1_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
-                          {% if seq_data_dict[row.id][0] %}
-                            {{ seq_data_dict[row.id][0]["Index_1"] }}
-                          {% endif %}
-                        </td>
-                        <td id="I2_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
-                          {% if seq_data_dict[row.id][0] %}
-                            {{ seq_data_dict[row.id][0]["Index_2"] }}
-                          {% endif %}
-                        </td>
-                        <td id="F_{{ seq_data_dict[row.id][0]["id"] }}_A"><span class="red"> Not uploaded </span></td>
-                    </tr>
+                  {% set seq_data = seq_data_dict.get(row.id, []) %}
+                  {% if seq_data %}
+                      {% set files = uploaded_files | selectattr("sequencerId", "equalto", seq_data[0]["id"]) | list %}
+                  {% else %}
+                      {% set files = [] %}
+                  {% endif %}
+                  <tr>
+                    <td class="bg-gray" rowspan="{{ process_data['Sequencing_regions_number'] }}">{{ row.id }}</td>
+                    <td class="bg-gray" rowspan="{{ process_data['Sequencing_regions_number'] }}">{{ row['SampleID'] }}</td>
+                    <td id="S_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
+                      {% if seq_data|length > 0 %}
+                        {{ seq_data[0]['SequencerID'] }}
+                      {% endif %}
+                    </td>
+                    <td id="R_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
+                      {% if seq_data|length > 0 %}
+                        {{ seq_data[0]['Region'] }}
+                      {% endif %}
+                    </td>
+                    <td id="I1_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
+                      {% if seq_data|length > 0 %}
+                        {{ seq_data[0]['Index_1'] }}
+                      {% endif %}
+                    </td>
+                    <td id="I2_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
+                      {% if seq_data|length > 0 %}
+                        {{ seq_data[0]['Index_2'] }}
+                      {% endif %}
+                    </td>
+                    <td id="F_{{ seq_data|length > 0 and seq_data[0]['id'] or 'N/A' }}_A">
+                      {% if files and files[0] %}
+                        {{ files[0]['original_filename'] }}
+                      {% else %}
+                        <span class="red"> Not uploaded </span>
+                      {% endif %}
+                    </td>
+                  </tr>
 
-                    {% if process_data["Sequencing_regions_number"]>1 %}
-                      <tr>
-                        <td id="S_{{ row.id }}_2" rowspan="{{ nr_files_per_sequence }}">
-                          {% if seq_data_dict[row.id][1] %}
-                            {{ seq_data_dict[row.id][1]["SequencerID"] }}
-                          {% endif %}
-                        </td>
-                        <td id="R_{{ row.id }}_2"rowspan="{{ nr_files_per_sequence }}">
-                          {% if seq_data_dict[row.id][1] %}
-                            {{ seq_data_dict[row.id][1]["Region"] }}
-                          {% endif %}
-                        </td>
-                        <td id="I1_{{ row.id }}_2"rowspan="{{ nr_files_per_sequence }}">
-                          {% if seq_data_dict[row.id][1] %}
-                            {{ seq_data_dict[row.id][1]["Index_1"] }}
-                          {% endif %}
-                        </td>
-                        <td id="I2_{{ row.id }}_2"rowspan="{{ nr_files_per_sequence }}">
-                          {% if seq_data_dict[row.id][1] %}
-                            {{ seq_data_dict[row.id][1]["Index_2"] }}
-                          {% endif %}
-                        </td>
-                        <td id="F_{{ seq_data_dict[row.id][1]["id"] }}_A"><span class="red"> Not uploaded </span></td>
-                      </tr>
-                    {% endif %}
+                  {% if process_data['Sequencing_regions_number'] > 1 and seq_data|length > 1 %}
+                    <tr>
+                      <td id="S_{{ row.id }}_2" rowspan="{{ nr_files_per_sequence }}">
+                        {% if seq_data[1] %}
+                          {{ seq_data[1]['SequencerID'] }}
+                        {% endif %}
+                      </td>
+                      <td id="R_{{ row.id }}_2" rowspan="{{ nr_files_per_sequence }}">
+                        {% if seq_data[1] %}
+                          {{ seq_data[1]['Region'] }}
+                        {% endif %}
+                      </td>
+                      <td id="I1_{{ row.id }}_2" rowspan="{{ nr_files_per_sequence }}">
+                        {% if seq_data[1] %}
+                          {{ seq_data[1]['Index_1'] }}
+                        {% endif %}
+                      </td>
+                      <td id="I2_{{ row.id }}_2" rowspan="{{ nr_files_per_sequence }}">
+                        {% if seq_data[1] %}
+                          {{ seq_data[1]['Index_2'] }}
+                        {% endif %}
+                      </td>
+                      <td id="F_{{ seq_data[1]['id'] }}_A">
+                        {% if files|length > 1 %}
+                          {{ files[1]['original_filename'] }}
+                        {% else %}
+                          <span class="red"> Not uploaded </span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endif %}
                 {% endfor %}
               {% endif %}
 
@@ -1417,6 +1473,23 @@
       $('#step_7_form fieldset').removeAttr('disabled');
   }
 
+  function updateTableCell(file_name, sequencerId) {
+      var cellIdA = '#F_' + sequencerId + '_A';
+      var cellIdB = '#F_' + sequencerId + '_B';
+
+      // Update the first cell if needed
+      var cellA = $(cellIdA);
+      if (cellA.find('span.red').length > 0) {
+          cellA.html(file_name); // Replace with file_name
+          return; // Exit function after updating the first cell
+      }
+
+      // If the first cell is not empty, then update the second cell
+      var cellB = $(cellIdB);
+      if (cellB.find('span.red').length > 0) {
+          cellB.html(file_name); // Replace with file_name
+      }
+  }
 
   function setUpResumable() {
       var step_7_form = $('#step_7_upload_file_button').closest('form');
@@ -1462,8 +1535,8 @@
                       console.log(response);
 
                       if (response.result === 1) {
-                          var matchingSequencerIds = response.matching_sequencer_ids;
-                          if (matchingSequencerIds.length === 1) {
+                          if (response.matching_sequencer_id) {
+                              var matchingSequencerIds = response.matching_sequencer_id;
                               $("#" + file_msg_id).append("<p>No problems found.</p>").addClass('text-success');
 
                               // Calculate MD5 and start upload
@@ -1476,10 +1549,11 @@
                                           filesize: file.file.size,
                                           filechunks: Math.ceil(file.file.size / r.opts.chunkSize),
                                           fileindex: file.uniqueIdentifier,
+                                          sequencerId: matchingSequencerIds,
                                           md5: md5
                                       }
                                   };
-
+                                  console.log(file.opts)
                                   $("#" + file_msg_id).append('Md5 for file ' + file_name + ' calculated: ' + md5)
                                       .addClass('text-info').removeClass('text-danger').removeClass('text-success');
 
@@ -1489,15 +1563,12 @@
                                   $("#" + file_msg_id).html('Calculating md5 for file ' + file_name + '. Progress: ' + progress.toFixed(2) + '%')
                                       .addClass('text-info').removeClass('text-danger').removeClass('text-success');
                               });
-                          } else if (matchingSequencerIds.length > 1) {
-                              $("#" + file_msg_id).append("<p>Multiple matches found. Please check the file and try again.</p>")
-                                  .removeClass('text-success').addClass('text-danger');
-                          } else if (matchingSequencerIds.length === 0) {
-                              $("#" + file_msg_id).append("<p>No Matching file found. Please check the filename. The filename should start with one of the sequencer IDs you provided on the previous step.</p>")
+                          } else {
+                              $("#" + file_msg_id).append("<p>" + response.message + "</p>")
                                   .removeClass('text-success').addClass('text-danger');
                           }
                       } else {
-                          $("#" + file_msg_id).append("<p>An error occurred. Please try again.</p>")
+                          $("#" + file_msg_id).append("<p>" + response.message + "</p>")
                               .removeClass('text-success').addClass('text-danger');
                       }
                   },
@@ -1541,6 +1612,10 @@
 
                   if (response.result === 1) {
                     $("#" + file_msg_id).append("<p>Upload completed successfully.</p>").addClass('text-success');
+                    console.log('we should put the file at ')
+                    console.log(file.opts.query.sequencerId)
+                    // Update the table cells
+                    updateTableCell(file_name, file.opts.query.sequencerId);
                   } else {
                       $("#" + file_msg_id).append("<p>An error occurred. The file could not be joined. Please try again.</p>")
                           .removeClass('text-success').addClass('text-danger');
@@ -1560,8 +1635,6 @@
           $("#" + file_msg_id).append("<p>Upload failed.</p>").addClass('text-danger');
       });
   }
-
-
   function calculateMD5(file, callback, updateCallback) {
       var chunkSize = 2097152; // 2 MB chunks
       var spark = new SparkMD5.ArrayBuffer();
@@ -1598,12 +1671,7 @@
 
       loadNext();
   }
-
-
   $(document).ready(function() {
-
-
-
 
     setUpResumable()
 
@@ -1651,6 +1719,28 @@
   ////// ############################################# /////////
   ////// ###### MAP HELPER FUNCTIONS START HERE ###### /////////
   ////// ############################################# /////////
+  function addMarker(lat, lng) {
+      var location = { lat: parseFloat(lat), lng: parseFloat(lng) };
+      if (!isNaN(location.lat) && !isNaN(location.lng)) {
+          var marker = new google.maps.marker.AdvancedMarkerElement({
+              position: location,
+              map: map
+          });
+          //var bounds = new google.maps.LatLngBounds();
+          markersArray.push(marker);
+          bounds.extend(location);
+          map.fitBounds(bounds);
+
+          var maxZoom = 14;
+          var listener = google.maps.event.addListener(map, "idle", function () {
+              if (map.getZoom() > maxZoom) map.setZoom(maxZoom);
+              google.maps.event.removeListener(listener);
+          });
+      } else {
+          console.error("Invalid latitude or longitude values.");
+      }
+  }
+
   $(document).ready(function() {
     $('#latitude, #longitude').on('input', function() {
         var latitudeValue = $('#latitude').val().trim();
@@ -1695,28 +1785,6 @@
         }
     });
 
-    function addMarker(lat, lng) {
-        var location = { lat: parseFloat(lat), lng: parseFloat(lng) };
-        if (!isNaN(location.lat) && !isNaN(location.lng)) {
-            var marker = new google.maps.marker.AdvancedMarkerElement({
-                position: location,
-                map: map
-            });
-            //var bounds = new google.maps.LatLngBounds();
-            markersArray.push(marker);
-            bounds.extend(location);
-            map.fitBounds(bounds);
-
-            var maxZoom = 14;
-            var listener = google.maps.event.addListener(map, "idle", function () {
-                if (map.getZoom() > maxZoom) map.setZoom(maxZoom);
-                google.maps.event.removeListener(listener);
-            });
-        } else {
-            console.error("Invalid latitude or longitude values.");
-        }
-    }
-
     // Check if fields with the names "Latitude" and "Longitude" exist in each row
     // and if they exist, call the function bellow with those values
     // addMarker(longitude, latitude)
@@ -1755,6 +1823,9 @@
   <style>
     #map {
       height: 100%;
+    }
+    #mapWrapper {
+      padding-top: 2rem;
     }
     html, body {
       height: 100%;

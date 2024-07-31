@@ -85,6 +85,7 @@ def metadata_form():
     regions = SequencingUpload.get_regions()
     nr_files_per_sequence = 1
     valid_samples = False
+    uploaded_files = []
     if process_id:
         process_data = SequencingUpload.get(process_id)
 
@@ -93,6 +94,7 @@ def metadata_form():
 
         samples_data = SequencingUpload.get_samples(process_id)
         sequencer_ids = SequencingUpload.get_sequencer_ids(process_id)
+        uploaded_files = SequencingUpload.get_uploaded_files(process_id)
         valid_samples = SequencingUpload.validate_samples(process_id)
 
     return render_template(
@@ -109,6 +111,7 @@ def metadata_form():
         nr_files_per_sequence=nr_files_per_sequence,
         google_sheets_template_url=google_sheets_template_url,
         valid_samples=valid_samples,
+        uploaded_files=uploaded_files
     )
 
 
@@ -124,15 +127,40 @@ def metadata_validate_row():
     # existing functions, we want to put all the data from the form
     # into a df
     # Read the data of the form in a df
-
+    process_id = request.form.get("process_id")
+    process_data = SequencingUpload.get(process_id)
+    logger.info('The process id is')
+    logger.info(process_id)
     # Parse form data from the request
     form_data = request.form.to_dict()
 
     # Convert form data to a DataFrame
     df = pd.DataFrame([form_data])
-    # Check metadata using the helper function
-    result = check_metadata(df, "yes")
 
+    # Check metadata using the helper function
+    if "Date_collected" in df.columns:
+        # Attempt to convert 'Date_collected' to datetime
+        # format, invalid parsing will be NaT
+        temp_dates = pd.to_datetime(df["Date_collected"], errors="coerce")
+
+        # Update only the rows where conversion was successful
+        mask = temp_dates.notna()
+        df.loc[mask, "Date_collected"] = temp_dates[mask].dt.strftime(
+            "%Y-%m-%d"
+        )
+    using_scripps_txt = "no"
+    if process_data["using_scripps"] == 1:
+        using_scripps_txt = "yes"
+        
+    result = check_metadata(df, using_scripps_txt)
+
+    if result["status"] == 1:
+        for _, row in df.iterrows():
+            # Convert the row to a dictionary      
+            datadict = row.to_dict()
+            sample_line_id = SequencingSample.create(
+                sequencingUploadId=process_id, datadict=datadict
+            )
     # Return the result as JSON
     return (
         jsonify(
@@ -365,13 +393,69 @@ def create_xls_template():
 def check_filename_matching():
     process_id = request.form.get("process_id")
     filename = request.form.get("filename")
+    
+    if not process_id or not filename:
+        return (
+            jsonify(
+                {"result": 2, "message": "Missing process_id or filename"}
+            ),
+            400
+        )
 
     matching_sequencer_ids = SequencingSequencerId.get_matching_sequencer_ids(
         process_id, filename
     )
+    
+    if len(matching_sequencer_ids) == 1:
+        # Extract the sequencer ID
+        sequencer_id = matching_sequencer_ids[0]
+        sequencer_id_data = SequencingSequencerId.get(sequencer_id)
+        logger.info(sequencer_id_data)
+        # Fetch process data and uploaded files
+        process_data = SequencingUpload.get(process_id)
+        if not process_data:
+            return (
+                jsonify(
+                    {"result": 2, "message": "Process data not found"}
+                ),
+                404
+            )
+        nr_files_per_sequence = process_data.get("nr_files_per_sequence", 0)
+        uploaded_files = SequencingUpload.get_uploaded_files(process_id)
+        
+        # Filter uploaded files by sequencer_id
+        files_for_sequencer = [
+            file for file in uploaded_files
+            if file["sequencerId"] == sequencer_id
+        ]
+        
+        # Check if we have the correct number of files uploaded
+        if len(files_for_sequencer) >= nr_files_per_sequence:
+            return (
+                jsonify(
+                    {"result": 0, "message": "All expected files already uploaded for the sequencerID " + str(sequencer_id_data.SequencerID)}
+                ),
+                200,
+            )
+        
+        return (
+            jsonify(
+                {"result": 1, "matching_sequencer_id": sequencer_id}
+            ),
+            200,
+        )        
+    
+    if len(matching_sequencer_ids) > 1:
+        return (
+            jsonify(
+                {"result": 1, "message": "File matches more than one sequencer ID"}
+            ),
+            200,
+        )
+
     return (
         jsonify(
-            {"result": 1, "matching_sequencer_ids": matching_sequencer_ids}
+            {"result": 1, "message": "No matching sequencer IDs found"}
         ),
         200,
     )
