@@ -74,6 +74,16 @@ def extract_uploaded_file(process_id, uploaded_file_path, extract_directory):
     os.makedirs(extract_directory, exist_ok=True)
     uploaded_file_name = os.path.basename(uploaded_file_path)
 
+    # Check if the file is in the .fastq.gz format and skip extraction if true
+    if uploaded_file_name.endswith(".fastq.gz"):
+        # Copy the file to the extract_directory
+        shutil.copy(uploaded_file_path, extract_directory / uploaded_file_name)
+        logger.info(
+            f"File {uploaded_file_name} is already in "
+            ".fastq.gz format. Copied to {extract_directory}."
+        )
+        return True
+
     if uploaded_file_name.endswith(".tar"):
         extract_tar_without_structure(
             process_id, uploaded_file_path, extract_directory

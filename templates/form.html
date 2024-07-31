@@ -209,8 +209,8 @@
         <input type="hidden" name="process_id" value="{{ process_id }}">
         <button type="button" class="btn btn-secondary" id="step_4_form_process_server_file_button" data-process_id="{{ process_id }}">Process local file</button>
       </form>
-      {% endif %}  
-      
+      {% endif %}
+
       {% if csv_uploaded %}
         <div id="step_4_msg" class="text-primary">
           {% if gz_filedata %}
@@ -278,12 +278,12 @@
       </div>
       <div id="step_6_msg"></div>
     </div>
-      <div 
+      <div
         {% if (is_admin) %}
           style="display:block"
-        {% else %}    
+        {% else %}
           style="display:none"
-        {% endif %}    
+        {% endif %}
       >
 
         <div id="step_7" class="form-step-item">
@@ -498,8 +498,6 @@
 
             if (matching_files_db) {
               $.each(matching_files_db, function(filename, filesData) {
-                console.log(filename)
-                console.log(filesData)
                 if (filesData['sample_id']==sampleId) {
                   new_filename = filesData['new_filename']
                   if (new_filename!='') {
@@ -593,7 +591,6 @@
             tableBody.find('tr').each(function(index) {
                 $(this).find('th').text(index + 1);
             });
-            console.log(filesDict);
             updateCsvTable(filesDict);
         }
 
@@ -671,7 +668,6 @@
             form3.find('input[name="sequencing_method"]').val(sequencing_method);
             $('#step_3').css('opacity', '1');
             $('#step_3_form').show();
-            console.log("Selected sequencing method 1: ", sequencing_method);
             $('input[name="sequencing_method"]').not(this).prop('disabled', true);
             if (sequencing_method>1) {
               $('#step_7_title').html('Step 6: Not Applicable to this sequencing method');
@@ -744,7 +740,6 @@
                 } else {
                     var endTime = performance.now(); // End timer
                     var duration = endTime - startTime; // Calculate duration
-                    console.log('MD5 calculated in ' + duration.toFixed(2) + ' milliseconds'); // Log duration
                     callback(spark.end());
                 }
                 updateCallback((chunksProcessed / totalChunks) * 100); // Update progress
@@ -843,10 +838,6 @@
           var formData = new FormData();
           formData.append('file', file);
           formData.append('process_id', process_id);
-          console.log('715 in uploadCsvFile process_id  is ' + process_id)
-
-          //var sequencing_method = $('#step_3_form input[name="sequencing_method"]').val();
-          console.log('in uploadCsvFile sequencing method is ' + sequencing_method)
           formData.append('sequencing_method', sequencing_method);
 
           $.ajax({
@@ -888,7 +879,7 @@
         var allowedExtensions = ['gz', 'tar', 'zip']; // Define allowed file extensions
         var commonOptions = {
             target: '/upload',
-            chunkSize: 10 * 1024 * 1024,
+            chunkSize: 5 * 1024 * 1024,
             testChunks: true,
             uploadMethod: 'POST',
             fileType: allowedExtensions,
@@ -912,8 +903,6 @@
             files.forEach(function(file) {
                 file_index = file_index +1;
                 // Handle each file individually
-                console.log('file added to resumable:', file);
-                console.log('Unique Identifier for file:', file.uniqueIdentifier);
 
                 var file_msg_id = 'step_4_file_' + file.uniqueIdentifier;
                 var file_name = file.file.name;
@@ -929,7 +918,6 @@
                 var step_6_msg_id = 'step_6_file_' + file.uniqueIdentifier;
                 var step_6_file_row = '<div id="' + step_6_msg_id + '"></div>';
                 $('#step_6_progress').append( step_6_file_row );
-                console.log('In /upload on line 799 the process_id is ' + process_id)
                 // Customize options for each file
                 var fileOptions = {
                     query: {
@@ -1314,7 +1302,7 @@
                 // We automatically will start step 4 on the server, so lets start getting updates
                 //updateProgressRawFileBucket(process_id, file_id, file_name);
                 // We automatically will start step 5 on the server, so lets start getting updates
-                //updateProgressUnZip(process_id, file_id, file_name);                
+                //updateProgressUnZip(process_id, file_id, file_name);
               },
               error: function(jqXHR, textStatus, errorThrown) {
                 // Handle any errors that occurred during the request
@@ -1364,7 +1352,6 @@
                 var formData = $(this).serialize();
                 var process_id = $(this).find('input[name="process_id"]').val();
                 updateProgressRenamedToBucket(process_id)
-                console.log(formData);
 
                 $.ajax({
                     type: 'POST',
