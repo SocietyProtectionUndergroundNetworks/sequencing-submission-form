@@ -108,7 +108,7 @@ def validate_csv_buckets(data, column_names):
         "LSU",
         "Other",
         "Full_rDNA",
-        "Full_ITS"
+        "Full_ITS",
     ]
 
     # To store CSV values that do not exist as buckets

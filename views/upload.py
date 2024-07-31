@@ -33,6 +33,7 @@ from helpers.bucket import (
     get_renamed_files_to_storage_progress,
     init_upload_final_files_to_storage,
     delete_bucket_folder,
+    init_process_fastq_files,
 )
 from helpers.slack import send_message_to_slack
 from helpers.unzip import get_progress_db_unzip, unzip_raw
@@ -193,6 +194,17 @@ def csv_sample():
     csv_path = path / "csv_structure.csv"
 
     return send_file(csv_path, as_attachment=True)
+
+
+@upload_bp.route(
+    "/process_fastq_files_to_gz", endpoint="process_fastq_files_to_gz"
+)
+@login_required
+@approved_required
+@admin_required
+def process_fastq_files_to_gz():
+    init_process_fastq_files()
+    return "Initiated", 200
 
 
 @upload_bp.route("/download_metadata", endpoint="download_metadata")

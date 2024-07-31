@@ -5,6 +5,8 @@ import datetime
 import zipfile
 import re
 import shutil
+import gzip
+import csv
 from collections import OrderedDict
 
 # Library about google cloud storage
@@ -550,3 +552,87 @@ def delete_bucket_folder(folder_name, bucket_name=None):
         f"Folder '{folder_name}' and its contents "
         f"deleted successfully from bucket '{bucket_name}'."
     )
+
+def init_process_fastq_files():
+    from tasks import process_fastq_files_async
+
+    try:
+        result = process_fastq_files_async.delay()
+        logger.info(
+            f"Celery process_fastq_files_async task "
+            f"called successfully! Task ID: {result.id}"
+        )
+    except Exception as e:
+        logger.error(
+            "This is an error message from helpers/bucket.py "
+            " while trying to process_fastq_files_async"
+        )
+        logger.error(e)
+
+    return {"msg": "Process initiated"}
+    
+def process_fastq_files():
+    storage_client = storage.Client()
+    buckets = list_buckets()  # Get the dictionary of bucket names and locations
+
+    processed_files = []
+
+    for bucket_name in buckets:
+        bucket = storage_client.bucket(bucket_name)
+
+        blobs = bucket.list_blobs()
+
+        for blob in blobs:
+            # Skip files inside "MultiQC_report/" directory
+            if 'MultiQC_report/' in blob.name:
+                continue
+
+            # Process only .fastq files (excluding .fastq.gz)
+            if blob.name.endswith('.fastq') and not blob.name.endswith('.fastq.gz'):
+                local_file_path = os.path.join('temp', blob.name)
+                local_gz_file_path = local_file_path + '.gz'
+
+                # Create local directory if it doesn't exist
+                os.makedirs(os.path.dirname(local_file_path), exist_ok=True)
+
+                # Download the .fastq file
+                blob.download_to_filename(local_file_path)
+
+                # Compress the .fastq file to .fastq.gz
+                with open(local_file_path, 'rb') as f_in:
+                    with gzip.open(local_gz_file_path, 'wb') as f_out:
+                        shutil.copyfileobj(f_in, f_out)
+
+                # Upload the .fastq.gz file back to the bucket
+                new_blob = bucket.blob(blob.name + '.gz')
+                new_blob.upload_from_filename(local_gz_file_path)
+
+                # Verify the .fastq.gz file exists in the bucket
+                if new_blob.exists():
+                    # Record the processing information
+                    processed_files.append({
+                        'bucket': bucket_name,
+                        'original_file': blob.name,
+                        'compressed_file': new_blob.name
+                    })
+
+                    # Delete the original .fastq file
+                    blob.delete()
+
+                    # Remove local files
+                    os.remove(local_file_path)
+                    os.remove(local_gz_file_path)
+
+                logger.info(f"Processed and compressed {blob.name} in bucket {bucket_name}")
+
+    # Write the processed file information to a CSV
+    csv_file_path = 'processed_fastq_to_gz.csv'
+    with open(csv_file_path, 'w', newline='') as csvfile:
+        fieldnames = ['bucket', 'original_file', 'compressed_file']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+        writer.writeheader()
+        for file_info in processed_files:
+            writer.writerow(file_info)
+
+    return {"msg": "Process completed", "processed_files": processed_files}
