@@ -334,3 +334,23 @@ class SequencingUpload:
         session.close()
 
         return uploaded_files_list
+
+    @classmethod
+    def get_by_user_id(cls, user_id):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        # Query to get the IDs of uploads for the given user_id
+        uploads = (
+            session.query(SequencingUploadsTable.id)
+            .filter_by(user_id=user_id)
+            .all()
+        )
+
+        # Extract the upload IDs from the query results
+        upload_ids = [upload.id for upload in uploads]
+
+        # Ensure the session is closed after the operation
+        session.close()
+
+        return upload_ids if upload_ids else []

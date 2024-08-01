@@ -450,126 +450,87 @@
         <div id="step_6_filename"></div>
         <div id="step_6_msg"></div>
       </div>
-      <div id="next_to_step_6" class="next-to-step">
-        <h4> Expected number of files per sequence is {{ nr_files_per_sequence }} </h4>
-        <h4> Number of sequencing regions is {{ process_data["Sequencing_regions_number"] }} </h4>
-        <table id="samplesTable" class="table-bordered">
-            <thead>
-                <tr>
-                    <th scope="col" class="bg-gray">DbID</th>
-                    <th scope="col" class="bg-gray">SampleID</th>
-                    <th scope="col" class="bg-gray"><span class="grey">____</span>Sequencer<span class="grey">_</span>ID<span class="grey">____</span></th>
-                    <th scope="col" class="bg-gray"><span class="grey">____</span>Region<span class="grey">____</span></th>
-                    <th scope="col" class="bg-gray"><span class="grey">____</span>Index_1<span class="grey">____</span></th>
-                    <th scope="col" class="bg-gray"><span class="grey">____</span>Index_2<span class="grey">____</span></th>
-                    <th scope="col" class="bg-gray">Files</th>
-                </tr>
-            </thead>
+      {% if process_data and not process_data.using_scripps %}
+        <div id="next_to_step_6" class="next-to-step">
+          <h4> Expected number of files per sequence is {{ nr_files_per_sequence }} </h4>
+          <h4> Number of sequencing regions is {{ process_data["Sequencing_regions_number"] }} </h4>
+          <table id="samplesTable" class="table-bordered">
+              <thead>
+                  <tr>
+                      <th scope="col" class="bg-gray">DbID</th>
+                      <th scope="col" class="bg-gray">SampleID</th>
+                      <th scope="col" class="bg-gray"><span class="grey">____</span>Sequencer<span class="grey">_</span>ID<span class="grey">____</span></th>
+                      <th scope="col" class="bg-gray"><span class="grey">____</span>Region<span class="grey">____</span></th>
+                      <th scope="col" class="bg-gray"><span class="grey">____</span>Index_1<span class="grey">____</span></th>
+                      <th scope="col" class="bg-gray"><span class="grey">____</span>Index_2<span class="grey">____</span></th>
+                      <th scope="col" class="bg-gray">Files</th>
+                  </tr>
+              </thead>
 
-            <tbody>
-              {% set seq_data_dict = {} %}
+              <tbody>
+                {% set seq_data_dict = {} %}
 
-              {# First, populate seq_data_dict with sequencer data grouped by row.id #}
-              {% for row in samples_data %}
-                  {% set seq_data_list = [] %}
-                  {% for seq in sequencer_ids %}
-                      {% if seq.sequencingSampleId == row.id %}
-                          {% set seq_data = {
-                              'id': seq.id,
-                              'SequencerID': seq.SequencerID,
-                              'Region': seq.Region,
-                              'Index_1': seq.Index_1,
-                              'Index_2': seq.Index_2
-                          } %}
-                          {% set _ = seq_data_list.append(seq_data) %}
-                      {% endif %}
-                  {% endfor %}
-                  {% set _ = seq_data_dict.update({row.id: seq_data_list}) %}
-              {% endfor %}
-
-              {% if nr_files_per_sequence == 2 %}
-                <!-- Iterate over each row in samples_data -->
+                {# First, populate seq_data_dict with sequencer data grouped by row.id #}
                 {% for row in samples_data %}
-                    {% set seq_data = seq_data_dict[row.id] %}
-                    {% if seq_data and seq_data|length > 0 %}
-                        {% set files = uploaded_files | selectattr("sequencerId", "equalto", seq_data[0]["id"]) | list %}
-                    {% else %}
-                        {% set files = [] %}
-                    {% endif %}
-                    <tr>
-                        <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"]* nr_files_per_sequence }}">{{ row.id }}</td>
-                        <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"]* nr_files_per_sequence }}">{{ row["SampleID"] }}</td>
-                        <td id="S_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
-                          {% if seq_data_dict[row.id][0] %}
-                            {{ seq_data_dict[row.id][0]["SequencerID"] }}
-                          {% endif %}
-                        </td>
-                        <td id="R_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
-                          {% if seq_data_dict[row.id][0] %}
-                            {{ seq_data_dict[row.id][0]["Region"] }}
-                          {% endif %}
-                        </td>
-                        <td id="I1_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
-                          {% if seq_data_dict[row.id][0] %}
-                            {{ seq_data_dict[row.id][0]["Index_1"] }}
-                          {% endif %}
-                        </td>
-                        <td id="I2_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
-                          {% if seq_data_dict[row.id][0] %}
-                            {{ seq_data_dict[row.id][0]["Index_2"] }}
-                          {% endif %}
-                        </td>
-                        <td id="F_{{ seq_data_dict[row.id][0]["id"] }}_A">
-                          {% if files and files[0] %}
-                            {{ files[0].original_filename }}
-                          {% else %}
-                            <span class="red"> Not uploaded </span>
-                          {% endif %}
-                        </td>
-                    </tr>
-
-                    <tr>
-                      <td id="F_{{ seq_data_dict[row.id][0]["id"] }}_B">
-                        {% if files and files|length > 1 %}
-                          {{ files[1].original_filename }}
-                        {% else %}
-                          <span class="red"> Not uploaded </span>
+                    {% set seq_data_list = [] %}
+                    {% for seq in sequencer_ids %}
+                        {% if seq.sequencingSampleId == row.id %}
+                            {% set seq_data = {
+                                'id': seq.id,
+                                'SequencerID': seq.SequencerID,
+                                'Region': seq.Region,
+                                'Index_1': seq.Index_1,
+                                'Index_2': seq.Index_2
+                            } %}
+                            {% set _ = seq_data_list.append(seq_data) %}
                         {% endif %}
-                      </td>
-                    </tr>
+                    {% endfor %}
+                    {% set _ = seq_data_dict.update({row.id: seq_data_list}) %}
+                {% endfor %}
 
-                    {% if process_data["Sequencing_regions_number"]>1 %}
+                {% if nr_files_per_sequence == 2 %}
+                  <!-- Iterate over each row in samples_data -->
+                  {% for row in samples_data %}
+                      {% set seq_data = seq_data_dict[row.id] %}
+                      {% if seq_data and seq_data|length > 0 %}
+                          {% set files = uploaded_files | selectattr("sequencerId", "equalto", seq_data[0]["id"]) | list %}
+                      {% else %}
+                          {% set files = [] %}
+                      {% endif %}
                       <tr>
-                        <td id="S_{{ row.id }}_2" rowspan="{{ nr_files_per_sequence }}">
-                          {% if seq_data_dict[row.id][1] %}
-                            {{ seq_data_dict[row.id][1]["SequencerID"] }}
-                          {% endif %}
-                        </td>
-                        <td id="R_{{ row.id }}_2" rowspan="{{ nr_files_per_sequence }}">
-                          {% if seq_data_dict[row.id][1] %}
-                            {{ seq_data_dict[row.id][1]["Region"] }}
-                          {% endif %}
-                        </td>
-                        <td id="I1_{{ row.id }}_2" rowspan="{{ nr_files_per_sequence }}">
-                          {% if seq_data_dict[row.id][1] %}
-                            {{ seq_data_dict[row.id][1]["Index_1"] }}
-                          {% endif %}
-                        </td>
-                        <td id="I2_{{ row.id }}_2" rowspan="{{ nr_files_per_sequence }}">
-                          {% if seq_data_dict[row.id][1] %}
-                            {{ seq_data_dict[row.id][1]["Index_2"] }}
-                          {% endif %}
-                        </td>
-                        <td id="F_{{ seq_data_dict[row.id][1]["id"] }}_A">
-                          {% if files and files[0] %}
-                            {{ files[0].original_filename }}
-                          {% else %}
-                            <span class="red"> Not uploaded </span>
-                          {% endif %}
-                        </td>
+                          <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"]* nr_files_per_sequence }}">{{ row.id }}</td>
+                          <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"]* nr_files_per_sequence }}">{{ row["SampleID"] }}</td>
+                          <td id="S_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
+                            {% if seq_data_dict[row.id][0] %}
+                              {{ seq_data_dict[row.id][0]["SequencerID"] }}
+                            {% endif %}
+                          </td>
+                          <td id="R_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
+                            {% if seq_data_dict[row.id][0] %}
+                              {{ seq_data_dict[row.id][0]["Region"] }}
+                            {% endif %}
+                          </td>
+                          <td id="I1_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
+                            {% if seq_data_dict[row.id][0] %}
+                              {{ seq_data_dict[row.id][0]["Index_1"] }}
+                            {% endif %}
+                          </td>
+                          <td id="I2_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
+                            {% if seq_data_dict[row.id][0] %}
+                              {{ seq_data_dict[row.id][0]["Index_2"] }}
+                            {% endif %}
+                          </td>
+                          <td id="F_{{ seq_data|length > 0 and seq_data[0]['id'] or 'N/A' }}_A">
+                            {% if files and files[0] %}
+                              {{ files[0].original_filename }}
+                            {% else %}
+                              <span class="red"> Not uploaded </span>
+                            {% endif %}
+                          </td>
                       </tr>
+
                       <tr>
-                        <td id="F_{{ seq_data_dict[row.id][1]["id"] }}_B">
+                        <td id="F_{{ seq_data|length > 0 and seq_data[0]['id'] or 'N/A' }}_B">
                           {% if files and files|length > 1 %}
                             {{ files[1].original_filename }}
                           {% else %}
@@ -577,110 +538,153 @@
                           {% endif %}
                         </td>
                       </tr>
+
+                      {% if process_data["Sequencing_regions_number"]>1 %}
+                        <tr>
+                          <td id="S_{{ row.id }}_2" rowspan="{{ nr_files_per_sequence }}">
+                            {% if seq_data_dict[row.id][1] %}
+                              {{ seq_data_dict[row.id][1]["SequencerID"] }}
+                            {% endif %}
+                          </td>
+                          <td id="R_{{ row.id }}_2" rowspan="{{ nr_files_per_sequence }}">
+                            {% if seq_data_dict[row.id][1] %}
+                              {{ seq_data_dict[row.id][1]["Region"] }}
+                            {% endif %}
+                          </td>
+                          <td id="I1_{{ row.id }}_2" rowspan="{{ nr_files_per_sequence }}">
+                            {% if seq_data_dict[row.id][1] %}
+                              {{ seq_data_dict[row.id][1]["Index_1"] }}
+                            {% endif %}
+                          </td>
+                          <td id="I2_{{ row.id }}_2" rowspan="{{ nr_files_per_sequence }}">
+                            {% if seq_data_dict[row.id][1] %}
+                              {{ seq_data_dict[row.id][1]["Index_2"] }}
+                            {% endif %}
+                          </td>
+                          <td id="F_{{ seq_data|length > 1 and seq_data[1]['id'] or 'N/A' }}_A">
+                            {% if files and files[0] %}
+                              {{ files[0].original_filename }}
+                            {% else %}
+                              <span class="red"> Not uploaded </span>
+                            {% endif %}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td id="F_{{ seq_data|length > 1 and seq_data[1]['id'] or 'N/A' }}_B">
+                            {% if files and files|length > 1 %}
+                              {{ files[1].original_filename }}
+                            {% else %}
+                              <span class="red"> Not uploaded </span>
+                            {% endif %}
+                          </td>
+                        </tr>
+                      {% endif %}
+
+                  {% endfor %}
+                {% endif %}
+
+                {% if nr_files_per_sequence == 1 %}
+                  <!-- Iterate over each row in samples_data -->
+                  {% for row in samples_data %}
+                    {% set seq_data = seq_data_dict.get(row.id, []) %}
+                    {% if seq_data %}
+                        {% set files = uploaded_files | selectattr("sequencerId", "equalto", seq_data[0]["id"]) | list %}
+                    {% else %}
+                        {% set files = [] %}
                     {% endif %}
-
-                {% endfor %}
-              {% endif %}
-
-              {% if nr_files_per_sequence == 1 %}
-                <!-- Iterate over each row in samples_data -->
-                {% for row in samples_data %}
-                  {% set seq_data = seq_data_dict.get(row.id, []) %}
-                  {% if seq_data %}
-                      {% set files = uploaded_files | selectattr("sequencerId", "equalto", seq_data[0]["id"]) | list %}
-                  {% else %}
-                      {% set files = [] %}
-                  {% endif %}
-                  <tr>
-                    <td class="bg-gray" rowspan="{{ process_data['Sequencing_regions_number'] }}">{{ row.id }}</td>
-                    <td class="bg-gray" rowspan="{{ process_data['Sequencing_regions_number'] }}">{{ row['SampleID'] }}</td>
-                    <td id="S_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
-                      {% if seq_data|length > 0 %}
-                        {{ seq_data[0]['SequencerID'] }}
-                      {% endif %}
-                    </td>
-                    <td id="R_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
-                      {% if seq_data|length > 0 %}
-                        {{ seq_data[0]['Region'] }}
-                      {% endif %}
-                    </td>
-                    <td id="I1_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
-                      {% if seq_data|length > 0 %}
-                        {{ seq_data[0]['Index_1'] }}
-                      {% endif %}
-                    </td>
-                    <td id="I2_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
-                      {% if seq_data|length > 0 %}
-                        {{ seq_data[0]['Index_2'] }}
-                      {% endif %}
-                    </td>
-                    <td id="F_{{ seq_data|length > 0 and seq_data[0]['id'] or 'N/A' }}_A">
-                      {% if files and files[0] %}
-                        {{ files[0]['original_filename'] }}
-                      {% else %}
-                        <span class="red"> Not uploaded </span>
-                      {% endif %}
-                    </td>
-                  </tr>
-
-                  {% if process_data['Sequencing_regions_number'] > 1 and seq_data|length > 1 %}
                     <tr>
-                      <td id="S_{{ row.id }}_2" rowspan="{{ nr_files_per_sequence }}">
-                        {% if seq_data[1] %}
-                          {{ seq_data[1]['SequencerID'] }}
+                      <td class="bg-gray" rowspan="{{ process_data['Sequencing_regions_number'] }}">{{ row.id }}</td>
+                      <td class="bg-gray" rowspan="{{ process_data['Sequencing_regions_number'] }}">{{ row['SampleID'] }}</td>
+                      <td id="S_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
+                        {% if seq_data|length > 0 %}
+                          {{ seq_data[0]['SequencerID'] }}
                         {% endif %}
                       </td>
-                      <td id="R_{{ row.id }}_2" rowspan="{{ nr_files_per_sequence }}">
-                        {% if seq_data[1] %}
-                          {{ seq_data[1]['Region'] }}
+                      <td id="R_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
+                        {% if seq_data|length > 0 %}
+                          {{ seq_data[0]['Region'] }}
                         {% endif %}
                       </td>
-                      <td id="I1_{{ row.id }}_2" rowspan="{{ nr_files_per_sequence }}">
-                        {% if seq_data[1] %}
-                          {{ seq_data[1]['Index_1'] }}
+                      <td id="I1_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
+                        {% if seq_data|length > 0 %}
+                          {{ seq_data[0]['Index_1'] }}
                         {% endif %}
                       </td>
-                      <td id="I2_{{ row.id }}_2" rowspan="{{ nr_files_per_sequence }}">
-                        {% if seq_data[1] %}
-                          {{ seq_data[1]['Index_2'] }}
+                      <td id="I2_{{ row.id }}_1" rowspan="{{ nr_files_per_sequence }}">
+                        {% if seq_data|length > 0 %}
+                          {{ seq_data[0]['Index_2'] }}
                         {% endif %}
                       </td>
-                      <td id="F_{{ seq_data[1]['id'] }}_A">
-                        {% if files|length > 1 %}
-                          {{ files[1]['original_filename'] }}
+                      <td id="F_{{ seq_data|length > 0 and seq_data[0]['id'] or 'N/A' }}_A">
+                        {% if files and files[0] %}
+                          {{ files[0]['original_filename'] }}
                         {% else %}
                           <span class="red"> Not uploaded </span>
                         {% endif %}
                       </td>
                     </tr>
-                  {% endif %}
-                {% endfor %}
-              {% endif %}
 
-            </tbody>
-        </table>
-      </div>
+                    {% if process_data['Sequencing_regions_number'] > 1 and seq_data|length > 1 %}
+                      <tr>
+                        <td id="S_{{ row.id }}_2" rowspan="{{ nr_files_per_sequence }}">
+                          {% if seq_data[1] %}
+                            {{ seq_data[1]['SequencerID'] }}
+                          {% endif %}
+                        </td>
+                        <td id="R_{{ row.id }}_2" rowspan="{{ nr_files_per_sequence }}">
+                          {% if seq_data[1] %}
+                            {{ seq_data[1]['Region'] }}
+                          {% endif %}
+                        </td>
+                        <td id="I1_{{ row.id }}_2" rowspan="{{ nr_files_per_sequence }}">
+                          {% if seq_data[1] %}
+                            {{ seq_data[1]['Index_1'] }}
+                          {% endif %}
+                        </td>
+                        <td id="I2_{{ row.id }}_2" rowspan="{{ nr_files_per_sequence }}">
+                          {% if seq_data[1] %}
+                            {{ seq_data[1]['Index_2'] }}
+                          {% endif %}
+                        </td>
+                        <td id="F_{{ seq_data[1]['id'] }}_A">
+                          {% if files|length > 1 %}
+                            {{ files[1]['original_filename'] }}
+                          {% else %}
+                            <span class="red"> Not uploaded </span>
+                          {% endif %}
+                        </td>
+                      </tr>
+                    {% endif %}
+                  {% endfor %}
+                {% endif %}
+
+              </tbody>
+          </table>
+        </div>
+      {% endif %}
     </div>
 
-    <div id="step_7" class="form-step-item">
-      <form
-        method="POST"
-        action="/sequencing_file_upload"
-        id="step_7_form"
-        enctype="multipart/form-data"
-      >
-        <fieldset
-          {% if not valid_samples %}
-           disabled="disabled"
-          {% endif %}
+    {% if process_data and not process_data.using_scripps %}
+      <div id="step_7" class="form-step-item">
+        <form
+          method="POST"
+          action="/sequencing_file_upload"
+          id="step_7_form"
+          enctype="multipart/form-data"
         >
-          <input type="file" id="step_7_upload_file_button" name="file" multiple />
-          <input type="hidden" name="process_id" value="{{ process_id }}">
-        </fieldset>
-      </form>
-      <div id="step_7_filename"></div>
-      <div id="step_7_msg" class="explanation">
-    </div>
+          <fieldset
+            {% if not valid_samples %}
+             disabled="disabled"
+            {% endif %}
+          >
+            <input type="file" id="step_7_upload_file_button" name="file" multiple />
+            <input type="hidden" name="process_id" value="{{ process_id }}">
+          </fieldset>
+        </form>
+        <div id="step_7_filename"></div>
+        <div id="step_7_msg" class="explanation">
+      </div>
+    {% endif %}
   </div>
 
   <script type="application/javascript">
@@ -1472,247 +1476,248 @@
   ////// ############################################# /////////
   ////// ############ STEP 7 STARTS HERE ############# /////////
   ////// ############################################# /////////
-  function enableForm_step_7() {
-      $('#step_7_form fieldset').removeAttr('disabled');
-  }
+  {% if process_data and not process_data.using_scripps %}
+    function enableForm_step_7() {
+        $('#step_7_form fieldset').removeAttr('disabled');
+    }
 
-  function updateTableCell(file_name, sequencerId) {
-      var cellIdA = '#F_' + sequencerId + '_A';
-      var cellIdB = '#F_' + sequencerId + '_B';
+    function updateTableCell(file_name, sequencerId) {
+        var cellIdA = '#F_' + sequencerId + '_A';
+        var cellIdB = '#F_' + sequencerId + '_B';
 
-      // Update the first cell if needed
-      var cellA = $(cellIdA);
-      if (cellA.find('span.red').length > 0) {
-          cellA.html(file_name); // Replace with file_name
-          return; // Exit function after updating the first cell
-      }
+        // Update the first cell if needed
+        var cellA = $(cellIdA);
+        if (cellA.find('span.red').length > 0) {
+            cellA.html(file_name); // Replace with file_name
+            return; // Exit function after updating the first cell
+        }
 
-      // If the first cell is not empty, then update the second cell
-      var cellB = $(cellIdB);
-      if (cellB.find('span.red').length > 0) {
-          cellB.html(file_name); // Replace with file_name
-      }
-  }
+        // If the first cell is not empty, then update the second cell
+        var cellB = $(cellIdB);
+        if (cellB.find('span.red').length > 0) {
+            cellB.html(file_name); // Replace with file_name
+        }
+    }
 
-  function setUpResumable() {
-      var step_7_form = $('#step_7_upload_file_button').closest('form');
-      var process_id = step_7_form.find('input[name="process_id"]').val();
-      var allowedExtensions = ['gz']; // Define allowed file extensions
-      var commonOptions = {
-          target: '/sequencing_upload_chunk',
-          chunkSize: 10 * 1024 * 1024,
-          testChunks: true,
-          uploadMethod: 'POST',
-          fileType: allowedExtensions,
-          fileTypeErrorCallback: function(file, errorCount) {
-              var fileExtension = file.name.split('.').pop().toLowerCase();
-              if (!allowedExtensions.includes(fileExtension)) {
-                  alert('File type not allowed! Please select a .gz file.');
-                  return false; // Cancel the file upload
-              }
-          },
-      };
+    function setUpResumable() {
+        var step_7_form = $('#step_7_upload_file_button').closest('form');
+        var process_id = step_7_form.find('input[name="process_id"]').val();
+        var allowedExtensions = ['gz']; // Define allowed file extensions
+        var commonOptions = {
+            target: '/sequencing_upload_chunk',
+            chunkSize: 10 * 1024 * 1024,
+            testChunks: true,
+            uploadMethod: 'POST',
+            fileType: allowedExtensions,
+            fileTypeErrorCallback: function(file, errorCount) {
+                var fileExtension = file.name.split('.').pop().toLowerCase();
+                if (!allowedExtensions.includes(fileExtension)) {
+                    alert('File type not allowed! Please select a .gz file.');
+                    return false; // Cancel the file upload
+                }
+            },
+        };
 
-      var r = new Resumable(commonOptions);
+        var r = new Resumable(commonOptions);
 
-      r.on('filesAdded', function(files) {
-          files.forEach(function(file) {
-              var file_msg_id = 'step_7_file_' + file.uniqueIdentifier;
-              var file_name = file.file.name;
+        r.on('filesAdded', function(files) {
+            files.forEach(function(file) {
+                var file_msg_id = 'step_7_file_' + file.uniqueIdentifier;
+                var file_name = file.file.name;
 
-              // Add a div for each file
-              var file_row = '<div id="' + file_msg_id + '"><h4>' + file_name + '</h4></div>';
-              $('#step_7_msg').append(file_row);
+                // Add a div for each file
+                var file_row = '<div id="' + file_msg_id + '"><h4>' + file_name + '</h4></div>';
+                $('#step_7_msg').append(file_row);
 
-              var formData = new FormData();
-              formData.append('process_id', process_id);
-              formData.append('filename', file_name);
+                var formData = new FormData();
+                formData.append('process_id', process_id);
+                formData.append('filename', file_name);
 
-              $.ajax({
-                  url: '/check_filename_matching',
-                  type: 'POST',
-                  data: formData,
-                  contentType: false,
-                  processData: false,
-                  success: function(response) {
-                      console.log(response);
+                $.ajax({
+                    url: '/check_filename_matching',
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function(response) {
+                        console.log(response);
 
-                      if (response.result === 1) {
-                          if (response.matching_sequencer_id) {
-                              var matchingSequencerIds = response.matching_sequencer_id;
-                              $("#" + file_msg_id).append("<p>No problems found.</p>").addClass('text-success');
+                        if (response.result === 1) {
+                            if (response.matching_sequencer_id) {
+                                var matchingSequencerIds = response.matching_sequencer_id;
+                                $("#" + file_msg_id).append("<p>No problems found.</p>").addClass('text-success');
 
-                              // Calculate MD5 and start upload
-                              calculateMD5(file.file, function(md5) {
-                                  // Set unique query parameters for this file
-                                  file.opts = {
-                                      query: {
-                                          process_id: process_id,
-                                          filename: file_name,
-                                          filesize: file.file.size,
-                                          filechunks: Math.ceil(file.file.size / r.opts.chunkSize),
-                                          fileindex: file.uniqueIdentifier,
-                                          sequencerId: matchingSequencerIds,
-                                          md5: md5
-                                      }
-                                  };
-                                  console.log(file.opts)
-                                  $("#" + file_msg_id).append('Md5 for file ' + file_name + ' calculated: ' + md5)
-                                      .addClass('text-info').removeClass('text-danger').removeClass('text-success');
+                                // Calculate MD5 and start upload
+                                calculateMD5(file.file, function(md5) {
+                                    // Set unique query parameters for this file
+                                    file.opts = {
+                                        query: {
+                                            process_id: process_id,
+                                            filename: file_name,
+                                            filesize: file.file.size,
+                                            filechunks: Math.ceil(file.file.size / r.opts.chunkSize),
+                                            fileindex: file.uniqueIdentifier,
+                                            sequencerId: matchingSequencerIds,
+                                            md5: md5
+                                        }
+                                    };
+                                    console.log(file.opts)
+                                    $("#" + file_msg_id).append('Md5 for file ' + file_name + ' calculated: ' + md5)
+                                        .addClass('text-info').removeClass('text-danger').removeClass('text-success');
 
-                                  console.log('We will now try to upload the file');
-                                  r.upload(); // Start the upload
-                              }, function(progress) {
-                                  $("#" + file_msg_id).html('Calculating md5 for file ' + file_name + '. Progress: ' + progress.toFixed(2) + '%')
-                                      .addClass('text-info').removeClass('text-danger').removeClass('text-success');
-                              });
-                          } else {
-                              $("#" + file_msg_id).append("<p>" + response.message + "</p>")
-                                  .removeClass('text-success').addClass('text-danger');
-                          }
-                      } else {
-                          $("#" + file_msg_id).append("<p>" + response.message + "</p>")
-                              .removeClass('text-success').addClass('text-danger');
-                      }
-                  },
-                  error: function(xhr, status, error) {
-                      console.error('Error:', error);
-                      $("#" + file_msg_id).html("<p>An error occurred while processing the file.</p>")
-                          .removeClass('text-success').addClass('text-danger');
-                  }
-              });
-          });
+                                    console.log('We will now try to upload the file');
+                                    r.upload(); // Start the upload
+                                }, function(progress) {
+                                    $("#" + file_msg_id).html('Calculating md5 for file ' + file_name + '. Progress: ' + progress.toFixed(2) + '%')
+                                        .addClass('text-info').removeClass('text-danger').removeClass('text-success');
+                                });
+                            } else {
+                                $("#" + file_msg_id).append("<p>" + response.message + "</p>")
+                                    .removeClass('text-success').addClass('text-danger');
+                            }
+                        } else {
+                            $("#" + file_msg_id).append("<p>" + response.message + "</p>")
+                                .removeClass('text-success').addClass('text-danger');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error:', error);
+                        $("#" + file_msg_id).html("<p>An error occurred while processing the file.</p>")
+                            .removeClass('text-success').addClass('text-danger');
+                    }
+                });
+            });
 
+            var fileInput = $('#step_7_upload_file_button')[0];
+            fileInput.value = "";
+        });
+
+        r.assignBrowse(document.getElementById('step_7_upload_file_button'));
+
+        r.on('fileSuccess', function(file, message) {
+            var file_msg_id = 'step_7_file_' + file.uniqueIdentifier;
+            console.log('File upload success', message);
+            var file_name = file.file.name;
+            var formData = new FormData();
+
+            // Ensure process_id is defined and accessible
+            if (typeof process_id === 'undefined' || !process_id) {
+                console.error('process_id is not defined.');
+                return;
+            }
+
+            formData.append('process_id', process_id);
+            formData.append('filename', file_name);
+            formData.append('fileopts', JSON.stringify(file.opts.query));
+            $.ajax({
+                url: '/sequencing_file_upload_completed',
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function(response) {
+                    console.log(response);
+
+                    if (response.result === 1) {
+                      $("#" + file_msg_id).append("<p>Upload completed successfully.</p>").addClass('text-success');
+                      console.log('we should put the file at ')
+                      console.log(file.opts.query.sequencerId)
+                      // Update the table cells
+                      updateTableCell(file_name, file.opts.query.sequencerId);
+                    } else {
+                        $("#" + file_msg_id).append("<p>An error occurred. The file could not be joined. Please try again.</p>")
+                            .removeClass('text-success').addClass('text-danger');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error:', error);
+                    $("#" + file_msg_id).html("<p>An error occurred while processing the file.</p>")
+                        .removeClass('text-success').addClass('text-danger');
+                }
+            });
+        });
+
+        r.on('fileError', function(file, message) {
+            var file_msg_id = 'step_7_file_' + file.uniqueIdentifier;
+            console.log('File upload error', message);
+            $("#" + file_msg_id).append("<p>Upload failed.</p>").addClass('text-danger');
+        });
+    }
+    function calculateMD5(file, callback, updateCallback) {
+        var chunkSize = 2097152; // 2 MB chunks
+        var spark = new SparkMD5.ArrayBuffer();
+        var fileReader = new FileReader();
+        var startTime = performance.now(); // Start timer
+        var totalChunks = Math.ceil(file.size / chunkSize);
+        var chunksProcessed = 0;
+
+        fileReader.onload = function (event) {
+            spark.append(event.target.result); // Append chunk to MD5 calculation
+            chunksProcessed++;
+            if (chunksProcessed < totalChunks) {
+                loadNext();
+            } else {
+                var endTime = performance.now(); // End timer
+                var duration = endTime - startTime; // Calculate duration
+                console.log('MD5 calculated in ' + duration.toFixed(2) + ' milliseconds'); // Log duration
+                callback(spark.end());
+            }
+            updateCallback((chunksProcessed / totalChunks) * 100); // Update progress
+        };
+
+        fileReader.onerror = function () {
+            console.warn('Error reading file');
+            callback(null);
+        };
+
+        function loadNext() {
+            var start = fileReader.loaded || 0;
+            var end = Math.min(start + chunkSize, file.size);
+            fileReader.readAsArrayBuffer(file.slice(start, end));
+            fileReader.loaded = end; // Update loaded bytes
+        }
+
+        loadNext();
+    }
+    $(document).ready(function() {
+
+      setUpResumable()
+
+      function uploadSequencingFile() {
           var fileInput = $('#step_7_upload_file_button')[0];
-          fileInput.value = "";
-      });
+          var file = fileInput.files[0];
+          var filename = '';
 
-      r.assignBrowse(document.getElementById('step_7_upload_file_button'));
-
-      r.on('fileSuccess', function(file, message) {
-          var file_msg_id = 'step_7_file_' + file.uniqueIdentifier;
-          console.log('File upload success', message);
-          var file_name = file.file.name;
-          var formData = new FormData();
-
-          // Ensure process_id is defined and accessible
-          if (typeof process_id === 'undefined' || !process_id) {
-              console.error('process_id is not defined.');
+          if (file) {
+              console.log('here here , the filename is')
+              var fileName = file.name;
+              console.log(fileName)
+              $('#step_7_filename').html("<h4>File uploaded: " + fileName + "</h4>");
+          } else {
+              alert("Please select a file.");
               return;
           }
 
-          formData.append('process_id', process_id);
-          formData.append('filename', file_name);
-          formData.append('fileopts', JSON.stringify(file.opts.query));
-          $.ajax({
-              url: '/sequencing_file_upload_completed',
-              type: 'POST',
-              data: formData,
-              contentType: false,
-              processData: false,
-              success: function(response) {
-                  console.log(response);
 
-                  if (response.result === 1) {
-                    $("#" + file_msg_id).append("<p>Upload completed successfully.</p>").addClass('text-success');
-                    console.log('we should put the file at ')
-                    console.log(file.opts.query.sequencerId)
-                    // Update the table cells
-                    updateTableCell(file_name, file.opts.query.sequencerId);
-                  } else {
-                      $("#" + file_msg_id).append("<p>An error occurred. The file could not be joined. Please try again.</p>")
-                          .removeClass('text-success').addClass('text-danger');
-                  }
-              },
-              error: function(xhr, status, error) {
-                  console.error('Error:', error);
-                  $("#" + file_msg_id).html("<p>An error occurred while processing the file.</p>")
-                      .removeClass('text-success').addClass('text-danger');
-              }
-          });
-      });
+          var formData = new FormData();
 
-      r.on('fileError', function(file, message) {
+          var form = $('#step_7_upload_file_button').closest('form');
+          var processId = form.find('input[name="process_id"]').val();
+          formData.append('process_id', processId);
+          formData.append('filename', fileName);
+          console.log(formData)
+          console.log('Unique Identifier for file:', file.uniqueIdentifier);
           var file_msg_id = 'step_7_file_' + file.uniqueIdentifier;
-          console.log('File upload error', message);
-          $("#" + file_msg_id).append("<p>Upload failed.</p>").addClass('text-danger');
-      });
-  }
-  function calculateMD5(file, callback, updateCallback) {
-      var chunkSize = 2097152; // 2 MB chunks
-      var spark = new SparkMD5.ArrayBuffer();
-      var fileReader = new FileReader();
-      var startTime = performance.now(); // Start timer
-      var totalChunks = Math.ceil(file.size / chunkSize);
-      var chunksProcessed = 0;
 
-      fileReader.onload = function (event) {
-          spark.append(event.target.result); // Append chunk to MD5 calculation
-          chunksProcessed++;
-          if (chunksProcessed < totalChunks) {
-              loadNext();
-          } else {
-              var endTime = performance.now(); // End timer
-              var duration = endTime - startTime; // Calculate duration
-              console.log('MD5 calculated in ' + duration.toFixed(2) + ' milliseconds'); // Log duration
-              callback(spark.end());
-          }
-          updateCallback((chunksProcessed / totalChunks) * 100); // Update progress
-      };
 
-      fileReader.onerror = function () {
-          console.warn('Error reading file');
-          callback(null);
-      };
 
-      function loadNext() {
-          var start = fileReader.loaded || 0;
-          var end = Math.min(start + chunkSize, file.size);
-          fileReader.readAsArrayBuffer(file.slice(start, end));
-          fileReader.loaded = end; // Update loaded bytes
+
+
+
       }
 
-      loadNext();
-  }
-  $(document).ready(function() {
-
-    setUpResumable()
-
-    function uploadSequencingFile() {
-        var fileInput = $('#step_7_upload_file_button')[0];
-        var file = fileInput.files[0];
-        var filename = '';
-
-        if (file) {
-            console.log('here here , the filename is')
-            var fileName = file.name;
-            console.log(fileName)
-            $('#step_7_filename').html("<h4>File uploaded: " + fileName + "</h4>");
-        } else {
-            alert("Please select a file.");
-            return;
-        }
-
-
-        var formData = new FormData();
-
-        var form = $('#step_7_upload_file_button').closest('form');
-        var processId = form.find('input[name="process_id"]').val();
-        formData.append('process_id', processId);
-        formData.append('filename', fileName);
-        console.log(formData)
-        console.log('Unique Identifier for file:', file.uniqueIdentifier);
-        var file_msg_id = 'step_7_file_' + file.uniqueIdentifier;
-
-
-
-
-
-
-    }
-
-  });
-
+    });
+  {% endif %}
   ////// ############################################# /////////
   ////// ############ STEP 6 ENDS HERE ############### /////////
   ////// ############################################# /////////

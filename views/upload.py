@@ -50,6 +50,7 @@ from helpers.file_renaming import (
 
 from models.upload import Upload
 from models.user import User
+from models.sequencing_upload import SequencingUpload
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -159,6 +160,18 @@ def index():
             disk_usage = psutil.disk_usage("/app")
             sys_info["disk_used_percent"] = disk_usage.percent
 
+        user_metadata_uploads = SequencingUpload.get_by_user_id(
+            current_user.id
+        )
+        user_groups = User.get_user_groups(current_user.id)
+
+        user_should_see_v2 = False
+        if (
+            "UndergroundExplorers_23B" in user_groups
+            or "UndergroundExplorers_24A" in user_groups
+        ):
+            user_should_see_v2 = True
+
         return render_template(
             "index.html",
             name=current_user.name,
@@ -166,6 +179,9 @@ def index():
             email=current_user.email,
             gz_filedata=gz_filedata,
             sys_info=sys_info,
+            user_groups=user_groups,
+            user_should_see_v2=user_should_see_v2,
+            user_metadata_uploads=user_metadata_uploads,
         )
     else:
         return render_template("public_homepage.html")

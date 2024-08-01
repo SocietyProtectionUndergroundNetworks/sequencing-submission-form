@@ -607,3 +607,16 @@ def sequencing_file_upload_completed():
                     200,
                 )
     return "", 200
+
+@metadata_bp.route(
+    "/metadata_uploads",
+    endpoint="metadata_uploads",
+)
+@login_required
+@approved_required
+def metadata_uploads():
+
+    return render_template(
+        "metadata_uploads.html",
+        metadata_uploads=metadata_uploads
+    )

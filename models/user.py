@@ -367,3 +367,31 @@ class User(UserMixin):
             to_return = {"status": 0, "message": "Not deleted. Uploads exist"}
         session.close()
         return to_return
+
+    @classmethod
+    def get_user_groups(cls, user_id):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        try:
+            # Fetch the user by user_id
+            user = session.query(UserTable).filter_by(id=user_id).first()
+
+            if not user:
+                raise ValueError(f"User with ID '{user_id}' not found")
+
+            # Assuming 'groups' is a relationship attribute in UserTable
+            user_groups = (
+                user.groups
+            )  # This will fetch the groups associated with the user
+
+            # Optionally, you can return just the group names or full group objects
+            group_names = [
+                group.name for group in user_groups
+            ]  # List of group names
+            # Or return the entire group objects if needed
+            # group_objects = [{'id': group.id, 'name': group.name} for group in user_groups]
+
+            return group_names  # Or return group_objects if full objects are needed
+        finally:
+            session.close()
