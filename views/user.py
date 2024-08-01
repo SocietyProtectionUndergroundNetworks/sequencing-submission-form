@@ -20,6 +20,7 @@ from flask_login import (
 )
 
 from models.user import User
+from models.user_groups import UserGroups
 from models.bucket import Bucket
 from helpers.bucket import list_buckets
 
@@ -194,12 +195,56 @@ def only_approved():
 def users():
     all_users = User.get_all()
     all_buckets = list_buckets()
+    all_groups = UserGroups.get_all_with_user_count()
     for bucket in all_buckets:
         Bucket.create(bucket)
+    group_id = request.args.get("group_id")
+    group_name = ""
+    if group_id:
+        group_id = int(group_id)  # Convert to integer if it's a string
+
+        # Find the group name using the group_id from all_groups
+        group_name = next(
+            (group["name"] for group in all_groups if group["id"] == group_id),
+            None,
+        )
+
+        if group_name:
+            # Filter all_users to include only those in the specified group
+            filtered_users = [
+                user_info
+                for user_info in all_users
+                if group_name
+                in user_info["user"].groups  # Assuming groups contains names
+            ]
+            all_users = filtered_users
 
     return render_template(
-        "users.html", all_users=all_users, all_buckets=all_buckets
+        "users.html",
+        all_users=all_users,
+        all_buckets=all_buckets,
+        all_groups=all_groups,
+        group_name=group_name,
     )
+
+
+@user_bp.route("/user_groups", endpoint="user_groups")
+@login_required
+@admin_required
+def user_groups():
+
+    all_groups = UserGroups.get_all_with_user_count()
+    return render_template("user_groups.html", all_groups=all_groups)
+
+
+@user_bp.route("/add_user_group", methods=["POST"], endpoint="add_user_group")
+@login_required
+@admin_required
+def add_user_group():
+    group_name = request.form.get("name")
+    UserGroups.create(group_name)
+
+    return redirect(url_for("user.user_groups"))
 
 
 @user_bp.route(
@@ -245,6 +290,38 @@ def give_access_to_bucket():
     User.add_user_bucket_access(user_id, bucket)
 
     return redirect("/users")
+
+
+@user_bp.route(
+    "/add_user_to_group",
+    methods=["POST"],
+    endpoint="add_user_to_group",
+)
+@login_required
+@admin_required
+def add_user_to_group():
+    user_id = request.form.get("user_id")
+    group = request.form.get("group")
+    User.add_user_group_access(user_id, group)
+    return redirect("/users")
+
+
+@user_bp.route(
+    "/remove_user_from_group",
+    methods=["POST"],
+    endpoint="remove_user_from_group",
+)
+@login_required
+@admin_required
+def remove_user_from_group():
+    user_id = request.form.get("user_id")
+    group = request.form.get("group")
+
+    User.delete_user_group_access(user_id, group)
+    if User.is_user_in_group_by_name(user_id, group):
+        return {"status": 0}
+    else:
+        return {"status": 1}
 
 
 @user_bp.route(

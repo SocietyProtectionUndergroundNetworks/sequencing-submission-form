@@ -299,12 +299,23 @@ class SequencingUpload:
         db_engine = connect_db()
         session = get_session(db_engine)
 
-        # Query to get all SequencingFilesUploadedTable entries associated with the given sequencingUploadId
+        # Query to get all SequencingFilesUploadedTable entries
+        # associated with the given sequencingUploadId
         uploaded_files = (
             session.query(SequencingFilesUploadedTable)
-            .join(SequencingSequencerIDsTable, SequencingFilesUploadedTable.sequencerId == SequencingSequencerIDsTable.id)
-            .join(SequencingSamplesTable, SequencingSequencerIDsTable.sequencingSampleId == SequencingSamplesTable.id)
-            .filter(SequencingSamplesTable.sequencingUploadId == sequencingUploadId)
+            .join(
+                SequencingSequencerIDsTable,
+                SequencingFilesUploadedTable.sequencerId
+                == SequencingSequencerIDsTable.id,
+            )
+            .join(
+                SequencingSamplesTable,
+                SequencingSequencerIDsTable.sequencingSampleId
+                == SequencingSamplesTable.id,
+            )
+            .filter(
+                SequencingSamplesTable.sequencingUploadId == sequencingUploadId
+            )
             .all()
         )
 

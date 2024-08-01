@@ -23,6 +23,13 @@ association_table = Table(
     Column("bucket_id", String(250), ForeignKey("buckets.id")),
 )
 
+user_groups_association = Table(
+    "user_groups_association",
+    Base.metadata,
+    Column("user_id", String(36), ForeignKey("users.id")),
+    Column("group_id", Integer, ForeignKey("user_groups.id")),
+)
+
 
 class UserTable(Base):
     __tablename__ = "users"
@@ -38,6 +45,21 @@ class UserTable(Base):
     approved = Column(Boolean, default=False)
     buckets = relationship(
         "BucketTable", secondary=association_table, backref="users"
+    )
+    groups = relationship(
+        "UserGroupsTable",
+        secondary=user_groups_association,
+        back_populates="users",
+    )
+
+
+class UserGroupsTable(Base):
+    __tablename__ = "user_groups"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    users = relationship(
+        "UserTable", secondary=user_groups_association, back_populates="groups"
     )
 
 

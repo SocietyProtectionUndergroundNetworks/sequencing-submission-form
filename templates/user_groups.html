@@ -1,0 +1,61 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnSuA4Ss2PkkikSOLtYs8BlYIeeIK1h99ty4YfvRPAlzr377vr3CXDb7sb7eEEBYjDtcYj+AjBH3FLv5uSJuXg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js" integrity="sha512-7Pi/otdlbbCR+LnW+F7PwFcSDJOuUJB3OxtEHbg4vSMvzvJjde4Po1v4BR9Gdc9aXNUNFVUY+SK51wWT8WF0Gg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <title>User Groups</title>
+</head>
+<body>
+  <div class="app-navbar">
+    <a href="https://spun.earth" class="logo"></a>
+    <div class="menu">
+      <ul>
+        <li><a href="https://spun.earth">Spun Website</a></li>
+        <li><a href="/">App homepage</a></li>
+      </ul>
+    </div>
+  </div>
+  <h1>Users list</h1>
+  <div>
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">Group Name</th>
+          <th scope="col">Users</th>
+        </tr>
+      </thead>
+      <tbody id="files_body">
+        {% for group in all_groups %}
+          <tr>
+              <td scope="row">
+                {{ group.id }}
+              </td>
+              <td>{{ group.name }}</td>
+              <td>
+                {% if group.users_count > 0 %}
+                  <a href="/users?group_id={{ group.id }}">{{ group.users_count }}</a>
+                {% else %}
+                  0
+                {% endif %}
+              </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    
+  </div>
+  <div>
+      <h2>Add New Group</h2>
+      <form action="/add_user_group" method="post">
+          <div class="form-group">
+              <label for="group_name">Group Name:</label>
+              <input type="text" id="group_name" name="name" class="form-control" required>
+          </div>
+          <button type="submit" class="btn btn-primary">Add Group</button>
+      </form>
+  </div>
+</body>
+</html>

@@ -352,6 +352,8 @@
                 {% endif %}
               </li>
               <li><span class="fw-bold">SequencerID</span>, which should be the part (A) (the blue part, the common part) of the filenames as the example above</li>
+              <li><span class="fw-bold">Index_1</span>, which should be the DNA sequencing index 1 (if you know it)</li>
+              <li><span class="fw-bold">Index_2</span>, which should be the DNA sequencing index 2 (if you know it)</li>
             </ul>
           </p>
             <div class="form-check">
@@ -484,7 +486,7 @@
                   {% endfor %}
                   {% set _ = seq_data_dict.update({row.id: seq_data_list}) %}
               {% endfor %}
-              {{ seq_data_dict }}
+
               {% if nr_files_per_sequence == 2 %}
                 <!-- Iterate over each row in samples_data -->
                 {% for row in samples_data %}
@@ -1448,6 +1450,7 @@
 
                 // Clear previous messages and reset status class
                 $('#step_6_msg').html('File uploaded successfully. Records added to the metadata table above').addClass('text-success');
+                enableForm_step_7()
               }
           },
           error: function(xhr, status, error) {

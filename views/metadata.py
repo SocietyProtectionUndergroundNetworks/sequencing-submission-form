@@ -111,7 +111,7 @@ def metadata_form():
         nr_files_per_sequence=nr_files_per_sequence,
         google_sheets_template_url=google_sheets_template_url,
         valid_samples=valid_samples,
-        uploaded_files=uploaded_files
+        uploaded_files=uploaded_files,
     )
 
 
@@ -129,7 +129,7 @@ def metadata_validate_row():
     # Read the data of the form in a df
     process_id = request.form.get("process_id")
     process_data = SequencingUpload.get(process_id)
-    logger.info('The process id is')
+    logger.info("The process id is")
     logger.info(process_id)
     # Parse form data from the request
     form_data = request.form.to_dict()
@@ -151,14 +151,14 @@ def metadata_validate_row():
     using_scripps_txt = "no"
     if process_data["using_scripps"] == 1:
         using_scripps_txt = "yes"
-        
+
     result = check_metadata(df, using_scripps_txt)
 
     if result["status"] == 1:
         for _, row in df.iterrows():
-            # Convert the row to a dictionary      
+            # Convert the row to a dictionary
             datadict = row.to_dict()
-            sample_line_id = SequencingSample.create(
+            SequencingSample.create(
                 sequencingUploadId=process_id, datadict=datadict
             )
     # Return the result as JSON
@@ -393,19 +393,19 @@ def create_xls_template():
 def check_filename_matching():
     process_id = request.form.get("process_id")
     filename = request.form.get("filename")
-    
+
     if not process_id or not filename:
         return (
             jsonify(
                 {"result": 2, "message": "Missing process_id or filename"}
             ),
-            400
+            400,
         )
 
     matching_sequencer_ids = SequencingSequencerId.get_matching_sequencer_ids(
         process_id, filename
     )
-    
+
     if len(matching_sequencer_ids) == 1:
         # Extract the sequencer ID
         sequencer_id = matching_sequencer_ids[0]
@@ -415,48 +415,51 @@ def check_filename_matching():
         process_data = SequencingUpload.get(process_id)
         if not process_data:
             return (
-                jsonify(
-                    {"result": 2, "message": "Process data not found"}
-                ),
-                404
+                jsonify({"result": 2, "message": "Process data not found"}),
+                404,
             )
         nr_files_per_sequence = process_data.get("nr_files_per_sequence", 0)
         uploaded_files = SequencingUpload.get_uploaded_files(process_id)
-        
+
         # Filter uploaded files by sequencer_id
         files_for_sequencer = [
-            file for file in uploaded_files
+            file
+            for file in uploaded_files
             if file["sequencerId"] == sequencer_id
         ]
-        
+
         # Check if we have the correct number of files uploaded
         if len(files_for_sequencer) >= nr_files_per_sequence:
             return (
                 jsonify(
-                    {"result": 0, "message": "All expected files already uploaded for the sequencerID " + str(sequencer_id_data.SequencerID)}
+                    {
+                        "result": 0,
+                        "message": "All expected files already uploaded "
+                        + "for the sequencerID "
+                        + str(sequencer_id_data.SequencerID),
+                    }
                 ),
                 200,
             )
-        
+
         return (
-            jsonify(
-                {"result": 1, "matching_sequencer_id": sequencer_id}
-            ),
+            jsonify({"result": 1, "matching_sequencer_id": sequencer_id}),
             200,
-        )        
-    
+        )
+
     if len(matching_sequencer_ids) > 1:
         return (
             jsonify(
-                {"result": 1, "message": "File matches more than one sequencer ID"}
+                {
+                    "result": 1,
+                    "message": "File matches more than one sequencer ID",
+                }
             ),
             200,
         )
 
     return (
-        jsonify(
-            {"result": 1, "message": "No matching sequencer IDs found"}
-        ),
+        jsonify({"result": 1, "message": "No matching sequencer IDs found"}),
         200,
     )
 

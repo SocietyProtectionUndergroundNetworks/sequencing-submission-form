@@ -272,10 +272,11 @@ class SequencingSequencerId:
         sequencer_ids = [(id, seq_id) for id, seq_id in sequencer_ids]
 
         # Find matching sequencer IDs and return the corresponding ids
-        matching_ids = [
-            id
-            for id, seq_id in sequencer_ids
-            if filename_prefix.startswith(seq_id)
-        ]
+        matching_ids = []
+        for id, seq_id in sequencer_ids:
+            if seq_id == filename_prefix or filename_prefix.startswith(
+                seq_id + "_"
+            ):
+                matching_ids.append(id)
 
         return matching_ids

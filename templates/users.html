@@ -17,7 +17,12 @@
       </ul>
     </div>
   </div>
-  <h1>Users list</h1>
+  <h1>
+    Users list
+    {% if group_name %}
+      for group: "{{ group_name }}"
+    {% endif %}
+  </h1>
   <div>
     <table class="table">
       <thead>
@@ -28,6 +33,7 @@
           <th scope="col">Upload processes</th>
           <th scope="col">Is Admin</th>
           <th scope="col">Is Approved</th>
+          <th scope="col">Groups</th>
           <th scope="col">Buckets Access</th>
         </tr>
       </thead>
@@ -70,6 +76,29 @@
                 </form>
               </td>
               <td>
+                {% if user.user.groups %}
+                  <ul>
+                    {% for group in user.user.groups %}
+                      <li>
+                        {{ group }}
+                        <a href="#" class="remove_user_from_group text-danger" data-user-id="{{ user.user.id }}" data-group="{{ group }}">X</a>
+                      </li>
+                    {% endfor %}
+                  {% else %}
+                    <li>No groups</li>
+                  </ul>
+                {% endif %}  
+                <form action="/add_user_to_group" method="post" class="groups-form">
+                  <input type="hidden" name="user_id" value="{{ user.user.id }}">
+                  <select name="group" id="groups_{{ user.user.id }}">
+                    <option value="none"> - </option>
+                    {% for group in all_groups %}
+                      <option value="{{ group.id }}">{{ group.name }}</option>
+                    {% endfor %}
+                  </select>
+                </form>                            
+              </td>
+              <td>
                 <ul>
                   {% if user.user.buckets %}
                     {% for bucket in user.user.buckets %}
@@ -109,6 +138,10 @@
       $(this).closest('.buckets-form').submit();
     });
 
+    $(document).on('change', 'select[name="group"]', function() {
+      $(this).closest('.groups-form').submit();
+    });
+
     $('.remove_bucket_access').on('click', function() {
       event.preventDefault();
       var userId = $(this).data('user-id');
@@ -131,6 +164,38 @@
             $('li').filter(function() {
               return $(this).find('.remove_bucket_access').data('user-id') === userId &&
                      $(this).find('.remove_bucket_access').data('bucket') === bucket;
+            }).remove();
+          }
+        },
+        error: function(xhr, status, error) {
+          // Handle error response if needed
+          console.error('Error removing access:', error);
+        }
+      });
+    });
+
+    $('.remove_user_from_group').on('click', function() {
+      event.preventDefault();
+      var userId = $(this).data('user-id');
+      var group = $(this).data('group');
+      console.log('userId:', userId);
+      console.log('group:', group);
+      // Make AJAX request to remove access to the bucket
+      $.ajax({
+        url: '/remove_user_from_group',
+        type: 'POST',
+        data: {
+          user_id: userId,
+          group: group
+        },
+        success: function(response) {
+          // Handle success response if needed
+          console.log('Removed user from group:', group);
+          console.log(response)
+          if (response.status==1) {
+            $('li').filter(function() {
+              return $(this).find('.remove_user_from_group').data('user-id') === userId &&
+                     $(this).find('.remove_user_from_group').data('group') === group;
             }).remove();
           }
         },

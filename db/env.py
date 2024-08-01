@@ -2,8 +2,6 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 from alembic import context
 from db.db_conn import get_database_uri
-
-# Add your SQLAlchemy models' Base here
 from models.db_model import Base  # Update the path as needed
 
 # This is the Alembic Config object, which provides access to the values
@@ -22,6 +20,13 @@ config.set_main_option("sqlalchemy.url", SQLALCHEMY_DATABASE_URI)
 target_metadata = Base.metadata
 
 
+def include_object(object, name, type_, reflected, compare_to):
+    # Exclude the 'sessions' table from migration scripts
+    if type_ == "table" and name == "sessions":
+        return False
+    return True
+
+
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
     connectable = engine_from_config(
@@ -34,6 +39,8 @@ def run_migrations_online() -> None:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
+            include_object=include_object,
+            compare_type=True,
         )
 
         with context.begin_transaction():
