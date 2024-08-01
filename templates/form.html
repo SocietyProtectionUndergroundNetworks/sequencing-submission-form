@@ -289,7 +289,7 @@
         <div id="step_7" class="form-step-item">
           <h3 id="step_7_title">
             Step 7:
-            {% if sequencing_method and sequencing_method>1 %}
+            {% if sequencing_method and sequencing_method!=1 and sequencing_method!=3%}
               Not Applicable to this sequencing method
             {% elif renaming_skipped and renaming_skipped==True  %}
               Renaming skipped
