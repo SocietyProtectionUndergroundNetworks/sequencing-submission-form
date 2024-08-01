@@ -18,26 +18,55 @@ logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 def generate_new_filename(current_filename, csv_sequence_dict):
     # List of separators to try
     separators = ["_", "-"]
+    # logger.info('The current_filename is '+ str(current_filename))
+    
+    # Remove the .fastq.gz extension to get the base name
+    if current_filename.endswith('.fastq.gz'):
+        base_filename = current_filename[:-9]  # Removing '.fastq.gz' (9 characters)
+    else:
+        base_filename = current_filename.rsplit('.', 1)[0]
+    # logger.info('The base_filename is '+ str(current_filename))
+    
+    #logger.info('the sequence_dict is ')
+    # logger.info(csv_sequence_dict)
+    
+    # Check if the base filename matches any key in the csv_sequence_dict
+    if base_filename in csv_sequence_dict:
+        sample_id = csv_sequence_dict[base_filename]["sample_id"]
+        new_sample_id = (
+            sample_id.replace("RIBO", "SSU")
+            if "RIBO" in sample_id
+            else sample_id
+        )
+        new_filename = new_sample_id + current_filename[len(base_filename):]
+        return {
+            "new_filename": new_filename,
+            "bucket": csv_sequence_dict[base_filename]["bucket"],
+            "region": csv_sequence_dict[base_filename]["region"],
+            "sample_id": csv_sequence_dict[base_filename]["sample_id"],
+        }
 
-    # Try matching using each separator
+    # If no exact base filename match, try matching using each separator
     for separator in separators:
-        # Split the filename into parts
-        parts = current_filename.split(separator)
-        # Try matching the longest possible prefix from the parts
-        # with the dictionary keys
+        # Split the base filename into parts
+        parts = base_filename.split(separator)
+        
+        # Iterate over the parts to find a matching prefix in the dictionary
         for i in range(len(parts), 0, -1):
             prefix = separator.join(parts[:i])
+            # Ensure that the prefix is a complete match and not a partial one
             if prefix in csv_sequence_dict:
                 sample_id = csv_sequence_dict[prefix]["sample_id"]
-                # Replace 'RIBO' with 'SSU' in the sample_id if needed
+                # Ensure exact matching for sequence ID
+                if not base_filename.startswith(sample_id):
+                    continue
+                
                 new_sample_id = (
                     sample_id.replace("RIBO", "SSU")
                     if "RIBO" in sample_id
                     else sample_id
                 )
-                # Join the new sample_id with the remaining
-                # parts of the filename
-                new_filename = separator.join([new_sample_id] + parts[i:])
+                new_filename = separator.join([new_sample_id] + parts[i:]) + current_filename[len(base_filename):]
                 return {
                     "new_filename": new_filename,
                     "bucket": csv_sequence_dict[prefix]["bucket"],
@@ -47,6 +76,7 @@ def generate_new_filename(current_filename, csv_sequence_dict):
 
     # If no matching prefix is found, return None
     return None
+
 
 
 def get_csv_sequence_dict(data):
