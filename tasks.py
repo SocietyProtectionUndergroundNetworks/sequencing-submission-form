@@ -13,9 +13,11 @@ from helpers.fastqc import fastqc_multiqc_files
 def upload_raw_file_to_storage_async(process_id, filename):
     upload_raw_file_to_storage(process_id, filename)
 
+
 @celery_app.task
 def process_fastq_files_async():
     process_fastq_files()
+
 
 @celery_app.task
 def unzip_raw_file_async(process_id, filename):

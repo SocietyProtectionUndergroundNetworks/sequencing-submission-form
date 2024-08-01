@@ -289,7 +289,7 @@
         <div id="step_7" class="form-step-item">
           <h3 id="step_7_title">
             Step 7:
-            {% if sequencing_method and sequencing_method>1 %}
+            {% if sequencing_method and sequencing_method!=1 and sequencing_method!=3%}
               Not Applicable to this sequencing method
             {% elif renaming_skipped and renaming_skipped==True  %}
               Renaming skipped
@@ -333,7 +333,7 @@
         <div id="step_8" {% if not files_renamed %} style="opacity: 0.5;" {% endif %} class="form-step-item">
           <h3 id="step_8_title">
             Step 8:
-            {% if sequencing_method and sequencing_method>1 %}
+            {% if sequencing_method and sequencing_method!=1 and sequencing_method!=3%}
               Not Applicable to this sequencing method
             {% else  %}
               Run fastqc
@@ -364,7 +364,7 @@
         <div id="step_9" {% if not fastqc_run %} style="opacity: 0.5;" {% endif %} class="form-step-item">
           <h3 id="step_9_title">
             Step 9:
-            {% if sequencing_method and sequencing_method>1 %}
+            {% if sequencing_method and sequencing_method!=1 and sequencing_method!=3%}
               Not Applicable to this sequencing method
             {% else  %}
               Upload fastqc and multiqc files to bucket
@@ -669,7 +669,7 @@
             $('#step_3').css('opacity', '1');
             $('#step_3_form').show();
             $('input[name="sequencing_method"]').not(this).prop('disabled', true);
-            if (sequencing_method>1) {
+            if ((sequencing_method==2) || (sequencing_method==4)) {
               $('#step_7_title').html('Step 6: Not Applicable to this sequencing method');
               $('#step_8_title').html('Step 7: Not Applicable to this sequencing method');
               $('#step_9_title').html('Step 8: Not Applicable to this sequencing method');
@@ -707,7 +707,7 @@
         }
 
         $(document).ready(function () {
-          if (!gz_filedata || Object.keys(gz_filedata).length === 0 || sequencing_method==0 || sequencing_method>1) {
+          if (!gz_filedata || Object.keys(gz_filedata).length === 0 || sequencing_method==0 || sequencing_method==2 || sequencing_method==4) {
             hide_form_7();
           }
 
@@ -717,7 +717,7 @@
             hide_form_7();
           }
 
-          if (sequencing_method>1 && gz_filedata && Object.keys(gz_filedata).length > 0) {
+          if (((sequencing_method==2) || (sequencing_method==4)) && gz_filedata && Object.keys(gz_filedata).length > 0) {
             $('#step_10_form').show();
             $('#step_10').css('opacity', '1');
           }
@@ -1119,7 +1119,8 @@
                               if (areAllFilesUnzipped(gz_filedata)) {
                                 if (!uploading) {
                                   // HERE
-                                  if (sequencing_method==1) {
+                                  if ((sequencing_method==1) || (sequencing_method==3)) {
+
                                     show_form_7();
                                   } else {
                                     hide_form_7();
@@ -1132,7 +1133,6 @@
                               }
                             } else {
                               $('#step_7_msg').text('Not all files are matched to records in your CSV. Please correct this by either renaming your files, or fixing your CSV. Please check the table bellow to see which files are not matched.').removeClass('text-success').addClass('text-danger');;
-                              hide_form_7();
                             }
 
                         }
