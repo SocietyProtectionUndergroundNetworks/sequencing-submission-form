@@ -669,7 +669,7 @@
             $('#step_3').css('opacity', '1');
             $('#step_3_form').show();
             $('input[name="sequencing_method"]').not(this).prop('disabled', true);
-            if (sequencing_method>1) {
+            if ((sequencing_method==2) || (sequencing_method==4)) {
               $('#step_7_title').html('Step 6: Not Applicable to this sequencing method');
               $('#step_8_title').html('Step 7: Not Applicable to this sequencing method');
               $('#step_9_title').html('Step 8: Not Applicable to this sequencing method');
@@ -717,7 +717,7 @@
             hide_form_7();
           }
 
-          if (sequencing_method>1 && gz_filedata && Object.keys(gz_filedata).length > 0) {
+          if (((sequencing_method==2) || (sequencing_method==4)) && gz_filedata && Object.keys(gz_filedata).length > 0) {
             $('#step_10_form').show();
             $('#step_10').css('opacity', '1');
           }

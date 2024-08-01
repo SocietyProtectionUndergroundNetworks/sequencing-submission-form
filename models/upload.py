@@ -361,7 +361,7 @@ class Upload:
                 key=lambda x: (x[1].get("bucket", ""), x[1].get("folder", "")),
             )
         )
-        if self.sequencing_method == 1:
+        if (self.sequencing_method == 1 or self.sequencing_method == 3):
             rowspan_counts = {}
             for filename, data in matching_files_dict.items():
                 if "bucket" in data and "folder" in data:
