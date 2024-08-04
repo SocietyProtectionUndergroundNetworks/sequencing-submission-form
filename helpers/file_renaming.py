@@ -40,7 +40,8 @@ def generate_new_filename(current_filename, csv_sequence_dict):
             if "RIBO" in sample_id
             else sample_id
         )
-        new_filename = new_sample_id + current_filename[len(base_filename):]
+        name_base = current_filename[len(base_filename) :]  # noqa: E203
+        new_filename = new_sample_id + name_base
         return {
             "new_filename": new_filename,
             "bucket": csv_sequence_dict[base_filename]["bucket"],
@@ -68,9 +69,9 @@ def generate_new_filename(current_filename, csv_sequence_dict):
                     if "RIBO" in sample_id
                     else sample_id
                 )
+                n_base = current_filename[len(base_filename) :]  # noqa: E203
                 new_filename = (
-                    separator.join([new_sample_id] + parts[i:])
-                    + current_filename[len(base_filename):]
+                    separator.join([new_sample_id] + parts[i:]) + n_base
                 )
                 return {
                     "new_filename": new_filename,
