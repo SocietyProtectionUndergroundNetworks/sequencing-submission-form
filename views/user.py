@@ -22,6 +22,7 @@ from flask_login import (
 from models.user import User
 from models.user_groups import UserGroups
 from models.bucket import Bucket
+from models.preapproved_user import PreapprovedUser
 from helpers.bucket import list_buckets
 
 # Get the logger instance from app.py
@@ -144,14 +145,34 @@ def callback():
 
     # Doesn't exist? Add to database
     if not User.get(unique_id):
-        User.create(
-            id_=unique_id,
-            name=users_name,
-            email=users_email,
-            profile_pic=picture,
-            admin=False,
-            approved=False,
-        )
+
+        preapproved_user = PreapprovedUser.get_by_email(users_email)
+        if preapproved_user:
+            user_id = User.create(
+                id_=unique_id,
+                name=users_name,
+                email=users_email,
+                profile_pic=picture,
+                admin=False,
+                approved=True,
+            )
+            logger.info("Created a preapproved user with user id")
+            logger.info(user_id)
+            # Additional logic to handle bucket and group assignment
+            if preapproved_user.bucket:
+                User.add_user_bucket_access(user_id, preapproved_user.bucket)
+            if preapproved_user.group_id:
+                User.add_user_group_access(user_id, preapproved_user.group_id)
+            PreapprovedUser.delete(preapproved_user.id)
+        else:
+            User.create(
+                id_=unique_id,
+                name=users_name,
+                email=users_email,
+                profile_pic=picture,
+                admin=False,
+                approved=False,
+            )
 
     # Begin user session by logging the user in
     login_user(user, remember=True)
@@ -196,6 +217,7 @@ def users():
     all_users = User.get_all()
     all_buckets = list_buckets()
     all_groups = UserGroups.get_all_with_user_count()
+    preapproved_users = PreapprovedUser.get_all()
     for bucket in all_buckets:
         Bucket.create(bucket)
     group_id = request.args.get("group_id")
@@ -225,6 +247,7 @@ def users():
         all_buckets=all_buckets,
         all_groups=all_groups,
         group_name=group_name,
+        preapproved_users=preapproved_users,
     )
 
 
@@ -350,3 +373,22 @@ def remove_user():
 
     user_delete_result = User.delete(user_id)
     return user_delete_result
+
+
+@user_bp.route(
+    "/add_preapproved_user", methods=["POST"], endpoint="add_preapproved_user"
+)
+@login_required
+@admin_required
+def add_preapproved_user():
+    user_email = request.form.get("user_email")
+    bucket = request.form.get("bucket")
+    group_id = request.form.get("group")
+    logger.info("The group is is " + str(group_id))
+    PreapprovedUser.create(
+        email=user_email,
+        bucket=bucket,
+        group_id=group_id,
+    )
+
+    return redirect(url_for("user.users"))

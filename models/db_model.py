@@ -53,6 +53,15 @@ class UserTable(Base):
     )
 
 
+class PreapprovedUsersTable(Base):
+    __tablename__ = "preapproved_users"
+
+    id = Column(Integer, primary_key=True)
+    email = Column(String(255), nullable=False)
+    bucket = Column(String(255), nullable=True)
+    group_id = Column(Integer, nullable=True)
+
+
 class UserGroupsTable(Base):
     __tablename__ = "user_groups"
 

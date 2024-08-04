@@ -125,6 +125,59 @@
         {% endfor %}
       </tbody>
     </table>
+    
+    <h3> Preapproved users </h3>
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">Email</th>
+          <th scope="col">Bucket</th>
+          <th scope="col">Group</th>
+        </tr>
+      </thead>
+      <tbody id="files_body">
+        {% for p_user in preapproved_users %}
+          {% set user_group = all_groups | selectattr("id", "equalto", p_user.group_id) | list %}
+          <tr>
+              <td scope="row">
+                #
+              </td>
+              <td>{{ p_user.email }}</td>
+              <td>{{ p_user.bucket }}</td>
+              <td>
+                {% if user_group %}
+                    {{ user_group[0].name }}
+                {% endif %}                
+              </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table> 
+    <div>
+        <h2>Add New Preapproved User</h2>
+        <form action="/add_preapproved_user" method="post">
+            <div class="form-group">
+                <label for="user_email">User Email:</label>
+                <input type="text" id="user_email" name="user_email" class="form-control" required>
+            </div>
+            <label for="bucket">Bucket:</label>
+            <select name="bucket">
+              <option value="none"> - </option>
+              {% for bucket in all_buckets %}
+                <option value="{{ bucket }}">{{ bucket }}</option>
+              {% endfor %}
+            </select>
+            <label for="group">Group:</label>
+            <select name="group">
+              <option value="none"> - </option>
+              {% for group in all_groups %}
+                <option value="{{ group.id }}">{{ group.name }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary">Add User</button>
+        </form>
+    </div>         
   </div>
   <script>
     $('.admin-checkbox').on('change', function() {
