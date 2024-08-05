@@ -137,6 +137,7 @@ class SequencingUploadsTable(Base):
     Sequencing_regions_number = Column(Integer, nullable=True)
     metadata_upload_confirmed = Column(Boolean, default=False)
     DNA_conc_instrument = Column(String(255), nullable=True)
+    reviewed_by_admin = Column(Boolean, default=False)
 
 
 class SequencingSamplesTable(Base):
