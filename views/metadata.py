@@ -646,6 +646,24 @@ def user_uploads_v2():
 
 
 @metadata_bp.route(
+    "/all_uploads_v2", methods=["GET"], endpoint="all_uploads_v2"
+)
+@login_required
+@admin_required
+@approved_required
+def all_uploads_v2():
+    user_metadata_uploads = SequencingUpload.get_all()
+    return render_template(
+        "user_uploads_v2.html",
+        user_uploads=user_metadata_uploads,
+        user_id="",
+        is_admin=current_user.admin,
+        username="",
+        user_email="",
+    )
+
+
+@metadata_bp.route(
     "/delete_upload_process_v2",
     methods=["GET"],
     endpoint="delete_upload_process_v2",

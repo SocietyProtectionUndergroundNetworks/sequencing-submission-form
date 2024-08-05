@@ -24,16 +24,28 @@
         {% if user_should_see_v2 or current_user.admin %}
           {% if current_user.admin %}
             <h3> Version 2 </h3>
+            <a href="/all_uploads_v2">
+              <div class="page-menu-item">
+                <h3>All v2 uploads</h3>               
+              </div>
+            </a>            
+            
           {% endif %}
           <a href="{{ url_for('metadata.metadata_form') }}">
             <div class="page-menu-item">
-              <h3>Metadata Submition form (v2)</h3>
+              <h3>Metadata Submition form</h3>
+              <div> Start a new process. </div>
+              {% if user_metadata_uploads %}
+                <div> If you have already started one, please continue the previous process if possible </div>
+              {% endif %}
             </div>
           </a>        
           {% if user_metadata_uploads %}
             <a href="/user_uploads_v2?user_id={{ user_id }}">
               <div class="page-menu-item">
-                <h3>Previous uploads</h3>
+                <h3>Previous uploads of user</h3>
+                <div> Please note that you have started allready a previous process </div>
+                <div> You can continue the previous process if possible </div>                
               </div>
             </a>
           {% endif %}

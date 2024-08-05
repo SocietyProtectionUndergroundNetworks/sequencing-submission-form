@@ -10,6 +10,7 @@ from models.db_model import (
     SequencingSamplesTable,
     SequencingSequencerIDsTable,
     SequencingFilesUploadedTable,
+    UserTable,
 )
 from pathlib import Path
 from flask_login import current_user
@@ -70,18 +71,19 @@ class SequencingUpload:
         db_engine = connect_db()
         session = get_session(db_engine)
 
-        query = session.query(SequencingUploadsTable)
+        query = session.query(SequencingUploadsTable, UserTable).join(
+            UserTable, SequencingUploadsTable.user_id == UserTable.id
+        )
 
         if user_id is not None:
-            query = query.filter_by(user_id=user_id)
+            query = query.filter(SequencingUploadsTable.user_id == user_id)
 
         upload_dbs = query.all()
 
-        session.close()
-
         uploads = []
-        for upload_db in upload_dbs:
+        for upload_db, user in upload_dbs:
             upload_db_dict = upload_db.__dict__
+            user_dict = user.__dict__
 
             filtered_dict = {
                 key: value
@@ -98,10 +100,9 @@ class SequencingUpload:
             upload.regions = cls.get_regions(
                 filtered_dict["Primer_set_1"], filtered_dict["Primer_set_2"]
             )
-            upload.nr_regions = len(upload.regions)
 
-            # Calculate the total size of the uploads folder
-            # and count the fastq files
+            # Calculate the total size of the uploads folder and
+            # count the fastq files
             upload.total_uploads_file_size = 0
             upload.nr_fastq_files = 0
             uploads_folder = filtered_dict["uploads_folder"]
@@ -111,6 +112,9 @@ class SequencingUpload:
                 )
                 upload.total_uploads_file_size = total_size
                 upload.nr_fastq_files = fastq_count
+
+            # Calculate the number of regions
+            upload.nr_regions = len(upload.regions)
 
             # Count the number of samples associated with this upload
             nr_samples = (
@@ -136,8 +140,14 @@ class SequencingUpload:
             )
             upload.nr_sequencer_ids = nr_sequencer_ids
 
+            # Add user name and email to the upload dictionary
+            upload.user_name = user_dict["name"]
+            upload.user_email = user_dict["email"]
+
             upload_dict = upload.__dict__
             uploads.append(upload_dict)
+
+        session.close()
 
         return uploads
 

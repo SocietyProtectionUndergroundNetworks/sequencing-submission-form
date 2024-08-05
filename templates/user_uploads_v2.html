@@ -18,14 +18,26 @@
     </div>
   </div>
 
-  <h1>Uploads list for user {{ username }} - {{ user_email }}</h1>
+  <h1>
+    {% if user_id %}
+      Uploads list for user {{ username }} - {{ user_email }}
+    {% else %}
+      All metadata uploads v2
+    {% endif %}
+  </h1>
   <div>
     <table class="table">
       <thead>
         <tr>
           <th scope="col">#</th>
+          {% if not user_id %}
+            <th scope="col">Username</th>
+            <th scope="col">Email</th>          
+          {% endif %}
+          <th scope="col">Project</th>
           <th scope="col">Created At</th>
           <th scope="col">Updated AT</th>
+          <th scope="col">Using Scripps</th>
           <th scope="col">Uploads folder</th>
           <th scope="col">Nr of Samples</th>
           <th scope="col">Nr of Regions</th>
@@ -50,8 +62,14 @@
                   </a>
                 {% endif %}
               </td>
+              {% if not user_id %}
+                <td>{{ upload.user_name }}</td>
+                <td>{{ upload.user_email }}</td>
+              {% endif %}
+              <td>{{ upload.project_id }}</td>            
               <td>{{ upload.created_at }}</td>
               <td>{{ upload.updated_at }}</td>
+              <td>{{ upload.using_scripps }}</td>
               <td>{{ upload.uploads_folder }}</td>
               <td>{{ upload.nr_samples }}</td>
               <td>{{ upload.nr_regions }}</td>
