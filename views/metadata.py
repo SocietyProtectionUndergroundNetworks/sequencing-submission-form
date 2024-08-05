@@ -1,0 +1,622 @@
+import logging
+import pandas as pd
+import os
+import json
+from flask import (
+    redirect,
+    Blueprint,
+    render_template,
+    request,
+    url_for,
+    jsonify,
+    send_file,
+)
+from flask_login import current_user, login_required
+from models.bucket import Bucket
+from models.sequencing_upload import SequencingUpload
+from models.sequencing_sample import SequencingSample
+from models.sequencing_sequencer_ids import SequencingSequencerId
+from models.sequencing_files_uploaded import SequencingFileUploaded
+from helpers.metadata_check import (
+    check_metadata,
+    get_columns_data,
+    get_project_common_data,
+)
+from helpers.create_xls_template import (
+    create_template_one_drive_and_excel,
+)
+import numpy as np
+from helpers.file_renaming import calculate_md5
+
+from pathlib import Path
+
+metadata_bp = Blueprint("metadata", __name__)
+
+logger = logging.getLogger("my_app_logger")
+
+
+# Custom admin_required decorator
+def admin_required(view_func):
+    def decorated_view(*args, **kwargs):
+        if not current_user.is_authenticated:
+            # Redirect unauthenticated users to the login page
+            return redirect(
+                url_for("user.login")
+            )  # Adjust 'login' to your actual login route
+        elif not current_user.admin:
+            # Redirect non-admin users to some unauthorized page
+            return redirect(url_for("user.only_admins"))
+        return view_func(*args, **kwargs)
+
+    return decorated_view
+
+
+# Custom approved_required decorator
+def approved_required(view_func):
+    def decorated_approved_view(*args, **kwargs):
+        if not current_user.is_authenticated:
+            # Redirect unauthenticated users to the login page
+            return redirect(
+                url_for("user.login")
+            )  # Adjust 'login' to your actual login route
+        elif not current_user.approved:
+            # Redirect non-approved users to some unauthorized page
+            return redirect(url_for("user.only_approved"))
+        return view_func(*args, **kwargs)
+
+    return decorated_approved_view
+
+
+@metadata_bp.route("/metadata_form", endpoint="metadata_form")
+@login_required
+@approved_required
+def metadata_form():
+    my_buckets = {}
+    map_key = os.environ.get("GOOGLE_MAP_API_KEY")
+    google_sheets_template_url = os.environ.get("GOOGLE_SPREADSHEET_TEMPLATE")
+    for my_bucket in current_user.buckets:
+        my_buckets[my_bucket] = Bucket.get(my_bucket)
+    expected_columns = get_columns_data()
+    project_common_data = get_project_common_data()
+    process_data = None
+    process_id = request.args.get("process_id", "")
+    samples_data = []
+    sequencer_ids = []
+    regions = SequencingUpload.get_regions()
+    nr_files_per_sequence = 1
+    valid_samples = False
+    uploaded_files = []
+    if process_id:
+        process_data = SequencingUpload.get(process_id)
+
+        nr_files_per_sequence = process_data["nr_files_per_sequence"]
+        regions = process_data["regions"]
+
+        samples_data = SequencingUpload.get_samples(process_id)
+        sequencer_ids = SequencingUpload.get_sequencer_ids(process_id)
+        uploaded_files = SequencingUpload.get_uploaded_files(process_id)
+        valid_samples = SequencingUpload.validate_samples(process_id)
+
+    return render_template(
+        "metadata_form.html",
+        my_buckets=my_buckets,
+        map_key=map_key,
+        expected_columns=expected_columns,
+        project_common_data=project_common_data,
+        process_data=process_data,
+        process_id=process_id,
+        samples_data=samples_data,
+        regions=regions,
+        sequencer_ids=sequencer_ids,
+        nr_files_per_sequence=nr_files_per_sequence,
+        google_sheets_template_url=google_sheets_template_url,
+        valid_samples=valid_samples,
+        uploaded_files=uploaded_files,
+    )
+
+
+@metadata_bp.route(
+    "/metadata_validate_row",
+    methods=["POST"],
+    endpoint="metadata_validate_row",
+)
+@login_required
+@approved_required
+def metadata_validate_row():
+    # we have panda available, and because we want to reuse the same
+    # existing functions, we want to put all the data from the form
+    # into a df
+    # Read the data of the form in a df
+    process_id = request.form.get("process_id")
+    process_data = SequencingUpload.get(process_id)
+    logger.info("The process id is")
+    logger.info(process_id)
+    # Parse form data from the request
+    form_data = request.form.to_dict()
+
+    # Convert form data to a DataFrame
+    df = pd.DataFrame([form_data])
+
+    # Check metadata using the helper function
+    if "Date_collected" in df.columns:
+        # Attempt to convert 'Date_collected' to datetime
+        # format, invalid parsing will be NaT
+        temp_dates = pd.to_datetime(df["Date_collected"], errors="coerce")
+
+        # Update only the rows where conversion was successful
+        mask = temp_dates.notna()
+        df.loc[mask, "Date_collected"] = temp_dates[mask].dt.strftime(
+            "%Y-%m-%d"
+        )
+    using_scripps_txt = "no"
+    if process_data["using_scripps"] == 1:
+        using_scripps_txt = "yes"
+
+    result = check_metadata(df, using_scripps_txt)
+
+    if result["status"] == 1:
+        for _, row in df.iterrows():
+            # Convert the row to a dictionary
+            datadict = row.to_dict()
+            SequencingSample.create(
+                sequencingUploadId=process_id, datadict=datadict
+            )
+    # Return the result as JSON
+    return (
+        jsonify(
+            {
+                "result": result,
+                "data": df.replace({np.nan: None}).to_dict(orient="records"),
+            }
+        ),
+        200,
+    )
+
+
+@metadata_bp.route(
+    "/upload_metadata_file", methods=["POST"], endpoint="upload_metadata_file"
+)
+@login_required
+@approved_required
+def upload_metadata_file():
+    file = request.files.get("file")
+    using_scripps = request.form.get("using_scripps")
+    process_id = request.form.get("process_id")
+    multiple_sequencing_runs = request.form.get("Multiple_sequencing_runs")
+    if not file:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    # Read uploaded file and get its column names
+    filename = file.filename
+    file_extension = os.path.splitext(filename)[1].lower()
+
+    if file_extension == ".csv":
+        df = pd.read_csv(file)
+    elif file_extension in [".xls", ".xlsx"]:
+        df = pd.read_excel(file, engine="openpyxl")
+    else:
+        return jsonify({"error": "Unsupported file type"}), 400
+    df = df.dropna(how="all")
+
+    if "Date_collected" in df.columns:
+        # Attempt to convert 'Date_collected' to datetime
+        # format, invalid parsing will be NaT
+        temp_dates = pd.to_datetime(df["Date_collected"], errors="coerce")
+
+        # Update only the rows where conversion was successful
+        mask = temp_dates.notna()
+        df.loc[mask, "Date_collected"] = temp_dates[mask].dt.strftime(
+            "%Y-%m-%d"
+        )
+
+    # Check metadata using the helper function
+    result = check_metadata(df, using_scripps, multiple_sequencing_runs)
+
+    expected_columns_data = get_columns_data()
+    expected_columns = list(expected_columns_data.keys())
+    if result["status"] == 1:
+        # Create a list to hold the sample line IDs
+        sample_line_ids = []
+        # All the data that was uploaded was ok. Lets save them
+        df = df.replace({np.nan: None})
+        # Iterate over rows and create samples
+        for _, row in df.iterrows():
+            # Convert the row to a dictionary
+            datadict = row.to_dict()
+            # Call the create method of SequencingSample and
+            # capture the sample_line_id
+            sample_line_id = SequencingSample.create(
+                sequencingUploadId=process_id, datadict=datadict
+            )
+            # Append the sample_line_id to the list
+            sample_line_ids.append(sample_line_id)
+
+        # Update DataFrame with sample_line_id
+        df["id"] = sample_line_ids
+    else:
+        # When status is not 1, leave 'id' column as None or empty
+        df["id"] = None
+    # Return the result as JSON
+    return (
+        jsonify(
+            {
+                "result": result,
+                "data": df.replace({np.nan: None}).to_dict(orient="records"),
+                "expectedColumns": expected_columns,
+            }
+        ),
+        200,
+    )
+
+
+@metadata_bp.route(
+    "/upload_process_common_fields",
+    methods=["POST"],
+    endpoint="upload_process_common_fields",
+)
+@login_required
+@approved_required
+def upload_process_common_fields():
+    # Parse form data from the request
+    form_data = request.form.to_dict()
+
+    process_id = SequencingUpload.create(datadict=form_data)
+
+    # Return the result as JSON
+    return (
+        jsonify({"result": "ok", "process_id": process_id}),
+        200,
+    )
+
+
+@metadata_bp.route(
+    "/add_sequencer_id",
+    methods=["POST"],
+    endpoint="add_sequencer_id",
+)
+@login_required
+@approved_required
+def add_sequencer_id():
+    # Parse form data from the request
+    form_data = request.form.to_dict()
+    # Return the result as JSON
+    sequencer_id, existing = SequencingSequencerId.create(
+        sample_id=form_data["sequencer_sample_id"],
+        sequencer_id=form_data["sequencer_id"],
+        region=form_data["sequencer_region"],
+    )
+    return (
+        jsonify(
+            {
+                "result": "ok",
+                "sequencer_id": sequencer_id,
+                "existing": existing,
+            }
+        ),
+        200,
+    )
+
+
+@metadata_bp.route(
+    "/upload_sequencer_ids_file",
+    methods=["POST"],
+    endpoint="upload_sequencer_ids_file",
+)
+@login_required
+@approved_required
+def upload_sequencer_ids_file():
+    file = request.files.get("file")
+    process_id = request.form.get("process_id")
+    if not file:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    # Read uploaded file and get its column names
+    filename = file.filename
+    file_extension = os.path.splitext(filename)[1].lower()
+
+    if file_extension == ".csv":
+        df = pd.read_csv(file)
+    elif file_extension in [".xls", ".xlsx"]:
+        df = pd.read_excel(file, engine="openpyxl")
+    else:
+        return jsonify({"error": "Unsupported file type"}), 400
+    df = df.dropna(how="all")
+
+    process_data = SequencingUpload.get(process_id)
+    result = SequencingSequencerId.check_df_and_add_records(
+        process_id=process_id,
+        df=df,
+        process_data=process_data,
+    )
+
+    return (jsonify(result), 200)
+
+
+@metadata_bp.route(
+    "/sequencing_confirm_metadata",
+    methods=["POST"],
+    endpoint="sequencing_confirm_metadata",
+)
+@login_required
+@approved_required
+def sequencing_confirm_metadata():
+    process_id = request.form.get("process_id")
+
+    SequencingUpload.mark_upload_confirmed_as_true(process_id)
+
+    return (jsonify({"result": 1}), 200)
+
+
+@metadata_bp.route(
+    "/metadata_instructions",
+    endpoint="metadata_instructions",
+)
+def metadata_instructions():
+    expected_columns = get_columns_data()
+    google_sheets_template_url = os.environ.get("GOOGLE_SPREADSHEET_TEMPLATE")
+
+    return render_template(
+        "metadata_instructions.html",
+        expected_columns=expected_columns,
+        google_sheets_template_url=google_sheets_template_url,
+    )
+
+
+@metadata_bp.route("/xls_sample", endpoint="xls_sample")
+def xls_sample():
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    path = Path(project_root, "static", "xls")
+    xls_path = path / "template_with_dropdowns_for_one_drive_and_excel.xlsx"
+
+    return send_file(xls_path, as_attachment=True)
+
+
+@metadata_bp.route(
+    "/create_xls_template",
+    endpoint="create_xls_template",
+)
+@login_required
+@approved_required
+def create_xls_template():
+    create_template_one_drive_and_excel()
+
+    return (jsonify({"result": 1}), 200)
+
+
+@metadata_bp.route(
+    "/check_filename_matching",
+    methods=["POST"],
+    endpoint="check_filename_matching",
+)
+@login_required
+@approved_required
+def check_filename_matching():
+    process_id = request.form.get("process_id")
+    filename = request.form.get("filename")
+
+    if not process_id or not filename:
+        return (
+            jsonify(
+                {"result": 2, "message": "Missing process_id or filename"}
+            ),
+            400,
+        )
+
+    matching_sequencer_ids = SequencingSequencerId.get_matching_sequencer_ids(
+        process_id, filename
+    )
+
+    if len(matching_sequencer_ids) == 1:
+        # Extract the sequencer ID
+        sequencer_id = matching_sequencer_ids[0]
+        sequencer_id_data = SequencingSequencerId.get(sequencer_id)
+        logger.info(sequencer_id_data)
+        # Fetch process data and uploaded files
+        process_data = SequencingUpload.get(process_id)
+        if not process_data:
+            return (
+                jsonify({"result": 2, "message": "Process data not found"}),
+                404,
+            )
+        nr_files_per_sequence = process_data.get("nr_files_per_sequence", 0)
+        uploaded_files = SequencingUpload.get_uploaded_files(process_id)
+
+        # Filter uploaded files by sequencer_id
+        files_for_sequencer = [
+            file
+            for file in uploaded_files
+            if file["sequencerId"] == sequencer_id
+        ]
+
+        # Check if we have the correct number of files uploaded
+        if len(files_for_sequencer) >= nr_files_per_sequence:
+            return (
+                jsonify(
+                    {
+                        "result": 0,
+                        "message": "All expected files already uploaded "
+                        + "for the sequencerID "
+                        + str(sequencer_id_data.SequencerID),
+                    }
+                ),
+                200,
+            )
+
+        return (
+            jsonify({"result": 1, "matching_sequencer_id": sequencer_id}),
+            200,
+        )
+
+    if len(matching_sequencer_ids) > 1:
+        return (
+            jsonify(
+                {
+                    "result": 1,
+                    "message": "File matches more than one sequencer ID",
+                }
+            ),
+            200,
+        )
+
+    return (
+        jsonify({"result": 1, "message": "No matching sequencer IDs found"}),
+        200,
+    )
+
+
+# NOTE: The "POST" method handles
+# the upload of the file itself.
+# There is also a "GET" method
+# that checks if the chunk has
+# been uploaded
+@metadata_bp.route(
+    "/sequencing_upload_chunk",
+    methods=["POST"],
+    endpoint="sequencing_upload_chunk",
+)
+@login_required
+@approved_required
+def sequencing_upload_chunk():
+    file = request.files.get("file")
+    if file:
+        process_id = request.args.get("process_id")
+
+        process_data = SequencingUpload.get(process_id)
+        uploads_folder = process_data["uploads_folder"]
+        # Extract Resumable.js headers
+        resumable_chunk_number = request.args.get("resumableChunkNumber")
+        # resumable_chunk_size = request.args.get("resumableChunkSize")
+        # resumable_total_size = request.args.get("resumableTotalSize")
+        # expected_md5 = request.args.get("md5")
+
+        # Handle file chunks or combine chunks into a complete file
+        chunk_number = (
+            int(resumable_chunk_number) if resumable_chunk_number else 1
+        )
+
+        # Save or process the chunk
+        save_path = (
+            f"seq_uploads/{uploads_folder}/{file.filename}.part{chunk_number}"
+        )
+        file.save(save_path)
+
+        # HERE HERE : To add what happens if all are uploaded.
+
+        return jsonify({"message": f"Chunk {chunk_number} uploaded"}), 200
+    return jsonify({"message": "No file received"}), 400
+
+
+# NOTE: The "GET" method is only used on the same
+# url as the sending of the data in order
+# to determine if this chunk has been uploaded
+# There is also a "POST" method that handles
+# the upload of the file itself.
+@metadata_bp.route(
+    "/sequencing_upload_chunk",
+    methods=["GET"],
+    endpoint="sequencing_upload_chunk_check",
+)
+@login_required
+@approved_required
+def sequencing_upload_chunk_check():
+    process_id = request.args.get("process_id")
+    if process_id:
+
+        chunk_number = request.args.get("resumableChunkNumber")
+        resumable_filename = request.args.get("resumableFilename")
+        process_data = SequencingUpload.get(process_id)
+        uploads_folder = process_data["uploads_folder"]
+
+        chunk_path = (
+            f"seq_uploads/{uploads_folder}/"
+            f"{resumable_filename}.part{chunk_number}"
+        )
+
+        if os.path.exists(chunk_path):
+            return "", 200  # Chunk already uploaded, return 200
+    return "", 204  # Chunk not found, return 204
+
+
+# The resumamble library indicates to us
+# that all chunks of the file were uploaded
+# Check that this is the case
+# and if yes, rename it and complete the process
+@metadata_bp.route(
+    "/sequencing_file_upload_completed",
+    methods=["POST"],
+    endpoint="sequencing_file_upload_completed",
+)
+@login_required
+@approved_required
+def sequencing_file_upload_completed():
+    process_id = request.form.get("process_id")
+    logger.info(process_id)
+    if process_id:
+        process_data = SequencingUpload.get(process_id)
+        uploads_folder = process_data["uploads_folder"]
+
+        fileopts_json = request.form.get("fileopts")
+        logger.info("The fileopts_json are")
+        logger.info(fileopts_json)
+        fileopts = json.loads(fileopts_json)
+        form_filename = fileopts["filename"]
+        # form_filesize = fileopts["filesize"]
+        form_filechunks = fileopts["filechunks"]
+        expected_md5 = fileopts["md5"]
+
+        final_file_path = f"seq_uploads/{uploads_folder}/{form_filename}"
+        temp_file_path = f"seq_uploads/{uploads_folder}/{form_filename}.temp"
+
+        with open(temp_file_path, "ab") as temp_file:
+            for i in range(1, form_filechunks + 1):
+                chunk_path = (
+                    f"seq_uploads/{uploads_folder}/{form_filename}.part{i}"
+                )
+                with open(chunk_path, "rb") as chunk_file:
+                    temp_file.write(chunk_file.read())
+
+        actual_md5 = calculate_md5(temp_file_path)
+        # Compare MD5 hashes
+        if expected_md5 == actual_md5:
+            # MD5 hashes match, file integrity verified
+            os.rename(temp_file_path, final_file_path)
+            # Then, since it is now confirmed, lets delete the parts
+            for i in range(1, form_filechunks + 1):
+                chunk_path = (
+                    f"seq_uploads/{uploads_folder}/{form_filename}.part{i}"
+                )
+                os.remove(chunk_path)
+
+            # Save into the database the file
+            matching_sequencer_ids = (
+                SequencingSequencerId.get_matching_sequencer_ids(
+                    process_id, form_filename
+                )
+            )
+
+            if len(matching_sequencer_ids) == 1:
+                file_sequencer_id = matching_sequencer_ids[0]
+                file_dict = {
+                    "md5": expected_md5,
+                    "original_filename": form_filename,
+                }
+                SequencingFileUploaded.create(file_sequencer_id, file_dict)
+
+                return (
+                    jsonify({"result": 1}),
+                    200,
+                )
+    return "", 200
+
+
+@metadata_bp.route(
+    "/metadata_uploads",
+    endpoint="metadata_uploads",
+)
+@login_required
+@approved_required
+def metadata_uploads():
+
+    return render_template(
+        "metadata_uploads.html", metadata_uploads=metadata_uploads
+    )

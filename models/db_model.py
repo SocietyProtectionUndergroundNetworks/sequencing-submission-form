@@ -23,6 +23,13 @@ association_table = Table(
     Column("bucket_id", String(250), ForeignKey("buckets.id")),
 )
 
+user_groups_association = Table(
+    "user_groups_association",
+    Base.metadata,
+    Column("user_id", String(36), ForeignKey("users.id")),
+    Column("group_id", Integer, ForeignKey("user_groups.id")),
+)
+
 
 class UserTable(Base):
     __tablename__ = "users"
@@ -38,6 +45,30 @@ class UserTable(Base):
     approved = Column(Boolean, default=False)
     buckets = relationship(
         "BucketTable", secondary=association_table, backref="users"
+    )
+    groups = relationship(
+        "UserGroupsTable",
+        secondary=user_groups_association,
+        back_populates="users",
+    )
+
+
+class PreapprovedUsersTable(Base):
+    __tablename__ = "preapproved_users"
+
+    id = Column(Integer, primary_key=True)
+    email = Column(String(255), nullable=False)
+    bucket = Column(String(255), nullable=True)
+    group_id = Column(Integer, nullable=True)
+
+
+class UserGroupsTable(Base):
+    __tablename__ = "user_groups"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    users = relationship(
+        "UserTable", secondary=user_groups_association, back_populates="groups"
     )
 
 
@@ -75,3 +106,86 @@ class UploadTable(Base):
     renamed_sent_to_bucket = Column(Boolean, default=False)
     renamed_sent_to_bucket_progress = Column(Integer, default=0)
     reviewed_by_admin = Column(Boolean, default=False)
+
+
+class SequencingUploadsTable(Base):
+    __tablename__ = "sequencing_uploads"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"))
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(
+        DateTime, default=func.now(), onupdate=func.now(), nullable=True
+    )
+    project_id = Column(
+        String(250), ForeignKey("buckets.id", ondelete="CASCADE")
+    )
+    latest_metadata_filename = Column(String(255), nullable=True)
+    final_metadata_filename = Column(String(255), nullable=True)
+    uploads_folder = Column(String(20), nullable=True)
+    sequencing_upload_filedata = Column(JSON(none_as_null=True))
+    using_scripps = Column(Boolean, default=False)
+    Country = Column(String(255), nullable=True)
+    Sequencing_platform = Column(String(255), nullable=True)
+    Sequencing_facility = Column(String(255), nullable=True)
+    Expedition_lead = Column(String(255), nullable=True)
+    Collaborators = Column(String(255), nullable=True)
+    Primer_set_1 = Column(String(255), nullable=True)
+    Primer_set_2 = Column(String(255), nullable=True)
+    Extraction_method = Column(String(255), nullable=True)
+    Multiple_sequencing_runs = Column(String(255), nullable=True)
+    Sequencing_regions_number = Column(Integer, nullable=True)
+    metadata_upload_confirmed = Column(Boolean, default=False)
+    DNA_conc_instrument = Column(String(255), nullable=True)
+
+
+class SequencingSamplesTable(Base):
+    __tablename__ = "sequencing_samples"
+    id = Column(Integer, primary_key=True)
+    sequencingUploadId = Column(
+        Integer, ForeignKey("sequencing_uploads.id", ondelete="CASCADE")
+    )
+    SampleID = Column(String(255), nullable=True)
+    Site_name = Column(String(255), nullable=True)
+    Latitude = Column(String(255), nullable=True)
+    Longitude = Column(String(255), nullable=True)
+    Vegetation = Column(String(255), nullable=True)
+    Land_use = Column(String(255), nullable=True)
+    Agricultural_land = Column(String(255), nullable=True)
+    Ecosystem = Column(String(255), nullable=True)
+    Grid_Size = Column(String(255), nullable=True)
+    Soil_depth = Column(String(255), nullable=True)
+    Transport_refrigeration = Column(String(255), nullable=True)
+    Drying = Column(String(255), nullable=True)
+    Date_collected = Column(String(255), nullable=True)
+    DNA_concentration_ng_ul = Column(String(255), nullable=True)
+    Elevation = Column(String(255), nullable=True)
+    Sample_or_Control = Column(String(255), nullable=True)
+    SequencingRun = Column(String(255), nullable=True)
+    Notes = Column(String(255), nullable=True)
+    sequencer_ids = relationship(
+        "SequencingSequencerIDsTable", backref="sample"
+    )
+
+
+class SequencingSequencerIDsTable(Base):
+    __tablename__ = "sequencing_sequencer_ids"
+    id = Column(Integer, primary_key=True)
+    sequencingSampleId = Column(
+        Integer, ForeignKey("sequencing_samples.id", ondelete="CASCADE")
+    )
+    SequencerID = Column(String(255), nullable=True)
+    Region = Column(String(25), nullable=True)
+    Index_1 = Column(String(100), nullable=True)
+    Index_2 = Column(String(100), nullable=True)
+
+
+class SequencingFilesUploadedTable(Base):
+    __tablename__ = "sequencing_files_uploaded"
+    id = Column(Integer, primary_key=True)
+    sequencerId = Column(
+        Integer, ForeignKey("sequencing_sequencer_ids.id", ondelete="CASCADE")
+    )
+    original_filename = Column(String(255), nullable=True)
+    new_name = Column(String(25), nullable=True)
+    md5 = Column(String(50), nullable=True)

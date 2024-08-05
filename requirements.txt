@@ -27,4 +27,9 @@ psutil==5.9.8
 
 google-api-python-client==2.125.0
 
+pandas
+
+xlrd
+
+openpyxl
 debugpy # Required for debugging.

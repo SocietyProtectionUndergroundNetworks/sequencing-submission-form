@@ -44,9 +44,16 @@
       text-decoration: none;
     }      
   }
+  .explanation {
+    a {
+      color: blue;
+      text-decoration: underline;      
+    }      
+  }
 
   .form-step-item {
-    max-width: 900px;   
+    max-width: 900px;
+    margin-top: 20px;
   }
 
   .page-menu-item {
@@ -66,6 +73,6 @@
   #showAllRows {
     cursor: pointer;
     padding-left: 30px;
-  }
+  } 
 
 }

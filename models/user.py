@@ -1,8 +1,15 @@
 from flask_login import UserMixin
 
 from helpers.dbm import connect_db, get_session
-from models.db_model import UserTable, UploadTable, BucketTable
+from models.db_model import (
+    UserTable,
+    UploadTable,
+    BucketTable,
+    UserGroupsTable,
+    user_groups_association,
+)
 from sqlalchemy import func
+from sqlalchemy.orm import subqueryload
 import logging
 
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -10,7 +17,15 @@ logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
 class User(UserMixin):
     def __init__(
-        self, id_, name, email, profile_pic, admin, approved, buckets=None
+        self,
+        id_,
+        name,
+        email,
+        profile_pic,
+        admin,
+        approved,
+        buckets=None,
+        groups=None,
     ):
         self.id = id_
         self.name = name
@@ -19,6 +34,7 @@ class User(UserMixin):
         self.admin = admin
         self.approved = approved
         self.buckets = buckets or []
+        self.groups = groups
 
     @classmethod
     def get(cls, user_id):
@@ -73,30 +89,77 @@ class User(UserMixin):
         db_engine = connect_db()
         session = get_session(db_engine)
 
+        # Subquery to get counts of uploads per user
+        uploads_subquery = (
+            session.query(
+                UploadTable.user_id,
+                func.count(UploadTable.id).label("uploads_count"),
+                func.count(
+                    func.nullif(UploadTable.reviewed_by_admin, False)
+                ).label("reviewed_false_count"),
+                func.count(
+                    func.nullif(UploadTable.reviewed_by_admin, True)
+                ).label("reviewed_true_count"),
+            )
+            .group_by(UploadTable.user_id)
+            .subquery()
+        )
+
+        # Subquery to get group names per user
+        groups_subquery = (
+            session.query(
+                user_groups_association.c.user_id,
+                func.group_concat(UserGroupsTable.name).label("groups"),
+            )
+            .join(
+                UserGroupsTable,
+                UserGroupsTable.id == user_groups_association.c.group_id,
+            )
+            .group_by(user_groups_association.c.user_id)
+            .subquery()
+        )
+
+        # Main query to get users along with aggregated
+        # upload data and group names
         all_users_db = (
             session.query(
                 UserTable,
-                func.count(UploadTable.id),
-                func.count(func.nullif(UploadTable.reviewed_by_admin, False)),
-                func.count(func.nullif(UploadTable.reviewed_by_admin, True)),
+                func.coalesce(uploads_subquery.c.uploads_count, 0).label(
+                    "uploads_count"
+                ),
+                func.coalesce(
+                    uploads_subquery.c.reviewed_false_count, 0
+                ).label("reviewed_false_count"),
+                func.coalesce(uploads_subquery.c.reviewed_true_count, 0).label(
+                    "reviewed_true_count"
+                ),
+                func.coalesce(groups_subquery.c.groups, "").label("groups"),
             )
-            .outerjoin(UploadTable)
-            .group_by(UserTable.id)
+            .outerjoin(
+                uploads_subquery, UserTable.id == uploads_subquery.c.user_id
+            )
+            .outerjoin(
+                groups_subquery, UserTable.id == groups_subquery.c.user_id
+            )
+            .options(
+                subqueryload(UserTable.buckets),  # Load buckets eagerly
+                subqueryload(UserTable.groups),  # Load groups eagerly
+            )
             .all()
         )
 
-        if not all_users_db:
-            session.close()
-            return []
+        session.close()
 
         all_users = []
         for (
             user_db,
             uploads_count,
-            reviewed_true_count,
             reviewed_false_count,
+            reviewed_true_count,
+            groups_str,
         ) in all_users_db:
             user_buckets = [bucket.id for bucket in user_db.buckets]
+            user_groups = groups_str.split(",") if groups_str else []
             user_info = {
                 "user": User(
                     id_=user_db.id,
@@ -106,15 +169,13 @@ class User(UserMixin):
                     admin=user_db.admin,
                     approved=user_db.approved,
                     buckets=user_buckets,
+                    groups=user_groups,
                 ),
-                "uploads_count": uploads_count if uploads_count else 0,
-                "reviewed_by_admin_count": (
-                    reviewed_true_count if reviewed_true_count else 0
-                ),
+                "uploads_count": uploads_count,
+                "reviewed_by_admin_count": reviewed_true_count,
             }
             all_users.append(user_info)
 
-        session.close()
         return all_users
 
     @classmethod
@@ -149,6 +210,56 @@ class User(UserMixin):
         else:
             session.close()
             raise ValueError(f"User with ID '{user_id}' not found")
+
+    @classmethod
+    def add_user_group_access(cls, user_id, group_id):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        # Find the user by ID
+        user = session.query(UserTable).filter_by(id=user_id).first()
+        if not user:
+            session.close()
+            raise ValueError(f"User with ID '{user_id}' not found")
+
+        # Find the group by ID
+        group = session.query(UserGroupsTable).filter_by(id=group_id).first()
+        if not group:
+            session.close()
+            raise ValueError(f"Group with ID '{group_id}' not found")
+
+        # Add the user to the group
+        if group not in user.groups:
+            user.groups.append(group)
+            session.commit()
+
+        session.close()
+
+    @classmethod
+    def delete_user_group_access(cls, user_id, group_name):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        # Find the user by ID
+        user = session.query(UserTable).filter_by(id=user_id).first()
+        if not user:
+            session.close()
+            raise ValueError(f"User with ID '{user_id}' not found")
+
+        # Find the group by name
+        group = (
+            session.query(UserGroupsTable).filter_by(name=group_name).first()
+        )
+        if not group:
+            session.close()
+            raise ValueError(f"Group with name '{group_name}' not found")
+
+        # Remove the user from the group if present
+        if group in user.groups:
+            user.groups.remove(group)
+            session.commit()
+
+        session.close()
 
     @classmethod
     def delete_user_bucket_access(cls, user_id, bucket_name):
@@ -200,6 +311,31 @@ class User(UserMixin):
             raise ValueError(f"User with ID '{user_id}' not found")
 
     @classmethod
+    def is_user_in_group_by_name(cls, user_id, group_name):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        # Find the user by ID
+        user = session.query(UserTable).filter_by(id=user_id).first()
+        if not user:
+            session.close()
+            raise ValueError(f"User with ID '{user_id}' not found")
+
+        # Find the group by name
+        group = (
+            session.query(UserGroupsTable).filter_by(name=group_name).first()
+        )
+        if not group:
+            session.close()
+            raise ValueError(f"Group with name '{group_name}' not found")
+
+        # Explicitly load the groups relationship before closing the session
+        user_groups = user.groups  # This will trigger a lazy load
+        session.close()
+
+        return group in user_groups
+
+    @classmethod
     def delete(cls, user_id):
         db_engine = connect_db()
         session = get_session(db_engine)
@@ -231,3 +367,30 @@ class User(UserMixin):
             to_return = {"status": 0, "message": "Not deleted. Uploads exist"}
         session.close()
         return to_return
+
+    @classmethod
+    def get_user_groups(cls, user_id):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        try:
+            # Fetch the user by user_id
+            user = session.query(UserTable).filter_by(id=user_id).first()
+
+            if not user:
+                raise ValueError(f"User with ID '{user_id}' not found")
+
+            # Assuming 'groups' is a relationship attribute in UserTable
+            user_groups = (
+                user.groups
+            )  # This will fetch the groups associated with the user
+
+            # Optionally, you can return just the group
+            # names or full group objects
+            group_names = [
+                group.name for group in user_groups
+            ]  # List of group names
+
+            return group_names
+        finally:
+            session.close()

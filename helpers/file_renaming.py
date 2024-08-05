@@ -40,6 +40,7 @@ def generate_new_filename(current_filename, csv_sequence_dict):
             if "RIBO" in sample_id
             else sample_id
         )
+
         name_base = current_filename[len(base_filename) :]  # noqa: E203
         new_filename = new_sample_id + name_base
         return {

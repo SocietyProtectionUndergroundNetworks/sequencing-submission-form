@@ -21,55 +21,65 @@
         with the email: {{email}}
     </div>
       {% if current_user.is_authenticated and current_user.approved %}
-        {% if gz_filedata %}
-          <a href="/form_resume">
+        {% if user_should_see_v2 %}
+          <a href="{{ url_for('metadata.metadata_form') }}">
             <div class="page-menu-item">
-              <div>
+              <h3>Metadata Submition form (v2)</h3>
+            </div>
+          </a>
+          {{ user_metadata_uploads }} 
+        {% else %}
+          {% if gz_filedata %}
+            <a href="/form_resume">
+              <div class="page-menu-item">
+                <div>
 
-                  {% for filename, file_data in gz_filedata.items() %}
-                      {% if 'percent_uploaded' in file_data %}
-                          {% if file_data.percent_uploaded == 100 %}
-                              You have uploaded the file {{ filename }}<br>
-                          {% else %}
-                              {% if file_data.percent_uploaded > 0 %}
-                                  You have previously started uploading a file: {{ filename }}<br>
-                                  Already uploaded: {{ file_data.percent_uploaded }}%<br>
-                                  Enter the form and select the same file to resume uploading<br>
-                              {% endif %}
-                          {% endif %}
-                      {% endif %}
-                  {% endfor %}
+                    {% for filename, file_data in gz_filedata.items() %}
+                        {% if 'percent_uploaded' in file_data %}
+                            {% if file_data.percent_uploaded == 100 %}
+                                You have uploaded the file {{ filename }}<br>
+                            {% else %}
+                                {% if file_data.percent_uploaded > 0 %}
+                                    You have previously started uploading a file: {{ filename }}<br>
+                                    Already uploaded: {{ file_data.percent_uploaded }}%<br>
+                                    Enter the form and select the same file to resume uploading<br>
+                                {% endif %}
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                  
+                </div>
                 
+                <h3>Resume Upload</h3>
               </div>
               
-              <h3>Resume Upload</h3>
+            </a>
+          {% endif %}        
+          <a href="/user_uploads?user_id={{ user_id }}">
+            <div class="page-menu-item">
+              <h3>Previous uploads</h3>
             </div>
-            
+          </a>        
+          <a href="/form">
+            <div class="page-menu-item">
+              <h3>Start a new upload</h3>
+            </div>
+          </a>
+          <a href="/data">
+            <div class="page-menu-item">
+              <h3>My data</h3>
+            </div>
           </a>
         {% endif %}
-        <a href="/user_uploads?user_id={{ user_id }}">
-          <div class="page-menu-item">
-            <h3>Previous uploads</h3>
-          </div>
-        </a>        
-        <a href="/form">
-          <div class="page-menu-item">
-            <h3>Start a new upload</h3>
-          </div>
-        </a>
-        <a href="/data">
-          <div class="page-menu-item">
-            <h3>My data</h3>
-          </div>
-        </a>        
+
       {% endif %}
       {% if current_user.is_authenticated and current_user.admin %}
-      
-        <a href="{{ url_for('upload.metadata_form') }}">
+        <h3> Admin </h3>
+        <a href="{{ url_for('user.user_groups') }}">
           <div class="page-menu-item">
-            <h3>(ADMIN ONLY. IN DEVELOPMENT). Metadata Submition form</h3>
+            <h3>User Groups</h3>
           </div>
-        </a>      
+        </a>         
         <a href="{{ url_for('user.users') }}">
           <div class="page-menu-item">
             <h3>Users</h3>

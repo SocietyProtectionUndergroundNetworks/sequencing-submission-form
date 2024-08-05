@@ -1,0 +1,14 @@
+{
+  "ITS3/ITS4": "ITS2",
+  "WANDA/AML2": "SSU",
+  "ITS9mun/ITS4ngsUni": "Full ITS",
+  "ITS7/ITS4": "ITS2",
+  "ITS9/ITS4": "Full ITS",
+  "ITS1/ITS4": "Full ITS",
+  "ITS1/ITS2": "ITS1",
+  "ITS1/ITS3": "ITS1",  
+  "AML1/AML2": "SSU",
+  "NS31/AML2": "SSU",
+  "Other": "Other"
+}
+
