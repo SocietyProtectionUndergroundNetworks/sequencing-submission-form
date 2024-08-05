@@ -646,22 +646,22 @@ def user_uploads_v2():
 
 
 @metadata_bp.route(
-    "/delete_upload_process_v2", methods=["GET"], endpoint="delete_upload_process_v2"
+    "/delete_upload_process_v2",
+    methods=["GET"],
+    endpoint="delete_upload_process_v2",
 )
 @admin_required
 @login_required
 @approved_required
 def delete_upload_process_v2():
-    process_id = request.args.get("process_id")
+    # process_id = request.args.get("process_id")
     return_to = request.args.get("return_to")
-    #upload = Upload.get(process_id)
-    #uploads_folder = upload.uploads_folder
+    # upload = Upload.get(process_id)
+    # uploads_folder = upload.uploads_folder
     # delete_bucket_folder("uploads/" + uploads_folder)
     # Upload.delete_upload_and_files(process_id)
     if return_to == "user":
         user_id = request.args.get("user_id")
-        return redirect(
-            url_for("metadata.user_uploads_v2", user_id=user_id)
-        )
+        return redirect(url_for("metadata.user_uploads_v2", user_id=user_id))
     else:
         return redirect(url_for("metadata.all_uploads"))

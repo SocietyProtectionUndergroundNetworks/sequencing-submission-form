@@ -100,24 +100,38 @@ class SequencingUpload:
             )
             upload.nr_regions = len(upload.regions)
 
-            # Calculate the total size of the uploads folder and count the fastq files
+            # Calculate the total size of the uploads folder
+            # and count the fastq files
             upload.total_uploads_file_size = 0
             upload.nr_fastq_files = 0
             uploads_folder = filtered_dict["uploads_folder"]
             if uploads_folder:
-                total_size, fastq_count = cls.get_directory_size(os.path.join("seq_uploads", uploads_folder))
+                total_size, fastq_count = cls.get_directory_size(
+                    os.path.join("seq_uploads", uploads_folder)
+                )
                 upload.total_uploads_file_size = total_size
                 upload.nr_fastq_files = fastq_count
 
             # Count the number of samples associated with this upload
-            nr_samples = session.query(SequencingSamplesTable).filter_by(sequencingUploadId=filtered_dict["id"]).count()
+            nr_samples = (
+                session.query(SequencingSamplesTable)
+                .filter_by(sequencingUploadId=filtered_dict["id"])
+                .count()
+            )
             upload.nr_samples = nr_samples
 
             # Count the number of sequencer IDs associated with this upload
             nr_sequencer_ids = (
                 session.query(SequencingSequencerIDsTable)
-                .join(SequencingSamplesTable, SequencingSamplesTable.id == SequencingSequencerIDsTable.sequencingSampleId)
-                .filter(SequencingSamplesTable.sequencingUploadId == filtered_dict["id"])
+                .join(
+                    SequencingSamplesTable,
+                    SequencingSamplesTable.id
+                    == SequencingSequencerIDsTable.sequencingSampleId,
+                )
+                .filter(
+                    SequencingSamplesTable.sequencingUploadId
+                    == filtered_dict["id"]
+                )
                 .count()
             )
             upload.nr_sequencer_ids = nr_sequencer_ids
@@ -136,7 +150,7 @@ class SequencingUpload:
                 fp = os.path.join(dirpath, f)
                 if os.path.isfile(fp):
                     total_size += os.path.getsize(fp)
-                    if f.endswith('.fastq.gz') or f.endswith('.fastq'):
+                    if f.endswith(".fastq.gz") or f.endswith(".fastq"):
                         fastq_count += 1
         return total_size, fastq_count
 
