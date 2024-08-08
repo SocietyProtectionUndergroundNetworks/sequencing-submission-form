@@ -135,46 +135,72 @@ def check_sample_id(sample_id):
     an underscore, and a sample number (one or more digits).
     """
     sample_id_str = str(sample_id)
-    
+
     # Check if it is empty
     if not sample_id_str:
         return {"status": 0, "message": "SampleID cannot be empty"}
 
     # Check if it matches the general pattern
     pattern = re.compile(r"^[A-Za-z]+[0-9]{2}_[0-9]+$")
-    
+
     if not pattern.match(sample_id_str):
         # Further breakdown of the validation
 
         # Check if it contains an underscore
         if "_" not in sample_id_str:
-            return {"status": 0, "message": "Missing underscore between year and sample number"}
+            return {
+                "status": 0,
+                "message": "Missing underscore between year and sample number",
+            }
 
         # Split into parts
         parts = sample_id_str.split("_")
         if len(parts) != 2:
-            return {"status": 0, "message": "Invalid format: incorrect number of segments"}
+            return {
+                "status": 0,
+                "message": "Invalid format: incorrect number of segments",
+            }
 
         location_year_part, sample_number_part = parts
 
         # Check location name and year
         if not re.match(r"^[A-Za-z]+[0-9]{2}$", location_year_part):
             if re.match(r"^[A-Za-z]+$", location_year_part):
-                return {"status": 0, "message": "Missing year in location name"}
+                return {
+                    "status": 0,
+                    "message": "Missing year in location name",
+                }
             if re.match(r"^[0-9]+$", location_year_part):
-                return {"status": 0, "message": "Missing location name before the year"}
-            return {"status": 0, "message": "Location name must contain only letters and year must be exactly two digits"}
+                return {
+                    "status": 0,
+                    "message": "Missing location name before the year",
+                }
+            return {
+                "status": 0,
+                "message": (
+                    "Location name must contain only letters and "
+                    "year must be exactly two digits"
+                ),
+            }
 
         # Check sample number
         if not re.match(r"^[0-9]+$", sample_number_part):
-            return {"status": 0, "message": "Sample number should only contain digits"}
+            return {
+                "status": 0,
+                "message": "Sample number should only contain digits",
+            }
 
         return {"status": 0, "message": "Invalid format: general issue"}
 
     # Specific checks for valid case
-    location_name_part = sample_id_str.split('_')[0]
+    location_name_part = sample_id_str.split("_")[0]
     if not re.match(r"^[A-Za-z]+$", location_name_part[:-2]):
-        return {"status": 0, "message": "Location name must contain only letters before the year"}
+        return {
+            "status": 0,
+            "message": (
+                "Location name must contain only " "letters before the year"
+            ),
+        }
 
     year_part = location_name_part[-2:]
     if not re.match(r"^\d{2}$", year_part):
