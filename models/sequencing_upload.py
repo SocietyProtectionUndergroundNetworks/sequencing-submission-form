@@ -10,6 +10,7 @@ from models.db_model import (
     SequencingSamplesTable,
     SequencingSequencerIDsTable,
     SequencingFilesUploadedTable,
+    UserTable,
 )
 from pathlib import Path
 from flask_login import current_user
@@ -64,6 +65,104 @@ class SequencingUpload:
         upload_dict = upload.__dict__
 
         return upload_dict
+
+    @classmethod
+    def get_all(cls, user_id=None):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        query = session.query(SequencingUploadsTable, UserTable).join(
+            UserTable, SequencingUploadsTable.user_id == UserTable.id
+        )
+
+        if user_id is not None:
+            query = query.filter(SequencingUploadsTable.user_id == user_id)
+
+        upload_dbs = query.all()
+
+        uploads = []
+        for upload_db, user in upload_dbs:
+            upload_db_dict = upload_db.__dict__
+            user_dict = user.__dict__
+
+            filtered_dict = {
+                key: value
+                for key, value in upload_db_dict.items()
+                if not key.startswith("_")
+            }
+
+            upload = cls(**filtered_dict)
+
+            upload.nr_files_per_sequence = cls.determine_nr_files_per_sequence(
+                filtered_dict["Sequencing_platform"]
+            )
+
+            upload.regions = cls.get_regions(
+                filtered_dict["Primer_set_1"], filtered_dict["Primer_set_2"]
+            )
+
+            # Calculate the total size of the uploads folder and
+            # count the fastq files
+            upload.total_uploads_file_size = 0
+            upload.nr_fastq_files = 0
+            uploads_folder = filtered_dict["uploads_folder"]
+            if uploads_folder:
+                total_size, fastq_count = cls.get_directory_size(
+                    os.path.join("seq_uploads", uploads_folder)
+                )
+                upload.total_uploads_file_size = total_size
+                upload.nr_fastq_files = fastq_count
+
+            # Calculate the number of regions
+            upload.nr_regions = len(upload.regions)
+
+            # Count the number of samples associated with this upload
+            nr_samples = (
+                session.query(SequencingSamplesTable)
+                .filter_by(sequencingUploadId=filtered_dict["id"])
+                .count()
+            )
+            upload.nr_samples = nr_samples
+
+            # Count the number of sequencer IDs associated with this upload
+            nr_sequencer_ids = (
+                session.query(SequencingSequencerIDsTable)
+                .join(
+                    SequencingSamplesTable,
+                    SequencingSamplesTable.id
+                    == SequencingSequencerIDsTable.sequencingSampleId,
+                )
+                .filter(
+                    SequencingSamplesTable.sequencingUploadId
+                    == filtered_dict["id"]
+                )
+                .count()
+            )
+            upload.nr_sequencer_ids = nr_sequencer_ids
+
+            # Add user name and email to the upload dictionary
+            upload.user_name = user_dict["name"]
+            upload.user_email = user_dict["email"]
+
+            upload_dict = upload.__dict__
+            uploads.append(upload_dict)
+
+        session.close()
+
+        return uploads
+
+    @staticmethod
+    def get_directory_size(directory):
+        total_size = 0
+        fastq_count = 0
+        for dirpath, dirnames, filenames in os.walk(directory):
+            for f in filenames:
+                fp = os.path.join(dirpath, f)
+                if os.path.isfile(fp):
+                    total_size += os.path.getsize(fp)
+                    if f.endswith(".fastq.gz") or f.endswith(".fastq"):
+                        fastq_count += 1
+        return total_size, fastq_count
 
     @staticmethod
     def determine_nr_files_per_sequence(sequencing_platform):

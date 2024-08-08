@@ -428,7 +428,12 @@
               {% set rowspan = data.get('rowspan', 0) %}
               <tr>
                   <th scope="row">{{ loop.index }}</th>
-                  <td>{{ filename }}</td>
+                  <td>
+                    {{ filename }}
+                    {% if (is_admin) %}
+                      <span class="remove_file text-danger"> X  </span>
+                    {% endif %}                    
+                  </td>
                   <td>{{ data.get('new_filename', '') }}</td>
                   <td>{{ data.get('bucket', '') }}</td>
                   <td>{{ data.get('folder', '') }}</td>
@@ -560,7 +565,9 @@
 
           return sortedObject;
         }
-
+        function sanitizeFilename(filename) {
+            return filename.replace(/[^a-zA-Z0-9-_]/g, '_');
+        }
         // Function to redraw the HTML table based on the updated dictionary
         function redrawTable(filesDict) {
             var filesDict = reorderByBucketFolderAndRowspan(filesDict);
@@ -569,9 +576,15 @@
 
             // Iterate over the dictionary to populate the table and calculate rowspan counts
             $.each(filesDict, function(oldFilename, fileDetails) {
-                var newRow = '<tr>' +
+                var sanitized = sanitizeFilename(oldFilename);
+                var newRow = '<tr id="file_' + sanitized + '">' +
                                 '<th scope="row">' + '</th>' +
-                                '<td>' + oldFilename + '</td>' +
+                                '<td>' + oldFilename + '' +
+                                {% if (is_admin) %}
+                                  ' <a class="remove_file text-danger" href="#" data-sanitized="' + sanitized + '" data-filename="' + oldFilename + '" data-process_id="{{ process_id }}">X</a>' + 
+                                {% endif %}                                  
+                                '</td>' +
+                                
                                 '<td>' + (fileDetails.new_filename || '') + '</td>' +
                                 '<td>' + (fileDetails.bucket || '') + '</td>' +
                                 '<td>' + (fileDetails.folder || '') + '</td>' +
@@ -685,6 +698,7 @@
 
 
         $(document).ready(function () {
+          console.log(matching_files_db)
           redrawTable(matching_files_db);
           if ((files_renamed==0) && (renaming_skipped==0)) {
             $('#step_10_form').hide();
@@ -1430,6 +1444,40 @@
                       // Handle errors
                       console.error('Error submitting form data via AJAX', error);
                   }
+              });
+            });
+
+            $('.remove_file').on('click', function() {
+              event.preventDefault();
+              var filename = $(this).data('filename');
+              var process_id = $(this).data('process_id');
+              var sanitized = $(this).data('sanitized');
+              console.log('sanitized:', sanitized);
+              console.log('filename:', filename);
+              console.log('process_id:', process_id);
+              // Make AJAX request to remove access to the bucket
+              $.ajax({
+                url: '/admin_remove_file',
+                type: 'POST',
+                data: {
+                  filename: filename,
+                  process_id: process_id
+                },
+                success: function(response) {
+                  // Handle success response if needed
+                  console.log(response)
+                  if (response.status==1) {
+                    console.log('here')
+                    tr_id = '#file_'+ sanitized;
+                    $(tr_id).remove();
+                    console.log('removing the')
+                    console.log(tr_id)
+                  }
+                },
+                error: function(xhr, status, error) {
+                  // Handle error response if needed
+                  console.error('Error removing access:', error);
+                }
               });
             });
 

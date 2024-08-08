@@ -633,7 +633,7 @@ def process_fastq_files():
 
                 logger.info(
                     f"Processed and compressed {blob.name} "
-                    "in bucket {bucket_name}"
+                    f"in bucket {bucket_name}"
                 )
 
     # Write the processed file information to a CSV

@@ -1248,3 +1248,55 @@ def process_server_file():
             "gz_filedata": gz_filedata,
         }
     )
+
+
+@upload_bp.route(
+    "/admin_remove_file", methods=["POST"], endpoint="admin_remove_file"
+)
+@login_required
+@approved_required
+@admin_required
+def admin_remove_file():
+    process_id = request.form.get("process_id")
+    filename_to_reset = request.form.get("filename")
+    logger.info("Inside admin_remove_file")
+    logger.info(process_id)
+    logger.info(filename_to_reset)
+
+    upload = Upload.get(process_id)
+
+    if upload.gz_filedata:
+        # Load the gz_filedata JSON
+        gz_filedata = json.loads(upload.gz_filedata)
+        logger.info(gz_filedata)
+
+        # delete the entry from the files_json
+        matching_files_dict = upload.get_files_json()
+        if filename_to_reset in matching_files_dict:
+            del matching_files_dict[filename_to_reset]
+            Upload.update_files_json(process_id, matching_files_dict)
+
+        uploads_folder = upload.uploads_folder
+        extract_directory = Path("processing", uploads_folder)
+        # Construct the full file path
+        file_path = os.path.join(extract_directory, filename_to_reset)
+        # Delete the file
+        os.remove(file_path)
+
+        # Check if the filename_to_reset exists in the JSON data
+        if filename_to_reset in gz_filedata:
+            logger.info(f"Found and removing: {filename_to_reset}")
+
+            # Remove the entry from the JSON data
+            del gz_filedata[filename_to_reset]
+
+            # Update the gz_filedata field with the new JSON data
+            # using the class method
+            Upload.reset_gz_filedata(upload.id, gz_filedata)
+
+    recreate_matching_files(process_id)
+    return jsonify(
+        {
+            "status": 1,
+        }
+    )

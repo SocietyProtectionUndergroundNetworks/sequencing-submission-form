@@ -17,6 +17,7 @@ from models.sequencing_upload import SequencingUpload
 from models.sequencing_sample import SequencingSample
 from models.sequencing_sequencer_ids import SequencingSequencerId
 from models.sequencing_files_uploaded import SequencingFileUploaded
+from models.user import User
 from helpers.metadata_check import (
     check_metadata,
     get_columns_data,
@@ -620,3 +621,65 @@ def metadata_uploads():
     return render_template(
         "metadata_uploads.html", metadata_uploads=metadata_uploads
     )
+
+
+@metadata_bp.route(
+    "/user_uploads_v2", methods=["GET"], endpoint="user_uploads_v2"
+)
+@login_required
+@approved_required
+def user_uploads_v2():
+    user_id = request.args.get("user_id")
+    user = User.get(user_id)
+    if (current_user.admin) or (current_user.id == user_id):
+        user_metadata_uploads = SequencingUpload.get_all(user_id=user_id)
+        return render_template(
+            "user_uploads_v2.html",
+            user_uploads=user_metadata_uploads,
+            user_id=user_id,
+            is_admin=current_user.admin,
+            username=user.name,
+            user_email=user.email,
+        )
+    else:
+        return redirect(url_for("user.only_admins"))
+
+
+@metadata_bp.route(
+    "/all_uploads_v2", methods=["GET"], endpoint="all_uploads_v2"
+)
+@login_required
+@admin_required
+@approved_required
+def all_uploads_v2():
+    user_metadata_uploads = SequencingUpload.get_all()
+    return render_template(
+        "user_uploads_v2.html",
+        user_uploads=user_metadata_uploads,
+        user_id="",
+        is_admin=current_user.admin,
+        username="",
+        user_email="",
+    )
+
+
+@metadata_bp.route(
+    "/delete_upload_process_v2",
+    methods=["GET"],
+    endpoint="delete_upload_process_v2",
+)
+@admin_required
+@login_required
+@approved_required
+def delete_upload_process_v2():
+    # process_id = request.args.get("process_id")
+    return_to = request.args.get("return_to")
+    # upload = Upload.get(process_id)
+    # uploads_folder = upload.uploads_folder
+    # delete_bucket_folder("uploads/" + uploads_folder)
+    # Upload.delete_upload_and_files(process_id)
+    if return_to == "user":
+        user_id = request.args.get("user_id")
+        return redirect(url_for("metadata.user_uploads_v2", user_id=user_id))
+    else:
+        return redirect(url_for("metadata.all_uploads"))
