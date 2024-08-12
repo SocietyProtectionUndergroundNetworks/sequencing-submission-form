@@ -26,6 +26,7 @@ from helpers.metadata_check import (
 from helpers.create_xls_template import (
     create_template_one_drive_and_excel,
 )
+from helpers.bucket import delete_bucket_folder
 import numpy as np
 from helpers.file_renaming import calculate_md5
 
@@ -87,6 +88,7 @@ def metadata_form():
     nr_files_per_sequence = 1
     valid_samples = False
     uploaded_files = []
+    missing_sequencing_ids = []
     if process_id:
         process_data = SequencingUpload.get(process_id)
 
@@ -97,6 +99,9 @@ def metadata_form():
         sequencer_ids = SequencingUpload.get_sequencer_ids(process_id)
         uploaded_files = SequencingUpload.get_uploaded_files(process_id)
         valid_samples = SequencingUpload.validate_samples(process_id)
+        missing_sequencing_ids = SequencingUpload.check_missing_sequencer_ids(
+            process_id
+        )
 
     return render_template(
         "metadata_form.html",
@@ -113,6 +118,7 @@ def metadata_form():
         google_sheets_template_url=google_sheets_template_url,
         valid_samples=valid_samples,
         uploaded_files=uploaded_files,
+        missing_sequencing_ids=missing_sequencing_ids,
     )
 
 
@@ -285,6 +291,11 @@ def add_sequencer_id():
         sample_id=form_data["sequencer_sample_id"],
         sequencer_id=form_data["sequencer_id"],
         region=form_data["sequencer_region"],
+        index_1=form_data["index_1"],
+        index_2=form_data["index_2"],
+    )
+    missing_sequencing_ids = SequencingUpload.check_missing_sequencer_ids(
+        form_data["process_id"]
     )
     return (
         jsonify(
@@ -292,6 +303,7 @@ def add_sequencer_id():
                 "result": "ok",
                 "sequencer_id": sequencer_id,
                 "existing": existing,
+                "missing_sequencing_ids": missing_sequencing_ids,
             }
         ),
         200,
@@ -329,6 +341,10 @@ def upload_sequencer_ids_file():
         df=df,
         process_data=process_data,
     )
+    missing_sequencing_ids = SequencingUpload.check_missing_sequencer_ids(
+        process_id
+    )
+    result["missing_sequencing_ids"] = missing_sequencing_ids
 
     return (jsonify(result), 200)
 
@@ -672,12 +688,15 @@ def all_uploads_v2():
 @login_required
 @approved_required
 def delete_upload_process_v2():
-    # process_id = request.args.get("process_id")
+    process_id = request.args.get("process_id")
     return_to = request.args.get("return_to")
-    # upload = Upload.get(process_id)
-    # uploads_folder = upload.uploads_folder
-    # delete_bucket_folder("uploads/" + uploads_folder)
-    # Upload.delete_upload_and_files(process_id)
+    logger.info(return_to)
+    logger.info(process_id)
+    process_data = SequencingUpload.get(process_id)
+    uploads_folder = process_data["uploads_folder"]
+    if uploads_folder:
+        delete_bucket_folder("uploads/" + uploads_folder)
+    SequencingUpload.delete_upload_and_files(process_id)
     if return_to == "user":
         user_id = request.args.get("user_id")
         return redirect(url_for("metadata.user_uploads_v2", user_id=user_id))

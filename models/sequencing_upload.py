@@ -4,6 +4,7 @@ import string
 import logging
 import os
 import json
+import shutil
 from helpers.dbm import connect_db, get_session
 from models.db_model import (
     SequencingUploadsTable,
@@ -15,6 +16,7 @@ from models.db_model import (
 from pathlib import Path
 from flask_login import current_user
 from sqlalchemy.orm import joinedload
+from sqlalchemy.exc import SQLAlchemyError
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -453,3 +455,117 @@ class SequencingUpload:
         session.close()
 
         return upload_ids if upload_ids else []
+
+    @classmethod
+    def delete_upload_and_files(cls, upload_id):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        upload_db = (
+            session.query(SequencingUploadsTable)
+            .filter_by(id=upload_id)
+            .first()
+        )
+        if not upload_db:
+            session.close()
+            logger.error(f"No upload found with id {upload_id}")
+            return
+
+        if upload_db.uploads_folder:
+            uploads_directory = Path("uploads", upload_db.uploads_folder)
+            extract_directory = Path("processing", upload_db.uploads_folder)
+
+            try:
+                shutil.rmtree(uploads_directory)
+                logger.info(
+                    "Directory '{}' and its contents "
+                    "deleted successfully.".format(uploads_directory)
+                )
+            except Exception as e:
+                logger.error(
+                    f"Error deleting directory '{uploads_directory}': {e}"
+                )
+
+            try:
+                shutil.rmtree(extract_directory)
+                logger.info(
+                    f"Directory '{extract_directory}' and contents deleted."
+                )
+            except Exception as e:
+                logger.error(
+                    f"Error deleting directory '{extract_directory}': {e}"
+                )
+
+        try:
+            session.delete(upload_db)
+            session.commit()
+            logger.info(
+                f"Upload record with id {upload_id} deleted successfully."
+            )
+        except SQLAlchemyError as e:
+            session.rollback()
+            logger.error(f"Error deleting upload record: {e}")
+        finally:
+            session.close()
+
+    @classmethod
+    def check_missing_sequencer_ids(cls, process_id):
+        """
+        Checks if any related sampleID does not have a
+        sequencerID for one of its regions.
+        Returns a list of sample IDs with missing sequencer IDs.
+        """
+        # Connect to the database and create a session
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        # Retrieve the SequencingUpload instance
+        # to get Sequencing_regions_number
+        upload_instance = (
+            session.query(SequencingUploadsTable)
+            .filter_by(id=process_id)
+            .first()
+        )
+
+        if not upload_instance:
+            session.close()
+            raise ValueError(
+                f"No SequencingUpload found with ID: {process_id}"
+            )
+
+        # Get the number of regions from the SequencingUpload instance
+        expected_regions_number = upload_instance.Sequencing_regions_number
+
+        # Query to get all samples related to the given process_id
+        samples = (
+            session.query(SequencingSamplesTable)
+            .join(SequencingUploadsTable)
+            .filter(SequencingUploadsTable.id == process_id)
+            .all()
+        )
+
+        # List to store samples with missing sequencer IDs
+        samples_with_missing_ids = []
+
+        # Iterate over each sample and check the number of sequencer IDs
+        for sample in samples:
+            # Query to get all sequencer IDs associated with this sample
+            sequencer_ids = (
+                session.query(SequencingSequencerIDsTable)
+                .filter(
+                    SequencingSequencerIDsTable.sequencingSampleId == sample.id
+                )
+                .all()
+            )
+
+            # Check if the number of sequencer IDs matches
+            # the expected number of regions
+            if len(sequencer_ids) < expected_regions_number:
+                # If not, add the sample ID to the list
+                samples_with_missing_ids.append(sample.id)
+
+        # Close the session
+        session.close()
+
+        # Return the list of sample IDs with missing sequencer IDs
+        return samples_with_missing_ids

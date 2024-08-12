@@ -130,7 +130,7 @@
 
             // If user confirms, redirect to the delete URL
             if (confirmation) {
-                window.location.href = "delete_upload_process?return_to=user&process_id=" + processId + "&order_by=" + orderBy + "&user_id=" + userId;
+                window.location.href = "delete_upload_process_v2?return_to=user&process_id=" + processId + "&order_by=" + orderBy + "&user_id=" + userId;
             }
         });
         $('.approved-checkbox').on('change', function() {

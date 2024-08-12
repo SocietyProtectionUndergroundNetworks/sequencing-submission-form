@@ -66,13 +66,21 @@ class SequencingSequencerId:
             return existing_record.id, "existing"
         else:
             # If record does not exist, create a new one
-            new_record = SequencingSequencerIDsTable(
-                sequencingSampleId=sample_id,
-                SequencerID=sequencer_id,
-                Region=region,
-                Index_1=index_1,
-                Index_2=index_2,
-            )
+            # Prepare the new record dictionary with mandatory fields
+            record_data = {
+                "sequencingSampleId": sample_id,
+                "SequencerID": sequencer_id,
+                "Region": region,
+            }
+
+            # Only add index_1 and index_2 if they are not None or empty
+            if index_1:
+                record_data["Index_1"] = index_1
+            if index_2:
+                record_data["Index_2"] = index_2
+
+            # Create the new record using the dictionary
+            new_record = SequencingSequencerIDsTable(**record_data)
             session.add(new_record)
             session.commit()
             # Return the id of the newly created record
@@ -174,22 +182,6 @@ class SequencingSequencerId:
                         f"sequencerID to the same "
                         f"SampleID/Region ({sample_id}/{region})"
                     )
-
-        if result == 1:
-            # Counting the regions per SampleID
-            region_counts = df.groupby("SampleID")["Region"].nunique()
-            # Checking for discrepancies
-            for sample_id, count in region_counts.items():
-                sequencing_regions_number = process_data[
-                    "Sequencing_regions_number"
-                ]
-                if count != sequencing_regions_number:
-                    result = 0
-                    message = (
-                        f"The SampleID {sample_id} has {count} regions "
-                        f"while we expected {sequencing_regions_number}"
-                    )
-                    messages.append(message)
 
         if result == 1:
             indexes = ["Index_1", "Index_2"]
