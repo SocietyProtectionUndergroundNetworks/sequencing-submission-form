@@ -167,7 +167,7 @@ def index():
 
         user_should_see_v2 = False
         if (
-            "UndergroundExplorers_23B" in user_groups
+            "UE-2024-1" in user_groups
             or "UndergroundExplorers_24A" in user_groups
         ):
             user_should_see_v2 = True
