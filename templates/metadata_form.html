@@ -403,7 +403,9 @@
                     <select class="form-control" id="sequencer_sample_id" name="sequencer_sample_id">
                       <option value="0">------</option>
                       {% for sample in samples_data %}
-                          <option value="{{ sample['id'] }}">{{ sample['SampleID'] }}</option>
+                        {% if sample['id'] in missing_sequencing_ids %}
+                            <option value="{{ sample['id'] }}">{{ sample['SampleID'] }}</option>
+                        {% endif %}
                       {% endfor %}
                     </select>
                 </div>
@@ -439,6 +441,22 @@
                 <div class="col-sm-9">
                     <small id="sequencer_idHelp" class="form-text">Provide the sequencer ID as explained above</small>
                     <input type="text" class="form-control" id="sequencer_id" name="sequencer_id" >
+                </div>
+            </div>
+
+            <div class="form-group row mb-3">
+                <label for="index_1" class="col-sm-3 col-form-label">Index_1</label>
+                <div class="col-sm-9">
+                    <small id="index_1Help" class="form-text">Provide the index_1 as explained above</small>
+                    <input type="text" class="form-control" id="index_1" name="index_1" >
+                </div>
+            </div>
+            
+            <div class="form-group row mb-3">
+                <label for="index_2" class="col-sm-3 col-form-label">Index_2</label>
+                <div class="col-sm-9">
+                    <small id="index_2Help" class="form-text">Provide the index_2 as explained above</small>
+                    <input type="text" class="form-control" id="index_2" name="index_2" >
                 </div>
             </div>
 
@@ -666,10 +684,41 @@
 
     {% if process_data and not process_data.using_scripps %}
       <div id="step_7" class="form-step-item">
+        <h3> Step 7: Confirm that all possible sequence ids have been provided</h3>
+        
+        <div id="step_7_missing_ids">
+          {% if missing_sequencing_ids %}
+            <h4> The following samples are missing one or more of their expected regions </h4>
+            <ul>
+            {% for row in samples_data %}
+              {% if row["id"] in missing_sequencing_ids %}
+                <li>{{ row["SampleID"] }}</li>
+              {% endif %}
+            {% endfor %}
+            </ul>         
+          {% endif %}
+        </div>
+        <form id="step_7_form">
+          <fieldset
+            {% if (not sequencer_ids) %}
+             disabled="disabled"
+            {% endif %}
+
+          >
+            <p>I confirm that we will not have sequencing files for the samples above.</p>
+            <input type="hidden" name="process_id" value="{{ process_id }}">
+            <input type="button" id="step_7_button" value="I confirm">
+          </fieldset>
+        </form>        
+      </div>
+
+
+      <div id="step_8" class="form-step-item">
+        <h3> Step 8: Upload the fastq files</h3>
         <form
           method="POST"
           action="/sequencing_file_upload"
-          id="step_7_form"
+          id="step_8_form"
           enctype="multipart/form-data"
         >
           <fieldset
@@ -677,12 +726,12 @@
              disabled="disabled"
             {% endif %}
           >
-            <input type="file" id="step_7_upload_file_button" name="file" multiple />
+            <input type="file" id="step_8_upload_file_button" name="file" multiple />
             <input type="hidden" name="process_id" value="{{ process_id }}">
           </fieldset>
         </form>
-        <div id="step_7_filename"></div>
-        <div id="step_7_msg" class="explanation">
+        <div id="step_8_filename"></div>
+        <div id="step_8_msg" class="explanation">
       </div>
     {% endif %}
   </div>
@@ -1291,6 +1340,30 @@
   function enableForm_step_6() {
       $('#step_6_form fieldset').removeAttr('disabled');
   }
+  function disableForm_step_6() {
+      $('#step_6_form fieldset').attr('disabled', 'disabled');
+  }
+  function update_step6_sample_ids_dropdown_options(missingSequencingIds) {
+    var dropdownOptions = '<option value="0">------</option>';
+
+    if (missingSequencingIds && missingSequencingIds.length > 0) {
+        // Loop through the samples_data to find missing IDs
+        samples_data.forEach(function(row) {
+            if (missingSequencingIds.includes(row.id)) {
+                dropdownOptions += '<option value="' + row.id + '">' + row.SampleID + '</option>';
+            }
+        });
+
+        // Update the dropdown and enable it
+        $('#sequencer_sample_id').html(dropdownOptions);
+        $('#sequencer_sample_id').prop('disabled', false);
+    } else {
+        // If no missing IDs, reset and disable the dropdown
+        $('#sequencer_sample_id').html('<option value="0">------</option>');
+        $('#sequencer_sample_id').prop('disabled', true);
+    }
+  }
+  
   $(document).ready(function() {
 
     // Listen for changes in the radio buttons using_scripps
@@ -1316,6 +1389,8 @@
         var sequencerSampleId = null;
         var sequencerRegion = null;
         var sequencerId = null;
+        var index_1 = null;
+        var index_2 = null;
 
         // Extract values from formData
         formData.forEach(function(item) {
@@ -1325,6 +1400,10 @@
                 sequencerRegion = item.value;
             } else if (item.name === 'sequencer_id') {
                 sequencerId = item.value;
+            } else if (item.name === 'index_1') {
+                index_1 = item.value;
+            } else if (item.name === 'index_2') {
+                index_2 = item.value;
             }
         });
 
@@ -1340,7 +1419,7 @@
                   if (response.result.status === 0) {
                       console.log('There was an error');
                   } else {
-
+                      console.log(response)
                       if (response.existing == "new") {
                         // Find the table row that matches the sequencerSampleId
                         $('#dataTable tbody tr').each(function() {
@@ -1359,6 +1438,21 @@
                           s_td_id = '#S_' + sequencerSampleId + '_' + String(i)
                           if ($(s_td_id).html().trim() === '') {
                             $(s_td_id).html(sequencerId)
+                            // Since we found the empty td, lets update the rest of its row data
+                            r_td_id = '#R_' + sequencerSampleId + '_' + String(i)
+                            $(r_td_id).html(sequencerRegion)
+                            i1_td_id = '#I1_' + sequencerSampleId + '_' + String(i)
+                            if (index_1) {
+                              $(i1_td_id).html(index_1)
+                            } else {
+                              $(i1_td_id).html('None')
+                            }
+                            i2_td_id = '#I2_' + sequencerSampleId + '_' + String(i)
+                            if (index_2) {
+                              $(i2_td_id).html(index_2)
+                            } else {
+                              $(i2_td_id).html('None')
+                            }                                                   
                           }
                         }
 
@@ -1367,6 +1461,13 @@
                         $('#sequencerIdsForm_message').text('Record already exists for this sample and region. Fill in the form to add new record.').addClass('text-danger').removeClass('text-success').show();
                       }
                       $('#sequencerIdsForm').trigger('reset');
+                      
+                      //console.log('The samples_data is ')
+                      //console.log(samples_data)
+                      if (response.missing_sequencing_ids) {
+                        update_step6_sample_ids_dropdown_options(response.missing_sequencing_ids)
+                        update_step7_missing_ids_div(response.missing_sequencing_ids)
+                      }
                   }
               },
               error: function(xhr, status, error) {
@@ -1424,7 +1525,6 @@
                 response.data.forEach(function(sequencer_id) {
 
                   sequencerSampleId = sequencer_id["db_sample_id"]
-                  console.log(sequencerSampleId)
                   $('#dataTable tbody tr').each(function() {
                       var rowId = $(this).find('td:first').text().trim();
                       if (String(rowId) === String(sequencerSampleId)) {
@@ -1454,7 +1554,11 @@
 
                 // Clear previous messages and reset status class
                 $('#step_6_msg').html('File uploaded successfully. Records added to the metadata table above').addClass('text-success');
-                enableForm_step_7()
+                //enableForm_step_8()
+                if (response.missing_sequencing_ids) {
+                  update_step6_sample_ids_dropdown_options(response.missing_sequencing_ids)
+                  update_step7_missing_ids_div(response.missing_sequencing_ids)
+                }                
               }
           },
           error: function(xhr, status, error) {
@@ -1476,9 +1580,50 @@
   ////// ############################################# /////////
   ////// ############ STEP 7 STARTS HERE ############# /////////
   ////// ############################################# /////////
+  function enableForm_step_7() {
+      $('#step_7_form fieldset').removeAttr('disabled');
+  }
+  function disableForm_step_7() {
+      $('#step_7_form fieldset').attr('disabled', 'disabled');
+  }   
+  function update_step7_missing_ids_div(missingSequencingIds) {
+      if (missingSequencingIds && missingSequencingIds.length > 0) {
+          var newContent = '<h4>The following samples are missing one or more of their expected regions</h4>';
+          newContent += '<ul>';
+
+          // Loop through the samples_data to find missing IDs
+          samples_data.forEach(function(row) {
+              if (missingSequencingIds.includes(row.id)) {
+                  newContent += '<li>' + row.SampleID + '</li>';
+              }
+          });
+
+          newContent += '</ul>';
+
+          // Replace the content of the #step_7_missing_ids div
+          $('#step_7_missing_ids').html(newContent);
+      } else {
+          // If no missing IDs, clear the div
+          $('#step_7_missing_ids').empty();
+      }
+  }
+  $(document).ready(function() {
+    $('#step_7_button').click(function() {
+      enableForm_step_8();
+      disableForm_step_6();
+      disableForm_step_7();
+    });
+  });  
+  ////// ############################################# /////////
+  ////// ############ STEP 7 ENDS HERE ############### /////////
+  ////// ############################################# /////////
+
+  ////// ############################################# /////////
+  ////// ############ STEP 8 STARTS HERE ############# /////////
+  ////// ############################################# /////////
   {% if process_data and not process_data.using_scripps %}
-    function enableForm_step_7() {
-        $('#step_7_form fieldset').removeAttr('disabled');
+    function enableForm_step_8() {
+        $('#step_8_form fieldset').removeAttr('disabled');
     }
 
     function updateTableCell(file_name, sequencerId) {
@@ -1500,8 +1645,8 @@
     }
 
     function setUpResumable() {
-        var step_7_form = $('#step_7_upload_file_button').closest('form');
-        var process_id = step_7_form.find('input[name="process_id"]').val();
+        var step_8_form = $('#step_8_upload_file_button').closest('form');
+        var process_id = step_8_form.find('input[name="process_id"]').val();
         var allowedExtensions = ['gz']; // Define allowed file extensions
         var commonOptions = {
             target: '/sequencing_upload_chunk',
@@ -1522,12 +1667,12 @@
 
         r.on('filesAdded', function(files) {
             files.forEach(function(file) {
-                var file_msg_id = 'step_7_file_' + file.uniqueIdentifier;
+                var file_msg_id = 'step_8_file_' + file.uniqueIdentifier;
                 var file_name = file.file.name;
 
                 // Add a div for each file
                 var file_row = '<div id="' + file_msg_id + '"><h4>' + file_name + '</h4></div>';
-                $('#step_7_msg').append(file_row);
+                $('#step_8_msg').append(file_row);
 
                 var formData = new FormData();
                 formData.append('process_id', process_id);
@@ -1588,14 +1733,14 @@
                 });
             });
 
-            var fileInput = $('#step_7_upload_file_button')[0];
+            var fileInput = $('#step_8_upload_file_button')[0];
             fileInput.value = "";
         });
 
-        r.assignBrowse(document.getElementById('step_7_upload_file_button'));
+        r.assignBrowse(document.getElementById('step_8_upload_file_button'));
 
         r.on('fileSuccess', function(file, message) {
-            var file_msg_id = 'step_7_file_' + file.uniqueIdentifier;
+            var file_msg_id = 'step_8_file_' + file.uniqueIdentifier;
             console.log('File upload success', message);
             var file_name = file.file.name;
             var formData = new FormData();
@@ -1638,7 +1783,7 @@
         });
 
         r.on('fileError', function(file, message) {
-            var file_msg_id = 'step_7_file_' + file.uniqueIdentifier;
+            var file_msg_id = 'step_8_file_' + file.uniqueIdentifier;
             console.log('File upload error', message);
             $("#" + file_msg_id).append("<p>Upload failed.</p>").addClass('text-danger');
         });
@@ -1684,7 +1829,7 @@
       setUpResumable()
 
       function uploadSequencingFile() {
-          var fileInput = $('#step_7_upload_file_button')[0];
+          var fileInput = $('#step_8_upload_file_button')[0];
           var file = fileInput.files[0];
           var filename = '';
 
@@ -1692,7 +1837,7 @@
               console.log('here here , the filename is')
               var fileName = file.name;
               console.log(fileName)
-              $('#step_7_filename').html("<h4>File uploaded: " + fileName + "</h4>");
+              $('#step_8_filename').html("<h4>File uploaded: " + fileName + "</h4>");
           } else {
               alert("Please select a file.");
               return;
@@ -1701,13 +1846,13 @@
 
           var formData = new FormData();
 
-          var form = $('#step_7_upload_file_button').closest('form');
+          var form = $('#step_8_upload_file_button').closest('form');
           var processId = form.find('input[name="process_id"]').val();
           formData.append('process_id', processId);
           formData.append('filename', fileName);
           console.log(formData)
           console.log('Unique Identifier for file:', file.uniqueIdentifier);
-          var file_msg_id = 'step_7_file_' + file.uniqueIdentifier;
+          var file_msg_id = 'step_8_file_' + file.uniqueIdentifier;
 
 
 
@@ -1719,7 +1864,7 @@
     });
   {% endif %}
   ////// ############################################# /////////
-  ////// ############ STEP 6 ENDS HERE ############### /////////
+  ////// ############ STEP 8 ENDS HERE ############### /////////
   ////// ############################################# /////////
 
 
