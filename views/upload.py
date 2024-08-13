@@ -166,11 +166,11 @@ def index():
         user_groups = User.get_user_groups(current_user.id)
 
         user_should_see_v2 = False
-        if (
-            "UE-2024-1" in user_groups
-            or "UndergroundExplorers_24A" in user_groups
-        ):
-            user_should_see_v2 = True
+
+        for group in user_groups:
+            if group.version == 2:
+                user_should_see_v2 = True
+                break  # No need to check further, since we found a match
 
         return render_template(
             "index.html",

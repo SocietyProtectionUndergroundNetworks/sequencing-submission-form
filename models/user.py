@@ -385,12 +385,8 @@ class User(UserMixin):
                 user.groups
             )  # This will fetch the groups associated with the user
 
-            # Optionally, you can return just the group
-            # names or full group objects
-            group_names = [
-                group.name for group in user_groups
-            ]  # List of group names
+            # Return the full group objects instead of just the names
+            return user_groups
 
-            return group_names
         finally:
             session.close()

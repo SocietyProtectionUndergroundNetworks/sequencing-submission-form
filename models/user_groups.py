@@ -10,9 +10,10 @@ logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
 
 class UserGroups(UserMixin):
-    def __init__(self, _id, name):
+    def __init__(self, _id, name, version):
         self.id = _id
         self.name = name
+        self.version = version
 
     @classmethod
     def get(cls, group_id):
@@ -27,7 +28,7 @@ class UserGroups(UserMixin):
             )
 
             if group:
-                return cls(group.id, group.name)
+                return cls(group.id, group.name, group.version)
             else:
                 return None
         except SQLAlchemyError as e:
@@ -37,19 +38,19 @@ class UserGroups(UserMixin):
             session.close()
 
     @classmethod
-    def create(cls, name):
+    def create(cls, name, version):
         try:
             # Establish a database connection
             db_engine = connect_db()
             session = get_session(db_engine)
-            logger.info(name)
+            # logger.info(name)
             # Create a new UserGroupsTable record
-            new_group = UserGroupsTable(name=name)
+            new_group = UserGroupsTable(name=name, version=version)
             session.add(new_group)
             session.commit()
 
             # Return the created UserGroups instance
-            return cls(new_group.id, new_group.name)
+            return cls(new_group.id, new_group.name, new_group.version)
         except SQLAlchemyError as e:
             logger.error(f"Error creating user group with name {name}: {e}")
             session.rollback()
@@ -69,6 +70,7 @@ class UserGroups(UserMixin):
                 session.query(
                     UserGroupsTable.id,
                     UserGroupsTable.name,
+                    UserGroupsTable.version,
                     func.count(UserTable.id).label("users_count"),
                 )
                 .outerjoin(
@@ -88,6 +90,7 @@ class UserGroups(UserMixin):
                 {
                     "id": group.id,
                     "name": group.name,
+                    "version": group.version,
                     "users_count": group.users_count,
                 }
                 for group in result

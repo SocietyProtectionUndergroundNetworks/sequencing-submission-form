@@ -67,6 +67,7 @@ class UserGroupsTable(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(255), nullable=False)
+    version = Column(Integer, nullable=True)
     users = relationship(
         "UserTable", secondary=user_groups_association, back_populates="groups"
     )

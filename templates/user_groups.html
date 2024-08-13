@@ -25,6 +25,7 @@
           <th scope="col">#</th>
           <th scope="col">Group Name</th>
           <th scope="col">Users</th>
+          <th scope="col">Version</th>
         </tr>
       </thead>
       <tbody id="files_body">
@@ -41,6 +42,7 @@
                   0
                 {% endif %}
               </td>
+              <td>{{ group.version }}</td>
           </tr>
         {% endfor %}
       </tbody>
@@ -54,6 +56,10 @@
               <label for="group_name">Group Name:</label>
               <input type="text" id="group_name" name="name" class="form-control" required>
           </div>
+          <div class="form-group">
+              <label for="group_version">Version:</label>
+              <input type="text" id="group_version" name="version" class="form-control" required>
+          </div>          
           <button type="submit" class="btn btn-primary">Add Group</button>
       </form>
   </div>
