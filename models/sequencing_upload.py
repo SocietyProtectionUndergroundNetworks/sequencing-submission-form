@@ -403,7 +403,12 @@ class SequencingUpload:
         # Query to get all SequencingFilesUploadedTable entries
         # associated with the given sequencingUploadId
         uploaded_files = (
-            session.query(SequencingFilesUploadedTable)
+            session.query(
+                SequencingFilesUploadedTable,  # Select the files
+                SequencingSamplesTable.id.label(
+                    "sample_id"
+                ),  # Select the corresponding sample_id
+            )
             .join(
                 SequencingSequencerIDsTable,
                 SequencingFilesUploadedTable.sequencerId
@@ -428,8 +433,14 @@ class SequencingUpload:
                 for column in instance.__table__.columns
             }
 
-        # Convert each file instance to a dictionary
-        uploaded_files_list = [as_dict(file) for file in uploaded_files]
+        # Convert each file instance and sample_id to a dictionary
+        uploaded_files_list = [
+            {
+                **as_dict(file),  # File data
+                "sample_id": sample_id,  # Include the sample_id
+            }
+            for file, sample_id in uploaded_files
+        ]
 
         # Close the session
         session.close()
@@ -569,3 +580,92 @@ class SequencingUpload:
 
         # Return the list of sample IDs with missing sequencer IDs
         return samples_with_missing_ids
+
+    @classmethod
+    def get_samples_with_sequencers_and_files(self, sequencingUploadId):
+        # Connect to the database and create a session
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        # Fetch related samples
+        samples = (
+            session.query(SequencingSamplesTable)
+            .filter_by(sequencingUploadId=sequencingUploadId)
+            .all()
+        )
+
+        # Fetch related sequencer IDs
+        sequencer_ids = (
+            session.query(SequencingSequencerIDsTable)
+            .join(SequencingSamplesTable)
+            .filter(
+                SequencingSamplesTable.sequencingUploadId == sequencingUploadId
+            )
+            .all()
+        )
+
+        # Fetch related uploaded files
+        uploaded_files = (
+            session.query(
+                SequencingFilesUploadedTable,  # Select the files
+                SequencingSamplesTable.id.label(
+                    "sample_id"
+                ),  # Select the corresponding sample_id
+            )
+            .join(
+                SequencingSequencerIDsTable,
+                SequencingFilesUploadedTable.sequencerId
+                == SequencingSequencerIDsTable.id,
+            )
+            .join(
+                SequencingSamplesTable,
+                SequencingSequencerIDsTable.sequencingSampleId
+                == SequencingSamplesTable.id,
+            )
+            .filter(
+                SequencingSamplesTable.sequencingUploadId == sequencingUploadId
+            )
+            .all()
+        )
+
+        # Convert the fetched data to dictionaries
+        def as_dict(instance):
+            """Convert SQLAlchemy model instance to a dictionary."""
+            return {
+                column.name: getattr(instance, column.name)
+                for column in instance.__table__.columns
+            }
+
+        samples_dict = {sample.id: as_dict(sample) for sample in samples}
+        sequencer_ids_dict = {}
+        for sequencer in sequencer_ids:
+            sample_id = sequencer.sequencingSampleId
+            if sample_id not in sequencer_ids_dict:
+                sequencer_ids_dict[sample_id] = []
+            sequencer_ids_dict[sample_id].append(as_dict(sequencer))
+
+        uploaded_files_dict = {}
+        for file, sample_id in uploaded_files:
+            sequencer_id = file.sequencerId
+            if sample_id not in uploaded_files_dict:
+                uploaded_files_dict[sample_id] = {}
+            if sequencer_id not in uploaded_files_dict[sample_id]:
+                uploaded_files_dict[sample_id][sequencer_id] = []
+            uploaded_files_dict[sample_id][sequencer_id].append(as_dict(file))
+
+        # Combine the data into a structured list
+        result = []
+        for sample_id, sample_data in samples_dict.items():
+            sample_data["sequencer_ids"] = sequencer_ids_dict.get(
+                sample_id, []
+            )
+            for sequencer in sample_data["sequencer_ids"]:
+                sequencer_id = sequencer["id"]
+                sequencer["uploaded_files"] = uploaded_files_dict.get(
+                    sample_id, {}
+                ).get(sequencer_id, [])
+            result.append(sample_data)
+
+        # Close the session
+        session.close()
+        return result

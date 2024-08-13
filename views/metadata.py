@@ -89,6 +89,7 @@ def metadata_form():
     valid_samples = False
     uploaded_files = []
     missing_sequencing_ids = []
+    samples_data_complete = []
     if process_id:
         process_data = SequencingUpload.get(process_id)
 
@@ -101,6 +102,9 @@ def metadata_form():
         valid_samples = SequencingUpload.validate_samples(process_id)
         missing_sequencing_ids = SequencingUpload.check_missing_sequencer_ids(
             process_id
+        )
+        samples_data_complete = (
+            SequencingUpload.get_samples_with_sequencers_and_files(process_id)
         )
 
     return render_template(
@@ -119,6 +123,7 @@ def metadata_form():
         valid_samples=valid_samples,
         uploaded_files=uploaded_files,
         missing_sequencing_ids=missing_sequencing_ids,
+        samples_data_complete=samples_data_complete,
     )
 
 
