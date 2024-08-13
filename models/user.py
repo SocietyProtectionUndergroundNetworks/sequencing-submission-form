@@ -8,7 +8,7 @@ from models.db_model import (
     UserGroupsTable,
     user_groups_association,
 )
-from sqlalchemy import func
+from sqlalchemy import func, case
 from sqlalchemy.orm import subqueryload
 import logging
 
@@ -94,11 +94,13 @@ class User(UserMixin):
             session.query(
                 UploadTable.user_id,
                 func.count(UploadTable.id).label("uploads_count"),
-                func.count(
-                    func.nullif(UploadTable.reviewed_by_admin, False)
+                func.sum(
+                    case(
+                        (UploadTable.reviewed_by_admin.is_(False), 1), else_=0
+                    )
                 ).label("reviewed_false_count"),
-                func.count(
-                    func.nullif(UploadTable.reviewed_by_admin, True)
+                func.sum(
+                    case((UploadTable.reviewed_by_admin.is_(True), 1), else_=0)
                 ).label("reviewed_true_count"),
             )
             .group_by(UploadTable.user_id)
