@@ -486,115 +486,252 @@
               </thead>
 
               <tbody>
-
                 {% if nr_files_per_sequence == 2 %}
-                  <!-- Iterate over each sample in samples_data_complete -->
-                  {% for row in samples_data_complete %}
-                      {% for sequencer in row.sequencer_ids %}
-                        {% set files = sequencer.uploaded_files %}
-                        <tr>
-                            {% if loop.first %}
-                                <!-- Only add these cells for the first sequencer of each row -->
-                                <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"] * nr_files_per_sequence }}">{{ row.id }}</td>
-                                <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"] * nr_files_per_sequence }}">{{ row.SampleID }}</td>
+                    <!-- Iterate over each sample in samples_data_complete -->
+                    {% for row in samples_data_complete %}
+                        <!-- For each row, iterate a fixed number of sequencing regions -->
+                        {% for region_index in range(0, process_data["Sequencing_regions_number"]) %}
+                            <!-- Check if the current index is within the available sequencer IDs -->
+                            {% if region_index < row.sequencer_ids | length %}
+                                {% set sequencer = row.sequencer_ids[region_index] %}
+                                {% set files = sequencer.uploaded_files %}
+                                
+                                {% if region_index == 0 %}
+                                    <!-- Only add these cells for the first sequencer of each row -->
+                                    <tr>
+                                        <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"] * nr_files_per_sequence }}">{{ row.id }}</td>
+                                        <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"] * nr_files_per_sequence }}">{{ row.SampleID }}</td>
+                                        <td id="S_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                                            {{ sequencer.SequencerID }}
+                                        </td>
+                                        <td id="R_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                                            {{ sequencer.Region }}
+                                        </td>
+                                        <td id="I1_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                                            {{ sequencer.Index_1 if sequencer.Index_1 is not none else 'N/A' }}
+                                        </td>
+                                        <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                                            {{ sequencer.Index_2 if sequencer.Index_2 is not none else 'N/A' }}
+                                        </td>
+
+                                        <!-- Handling the first file -->
+                                        <td id="F_{{ sequencer.id }}_A">
+                                            {% if files|length > 0 %}
+                                                {{ files[0].original_filename }}
+                                            {% else %}
+                                                <span class="red">Not uploaded</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- Handle second file if it exists -->
+                                    <tr>
+                                        <td id="F_{{ sequencer.id }}_B">
+                                            {% if files|length > 1 %}
+                                                {{ files[1].original_filename }}
+                                            {% else %}
+                                                <span class="red">Not uploaded</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <!-- For subsequent sequencers in the same row -->
+                                    <tr>
+                                        <td id="S_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                                            {{ sequencer.SequencerID }}
+                                        </td>
+                                        <td id="R_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                                            {{ sequencer.Region }}
+                                        </td>
+                                        <td id="I1_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                                            {{ sequencer.Index_1 if sequencer.Index_1 is not none else 'N/A' }}
+                                        </td>
+                                        <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                                            {{ sequencer.Index_2 if sequencer.Index_2 is not none else 'N/A' }}
+                                        </td>
+
+                                        <!-- Handling the first file -->
+                                        <td id="F_{{ sequencer.id }}_A">
+                                            {% if files|length > 0 %}
+                                                {{ files[0].original_filename }}
+                                            {% else %}
+                                                <span class="red">Not uploaded</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- Handle second file if it exists -->
+                                    <tr>
+                                        <td id="F_{{ sequencer.id }}_B">
+                                            {% if files|length > 1 %}
+                                                {{ files[1].original_filename }}
+                                            {% else %}
+                                                <span class="red">Not uploaded</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            {% else %}
+                                <!-- Handle missing sequencers gracefully -->
+                                {% if region_index == 0 %}
+                                    <tr>
+                                        <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"] * nr_files_per_sequence }}">{{ row.id }}</td>
+                                        <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"] * nr_files_per_sequence }}">{{ row.SampleID }}</td>
+                                        <td id="S_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                                            <span class="red">No sequencer</span>
+                                        </td>
+                                        <td id="R_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                                            <span class="red">No sequencer</span>
+                                        </td>
+                                        <td id="I1_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                                            <span class="red">No sequencer</span>
+                                        </td>
+                                        <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                                            <span class="red">No sequencer</span>
+                                        </td>
+
+                                        <!-- Handling missing files -->
+                                        <td id="F_{{ row.id }}_A">
+                                            <span class="red">Not available</span>
+                                        </td>
+                                    </tr>
+                                    
+                                    <tr>
+                                        <td id="F_{{ row.id }}_B">
+                                            <span class="red">Not available</span>
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr>
+                                        <td id="S_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                                            <span class="red">No sequencer</span>
+                                        </td>
+                                        <td id="R_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                                            <span class="red">No sequencer</span>
+                                        </td>
+                                        <td id="I1_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                                            <span class="red">No sequencer</span>
+                                        </td>
+                                        <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                                            <span class="red">No sequencer</span>
+                                        </td>
+
+                                        <!-- Handling missing files -->
+                                        <td id="F_{{ row.id }}_A">
+                                            <span class="red">Not available</span>
+                                        </td>
+                                    </tr>
+                                    
+                                    <tr>
+                                        <td id="F_{{ row.id }}_B">
+                                            <span class="red">Not available</span>
+                                        </td>
+                                    </tr>
+                                {% endif %}
                             {% endif %}
-                            <td id="S_{{ row.id }}_{{ loop.index }}" rowspan="{{ nr_files_per_sequence }}">
-                              {{ sequencer.SequencerID }}
-                            </td>
-                            <td id="R_{{ row.id }}_{{ loop.index }}" rowspan="{{ nr_files_per_sequence }}">
-                              {{ sequencer.Region }}
-                            </td>
-                            <td id="I1_{{ row.id }}_{{ loop.index }}" rowspan="{{ nr_files_per_sequence }}">
-                              {{ sequencer.Index_1 if sequencer.Index_1 is not none else 'N/A' }}
-                            </td>
-                            <td id="I2_{{ row.id }}_{{ loop.index }}" rowspan="{{ nr_files_per_sequence }}">
-                              {{ sequencer.Index_2 if sequencer.Index_2 is not none else 'N/A' }}
-                            </td>
-                            
-                            <td id="F_{{ sequencer.id }}_A">
-                              {% if files|length > 0 %}
-                                {{ files[0].original_filename }}
-                              {% else %}
-                                <span class="red"> Not uploaded </span>
-                              {% endif %}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td id="F_{{ sequencer.id }}_B">
-                              {% if files|length > 1 %}
-                                {{ files[1].original_filename }}
-                              {% else %}
-                                <span class="red"> Not uploaded </span>
-                              {% endif %}
-                            </td>
-                        </tr>
-                      {% endfor %}
-                  {% endfor %}
+                        {% endfor %}
+                    {% endfor %}
                 {% endif %}
-
-
 
                 {% if nr_files_per_sequence == 1 %}
                   <!-- Iterate over each sample in samples_data_complete -->
                   {% for row in samples_data_complete %}
-                    {% for sequencer in row.sequencer_ids %}
-                      {% set files = sequencer.uploaded_files %}
-                      <tr>
-                        {% if loop.first %}
+                    <!-- For each row, iterate a fixed number of sequencing regions -->
+                    {% for region_index in range(0, process_data['Sequencing_regions_number']) %}
+                      {% if region_index < row.sequencer_ids | length %}
+                        {% set sequencer = row.sequencer_ids[region_index] %}
+                        {% set files = sequencer.uploaded_files %}
+
+                        {% if region_index == 0 %}
                           <!-- Only add these cells for the first sequencer of each row -->
-                          <td class="bg-gray" rowspan="{{ process_data['Sequencing_regions_number'] }}">{{ row.id }}</td>
-                          <td class="bg-gray" rowspan="{{ process_data['Sequencing_regions_number'] }}">{{ row.SampleID }}</td>
+                          <tr>
+                            <td class="bg-gray" rowspan="{{ process_data['Sequencing_regions_number'] }}">{{ row.id }}</td>
+                            <td class="bg-gray" rowspan="{{ process_data['Sequencing_regions_number'] }}">{{ row.SampleID }}</td>
+                            <td id="S_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                              {{ sequencer.SequencerID }}
+                            </td>
+                            <td id="R_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                              {{ sequencer.Region }}
+                            </td>
+                            <td id="I1_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                              {{ sequencer.Index_1 if sequencer.Index_1 is not none else 'N/A' }}
+                            </td>
+                            <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                              {{ sequencer.Index_2 if sequencer.Index_2 is not none else 'N/A' }}
+                            </td>
+                            <td id="F_{{ sequencer.id }}_A">
+                              {% if files|length > 0 %}
+                                {{ files[0].original_filename }}
+                              {% else %}
+                                <span class="red">Not uploaded</span>
+                              {% endif %}
+                            </td>
+                          </tr>
+                        {% else %}
+                          <!-- For subsequent sequencers in the same row -->
+                          <tr>
+                            <td id="S_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                              {{ sequencer.SequencerID }}
+                            </td>
+                            <td id="R_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                              {{ sequencer.Region }}
+                            </td>
+                            <td id="I1_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                              {{ sequencer.Index_1 if sequencer.Index_1 is not none else 'N/A' }}
+                            </td>
+                            <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                              {{ sequencer.Index_2 if sequencer.Index_2 is not none else 'N/A' }}
+                            </td>
+                            <td id="F_{{ sequencer.id }}_A">
+                              {% if files|length > 0 %}
+                                {{ files[0].original_filename }}
+                              {% else %}
+                                <span class="red">Not uploaded</span>
+                              {% endif %}
+                            </td>
+                          </tr>
                         {% endif %}
-                        <td id="S_{{ row.id }}_{{ loop.index }}" rowspan="{{ nr_files_per_sequence }}">
-                          {{ sequencer.SequencerID }}
-                        </td>
-                        <td id="R_{{ row.id }}_{{ loop.index }}" rowspan="{{ nr_files_per_sequence }}">
-                          {{ sequencer.Region }}
-                        </td>
-                        <td id="I1_{{ row.id }}_{{ loop.index }}" rowspan="{{ nr_files_per_sequence }}">
-                          {{ sequencer.Index_1 if sequencer.Index_1 is not none else 'N/A' }}
-                        </td>
-                        <td id="I2_{{ row.id }}_{{ loop.index }}" rowspan="{{ nr_files_per_sequence }}">
-                          {{ sequencer.Index_2 if sequencer.Index_2 is not none else 'N/A' }}
-                        </td>
-                        <td id="F_{{ sequencer.id }}_A">
-                          {% if files|length > 0 %}
-                            {{ files[0].original_filename }}
-                          {% else %}
-                            <span class="red"> Not uploaded </span>
-                          {% endif %}
-                        </td>
-                      </tr>
-                      {% if process_data['Sequencing_regions_number'] > 1 and row.sequencer_ids|length > 1 %}
-                        <tr>
-                          <td id="S_{{ row.id }}_{{ loop.index + 1 }}" rowspan="{{ nr_files_per_sequence }}">
-                            {% if row.sequencer_ids[loop.index] %}
-                              {{ row.sequencer_ids[loop.index + 1].SequencerID }}
-                            {% endif %}
-                          </td>
-                          <td id="R_{{ row.id }}_{{ loop.index + 1 }}" rowspan="{{ nr_files_per_sequence }}">
-                            {% if row.sequencer_ids[loop.index] %}
-                              {{ row.sequencer_ids[loop.index + 1].Region }}
-                            {% endif %}
-                          </td>
-                          <td id="I1_{{ row.id }}_{{ loop.index + 1 }}" rowspan="{{ nr_files_per_sequence }}">
-                            {% if row.sequencer_ids[loop.index] %}
-                              {{ row.sequencer_ids[loop.index + 1].Index_1 if row.sequencer_ids[loop.index + 1].Index_1 is not none else 'N/A' }}
-                            {% endif %}
-                          </td>
-                          <td id="I2_{{ row.id }}_{{ loop.index + 1 }}" rowspan="{{ nr_files_per_sequence }}">
-                            {% if row.sequencer_ids[loop.index] %}
-                              {{ row.sequencer_ids[loop.index + 1].Index_2 if row.sequencer_ids[loop.index + 1].Index_2 is not none else 'N/A' }}
-                            {% endif %}
-                          </td>
-                          <td id="F_{{ row.sequencer_ids[loop.index + 1].id }}_A">
-                            {% if row.sequencer_ids[loop.index + 1].uploaded_files|length > 0 %}
-                              {{ row.sequencer_ids[loop.index + 1].uploaded_files[0].original_filename }}
-                            {% else %}
-                              <span class="red"> Not uploaded </span>
-                            {% endif %}
-                          </td>
-                        </tr>
+                      {% else %}
+                        <!-- Handle missing sequencers gracefully -->
+                        {% if region_index == 0 %}
+                          <tr>
+                            <td class="bg-gray" rowspan="{{ process_data['Sequencing_regions_number'] }}">{{ row.id }}</td>
+                            <td class="bg-gray" rowspan="{{ process_data['Sequencing_regions_number'] }}">{{ row.SampleID }}</td>
+                            <td id="S_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                              <span class="red">No sequencer</span>
+                            </td>
+                            <td id="R_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                              <span class="red">No sequencer</span>
+                            </td>
+                            <td id="I1_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                              <span class="red">No sequencer</span>
+                            </td>
+                            <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                              <span class="red">No sequencer</span>
+                            </td>
+                            <td id="F_{{ row.id }}_A">
+                              <span class="red">Not available</span>
+                            </td>
+                          </tr>
+                        {% else %}
+                          <tr>
+                            <td id="S_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                              <span class="red">No sequencer</span>
+                            </td>
+                            <td id="R_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                              <span class="red">No sequencer</span>
+                            </td>
+                            <td id="I1_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                              <span class="red">No sequencer</span>
+                            </td>
+                            <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                              <span class="red">No sequencer</span>
+                            </td>
+                            <td id="F_{{ row.id }}_A">
+                              <span class="red">Not available</span>
+                            </td>
+                          </tr>
+                        {% endif %}
                       {% endif %}
                     {% endfor %}
                   {% endfor %}
