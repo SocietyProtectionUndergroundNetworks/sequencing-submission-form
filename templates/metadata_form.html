@@ -263,7 +263,6 @@
                               {% endfor %}
                             {% endif %}
                           </td>
-                          <!-- Iterate over each column value for the row -->
                           {% for column in expected_columns.keys() %}
                               <td>{{ row[column] }}</td>
                           {% endfor %}
@@ -482,6 +481,7 @@
                       <th scope="col" class="bg-gray"><span class="grey">____</span>Index_1<span class="grey">____</span></th>
                       <th scope="col" class="bg-gray"><span class="grey">____</span>Index_2<span class="grey">____</span></th>
                       <th scope="col" class="bg-gray">Files</th>
+                      <th scope="col" class="bg-gray">New Names</th>
                   </tr>
               </thead>
 
@@ -522,6 +522,13 @@
                                                 <span class="red">Not uploaded</span>
                                             {% endif %}
                                         </td>
+                                        <td id="FNN_{{ sequencer.id }}_A">
+                                            {% if files|length > 0 %}
+                                                {{ files[0].new_name }}
+                                            {% else %}
+                                                <span class="red">Not uploaded</span>
+                                            {% endif %}
+                                        </td>                                        
                                     </tr>
                                     
                                     <!-- Handle second file if it exists -->
@@ -533,6 +540,13 @@
                                                 <span class="red">Not uploaded</span>
                                             {% endif %}
                                         </td>
+                                        <td id="FNN_{{ sequencer.id }}_B">
+                                            {% if files|length > 1 %}
+                                                {{ files[1].new_name }}
+                                            {% else %}
+                                                <span class="red">Not uploaded</span>
+                                            {% endif %}
+                                        </td>                                        
                                     </tr>
                                 {% else %}
                                     <!-- For subsequent sequencers in the same row -->
@@ -558,6 +572,14 @@
                                                 <span class="red">Not uploaded</span>
                                             {% endif %}
                                         </td>
+                                        <!-- Handling the first file -->
+                                        <td id="FNN_{{ sequencer.id }}_A">
+                                            {% if files|length > 0 %}
+                                                {{ files[0].new_name }}
+                                            {% else %}
+                                                <span class="red">Not uploaded</span>
+                                            {% endif %}
+                                        </td>                                        
                                     </tr>
                                     
                                     <!-- Handle second file if it exists -->
@@ -569,6 +591,13 @@
                                                 <span class="red">Not uploaded</span>
                                             {% endif %}
                                         </td>
+                                        <td id="FNN_{{ sequencer.id }}_B">
+                                            {% if files|length > 1 %}
+                                                {{ files[1].new_name }}
+                                            {% else %}
+                                                <span class="red">Not uploaded</span>
+                                            {% endif %}
+                                        </td>                                        
                                     </tr>
                                 {% endif %}
                             {% else %}
@@ -594,12 +623,18 @@
                                         <td id="F_{{ row.id }}_A">
                                             <span class="red">Not available</span>
                                         </td>
+                                        <td id="FNN_{{ row.id }}_A">
+                                            <span class="red">Not available</span>
+                                        </td>                                        
                                     </tr>
                                     
                                     <tr>
                                         <td id="F_{{ row.id }}_B">
                                             <span class="red">Not available</span>
                                         </td>
+                                        <td id="FNN_{{ row.id }}_B">
+                                            <span class="red">Not available</span>
+                                        </td>                                        
                                     </tr>
                                 {% else %}
                                     <tr>
@@ -620,12 +655,18 @@
                                         <td id="F_{{ row.id }}_A">
                                             <span class="red">Not available</span>
                                         </td>
+                                        <td id="FNN_{{ row.id }}_A">
+                                            <span class="red">Not available</span>
+                                        </td>                                        
                                     </tr>
                                     
                                     <tr>
                                         <td id="F_{{ row.id }}_B">
                                             <span class="red">Not available</span>
                                         </td>
+                                        <td id="FNN_{{ row.id }}_B">
+                                            <span class="red">Not available</span>
+                                        </td>                                        
                                     </tr>
                                 {% endif %}
                             {% endif %}
@@ -1651,7 +1692,7 @@
         $('#step_8_form fieldset').removeAttr('disabled');
     }
 
-    function updateTableCell(file_name, sequencerId) {
+    function updateTableCell(file_name, sequencerId, new_name) {
         var cellIdA = '#F_' + sequencerId + '_A';
         var cellIdB = '#F_' + sequencerId + '_B';
 
@@ -1659,6 +1700,7 @@
         var cellA = $(cellIdA);
         if (cellA.find('span.red').length > 0) {
             cellA.html(file_name); // Replace with file_name
+            $('#FNN_' + sequencerId + '_A').html(new_name)
             return; // Exit function after updating the first cell
         }
 
@@ -1666,6 +1708,7 @@
         var cellB = $(cellIdB);
         if (cellB.find('span.red').length > 0) {
             cellB.html(file_name); // Replace with file_name
+            $('#FNN_' + sequencerId + '_B').html(new_name)
         }
     }
 
@@ -1701,6 +1744,7 @@
 
                 var formData = new FormData();
                 formData.append('process_id', process_id);
+                console.log('The process_id we are passing is ' + process_id)
                 formData.append('filename', file_name);
 
                 $.ajax({
@@ -1719,6 +1763,8 @@
 
                                 // Calculate MD5 and start upload
                                 calculateMD5(file.file, function(md5) {
+                                    $("#" + file_msg_id).append('Md5 for file ' + file_name + ' calculated: ' + md5)
+                                        .addClass('text-info').removeClass('text-danger').removeClass('text-success');                                    
                                     // Set unique query parameters for this file
                                     file.opts = {
                                         query: {
@@ -1732,11 +1778,13 @@
                                         }
                                     };
                                     console.log(file.opts)
-                                    $("#" + file_msg_id).append('Md5 for file ' + file_name + ' calculated: ' + md5)
-                                        .addClass('text-info').removeClass('text-danger').removeClass('text-success');
 
-                                    console.log('We will now try to upload the file');
-                                    r.upload(); // Start the upload
+                                    // Introduce a delay before starting the upload
+                                    setTimeout(function() {
+                                        console.log('We will now try to upload the file');
+                                        r.upload(); // Start the upload
+                                    }, 300); // Delay in milliseconds
+
                                 }, function(progress) {
                                     $("#" + file_msg_id).html('Calculating md5 for file ' + file_name + '. Progress: ' + progress.toFixed(2) + '%')
                                         .addClass('text-info').removeClass('text-danger').removeClass('text-success');
@@ -1786,14 +1834,13 @@
                 contentType: false,
                 processData: false,
                 success: function(response) {
+                    console.log('sequencing_file_upload_completed')
                     console.log(response);
 
                     if (response.result === 1) {
                       $("#" + file_msg_id).append("<p>Upload completed successfully.</p>").addClass('text-success');
-                      console.log('we should put the file at ')
-                      console.log(file.opts.query.sequencerId)
                       // Update the table cells
-                      updateTableCell(file_name, file.opts.query.sequencerId);
+                      updateTableCell(file_name, file.opts.query.sequencerId, response.new_name);
                     } else {
                         $("#" + file_msg_id).append("<p>An error occurred. The file could not be joined. Please try again.</p>")
                             .removeClass('text-success').addClass('text-danger');
@@ -1878,11 +1925,6 @@
           console.log(formData)
           console.log('Unique Identifier for file:', file.uniqueIdentifier);
           var file_msg_id = 'step_8_file_' + file.uniqueIdentifier;
-
-
-
-
-
 
       }
 

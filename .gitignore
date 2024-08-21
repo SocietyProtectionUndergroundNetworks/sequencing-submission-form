@@ -34,3 +34,5 @@ appvm.log
 backup.sql
 
 seq_uploads
+
+seq_processed

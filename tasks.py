@@ -6,7 +6,7 @@ from helpers.bucket import (
     process_fastq_files,
 )
 from helpers.unzip import unzip_raw_file
-from helpers.fastqc import fastqc_multiqc_files
+from helpers.fastqc import fastqc_multiqc_files, create_fastqc_report
 
 
 @celery_app.task
@@ -27,6 +27,11 @@ def unzip_raw_file_async(process_id, filename):
 @celery_app.task
 def fastqc_multiqc_files_async(process_id):
     fastqc_multiqc_files(process_id)
+
+
+@celery_app.task
+def create_fastqc_report_async(fastq_file, input_folder, bucket, region):
+    create_fastqc_report(fastq_file, input_folder, bucket, region)
 
 
 @celery_app.task

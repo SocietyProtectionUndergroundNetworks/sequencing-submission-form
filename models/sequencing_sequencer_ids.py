@@ -272,3 +272,37 @@ class SequencingSequencerId:
                 matching_ids.append(id)
 
         return matching_ids
+
+    @classmethod
+    def generate_new_filename(cls, process_id, filename):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        # Extract the prefix from the filename
+        filename_prefix = filename.split(".")[
+            0
+        ]  # Get the filename without the extension
+
+        # Query to get all relevant records
+        sequencer_records = (
+            session.query(
+                SequencingSamplesTable.SampleID,
+                SequencingSequencerIDsTable.SequencerID,
+                SequencingSequencerIDsTable.Region,
+            )
+            .join(SequencingSequencerIDsTable)
+            .filter(SequencingSamplesTable.sequencingUploadId == process_id)
+            .all()
+        )
+
+        # Iterate through the results to find the matching record
+        for sample_id, sequencer_id, region in sequencer_records:
+            if filename_prefix.startswith(sequencer_id):
+                # Generate the new filename
+                new_filename = filename.replace(
+                    sequencer_id, f"{sample_id}_{region}"
+                )
+                return new_filename
+
+        # Return None if no matching record is found
+        return None

@@ -151,15 +151,8 @@ def fastqc_multiqc_files(process_id):
                 output_folders[bucket][folder] = True
                 nr_output_folders += 1
 
-            output_folder_of_file = os.path.join(output_folder, bucket, folder)
-            Path(output_folder_of_file).mkdir(parents=True, exist_ok=True)
-            input_file = os.path.join(input_folder, fastq_file)
-            fastqc_cmd = (
-                f"/usr/local/bin/FastQC/fastqc "
-                f"-o '{output_folder_of_file}' "
-                f"'{input_file}'"
-            )
-            subprocess.run(fastqc_cmd, shell=True, executable="/bin/bash")
+            create_fastqc_report(fastq_file, input_folder, bucket, folder)
+
             files_done += 1
             progress = (
                 str(files_done) + " fastq files done out of " + str(nr_files)
@@ -203,3 +196,35 @@ def fastqc_multiqc_files(process_id):
 
     results.append("Finished")
     return results
+
+
+def create_fastqc_report(fastq_file, input_folder, bucket, region):
+    output_folder = os.path.join(input_folder, "fastqc")
+    os.makedirs(output_folder, exist_ok=True)
+    input_file = os.path.join(input_folder, fastq_file)
+    output_folder_of_file = os.path.join(output_folder, bucket, region)
+    Path(output_folder_of_file).mkdir(parents=True, exist_ok=True)
+    input_file = os.path.join(input_folder, fastq_file)
+    fastqc_cmd = (
+        f"/usr/local/bin/FastQC/fastqc "
+        f"-o '{output_folder_of_file}' "
+        f"'{input_file}'"
+    )
+    subprocess.run(fastqc_cmd, shell=True, executable="/bin/bash")
+
+
+def init_create_fastqc_report(fastq_file, input_folder, bucket, region):
+
+    from tasks import create_fastqc_report_async
+
+    try:
+        result = create_fastqc_report_async.delay(
+            fastq_file, input_folder, bucket, region
+        )
+        logger.info(
+            "Celery create_fastqc_report task called successfully! "
+            f"Task ID: {result.id}"
+        )
+    except Exception as e:
+        logger.error("This is an error message from fastqc.py")
+        logger.error(e)

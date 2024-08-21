@@ -2,6 +2,7 @@ import logging
 import pandas as pd
 import os
 import json
+import shutil
 from flask import (
     redirect,
     Blueprint,
@@ -27,6 +28,7 @@ from helpers.create_xls_template import (
     create_template_one_drive_and_excel,
 )
 from helpers.bucket import delete_bucket_folder
+from helpers.fastqc import init_create_fastqc_report
 import numpy as np
 from helpers.file_renaming import calculate_md5
 
@@ -432,7 +434,6 @@ def check_filename_matching():
         # Extract the sequencer ID
         sequencer_id = matching_sequencer_ids[0]
         sequencer_id_data = SequencingSequencerId.get(sequencer_id)
-        logger.info(sequencer_id_data)
         # Fetch process data and uploaded files
         process_data = SequencingUpload.get(process_id)
         if not process_data:
@@ -515,7 +516,7 @@ def sequencing_upload_chunk():
         chunk_number = (
             int(resumable_chunk_number) if resumable_chunk_number else 1
         )
-
+        logger.info("chunk_number: " + str(chunk_number))
         # Save or process the chunk
         save_path = (
             f"seq_uploads/{uploads_folder}/{file.filename}.part{chunk_number}"
@@ -572,14 +573,11 @@ def sequencing_upload_chunk_check():
 @approved_required
 def sequencing_file_upload_completed():
     process_id = request.form.get("process_id")
-    logger.info(process_id)
     if process_id:
         process_data = SequencingUpload.get(process_id)
         uploads_folder = process_data["uploads_folder"]
 
         fileopts_json = request.form.get("fileopts")
-        logger.info("The fileopts_json are")
-        logger.info(fileopts_json)
         fileopts = json.loads(fileopts_json)
         form_filename = fileopts["filename"]
         # form_filesize = fileopts["filesize"]
@@ -618,14 +616,44 @@ def sequencing_file_upload_completed():
 
             if len(matching_sequencer_ids) == 1:
                 file_sequencer_id = matching_sequencer_ids[0]
+                new_filename = SequencingSequencerId.generate_new_filename(
+                    process_id, form_filename
+                )
                 file_dict = {
                     "md5": expected_md5,
                     "original_filename": form_filename,
+                    "new_name": new_filename,
                 }
+
                 SequencingFileUploaded.create(file_sequencer_id, file_dict)
 
+                # If a new filename is provided, copy the file to
+                # the new location
+                if new_filename:
+                    processed_folder = f"seq_processed/{uploads_folder}"
+                    processed_file_path = f"{processed_folder}/{new_filename}"
+                    os.makedirs(
+                        os.path.dirname(processed_file_path), exist_ok=True
+                    )
+                    shutil.copy2(final_file_path, processed_file_path)
+
+                    sequencerId = SequencingSequencerId.get(file_sequencer_id)
+                    logger.info(sequencerId)
+                    region = sequencerId.Region
+                    bucket = process_data["project_id"]
+
+                    init_create_fastqc_report(
+                        new_filename, processed_folder, bucket, region
+                    )
+
                 return (
-                    jsonify({"result": 1}),
+                    jsonify(
+                        {
+                            "result": 1,
+                            "original_filename": form_filename,
+                            "new_name": new_filename,
+                        }
+                    ),
                     200,
                 )
     return "", 200
