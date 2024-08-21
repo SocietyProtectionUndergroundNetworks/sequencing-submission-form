@@ -1583,43 +1583,7 @@
                           .appendTo('#step_6_msg');
                   });
               } else {
-                response.data.forEach(function(sequencer_id) {
-
-                  sequencerSampleId = sequencer_id["db_sample_id"]
-                  $('#dataTable tbody tr').each(function() {
-                      var rowId = $(this).find('td:first').text().trim();
-                      if (String(rowId) === String(sequencerSampleId)) {
-                          sequencerRegion = sequencer_id["Region"]
-                          sequencerId = sequencer_id["SequencerID"]
-                          // Update the second cell in the matched row
-                          var cell = $(this).find('td').eq(1);
-                          cell.append(' ' + sequencerRegion + ' : ' + sequencerId + '<br/>');
-                      }
-                  });
-                  // HERE HERE
-                  // Find the element S_ row id _1
-                  if ($('#S_' + sequencerSampleId + '_1').html().trim() === '') {
-                    $('#S_' + sequencerSampleId + '_1').html(sequencer_id["SequencerID"])
-                    $('#R_' + sequencerSampleId + '_1').html(sequencer_id["Region"])
-                    $('#I1_' + sequencerSampleId + '_1').html(sequencer_id["Index_1"])
-                    $('#I2_' + sequencerSampleId + '_1').html(sequencer_id["Index_2"])
-                  } else if ($('#S_' + sequencerSampleId + '_2').html().trim()=='') {
-                    $('#S_' + sequencerSampleId + '_2').html(sequencer_id["SequencerID"])
-                    $('#R_' + sequencerSampleId + '_2').html(sequencer_id["Region"])
-                    $('#I1_' + sequencerSampleId + '_2').html(sequencer_id["Index_1"])
-                    $('#I2_' + sequencerSampleId + '_2').html(sequencer_id["Index_2"])
-                  }
-
-                })
-
-
-                // Clear previous messages and reset status class
-                $('#step_6_msg').html('File uploaded successfully. Records added to the metadata table above').addClass('text-success');
-                //enableForm_step_8()
-                if (response.missing_sequencing_ids) {
-                  update_step6_sample_ids_dropdown_options(response.missing_sequencing_ids)
-                  update_step7_missing_ids_div(response.missing_sequencing_ids)
-                }                
+                window.location.reload();
               }
           },
           error: function(xhr, status, error) {
@@ -2005,7 +1969,10 @@
     // Iterate over each row in the samples_data
     samples_data.forEach(function(row) {
       // Check if both "Latitude" and "Longitude" fields exist
-      if (row.hasOwnProperty('Latitude') && row.hasOwnProperty('Longitude')) {
+      if (
+        row.hasOwnProperty('Latitude') && row['Latitude'] !== null &&
+        row.hasOwnProperty('Longitude') && row['Longitude'] !== null
+      ) {
         // Call addMarker with the values
         addMarker(row['Latitude'], row['Longitude']);
       }
