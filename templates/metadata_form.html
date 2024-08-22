@@ -482,6 +482,7 @@
                       <th scope="col" class="bg-gray"><span class="grey">____</span>Index_2<span class="grey">____</span></th>
                       <th scope="col" class="bg-gray">Files</th>
                       <th scope="col" class="bg-gray">New Names</th>
+                      <th scope="col" class="bg-gray">Report</th>
                   </tr>
               </thead>
 
@@ -528,7 +529,16 @@
                                             {% else %}
                                                 <span class="red">Not uploaded</span>
                                             {% endif %}
-                                        </td>                                        
+                                        </td>
+                                        <td id="FCQ_{{ sequencer.id }}_A">
+                                            {% if files|length > 0 %}
+                                                {% if files[0].fastqc_report %}
+                                                    {% if files[0].fastqc_report %}
+                                                        <a href="show_fastqc_report?file_id={{ files[0].id }}" target="_blank" class="link">Done</a>
+                                                    {% endif %}                                                      
+                                                {% endif %}
+                                            {% endif %}
+                                        </td>                                           
                                     </tr>
                                     
                                     <!-- Handle second file if it exists -->
@@ -546,7 +556,14 @@
                                             {% else %}
                                                 <span class="red">Not uploaded</span>
                                             {% endif %}
-                                        </td>                                        
+                                        </td>
+                                        <td id="FCQ_{{ sequencer.id }}_B">
+                                            {% if files|length > 1 %}
+                                                {% if files[1].fastqc_report %}
+                                                    <a href="show_fastqc_report?file_id={{ files[1].id }}" target="_blank" class="link">Done</a>
+                                                {% endif %}                                                
+                                            {% endif %}
+                                        </td>
                                     </tr>
                                 {% else %}
                                     <!-- For subsequent sequencers in the same row -->
@@ -579,7 +596,14 @@
                                             {% else %}
                                                 <span class="red">Not uploaded</span>
                                             {% endif %}
-                                        </td>                                        
+                                        </td>
+                                        <td id="FCQ_{{ sequencer.id }}_A">
+                                            {% if files|length > 0 %}
+                                                {% if files[0].fastqc_report %}
+                                                    <a href="show_fastqc_report?file_id={{ files[0].id }}" target="_blank" class="link">Done</a>
+                                                {% endif %}                                                 
+                                            {% endif %}
+                                        </td>                                                                                
                                     </tr>
                                     
                                     <!-- Handle second file if it exists -->
@@ -597,7 +621,14 @@
                                             {% else %}
                                                 <span class="red">Not uploaded</span>
                                             {% endif %}
-                                        </td>                                        
+                                        </td>
+                                        <td id="FCQ_{{ sequencer.id }}_B">
+                                            {% if files|length > 1 %}
+                                                {% if files[1].fastqc_report %}
+                                                    <a href="show_fastqc_report?file_id={{ files[1].id }}" target="_blank" class="link">Done</a>
+                                                {% endif %}                                                  
+                                            {% endif %}
+                                        </td> 
                                     </tr>
                                 {% endif %}
                             {% else %}
@@ -625,7 +656,9 @@
                                         </td>
                                         <td id="FNN_{{ row.id }}_A">
                                             <span class="red">Not available</span>
-                                        </td>                                        
+                                        </td>
+                                        <td id="FCQ_{{ row.id }}_A">
+                                        </td>                                     
                                     </tr>
                                     
                                     <tr>
@@ -634,7 +667,9 @@
                                         </td>
                                         <td id="FNN_{{ row.id }}_B">
                                             <span class="red">Not available</span>
-                                        </td>                                        
+                                        </td>
+                                        <td id="FCQ_{{ row.id }}_B">
+                                        </td>
                                     </tr>
                                 {% else %}
                                     <tr>
@@ -657,7 +692,9 @@
                                         </td>
                                         <td id="FNN_{{ row.id }}_A">
                                             <span class="red">Not available</span>
-                                        </td>                                        
+                                        </td>
+                                        <td id="FCQ_{{ row.id }}_A">
+                                        </td> 
                                     </tr>
                                     
                                     <tr>
@@ -666,7 +703,9 @@
                                         </td>
                                         <td id="FNN_{{ row.id }}_B">
                                             <span class="red">Not available</span>
-                                        </td>                                        
+                                        </td>
+                                        <td id="FCQ_{{ row.id }}_B">
+                                        </td>
                                     </tr>
                                 {% endif %}
                             {% endif %}

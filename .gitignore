@@ -36,3 +36,5 @@ backup.sql
 seq_uploads
 
 seq_processed
+
+bucket_list.txt

@@ -6,6 +6,7 @@ import os
 import json
 import shutil
 from helpers.dbm import connect_db, get_session
+from helpers.fastqc import init_create_fastqc_report, check_fastqc_report
 from models.db_model import (
     SequencingUploadsTable,
     SequencingSamplesTable,
@@ -400,6 +401,23 @@ class SequencingUpload:
         db_engine = connect_db()
         session = get_session(db_engine)
 
+        # Fetch the SequencingUpload instance
+        upload_instance = (
+            session.query(SequencingUploadsTable)
+            .filter_by(id=sequencingUploadId)
+            .first()
+        )
+
+        # If no instance is found, return an empty result
+        # or handle the case as needed
+        if not upload_instance:
+            session.close()
+            return []
+
+        # Access the 'bucket' and 'uploads_folder' fields
+        bucket = upload_instance.project_id
+        uploads_folder = upload_instance.uploads_folder
+
         # Query to get all SequencingFilesUploadedTable entries
         # associated with the given sequencingUploadId
         uploaded_files = (
@@ -408,6 +426,7 @@ class SequencingUpload:
                 SequencingSamplesTable.id.label(
                     "sample_id"
                 ),  # Select the corresponding sample_id
+                SequencingSequencerIDsTable.Region,
             )
             .join(
                 SequencingSequencerIDsTable,
@@ -438,8 +457,12 @@ class SequencingUpload:
             {
                 **as_dict(file),  # File data
                 "sample_id": sample_id,  # Include the sample_id
+                "region": region,
+                "fastqc_report": check_fastqc_report(
+                    file.new_name, bucket, region, uploads_folder
+                ),  # Include the fastqc_report
             }
-            for file, sample_id in uploaded_files
+            for file, sample_id, region in uploaded_files
         ]
 
         # Close the session
@@ -587,6 +610,23 @@ class SequencingUpload:
         db_engine = connect_db()
         session = get_session(db_engine)
 
+        # Fetch the SequencingUpload instance
+        upload_instance = (
+            session.query(SequencingUploadsTable)
+            .filter_by(id=sequencingUploadId)
+            .first()
+        )
+
+        # If no instance is found, return an empty result or handle
+        # the case as needed
+        if not upload_instance:
+            session.close()
+            return []
+
+        # Access the 'project' field
+        bucket = upload_instance.project_id
+        uploads_folder = upload_instance.uploads_folder
+
         # Fetch related samples
         samples = (
             session.query(SequencingSamplesTable)
@@ -611,6 +651,7 @@ class SequencingUpload:
                 SequencingSamplesTable.id.label(
                     "sample_id"
                 ),  # Select the corresponding sample_id
+                SequencingSequencerIDsTable.Region,
             )
             .join(
                 SequencingSequencerIDsTable,
@@ -645,13 +686,29 @@ class SequencingUpload:
             sequencer_ids_dict[sample_id].append(as_dict(sequencer))
 
         uploaded_files_dict = {}
-        for file, sample_id in uploaded_files:
+        for file, sample_id, region in uploaded_files:
+            # Check if the FastQC report exists
+            fastqc_report = check_fastqc_report(
+                file.new_name, bucket, region, uploads_folder
+            )
+            if not fastqc_report:
+                processed_folder = f"seq_processed/{uploads_folder}"
+                init_create_fastqc_report(
+                    file.new_name, processed_folder, bucket, region
+                )
+
             sequencer_id = file.sequencerId
             if sample_id not in uploaded_files_dict:
                 uploaded_files_dict[sample_id] = {}
             if sequencer_id not in uploaded_files_dict[sample_id]:
                 uploaded_files_dict[sample_id][sequencer_id] = []
-            uploaded_files_dict[sample_id][sequencer_id].append(as_dict(file))
+
+            # Convert the file to a dictionary and add the fastqc_report field
+            file_dict = as_dict(file)
+            file_dict["fastqc_report"] = fastqc_report
+
+            # Append the file dictionary with the fastqc_report to the list
+            uploaded_files_dict[sample_id][sequencer_id].append(file_dict)
 
         # Combine the data into a structured list
         result = []

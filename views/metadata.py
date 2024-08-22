@@ -89,7 +89,6 @@ def metadata_form():
     regions = SequencingUpload.get_regions()
     nr_files_per_sequence = 1
     valid_samples = False
-    uploaded_files = []
     missing_sequencing_ids = []
     samples_data_complete = []
     if process_id:
@@ -100,7 +99,6 @@ def metadata_form():
 
         samples_data = SequencingUpload.get_samples(process_id)
         sequencer_ids = SequencingUpload.get_sequencer_ids(process_id)
-        uploaded_files = SequencingUpload.get_uploaded_files(process_id)
         valid_samples = SequencingUpload.validate_samples(process_id)
         missing_sequencing_ids = SequencingUpload.check_missing_sequencer_ids(
             process_id
@@ -123,7 +121,6 @@ def metadata_form():
         nr_files_per_sequence=nr_files_per_sequence,
         google_sheets_template_url=google_sheets_template_url,
         valid_samples=valid_samples,
-        uploaded_files=uploaded_files,
         missing_sequencing_ids=missing_sequencing_ids,
         samples_data_complete=samples_data_complete,
     )
@@ -735,3 +732,19 @@ def delete_upload_process_v2():
         return redirect(url_for("metadata.user_uploads_v2", user_id=user_id))
     else:
         return redirect(url_for("metadata.all_uploads"))
+
+
+@metadata_bp.route(
+    "/show_fastqc_report", methods=["GET"], endpoint="show_fastqc_report"
+)
+@login_required
+@approved_required
+def show_fastqc_report():
+    file_id = request.args.get("file_id")
+
+    fastqc_report = SequencingFileUploaded.get_fastqc_report(file_id)
+
+    if fastqc_report:
+        return send_file(fastqc_report)
+
+    return []

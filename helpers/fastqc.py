@@ -228,3 +228,37 @@ def init_create_fastqc_report(fastq_file, input_folder, bucket, region):
     except Exception as e:
         logger.error("This is an error message from fastqc.py")
         logger.error(e)
+
+
+def check_fastqc_report(filename, bucket, region, upload_folder):
+    logger = logging.getLogger(__name__)
+
+    # Only process files that end with fastq.gz
+    if not filename.endswith("fastq.gz"):
+        logger.info("File does not end with fastq.gz, returning False.")
+        return False
+
+    # Sanitize the filename by removing the .gz extension
+    # and replacing other unwanted characters
+    base_filename = filename.rsplit(".fastq.gz", 1)[0] + "_fastqc"
+
+    # Define the paths for the FastQC report files
+    html_file = (
+        f"seq_processed/{upload_folder}/fastqc/{bucket}/{region}/"
+        f"{base_filename}.html"
+    )
+    zip_file = (
+        f"seq_processed/{upload_folder}/fastqc/{bucket}/{region}/"
+        f"{base_filename}.zip"
+    )
+
+    # Convert relative paths to absolute paths
+    abs_html_file = os.path.abspath(html_file)
+    abs_zip_file = os.path.abspath(zip_file)
+
+    # Check if both files exist
+    if os.path.isfile(abs_html_file) and os.path.isfile(abs_zip_file):
+        return abs_html_file
+
+    # If either of the files doesn't exist, return False
+    return False

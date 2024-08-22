@@ -73,6 +73,10 @@
   #showAllRows {
     cursor: pointer;
     padding-left: 30px;
-  } 
+  }
+  .link {
+    color: blue;
+    text-decoration: underline;
+  }  
 
 }
