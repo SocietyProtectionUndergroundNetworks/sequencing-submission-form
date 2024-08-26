@@ -556,10 +556,11 @@ def sequencing_upload_chunk_check():
             logger.info(f"Chunk {chunk_number} exists at {chunk_path}")
             return "", 200  # Chunk already uploaded, return 200
         else:
-            logger.warning(f"Chunk {chunk_number} does not exist at {chunk_path}")
+            logger.warning(
+                f"Chunk {chunk_number} does not exist at {chunk_path}"
+            )
 
     return "", 204  # Chunk not found, return 204
-
 
 
 # The resumamble library indicates to us
