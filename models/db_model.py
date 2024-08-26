@@ -189,5 +189,5 @@ class SequencingFilesUploadedTable(Base):
         Integer, ForeignKey("sequencing_sequencer_ids.id", ondelete="CASCADE")
     )
     original_filename = Column(String(255), nullable=True)
-    new_name = Column(String(25), nullable=True)
+    new_name = Column(String(255), nullable=True)
     md5 = Column(String(50), nullable=True)
