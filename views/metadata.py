@@ -540,10 +540,10 @@ def sequencing_upload_chunk():
 @approved_required
 def sequencing_upload_chunk_check():
     process_id = request.args.get("process_id")
-    if process_id:
+    chunk_number = request.args.get("resumableChunkNumber")
+    resumable_filename = request.args.get("resumableFilename")
 
-        chunk_number = request.args.get("resumableChunkNumber")
-        resumable_filename = request.args.get("resumableFilename")
+    if process_id:
         process_data = SequencingUpload.get(process_id)
         uploads_folder = process_data["uploads_folder"]
 
@@ -553,8 +553,13 @@ def sequencing_upload_chunk_check():
         )
 
         if os.path.exists(chunk_path):
+            logger.info(f"Chunk {chunk_number} exists at {chunk_path}")
             return "", 200  # Chunk already uploaded, return 200
+        else:
+            logger.warning(f"Chunk {chunk_number} does not exist at {chunk_path}")
+
     return "", 204  # Chunk not found, return 204
+
 
 
 # The resumamble library indicates to us
@@ -583,6 +588,9 @@ def sequencing_file_upload_completed():
 
         final_file_path = f"seq_uploads/{uploads_folder}/{form_filename}"
         temp_file_path = f"seq_uploads/{uploads_folder}/{form_filename}.temp"
+        # Make sure we dont continue writting on a previous failed effort
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
 
         with open(temp_file_path, "ab") as temp_file:
             for i in range(1, form_filechunks + 1):
@@ -731,7 +739,7 @@ def delete_upload_process_v2():
         user_id = request.args.get("user_id")
         return redirect(url_for("metadata.user_uploads_v2", user_id=user_id))
     else:
-        return redirect(url_for("metadata.all_uploads"))
+        return redirect(url_for("metadata.all_uploads_v2"))
 
 
 @metadata_bp.route(
