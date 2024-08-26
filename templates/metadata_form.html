@@ -1804,13 +1804,17 @@
                                 calculateMD5(file.file, function(md5) {
                                     $("#" + file_msg_id).append('Md5 for file ' + file_name + ' calculated: ' + md5)
                                         .addClass('text-info').removeClass('text-danger').removeClass('text-success');                                    
+
+                                    // Use file.chunks.length if available, otherwise use calculated chunks
+                                    var fileChunks = file.chunks.length || Math.ceil(file.file.size / r.opts.chunkSize);
+                                    
                                     // Set unique query parameters for this file
                                     file.opts = {
                                         query: {
                                             process_id: process_id,
                                             filename: file_name,
                                             filesize: file.file.size,
-                                            filechunks: Math.ceil(file.file.size / r.opts.chunkSize),
+                                            filechunks: fileChunks,
                                             fileindex: file.uniqueIdentifier,
                                             sequencerId: matchingSequencerIds,
                                             md5: md5
