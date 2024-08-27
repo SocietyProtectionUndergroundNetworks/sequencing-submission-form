@@ -4,6 +4,7 @@ from helpers.bucket import (
     upload_final_files_to_storage,
     download_bucket_contents,
     process_fastq_files,
+    bucket_chunked_upload_v2,
 )
 from helpers.unzip import unzip_raw_file
 from helpers.fastqc import fastqc_multiqc_files, create_fastqc_report
@@ -42,3 +43,22 @@ def upload_final_files_to_storage_async(process_id):
 @celery_app.task
 def download_bucket_contents_async(bucket):
     download_bucket_contents(bucket)
+
+
+@celery_app.task
+def bucket_chunked_upload_v2_async(
+    local_file_path,
+    destination_upload_directory,
+    destination_blob_name,
+    sequencer_file_id,
+    bucket_name,
+    known_md5,
+):
+    bucket_chunked_upload_v2(
+        local_file_path,
+        destination_upload_directory,
+        destination_blob_name,
+        sequencer_file_id,
+        bucket_name,
+        known_md5,
+    )

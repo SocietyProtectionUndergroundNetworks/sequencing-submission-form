@@ -139,6 +139,7 @@ class SequencingUploadsTable(Base):
     metadata_upload_confirmed = Column(Boolean, default=False)
     DNA_conc_instrument = Column(String(255), nullable=True)
     reviewed_by_admin = Column(Boolean, default=False)
+    files_uploading_confirmed = Column(Boolean, default=False)
 
 
 class SequencingSamplesTable(Base):
@@ -191,3 +192,4 @@ class SequencingFilesUploadedTable(Base):
     original_filename = Column(String(255), nullable=True)
     new_name = Column(String(255), nullable=True)
     md5 = Column(String(50), nullable=True)
+    bucket_upload_progress = Column(Integer, nullable=True)

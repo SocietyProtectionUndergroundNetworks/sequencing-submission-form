@@ -726,3 +726,26 @@ class SequencingUpload:
         # Close the session
         session.close()
         return result
+
+    @classmethod
+    def update_field(cls, id, fieldname, value):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        # Fetch the existing record
+        upload_db = (
+            session.query(SequencingUploadsTable).filter_by(id=id).first()
+        )
+
+        if not upload_db:
+            session.close()
+            return None
+
+        # Update the specified field
+        setattr(upload_db, fieldname, value)
+
+        # Commit the changes
+        session.commit()
+        session.close()
+
+        return True

@@ -290,12 +290,10 @@
       <div id="step_5_msg"></div>
     </div>
 
-    <div
-      id="step_6-container"
+    <div id="step_6-container"
       {% if process_data and process_data.using_scripps %}
         style="display:none"
-      {% endif %}
-    >
+      {% endif %} >
       <div id="step_6" class="form-step-item">
         <h3> Step 6: Provide the sequencer ID</h3>
 
@@ -483,6 +481,7 @@
                       <th scope="col" class="bg-gray">Files</th>
                       <th scope="col" class="bg-gray">New Names</th>
                       <th scope="col" class="bg-gray">Report</th>
+                      <th scope="col" class="bg-gray">Storage</th>
                   </tr>
               </thead>
 
@@ -533,12 +532,17 @@
                                         <td id="FCQ_{{ sequencer.id }}_A">
                                             {% if files|length > 0 %}
                                                 {% if files[0].fastqc_report %}
-                                                    {% if files[0].fastqc_report %}
-                                                        <a href="show_fastqc_report?file_id={{ files[0].id }}" target="_blank" class="link">Done</a>
-                                                    {% endif %}                                                      
+                                                    <a href="show_fastqc_report?file_id={{ files[0].id }}" target="_blank" class="link">Done</a>
                                                 {% endif %}
                                             {% endif %}
-                                        </td>                                           
+                                        </td>
+                                        <td id="FBP_{{ sequencer.id }}_A">
+                                            {% if files|length > 0 %}
+                                                {% if files[0].bucket_upload_progress %}
+                                                    {{ files[0].bucket_upload_progress }}%
+                                                {% endif %}
+                                            {% endif %}
+                                        </td>
                                     </tr>
                                     
                                     <!-- Handle second file if it exists -->
@@ -564,6 +568,13 @@
                                                 {% endif %}                                                
                                             {% endif %}
                                         </td>
+                                        <td id="FBP_{{ sequencer.id }}_B">
+                                            {% if files|length > 1 %}
+                                                {% if files[1].bucket_upload_progress %}
+                                                    {{ files[1].bucket_upload_progress }}%
+                                                {% endif %}                                                
+                                            {% endif %}
+                                        </td>                                        
                                     </tr>
                                 {% else %}
                                     <!-- For subsequent sequencers in the same row -->
@@ -603,7 +614,14 @@
                                                     <a href="show_fastqc_report?file_id={{ files[0].id }}" target="_blank" class="link">Done</a>
                                                 {% endif %}                                                 
                                             {% endif %}
-                                        </td>                                                                                
+                                        </td>
+                                        <td id="FBP_{{ sequencer.id }}_A">
+                                          {% if files|length > 0 %}
+                                              {% if files[0].bucket_upload_progress %}
+                                                  {{ files[0].bucket_upload_progress }}%
+                                              {% endif %}                                                 
+                                          {% endif %}
+                                        </td>                                          
                                     </tr>
                                     
                                     <!-- Handle second file if it exists -->
@@ -628,7 +646,14 @@
                                                     <a href="show_fastqc_report?file_id={{ files[1].id }}" target="_blank" class="link">Done</a>
                                                 {% endif %}                                                  
                                             {% endif %}
-                                        </td> 
+                                        </td>
+                                        <td id="FBP_{{ sequencer.id }}_B">
+                                            {% if files|length > 1 %}
+                                                {% if files[1].bucket_upload_progress %}
+                                                    {{ files[1].bucket_upload_progress }}%
+                                                {% endif %}                                                  
+                                            {% endif %}
+                                        </td>
                                     </tr>
                                 {% endif %}
                             {% else %}
@@ -657,8 +682,8 @@
                                         <td id="FNN_{{ row.id }}_A">
                                             <span class="red">Not available</span>
                                         </td>
-                                        <td id="FCQ_{{ row.id }}_A">
-                                        </td>                                     
+                                        <td id="FCQ_{{ row.id }}_A"></td>
+                                        <td id="FBP_{{ row.id }}_A"></td>
                                     </tr>
                                     
                                     <tr>
@@ -668,8 +693,8 @@
                                         <td id="FNN_{{ row.id }}_B">
                                             <span class="red">Not available</span>
                                         </td>
-                                        <td id="FCQ_{{ row.id }}_B">
-                                        </td>
+                                        <td id="FCQ_{{ row.id }}_B"></td>
+                                        <td id="FBP_{{ row.id }}_B"></td>
                                     </tr>
                                 {% else %}
                                     <tr>
@@ -693,8 +718,8 @@
                                         <td id="FNN_{{ row.id }}_A">
                                             <span class="red">Not available</span>
                                         </td>
-                                        <td id="FCQ_{{ row.id }}_A">
-                                        </td> 
+                                        <td id="FCQ_{{ row.id }}_A"></td>
+                                        <td id="FBP_{{ row.id }}_A"></td>
                                     </tr>
                                     
                                     <tr>
@@ -704,8 +729,8 @@
                                         <td id="FNN_{{ row.id }}_B">
                                             <span class="red">Not available</span>
                                         </td>
-                                        <td id="FCQ_{{ row.id }}_B">
-                                        </td>
+                                        <td id="FCQ_{{ row.id }}_B"></td>
+                                        <td id="FBP_{{ row.id }}_B"></td>
                                     </tr>
                                 {% endif %}
                             {% endif %}
@@ -822,7 +847,7 @@
         </div>
       {% endif %}
     </div>
-
+    
     {% if process_data and not process_data.using_scripps %}
       <div id="step_7" class="form-step-item">
         <h3> Step 7: Confirm that all possible sequence ids have been provided</h3>
@@ -872,9 +897,53 @@
           </fieldset>
         </form>
         <div id="step_8_filename"></div>
-        <div id="step_8_msg" class="explanation">
+        <div id="step_8_msg" class="explanation"></div>
       </div>
+
+      <div id="step_9" class="form-step-item">
+        <h3> Step 9: Confirm all possible files have been uploaded</h3>
+        <form
+          method="POST"
+          action="/confirm_files_uploading_finished"
+          id="step_9_form"
+        >
+          <fieldset
+            {% if process_data and process_data.files_uploading_confirmed %}            
+             disabled="disabled"
+            {% endif %}
+          >
+            <input type="submit" class="btn btn-primary" id="step_9_button">
+            <input type="hidden" name="process_id" value="{{ process_id }}">
+          </fieldset>
+        </form>
+      </div>    
+      
     {% endif %}
+
+
+    {% if is_admin %}
+    
+      <div id="step_10" class="form-step-item">
+        <h3> Step 10: Admin only. Generate MultiQC report</h3>
+        <form
+          method="POST"
+          action="/generate_multiqc_report"
+          id="step_10_form"
+        >
+          <fieldset
+            {% if process_data and not process_data.files_uploading_confirmed %}            
+             disabled="disabled"
+            {% endif %}
+          >
+            <input type="submit" class="btn btn-primary" id="step_10_button">
+            <input type="hidden" name="process_id" value="{{ process_id }}">
+          </fieldset>
+        </form>
+      </div>      
+    {% endif %}
+  
+  
+  
   </div>
 
   <script type="application/javascript">
@@ -1783,7 +1852,6 @@
 
                 var formData = new FormData();
                 formData.append('process_id', process_id);
-                console.log('The process_id we are passing is ' + process_id)
                 formData.append('filename', file_name);
 
                 $.ajax({
@@ -1793,7 +1861,6 @@
                     contentType: false,
                     processData: false,
                     success: function(response) {
-                        console.log(response);
 
                         if (response.result === 1) {
                             if (response.matching_sequencer_id) {
@@ -1820,11 +1887,9 @@
                                             md5: md5
                                         }
                                     };
-                                    console.log(file.opts)
 
                                     // Introduce a delay before starting the upload
                                     setTimeout(function() {
-                                        console.log('We will now try to upload the file');
                                         r.upload(); // Start the upload
                                     }, 300); // Delay in milliseconds
 
@@ -1857,7 +1922,6 @@
 
         r.on('fileSuccess', function(file, message) {
             var file_msg_id = 'step_8_file_' + file.uniqueIdentifier;
-            console.log('File upload success', message);
             var file_name = file.file.name;
             var formData = new FormData();
 
@@ -1877,8 +1941,6 @@
                 contentType: false,
                 processData: false,
                 success: function(response) {
-                    console.log('sequencing_file_upload_completed')
-                    console.log(response);
 
                     if (response.result === 1) {
                       $("#" + file_msg_id).append("<p>Upload completed successfully.</p>").addClass('text-success');
@@ -1977,7 +2039,28 @@
   ////// ############ STEP 8 ENDS HERE ############### /////////
   ////// ############################################# /////////
 
+  ////// ############################################# /////////
+  ////// ############ STEP 9 STARTS HERE ############# /////////
+  ////// ############################################# /////////
+  $('#step_9_form').submit(function(event) {
+      event.preventDefault(); // Prevent default form submission
 
+      // Ask the user for confirmation
+      var userConfirmed = confirm('Have you checked the table above, and can you confirm that all possible files have been uploaded?');
+
+      if (userConfirmed) {
+          // User confirmed, submit the form
+          $(this).off('submit').submit(); // Unbind the submit handler and submit the form
+      } else {
+          // User canceled, do nothing
+          console.log('Form submission canceled.');
+      }
+  });
+
+
+  ////// ############################################# /////////
+  ////// ############ STEP 9 ENDS HERE ############### /////////
+  ////// ############################################# /
 
   ////// ############################################# /////////
   ////// ###### MAP HELPER FUNCTIONS START HERE ###### /////////

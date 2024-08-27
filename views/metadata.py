@@ -27,7 +27,7 @@ from helpers.metadata_check import (
 from helpers.create_xls_template import (
     create_template_one_drive_and_excel,
 )
-from helpers.bucket import delete_bucket_folder
+from helpers.bucket import delete_bucket_folder, init_bucket_chunked_upload_v2
 from helpers.fastqc import init_create_fastqc_report
 import numpy as np
 from helpers.file_renaming import calculate_md5
@@ -123,6 +123,7 @@ def metadata_form():
         valid_samples=valid_samples,
         missing_sequencing_ids=missing_sequencing_ids,
         samples_data_complete=samples_data_complete,
+        is_admin=current_user.admin,
     )
 
 
@@ -620,8 +621,11 @@ def sequencing_file_upload_completed():
                 )
             )
 
+            # assign the file to the correct sequencer in the database and
+            # process it further
             if len(matching_sequencer_ids) == 1:
                 file_sequencer_id = matching_sequencer_ids[0]
+
                 new_filename = SequencingSequencerId.generate_new_filename(
                     process_id, form_filename
                 )
@@ -631,11 +635,21 @@ def sequencing_file_upload_completed():
                     "new_name": new_filename,
                 }
 
-                SequencingFileUploaded.create(file_sequencer_id, file_dict)
-
+                new_file_uploaded_id = SequencingFileUploaded.create(
+                    file_sequencer_id, file_dict
+                )
+                logger.info(
+                    "The new_file_uploaded_id is " + str(new_file_uploaded_id)
+                )
                 # If a new filename is provided, copy the file to
                 # the new location
                 if new_filename:
+                    # Get the data of the SequencingSequencerId
+                    # to get the region
+                    sequencerId = SequencingSequencerId.get(file_sequencer_id)
+                    region = sequencerId.Region
+                    bucket = process_data["project_id"]
+
                     processed_folder = f"seq_processed/{uploads_folder}"
                     processed_file_path = f"{processed_folder}/{new_filename}"
                     os.makedirs(
@@ -643,13 +657,18 @@ def sequencing_file_upload_completed():
                     )
                     shutil.copy2(final_file_path, processed_file_path)
 
-                    sequencerId = SequencingSequencerId.get(file_sequencer_id)
-                    logger.info(sequencerId)
-                    region = sequencerId.Region
-                    bucket = process_data["project_id"]
-
                     init_create_fastqc_report(
                         new_filename, processed_folder, bucket, region
+                    )
+
+                    # Copy the file to the correct bucket and folder
+                    init_bucket_chunked_upload_v2(
+                        local_file_path=processed_file_path,
+                        destination_upload_directory=region,
+                        destination_blob_name=new_filename,
+                        sequencer_file_id=new_file_uploaded_id,
+                        bucket_name=bucket,
+                        known_md5=expected_md5,
                     )
 
                 return (
@@ -757,3 +776,20 @@ def show_fastqc_report():
         return send_file(fastqc_report)
 
     return []
+
+
+@metadata_bp.route(
+    "/confirm_files_uploading_finished",
+    methods=["POST"],
+    endpoint="confirm_files_uploading_finished",
+)
+@login_required
+@approved_required
+def confirm_files_uploading_finished():
+    process_id = request.form.get("process_id")
+    SequencingUpload.update_field(
+        process_id, "files_uploading_confirmed", True
+    )
+    return redirect(
+        url_for("metadata.metadata_form", process_id=process_id) + "#step_9"
+    )

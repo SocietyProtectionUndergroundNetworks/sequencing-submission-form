@@ -1,7 +1,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link href="/static/css/general.css" rel="stylesheet" type="text/css" />    
+    <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
     <title>Spun data upload</title>
 </head>
@@ -14,7 +14,7 @@
       </ul>
     </div>
   </div>
-  <div class="content" style="p-4">  
+  <div class="content" style="p-4">
     <h1>Sequencing data upload process form</h1>
     <div>
         You are logged in with the name: {{name}} <br>
@@ -26,26 +26,26 @@
             <h3> Version 2 </h3>
             <a href="/all_uploads_v2">
               <div class="page-menu-item">
-                <h3>All v2 uploads</h3>               
+                <h3>All v2 uploads</h3>
               </div>
-            </a>            
-            
+            </a>
+
           {% endif %}
           <a href="{{ url_for('metadata.metadata_form') }}">
             <div class="page-menu-item">
-              <h3>Metadata Submition form</h3>
+              <h3>Metadata submission form</h3>
               <div> Start a new process. </div>
               {% if user_metadata_uploads %}
                 <div> If you have already started one, please continue the previous process if possible </div>
               {% endif %}
             </div>
-          </a>        
+          </a>
           {% if user_metadata_uploads %}
             <a href="/user_uploads_v2?user_id={{ user_id }}">
               <div class="page-menu-item">
                 <h3>Previous uploads of user</h3>
                 <div> Please note that you have started allready a previous process </div>
-                <div> You can continue the previous process if possible </div>                
+                <div> You can continue the previous process if possible </div>
               </div>
             </a>
           {% endif %}
@@ -53,7 +53,7 @@
         {% if (not user_should_see_v2) or current_user.admin %}
           {% if current_user.admin %}
             <h3> Version 1 </h3>
-          {% endif %}        
+          {% endif %}
           {% if gz_filedata %}
             <a href="/form_resume">
               <div class="page-menu-item">
@@ -72,19 +72,19 @@
                             {% endif %}
                         {% endif %}
                     {% endfor %}
-                  
+
                 </div>
-                
+
                 <h3>Resume Upload</h3>
               </div>
-              
+
             </a>
-          {% endif %}        
+          {% endif %}
           <a href="/user_uploads?user_id={{ user_id }}">
             <div class="page-menu-item">
               <h3>Previous uploads</h3>
             </div>
-          </a>        
+          </a>
           <a href="/form">
             <div class="page-menu-item">
               <h3>Start a new upload</h3>
@@ -104,7 +104,7 @@
           <div class="page-menu-item">
             <h3>User Groups</h3>
           </div>
-        </a>         
+        </a>
         <a href="{{ url_for('user.users') }}">
           <div class="page-menu-item">
             <h3>Users</h3>
@@ -114,21 +114,21 @@
           <div class="page-menu-item">
             <h3>All uploads</h3>
           </div>
-        </a>        
+        </a>
       {% endif %}
       <a href="/logout">
         <div class="page-menu-item">
           <h3>Logout</h3>
         </div>
       </a>
-      
+
       {% if current_user.is_authenticated and current_user.admin %}
         {% if sys_info and 'disk_used_percent' in sys_info %}
           Hard disk usage: {{ sys_info['disk_used_percent'] }}%
-        
+
         {% endif %}
       {% endif %}
-      
+
 
   </div>
 </body>

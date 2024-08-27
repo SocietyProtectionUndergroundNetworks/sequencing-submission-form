@@ -7,6 +7,7 @@ import re
 import shutil
 import gzip
 import csv
+import base64
 from collections import OrderedDict
 
 # Library about google cloud storage
@@ -14,6 +15,10 @@ from google.cloud import storage
 from pathlib import Path
 from models.upload import Upload
 from models.bucket import Bucket
+from models.db_model import (
+    SequencingFilesUploadedTable,
+)
+from helpers.dbm import connect_db, get_session
 
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
@@ -647,3 +652,177 @@ def process_fastq_files():
             writer.writerow(file_info)
 
     return {"msg": "Process completed", "processed_files": processed_files}
+
+
+# When we try to import the SequencingFileUploaded class,
+# we get a cyclic import
+# So we update the db directly
+# TODO. See if/how we can get rid of this and update include the class
+def update_sequencer_file_progress(sequencer_file_id, progress):
+    logger.info(
+        "in update_sequencer_file_progress with sequencer_file_id "
+        + str(sequencer_file_id)
+        + " and progress "
+        + str(progress)
+    )
+    db_engine = connect_db()
+    session = get_session(db_engine)
+
+    # Fetch the existing record
+    sequencer_file_db = (
+        session.query(SequencingFilesUploadedTable)
+        .filter_by(id=sequencer_file_id)
+        .first()
+    )
+
+    if not sequencer_file_db:
+        session.close()
+        return None
+
+    sequencer_file_db.bucket_upload_progress = progress
+
+    # Commit the changes
+    session.commit()
+    session.close()
+
+
+# Quite similar to bucket_chunked_upload but accomodating for a different data
+# model in version 2 of the application.
+# To keep things simple, we are redoing the function with different parameters
+# the original function can be removed when version1 will be out of commision
+def bucket_chunked_upload_v2(
+    local_file_path,
+    destination_upload_directory,
+    destination_blob_name,
+    sequencer_file_id,
+    bucket_name,
+    known_md5,
+):
+
+    # Configure Google Cloud Storage
+    if bucket_name is None:
+        bucket_name = os.environ.get("GOOGLE_STORAGE_BUCKET_NAME")
+
+    bucket_name = bucket_name.lower()
+
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+
+    total_size = os.path.getsize(local_file_path)
+
+    # If the file is smaller than 30 MB, upload it directly
+    if total_size <= 30 * 1024 * 1024:
+        blob = bucket.blob(
+            f"{destination_upload_directory}/{destination_blob_name}"
+        )
+        blob.upload_from_filename(local_file_path)
+
+        # Verify MD5 checksum
+        blob_md5 = blob.md5_hash
+        # Convert known_md5 from hex to base64
+        known_md5_base64 = base64.b64encode(bytes.fromhex(known_md5)).decode(
+            "utf-8"
+        )
+
+        if blob_md5:
+            # Compare base64-encoded MD5 checksums
+            if known_md5_base64 == blob_md5:
+                if sequencer_file_id:
+                    update_sequencer_file_progress(sequencer_file_id, 100)
+            else:
+                raise ValueError("MD5 checksum does not match!")
+
+        return True
+
+    # If the file is between 30 MB and 700 MB, do chunks of 30 MB each
+    if 30 * 1024 * 1024 < total_size <= 700 * 1024 * 1024:
+        chunk_size = 30 * 1024 * 1024
+
+    # If the file is larger than 700 MB, separate it into 32 chunks
+    else:
+        chunk_size = total_size // 30
+
+    chunk_num = 0
+    chunks = []
+
+    with open(local_file_path, "rb") as file:
+        while True:
+            data = file.read(chunk_size)
+            if not data:
+                break
+
+            temp_blob = bucket.blob(
+                f"{destination_upload_directory}/"
+                f"{destination_blob_name}.part{chunk_num}"
+            )
+            temp_blob.upload_from_string(
+                data, content_type="application/octet-stream"
+            )
+            chunks.append(temp_blob)
+            chunk_num += 1
+
+            if sequencer_file_id:
+                update_sequencer_file_progress(
+                    sequencer_file_id, (file.tell() / total_size) * 100
+                )
+            print(f"Bytes uploaded: {file.tell()} / {total_size}", flush=True)
+
+        blob = bucket.blob(
+            f"{destination_upload_directory}/{destination_blob_name}"
+        )
+        blob.compose(chunks)
+
+        for temp_blob in chunks:
+            temp_blob.delete()
+
+        # Verify MD5 checksum
+        blob_md5 = blob.md5_hash
+        # Convert known_md5 from hex to base64
+        known_md5_base64 = base64.b64encode(bytes.fromhex(known_md5)).decode(
+            "utf-8"
+        )
+        if blob_md5:
+            if known_md5_base64 == blob_md5:
+                if sequencer_file_id:
+                    update_sequencer_file_progress(sequencer_file_id, 100)
+            else:
+                raise ValueError("MD5 checksum does not match!")
+
+        return True
+
+
+def init_bucket_chunked_upload_v2(
+    local_file_path,
+    destination_upload_directory,
+    destination_blob_name,
+    sequencer_file_id,
+    bucket_name,
+    known_md5,
+):
+
+    from tasks import bucket_chunked_upload_v2_async
+
+    try:
+        result = bucket_chunked_upload_v2_async.delay(
+            local_file_path,
+            destination_upload_directory,
+            destination_blob_name,
+            sequencer_file_id,
+            bucket_name,
+            known_md5,
+        )
+        logger.info(
+            f"Celery bucket_chunked_upload_v2_async"
+            f" task called successfully! "
+            f"Task ID: {result.id}. sequencer_file_id: {sequencer_file_id}"
+        )
+        # task_id = result.id
+        # upload.update_fastqc_process_id(process_id, task_id)
+    except Exception as e:
+        logger.error(
+            "This is an error message from helpers/bucket.py "
+            "while trying to bucket_chunked_upload_v2_async"
+        )
+        logger.error(e)
+
+    return {"msg": "Process initiated"}
