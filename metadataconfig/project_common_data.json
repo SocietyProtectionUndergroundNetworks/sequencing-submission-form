@@ -5,16 +5,19 @@
     "required": "True"
   },
   "Sequencing_platform": {
+    "label": "Sequencing platform",
     "lookup_file": "sequencing_platform.json",
     "help_tip": "Platform used for sequencing.",
     "required": "IfNotScripps"
   },
   "Sequencing_facility": {
+    "label": "Sequencing facility",
     "help_tip": "Company or core facility name",
     "check_function": "check_sequencing_facility",
     "required": "IfNotScripps"
   },
   "Expedition_lead": {
+    "label": "Expedition lead",
     "help_tip": "Name of leader and Underground Explorer grant winner",
     "check_function": "check_expedition_lead",
     "required": "True"
@@ -24,27 +27,44 @@
     "check_function": "check_collaborators",
     "required": "True"
   },
-  "Primer_set_1": {
-    "lookup_file": "primer_set.json",
-    "help_tip": "First primer set used for amplicon sequencing, if applicable.",
+  "region_1_forward_primer": {
+    "label": "Region 1 forward primer",
+    "lookup_file": "primers.json",
+    "help_tip": "For region one: which forward primer did you use?",
     "required": "IfNotScripps"
   },
-  "Primer_set_2": {
-    "lookup_file": "primer_set.json",
-    "help_tip": "Secondary primer set used for amplicon sequencing, if applicable.",
+  "region_1_reverse_primer": {
+    "label": "Region 1 reverse primer",
+    "lookup_file": "primers.json",
+    "help_tip": "For region one: which reverse primer did you use?",
+    "required": "IfNotScripps"
+  },
+  "region_2_forward_primer": {
+    "label": "Region 2 forward primer",
+    "lookup_file": "primers.json",
+    "help_tip": "For region two: which forward primer did you use?",
     "required": "OptionalIfNotScripps"
   },
+  "region_2_reverse_primer": {
+    "label": "Region 2 reverse primer",
+    "lookup_file": "primers.json",
+    "help_tip": "For region two: which reverse primer did you use?",
+    "required": "OptionalIfNotScripps"
+  },  
   "Extraction_method": {
+    "label": "Extraction method",
     "lookup_file": "extraction_method.json",
     "help_tip": "Kit or protocol used for DNA extraction. ‘Conventional extraction’ refers to a laboratory protocol using common buffers and solutions (such a SDS, phenol). Conventional extraction, CTAB refers to a laboratory protocol using common buffers and solutions in addition to the CTAB buffer.",
     "required": "True"
   },
   "DNA_conc_instrument": {
+    "label": "DNA conc instrument",
     "lookup_file": "dna_conc_instrument.json",
     "help_tip": "Instrument/machine used to quantify DNA",
     "required": "True"
   },  
   "Multiple_sequencing_runs": {
+    "label": "Multiple sequencing runs",
     "lookup_file": "multiple_sequencing_runs.json",
     "help_tip": "Were your samples run across multiple sequencing runs (if known)? ",
     "required": "True"

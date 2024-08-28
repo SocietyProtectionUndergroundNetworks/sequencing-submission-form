@@ -4,7 +4,6 @@ import numpy as np
 from helpers.dbm import connect_db, get_session
 from models.db_model import SequencingSequencerIDsTable, SequencingSamplesTable
 from models.sequencing_upload import SequencingUpload
-from helpers.metadata_check import get_regions
 from sqlalchemy import and_
 
 # Get the logger instance from app.py
@@ -143,7 +142,12 @@ class SequencingSequencerId:
                 result = 0
                 messages.append("No sample data found for this upload")
 
-            regions = get_regions(process_data)
+            regions = SequencingUpload.get_regions(
+                process_data["region_1_forward_primer"],
+                process_data["region_1_reverse_primer"],
+                process_data["region_2_forward_primer"],
+                process_data["region_2_reverse_primer"],
+            )
             for index, row in df.iterrows():
                 if row["Region"] not in regions:
                     result = 0

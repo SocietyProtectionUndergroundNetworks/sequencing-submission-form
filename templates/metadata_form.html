@@ -115,7 +115,13 @@
           {% for column_key, column_values in project_common_data.items() %}
             <div class="form-group row mb-3" data-condition="{{ column_values.get('required', '') }}">
               <small class="form-text text-danger error-message" style="display: none;"></small>
-              <label for="{{ column_key }}" class="col-sm-3 col-form-label">{{ column_key }}</label>
+              <label for="{{ column_key }}" class="col-sm-3 col-form-label">
+                {% if 'label' in column_values %}
+                  {{ column_values['label']}}
+                {% else %}
+                  {{ column_key }}
+                {% endif %}
+              </label>
               <div class="col-sm-9">
                 <small id="{{ column_key }}Help" class="form-text">{{ column_values['help_tip'] }}</small>
                 {% if 'options' in column_values %}
@@ -448,7 +454,7 @@
                     <input type="text" class="form-control" id="index_1" name="index_1" >
                 </div>
             </div>
-            
+
             <div class="form-group row mb-3">
                 <label for="index_2" class="col-sm-3 col-form-label">Index_2</label>
                 <div class="col-sm-9">
@@ -495,7 +501,7 @@
                             {% if region_index < row.sequencer_ids | length %}
                                 {% set sequencer = row.sequencer_ids[region_index] %}
                                 {% set files = sequencer.uploaded_files %}
-                                
+
                                 {% if region_index == 0 %}
                                     <!-- Only add these cells for the first sequencer of each row -->
                                     <tr>
@@ -544,7 +550,7 @@
                                             {% endif %}
                                         </td>
                                     </tr>
-                                    
+
                                     <!-- Handle second file if it exists -->
                                     <tr>
                                         <td id="F_{{ sequencer.id }}_B">
@@ -565,16 +571,16 @@
                                             {% if files|length > 1 %}
                                                 {% if files[1].fastqc_report %}
                                                     <a href="show_fastqc_report?file_id={{ files[1].id }}" target="_blank" class="link">Done</a>
-                                                {% endif %}                                                
+                                                {% endif %}
                                             {% endif %}
                                         </td>
                                         <td id="FBP_{{ sequencer.id }}_B">
                                             {% if files|length > 1 %}
                                                 {% if files[1].bucket_upload_progress %}
                                                     {{ files[1].bucket_upload_progress }}%
-                                                {% endif %}                                                
+                                                {% endif %}
                                             {% endif %}
-                                        </td>                                        
+                                        </td>
                                     </tr>
                                 {% else %}
                                     <!-- For subsequent sequencers in the same row -->
@@ -612,18 +618,18 @@
                                             {% if files|length > 0 %}
                                                 {% if files[0].fastqc_report %}
                                                     <a href="show_fastqc_report?file_id={{ files[0].id }}" target="_blank" class="link">Done</a>
-                                                {% endif %}                                                 
+                                                {% endif %}
                                             {% endif %}
                                         </td>
                                         <td id="FBP_{{ sequencer.id }}_A">
                                           {% if files|length > 0 %}
                                               {% if files[0].bucket_upload_progress %}
                                                   {{ files[0].bucket_upload_progress }}%
-                                              {% endif %}                                                 
+                                              {% endif %}
                                           {% endif %}
-                                        </td>                                          
+                                        </td>
                                     </tr>
-                                    
+
                                     <!-- Handle second file if it exists -->
                                     <tr>
                                         <td id="F_{{ sequencer.id }}_B">
@@ -644,14 +650,14 @@
                                             {% if files|length > 1 %}
                                                 {% if files[1].fastqc_report %}
                                                     <a href="show_fastqc_report?file_id={{ files[1].id }}" target="_blank" class="link">Done</a>
-                                                {% endif %}                                                  
+                                                {% endif %}
                                             {% endif %}
                                         </td>
                                         <td id="FBP_{{ sequencer.id }}_B">
                                             {% if files|length > 1 %}
                                                 {% if files[1].bucket_upload_progress %}
                                                     {{ files[1].bucket_upload_progress }}%
-                                                {% endif %}                                                  
+                                                {% endif %}
                                             {% endif %}
                                         </td>
                                     </tr>
@@ -685,7 +691,7 @@
                                         <td id="FCQ_{{ row.id }}_A"></td>
                                         <td id="FBP_{{ row.id }}_A"></td>
                                     </tr>
-                                    
+
                                     <tr>
                                         <td id="F_{{ row.id }}_B">
                                             <span class="red">Not available</span>
@@ -721,7 +727,7 @@
                                         <td id="FCQ_{{ row.id }}_A"></td>
                                         <td id="FBP_{{ row.id }}_A"></td>
                                     </tr>
-                                    
+
                                     <tr>
                                         <td id="F_{{ row.id }}_B">
                                             <span class="red">Not available</span>
@@ -847,11 +853,11 @@
         </div>
       {% endif %}
     </div>
-    
+
     {% if process_data and not process_data.using_scripps %}
       <div id="step_7" class="form-step-item">
         <h3> Step 7: Confirm that all possible sequence ids have been provided</h3>
-        
+
         <div id="step_7_missing_ids">
           {% if missing_sequencing_ids %}
             <h4> The following samples are missing one or more of their expected regions </h4>
@@ -861,7 +867,7 @@
                 <li>{{ row["SampleID"] }}</li>
               {% endif %}
             {% endfor %}
-            </ul>         
+            </ul>
           {% endif %}
         </div>
         <form id="step_7_form">
@@ -875,7 +881,7 @@
             <input type="hidden" name="process_id" value="{{ process_id }}">
             <input type="button" id="step_7_button" value="I confirm">
           </fieldset>
-        </form>        
+        </form>
       </div>
 
 
@@ -908,7 +914,7 @@
           id="step_9_form"
         >
           <fieldset
-            {% if process_data and process_data.files_uploading_confirmed %}            
+            {% if process_data and process_data.files_uploading_confirmed %}
              disabled="disabled"
             {% endif %}
           >
@@ -916,13 +922,13 @@
             <input type="hidden" name="process_id" value="{{ process_id }}">
           </fieldset>
         </form>
-      </div>    
-      
+      </div>
+
     {% endif %}
 
 
     {% if is_admin %}
-    
+
       <div id="step_10" class="form-step-item">
         <h3> Step 10: Admin only. Generate MultiQC report</h3>
         <form
@@ -931,7 +937,7 @@
           id="step_10_form"
         >
           <fieldset
-            {% if process_data and not process_data.files_uploading_confirmed %}            
+            {% if process_data and not process_data.files_uploading_confirmed %}
              disabled="disabled"
             {% endif %}
           >
@@ -939,11 +945,11 @@
             <input type="hidden" name="process_id" value="{{ process_id }}">
           </fieldset>
         </form>
-      </div>      
+      </div>
     {% endif %}
-  
-  
-  
+
+
+
   </div>
 
   <script type="application/javascript">
@@ -1573,7 +1579,7 @@
         $('#sequencer_sample_id').prop('disabled', true);
     }
   }
-  
+
   $(document).ready(function() {
 
     // Listen for changes in the radio buttons using_scripps
@@ -1662,7 +1668,7 @@
                               $(i2_td_id).html(index_2)
                             } else {
                               $(i2_td_id).html('None')
-                            }                                                   
+                            }
                           }
                         }
 
@@ -1671,7 +1677,7 @@
                         $('#sequencerIdsForm_message').text('Record already exists for this sample and region. Fill in the form to add new record.').addClass('text-danger').removeClass('text-success').show();
                       }
                       $('#sequencerIdsForm').trigger('reset');
-                      
+
                       //console.log('The samples_data is ')
                       //console.log(samples_data)
                       if (response.missing_sequencing_ids) {
@@ -1759,7 +1765,7 @@
   }
   function disableForm_step_7() {
       $('#step_7_form fieldset').attr('disabled', 'disabled');
-  }   
+  }
   function update_step7_missing_ids_div(missingSequencingIds) {
       if (missingSequencingIds && missingSequencingIds.length > 0) {
           var newContent = '<h4>The following samples are missing one or more of their expected regions</h4>';
@@ -1787,7 +1793,7 @@
       disableForm_step_6();
       disableForm_step_7();
     });
-  });  
+  });
   ////// ############################################# /////////
   ////// ############ STEP 7 ENDS HERE ############### /////////
   ////// ############################################# /////////
@@ -1870,11 +1876,11 @@
                                 // Calculate MD5 and start upload
                                 calculateMD5(file.file, function(md5) {
                                     $("#" + file_msg_id).append('Md5 for file ' + file_name + ' calculated: ' + md5)
-                                        .addClass('text-info').removeClass('text-danger').removeClass('text-success');                                    
+                                        .addClass('text-info').removeClass('text-danger').removeClass('text-success');
 
                                     // Use file.chunks.length if available, otherwise use calculated chunks
                                     var fileChunks = file.chunks.length || Math.ceil(file.file.size / r.opts.chunkSize);
-                                    
+
                                     // Set unique query parameters for this file
                                     file.opts = {
                                         query: {

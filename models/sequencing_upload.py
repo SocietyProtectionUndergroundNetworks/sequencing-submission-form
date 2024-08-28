@@ -61,7 +61,10 @@ class SequencingUpload:
         )
 
         upload.regions = cls.get_regions(
-            filtered_dict["Primer_set_1"], filtered_dict["Primer_set_2"]
+            filtered_dict["region_1_forward_primer"],
+            filtered_dict["region_1_reverse_primer"],
+            filtered_dict["region_2_forward_primer"],
+            filtered_dict["region_2_reverse_primer"],
         )
 
         # Convert the instance to a dictionary including the custom attribute
@@ -101,7 +104,10 @@ class SequencingUpload:
             )
 
             upload.regions = cls.get_regions(
-                filtered_dict["Primer_set_1"], filtered_dict["Primer_set_2"]
+                filtered_dict["region_1_forward_primer"],
+                filtered_dict["region_1_reverse_primer"],
+                filtered_dict["region_2_forward_primer"],
+                filtered_dict["region_2_reverse_primer"],
             )
 
             # Calculate the total size of the uploads folder and
@@ -184,7 +190,13 @@ class SequencingUpload:
         return 1
 
     @classmethod
-    def get_regions(cls, primer_set_1=None, primer_set_2=None):
+    def get_regions(
+        cls,
+        region_1_forward_primer=None,
+        region_1_reverse_primer=None,
+        region_2_forward_primer=None,
+        region_2_reverse_primer=None,
+    ):
         current_dir = os.path.dirname(__file__)
         base_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
         regions_file_path = os.path.join(
@@ -195,19 +207,34 @@ class SequencingUpload:
         with open(regions_file_path, "r") as f:
             primer_set_region = json.load(f)
 
-        # Check if process_data exists
-        if primer_set_1 is None and primer_set_2 is None:
-            # If process_data does not exist, return all available regions
-            data = list(primer_set_region.values())
-        else:
-            data = []
-            if primer_set_1 in primer_set_region:
-                data.append(primer_set_region[primer_set_1])
-            if primer_set_2 in primer_set_region:
-                data.append(primer_set_region[primer_set_2])
+        # If process_data does not exist, return all available regions
 
-        data = list(set(data))
-        return data
+        # specified primer sets
+        primer_set_1_regions = list(primer_set_region.values())
+        if (
+            region_1_forward_primer is not None
+            and region_1_reverse_primer is not None
+        ):
+            primer_set_1 = (
+                region_1_forward_primer + "/" + region_1_reverse_primer
+            )
+            if primer_set_1 in primer_set_region:
+                primer_set_1_regions = [primer_set_region[primer_set_1]]
+
+        primer_set_2_regions = list(primer_set_region.values())
+        if (
+            region_2_forward_primer is not None
+            and region_2_reverse_primer is not None
+        ):
+            primer_set_2 = (
+                region_2_forward_primer + "/" + region_2_reverse_primer
+            )
+            if primer_set_2 in primer_set_region:
+                primer_set_2_regions = [primer_set_region[primer_set_2]]
+
+        regions = list(set(primer_set_1_regions + primer_set_2_regions))
+
+        return regions
 
     @classmethod
     def get_samples(self, sequencingUploadId):
@@ -249,12 +276,17 @@ class SequencingUpload:
         )
 
         if datadict["using_scripps"] == "yes":
-            datadict["Primer_set_1"] = "ITS3/ITS4"
-            datadict["Primer_set_2"] = "WANDA/AML2"
+            datadict["region_1_forward_primer"] = "ITS3"
+            datadict["region_1_reverse_primer"] = "ITS4"
+            datadict["region_2_forward_primer"] = "WANDA"
+            datadict["region_2_reverse_primer"] = "AML2"
             datadict["Sequencing_platform"] = "Element Biosciences AVITI"
             datadict["Sequencing_facility"] = "Scripps Research"
 
-        if datadict["Primer_set_2"] == "0":
+        if (
+            datadict["region_2_forward_primer"] == "0"
+            and datadict["region_2_reverse_primer"] == "0"
+        ):
             datadict["Sequencing_regions_number"] = 1
         else:
             datadict["Sequencing_regions_number"] = 2
@@ -377,7 +409,10 @@ class SequencingUpload:
             upload["Sequencing_platform"]
         )
         regions = cls.get_regions(
-            upload["Primer_set_1"], upload["Primer_set_2"]
+            upload["region_1_forward_primer"],
+            upload["region_1_reverse_primer"],
+            upload["region_2_forward_primer"],
+            upload["region_2_reverse_primer"],
         )
 
         for sample in samples:
