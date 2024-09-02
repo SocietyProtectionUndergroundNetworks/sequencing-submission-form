@@ -101,38 +101,51 @@ def check_expected_columns(df, expected_columns_data):
 def check_sample_id(sample_id):
     """
     Check if a given SampleID follows the format:
-    A location name (letters and optional underscores), followed by
-    a unique number (one or more digits).
+    Any combination of letters, numbers, and underscores
+    followed by an underscore and then one or more digits.
     """
-    sample_id_str = str(sample_id)
+    sample_id_str = str(
+        sample_id
+    ).strip()  # Ensure no leading/trailing whitespace
 
     # Check if it is empty
     if not sample_id_str:
         return {"status": 0, "message": "SampleID cannot be empty"}
 
-    # Check if it matches the new pattern
-    pattern = re.compile(r"^[A-Za-z_]+[0-9]+$")
-
+    # Updated pattern to allow any combination of letters, numbers, and
+    # underscores before the last underscore
+    pattern = re.compile(r"^[A-Za-z0-9_]+_[0-9]+$")
     if not pattern.match(sample_id_str):
-        # Further breakdown of the validation
+        return {
+            "status": 0,
+            "message": (
+                "Invalid format: must end with "
+                " an underscore followed by digits"
+            ),
+        }
 
-        # Check if it contains a number
-        if not any(char.isdigit() for char in sample_id_str):
+    # Split into base part and number
+    match = re.match(r"^(.*)_(\d+)$", sample_id_str)
+    if match:
+        base_part, unique_number = match.groups()
+
+        # Ensure the base part does not end with an underscore
+        if base_part.endswith("_"):
             return {
                 "status": 0,
-                "message": "SampleID must contain a number",
+                "message": "Base part must not end with an underscore",
             }
 
-        # Check if it contains letters
-        if not any(char.isalpha() for char in sample_id_str):
+        # Ensure the unique number is a positive integer
+        if not unique_number.isdigit() or int(unique_number) <= 0:
             return {
                 "status": 0,
-                "message": "SampleID must contain letters",
+                "message": "Unique number must be one or more positive digits",
             }
 
-        return {"status": 0, "message": "Invalid format: general issue"}
+        return {"status": 1, "message": "Valid value"}
 
-    return {"status": 1, "message": "Valid value"}
+    return {"status": 0, "message": "Invalid format: general issue"}
 
 
 def check_sequencing_facility(value):
