@@ -518,7 +518,9 @@ def sequencing_upload_chunk():
             logger.info("chunk_number: " + str(chunk_number))
             # Save or process the chunk
             save_path = (
-                f"seq_uploads/{uploads_folder}/{file.filename}.part{chunk_number}"
+                f"seq_uploads/{uploads_folder}/"
+                f"{file.filename}.part"
+                f"{chunk_number}"
             )
             file.save(save_path)
 
