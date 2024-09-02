@@ -1,0 +1,88 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="/static/css/google_login.css" rel="stylesheet" type="text/css" />
+    <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnSuA4Ss2PkkikSOLtYs8BlYIeeIK1h99ty4YfvRPAlzr377vr3CXDb7sb7eEEBYjDtcYj+AjBH3FLv5uSJuXg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js" integrity="sha512-7Pi/otdlbbCR+LnW+F7PwFcSDJOuUJB3OxtEHbg4vSMvzvJjde4Po1v4BR9Gdc9aXNUNFVUY+SK51wWT8WF0Gg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <title>Application usage instructions</title>
+</head>
+<body>
+  <div class="app-navbar">
+    <a href="https://spun.earth" class="logo"></a>
+    <div class="menu">
+      <ul>
+        <li><a href="https://spun.earth">Spun Website</a></li>
+        <li><a href="/">App homepage</a></li>
+        <li><a href="/logout">Logout</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="p-4">
+    <h1>Application usage instructions</h1>
+    <div class="p-3">
+      <div>
+        <h3>To get access to the application</h3>
+        <ol>
+          <li> Go to <a href="https://sequencing-submission.spun.earth/">The app homepage</a></li>
+          <li> Click on "Sign in with google". </li>
+          <li> Sign in with a google account of your choice. </li>
+          <li>
+            If your account is not preapproved, contact us via email, telling us what google account you used so that we can approve your account in the system.
+            Until this happens, you will not have access to the application.
+          </li>
+        </ol>
+
+        <h3>After your account has been approved, and any time you want to upload data </h3>
+        
+        <div> 
+          All your data are uploaded via the same form. 
+          In order you will need to provide the following information: 
+          <ol>
+            <li> The project ID allocated to you (if you are assigned a single project ID this will be automatically selected for you ) </li>
+            <li> Whether you will run your own sequencing or you will use SCRIPPS (via SPUN)  </li>
+            <li> Your project information (Like "Country", "Expedition lead" etc ) </li>
+            <li> Information about each of your samples (what we call "Metadata") (Like coordinates, landuse, sampleID etc) </li>
+            <li> (If you did your own sequencing:) SequencerIDs. This will help us match your sequencing data to your samples and identify amplicon regions. This step is not required if you used SCRIPPS </li>
+            <li> (If you did your own sequencing:) The sequencing files themselves. These need to be files of type .fastq.gz . This step is not required if you used SCRIPPS </li>
+          </ol>
+          
+          <h3> VERY IMPORTANT: You don't need to restart the process each time you login. You can always continue from the point you left the previous time </h3>
+        </div>
+
+        <h4> How to upload your data </h4>
+        <ol>
+          <li> Go to the <a href="https://sequencing-submission.spun.earth/" target="_blank" class="text-decoration-underline">app homepage</a>. </li>
+          <li> (If you are not signed in) Sign in with google. </li>
+          <li> (If you haven't submitted anything yet: ) Click on "Data submission form" <BR>
+              OR <br>
+              (If you have started the process: ) Click on "Previous uploads of the user " and then select the process you have already started </li>
+          <li> Follow the instructions in the form so that you can provide your data</li>
+        </ol>
+
+        <h4> Download your data </h4>
+        <div>
+          Once your data have been processed, a google bucket will be created where they will be stored. <br>
+          You will be given access to all that data, including the fastqc/multiqc reports that have been generated <br>
+          Please note: You will be contacted when your data are ready. 
+        </div>
+        <ol>
+          
+          <li> Go to the <a href="https://sequencing-submission.spun.earth/" target="_blank" class="text-decoration-underline">app homepage</a>. </li>
+          <li> (If you are not signed in) Sign in with google. </li>
+          <li> Click on the button "My data" </li>
+          <li> You will see a list of the buckets to which you have been given access </li>
+          <li> On each bucket you have access, you will see a link saying "Generate file". Click it</li>
+          <li> At first it will tell you "File being generated. Please wait". So, please wait.</li>
+          <li> Once the process is finished, the message will change to a link saying "Download"</li>
+          <li> Click on the "Download" to initiate your download</li>
+          <li> The file will expire after 24 hours. If you visit the page after that, you will have to generate a new file.</li>  
+        </ol>
+
+        <h3>Feedback</h3>
+        <div>We appreciate any feedback you can provide on the usage of this application and these instructions. Please reach out to us with your suggestions</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

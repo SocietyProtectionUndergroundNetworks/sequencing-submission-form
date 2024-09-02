@@ -199,6 +199,15 @@ def csv_structure():
 
 @upload_bp.route("/app_instructions", endpoint="app_instructions")
 def app_instructions():
+
+    user_should_see_v2 = False
+    if current_user.is_authenticated:
+        user_groups = User.get_user_groups(current_user.id)
+        for group in user_groups:
+            if str(group.version) == "2":
+                user_should_see_v2 = True
+    if user_should_see_v2:
+        return render_template("app_instructions_v2.html")
     return render_template("app_instructions.html")
 
 
