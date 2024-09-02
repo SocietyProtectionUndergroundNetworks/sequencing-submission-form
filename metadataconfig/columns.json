@@ -1,6 +1,6 @@
 {
   "SampleID": {
-    "help_tip": "Unique sample tracking ID for your project. This should be a location name used to describe where you sampled (country or region), the year, and a sample number. I.e Patagonia22_1",
+    "help_tip": "Unique sample tracking ID for your project. This should be a location name used to describe where you sampled (country or region), the year, and a sample number. It should always finish with an _ followed by the number. I.e Patagonia22_1.",
     "check_function": "check_sample_id",
     "required": "True"
   },
