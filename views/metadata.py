@@ -502,28 +502,29 @@ def sequencing_upload_chunk():
     if file:
         process_id = request.args.get("process_id")
 
-        process_data = SequencingUpload.get(process_id)
-        uploads_folder = process_data["uploads_folder"]
-        # Extract Resumable.js headers
-        resumable_chunk_number = request.args.get("resumableChunkNumber")
-        # resumable_chunk_size = request.args.get("resumableChunkSize")
-        # resumable_total_size = request.args.get("resumableTotalSize")
-        # expected_md5 = request.args.get("md5")
+        if process_id:
+            process_data = SequencingUpload.get(process_id)
+            uploads_folder = process_data["uploads_folder"]
+            # Extract Resumable.js headers
+            resumable_chunk_number = request.args.get("resumableChunkNumber")
+            # resumable_chunk_size = request.args.get("resumableChunkSize")
+            # resumable_total_size = request.args.get("resumableTotalSize")
+            # expected_md5 = request.args.get("md5")
 
-        # Handle file chunks or combine chunks into a complete file
-        chunk_number = (
-            int(resumable_chunk_number) if resumable_chunk_number else 1
-        )
-        logger.info("chunk_number: " + str(chunk_number))
-        # Save or process the chunk
-        save_path = (
-            f"seq_uploads/{uploads_folder}/{file.filename}.part{chunk_number}"
-        )
-        file.save(save_path)
+            # Handle file chunks or combine chunks into a complete file
+            chunk_number = (
+                int(resumable_chunk_number) if resumable_chunk_number else 1
+            )
+            logger.info("chunk_number: " + str(chunk_number))
+            # Save or process the chunk
+            save_path = (
+                f"seq_uploads/{uploads_folder}/{file.filename}.part{chunk_number}"
+            )
+            file.save(save_path)
 
-        # HERE HERE : To add what happens if all are uploaded.
+            # HERE HERE : To add what happens if all are uploaded.
 
-        return jsonify({"message": f"Chunk {chunk_number} uploaded"}), 200
+            return jsonify({"message": f"Chunk {chunk_number} uploaded"}), 200
     return jsonify({"message": "No file received"}), 400
 
 
