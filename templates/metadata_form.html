@@ -1972,11 +1972,20 @@
         });
         
         // Add progress event listener to update the file upload progress
+        // Add progress event listener to update the file upload progress
         r.on('fileProgress', function(file) {
             var file_msg_id = 'step_8_file_' + file.uniqueIdentifier;
+            var progress_div_id = 'step_8_file_progress_' + file.uniqueIdentifier;
             var progress = Math.floor(file.progress() * 100);
-            $("#" + file_msg_id).find('h4').text(file.file.name + ' - Upload Progress: ' + progress + '%');
-        });        
+
+            // Check if the progress div exists, if not create it
+            if ($('#' + progress_div_id).length === 0) {
+                $('#' + file_msg_id).append('<div id="' + progress_div_id + '">Upload Progress: 0%</div>');
+            }
+
+            // Update the progress div with the current progress
+            $('#' + progress_div_id).text('Upload Progress: ' + progress + '%');
+        });      
     }
     function calculateMD5(file, callback, updateCallback) {
         var chunkSize = 2097152; // 2 MB chunks
