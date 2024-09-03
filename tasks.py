@@ -7,7 +7,11 @@ from helpers.bucket import (
     bucket_chunked_upload_v2,
 )
 from helpers.unzip import unzip_raw_file
-from helpers.fastqc import fastqc_multiqc_files, create_fastqc_report
+from helpers.fastqc import (
+    fastqc_multiqc_files,
+    create_fastqc_report,
+    create_multiqc_report,
+)
 
 
 @celery_app.task
@@ -62,3 +66,8 @@ def bucket_chunked_upload_v2_async(
         bucket_name,
         known_md5,
     )
+
+
+@celery_app.task
+def create_multiqc_report_async(process_id):
+    create_multiqc_report(process_id)

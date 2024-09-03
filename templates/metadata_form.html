@@ -294,7 +294,7 @@
         >
           <p>All my metadata have been uploaded and I have checked the map and all the samples seem to be in the correct locations.</p>
           <input type="hidden" name="process_id" value="{{ process_id }}">
-          <input type="button" id="step_5_button" value="I confirm">
+          <input type="button" class="btn btn-primary" id="step_5_button" value="I confirm">
         </fieldset>
       </form>
       <div id="step_5_msg"></div>
@@ -876,14 +876,14 @@
         </div>
         <form id="step_7_form">
           <fieldset
-            {% if (not sequencer_ids) %}
+            {% if ((not sequencer_ids) or (process_data and process_data.files_uploading_confirmed)) %}
              disabled="disabled"
             {% endif %}
 
           >
             <p>I confirm that we will not have sequencing files for the samples above.</p>
             <input type="hidden" name="process_id" value="{{ process_id }}">
-            <input type="button" id="step_7_button" value="I confirm">
+            <input type="button" id="step_7_button" class="btn btn-primary" value="I confirm">
           </fieldset>
         </form>
       </div>
@@ -902,7 +902,7 @@
              disabled="disabled"
             {% endif %}
           >
-            <input type="file" id="step_8_upload_file_button" name="file" multiple />
+            <input type="file" class="btn btn-primary" id="step_8_upload_file_button" name="file" multiple />
             <input type="hidden" name="process_id" value="{{ process_id }}">
           </fieldset>
         </form>
@@ -932,7 +932,7 @@
 
 
     {% if is_admin %}
-
+      
       <div id="step_10" class="form-step-item">
         <h3> Step 10: Admin only. Generate MultiQC report</h3>
         <form
@@ -941,7 +941,7 @@
           id="step_10_form"
         >
           <fieldset
-            {% if process_data and not process_data.files_uploading_confirmed %}
+            {% if ((process_data and not process_data.files_uploading_confirmed) or (multiqc_report_exists)) %}
              disabled="disabled"
             {% endif %}
           >
@@ -952,6 +952,27 @@
       </div>
     {% endif %}
 
+    {% if multiqc_report_exists %}
+      {% if process_data and process_data.regions %}
+    
+        <table id="multiqc_reports" class="table-bordered mt-3">
+            <thead>
+              <tr>
+                <th scope="col" class="bg-gray">Region</th>
+                <th scope="col" class="bg-gray">MultiQC report link</th>
+              </tr>
+            </thead>
+            {% for region in process_data.regions %}
+              <tbody>
+                <tr>
+                  <td>{{ region }}</th>
+                  <td><a href="show_multiqc_report?process_id={{ process_data.id }}&region={{ region }}" target="_blank" class="link">Link</a></th>
+                </tr>
+              </tbody>
+            {% endfor %}
+        </table>
+      {% endif %}
+    {% endif %}
 
 
   </div>
@@ -1847,6 +1868,8 @@
                     return false; // Cancel the file upload
                 }
             },
+            simultaneousUploads: 2,  // Set the maximum number of concurrent uploads
+            maxFiles: 2              // Optional: Set the maximum number of files to upload            
         };
 
         var r = new Resumable(commonOptions);
@@ -1973,6 +1996,25 @@
             var file_msg_id = 'step_8_file_' + file.uniqueIdentifier;
             console.log('File upload error', message);
             $("#" + file_msg_id).append("<p>Upload failed.</p>").addClass('text-danger');
+
+            // Option 1: Restart the same file upload automatically
+            setTimeout(function() {
+                // Retry uploading the file
+                file.retry();
+                $("#" + file_msg_id).append("<p>Retrying upload in 2 seconds...</p>").removeClass('text-danger');
+            }, 2000); // Optional delay before retrying
+
+            // Option 2: Allow manual re-upload of the same file
+            // Remove the failed file and reset its state
+            // r.removeFile(file);  // Remove the failed file from Resumable.js
+            // $("#" + file_msg_id).append("<button id='retry_" + file.uniqueIdentifier + "'>Retry Upload</button>");
+
+            // // Add click event listener to retry button
+            // $('#retry_' + file.uniqueIdentifier).on('click', function() {
+            //     r.addFile(file.file);  // Re-add the file to Resumable.js
+            //     r.upload();  // Restart the upload
+            //     $("#" + file_msg_id).html("<p>Retrying upload...</p>").removeClass('text-danger');
+            // });            
         });
         
         // Add progress event listener to update the file upload progress
@@ -2086,7 +2128,46 @@
 
   ////// ############################################# /////////
   ////// ############ STEP 9 ENDS HERE ############### /////////
-  ////// ############################################# /
+  ////// ############################################# /////////
+
+  ////// ############################################# /////////
+  ////// ############ STEP 10 STARTS HERE ############ /////////
+  ////// ############################################# /////////
+  function disableForm_step_10() {
+      $('#step_10_form fieldset').attr('disabled', 'disabled');
+  }  
+  $('#step_10_form').submit(function(event) {
+      event.preventDefault(); // Prevent default form submission
+      console.log('here, prevented default')
+      var formData = new FormData();
+      var form = $('#step_10_form');
+      var processId = form.find('input[name="process_id"]').val();
+      formData.append('process_id', processId);      
+      // Ask the user for confirmation
+      $.ajax({
+          url: '/generate_multiqc_report',
+          type: 'POST',
+          data: formData,
+          contentType: false,
+          processData: false,
+          success: function(response) {
+              if (response.result=="ok") {
+                window.location.replace("/metadata_form?process_id=" + response.process_id);
+              }
+              disableForm_step_10()
+          },
+          error: function(xhr, status, error) {
+              console.error('Error:', error);
+              $('#step_10_msg').html("<p>An error occurred while processing the file.</p>").removeClass('text-success').addClass('text-danger');
+
+          }
+      });
+  });
+
+
+  ////// ############################################# /////////
+  ////// ############ STEP 10 ENDS HERE ############## /////////
+  ////// ############################################# /////////
 
   ////// ############################################# /////////
   ////// ###### MAP HELPER FUNCTIONS START HERE ###### /////////

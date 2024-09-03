@@ -28,7 +28,11 @@ from helpers.create_xls_template import (
     create_template_one_drive_and_excel,
 )
 from helpers.bucket import delete_bucket_folder, init_bucket_chunked_upload_v2
-from helpers.fastqc import init_create_fastqc_report
+from helpers.fastqc import (
+    init_create_fastqc_report,
+    init_create_multiqc_report,
+    check_multiqc_report,
+)
 import numpy as np
 from helpers.file_renaming import calculate_md5
 
@@ -106,6 +110,7 @@ def metadata_form():
         samples_data_complete = (
             SequencingUpload.get_samples_with_sequencers_and_files(process_id)
         )
+        multiqc_report_exists = check_multiqc_report(process_id)
 
     return render_template(
         "metadata_form.html",
@@ -124,6 +129,7 @@ def metadata_form():
         missing_sequencing_ids=missing_sequencing_ids,
         samples_data_complete=samples_data_complete,
         is_admin=current_user.admin,
+        multiqc_report_exists=multiqc_report_exists,
     )
 
 
@@ -501,6 +507,8 @@ def sequencing_upload_chunk():
     file = request.files.get("file")
     if file:
         process_id = request.args.get("process_id")
+        logger.info("The process is is: ")
+        logger.info(process_id)
 
         if process_id:
             process_data = SequencingUpload.get(process_id)
@@ -766,17 +774,34 @@ def delete_upload_process_v2():
 
 
 @metadata_bp.route(
-    "/show_fastqc_report", methods=["GET"], endpoint="show_fastqc_report"
+    "/show_multiqc_report", methods=["GET"], endpoint="show_multiqc_report"
 )
 @login_required
 @approved_required
-def show_fastqc_report():
-    file_id = request.args.get("file_id")
+def show_multiqc_report():
+    process_id = request.args.get("process_id")
+    region = request.args.get("region")
 
-    fastqc_report = SequencingFileUploaded.get_fastqc_report(file_id)
+    # Fetch process data from SequencingUpload model
+    process_data = SequencingUpload.get(process_id)
 
-    if fastqc_report:
-        return send_file(fastqc_report)
+    # Extract uploads folder and project id from process data
+    uploads_folder = process_data["uploads_folder"]
+    bucket = process_data["project_id"]
+
+    if region in process_data["regions"]:
+        multiqc_file = os.path.join(
+            "seq_processed",
+            uploads_folder,
+            "fastqc",
+            bucket,
+            region,
+            "multiqc_report.html",
+        )
+        abs_html_file = os.path.abspath(multiqc_file)
+
+        if os.path.isfile(abs_html_file):
+            return send_file(abs_html_file)
 
     return []
 
@@ -796,3 +821,16 @@ def confirm_files_uploading_finished():
     return redirect(
         url_for("metadata.metadata_form", process_id=process_id) + "#step_9"
     )
+
+
+@metadata_bp.route(
+    "/generate_multiqc_report",
+    methods=["POST"],
+    endpoint="generate_multiqc_report",
+)
+@login_required
+@approved_required
+def generate_multiqc_report():
+    process_id = request.form.get("process_id")
+    init_create_multiqc_report(process_id)
+    return []

@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from models.upload import Upload
 from helpers.bucket import bucket_upload_folder
+
 import logging
 
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -262,3 +263,73 @@ def check_fastqc_report(filename, bucket, region, upload_folder):
 
     # If either of the files doesn't exist, return False
     return False
+
+
+def create_multiqc_report(process_id):
+    from models.sequencing_upload import SequencingUpload
+
+    process_data = SequencingUpload.get(process_id)
+
+    uploads_folder = process_data["uploads_folder"]
+    bucket = process_data["project_id"]
+
+    if process_data["regions"]:
+        for region in process_data["regions"]:
+            multiqc_folder = os.path.join(
+                "seq_processed", uploads_folder, "fastqc", bucket, region
+            )
+            multiqc.run(multiqc_folder, outdir=multiqc_folder)
+    else:
+        logger.info("There are no regions!")
+
+
+def init_create_multiqc_report(process_id):
+
+    from tasks import create_multiqc_report_async
+
+    try:
+        result = create_multiqc_report_async.delay(process_id)
+        logger.info(
+            "Celery create_multiqc_report task called successfully! "
+            f"Task ID: {result.id}"
+        )
+    except Exception as e:
+        logger.error("This is an error message from fastqc.py")
+        logger.error(e)
+
+
+def check_multiqc_report(process_id):
+    from models.sequencing_upload import SequencingUpload
+
+    # Fetch process data from SequencingUpload model
+    process_data = SequencingUpload.get(process_id)
+
+    # Extract uploads folder and project id from process data
+    uploads_folder = process_data["uploads_folder"]
+    bucket = process_data["project_id"]
+
+    # Check if regions are specified
+    if process_data["regions"]:
+        # Iterate through each region
+        for region in process_data["regions"]:
+            # Construct the path to the multiqc folder
+            multiqc_folder = os.path.join(
+                "seq_processed", uploads_folder, "fastqc", bucket, region
+            )
+
+            # Construct the path to the potential multiqc report file
+            multiqc_report_file = os.path.join(
+                multiqc_folder, "multiqc_report.html"
+            )
+
+            # Check if the multiqc report file exists
+            if not os.path.isfile(multiqc_report_file):
+                # If any report does not exist, return False immediately
+                return False
+
+        # If all reports exist, return True
+        return True
+
+    else:
+        # If there are no regions specified, we can assume reports do not exist
+        return False
