@@ -1,6 +1,6 @@
 {
   "SampleID": {
-    "help_tip": "Unique sample tracking ID for your project. This should be a location name used to describe where you sampled (country or region), the year, and a sample number. It should always finish with an _ followed by the number. I.e Patagonia22_1.",
+    "help_tip": "Unique sample tracking ID for your project. This should be a name used to identify where you sampled, in addition to a unique number separated by an underscore. For example, a project sampling across Ghana could have the sample IDs “GH_1”, “GH_2”, and a project sampling in wetlands and mountains in Scotland could have the IDs “S_wetland_1”, “S_wetland_2”, “S_mountain_3”. Prepending the number with 0 is accepted, so “S_wetland_01”, “S_wetland_02”, “S_mountain_03” are also acceptable.",
     "check_function": "check_sample_id",
     "required": "True"
   },
