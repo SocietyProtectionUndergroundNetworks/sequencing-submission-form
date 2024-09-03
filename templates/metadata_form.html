@@ -38,26 +38,30 @@
       <h3> Step 1: Project ID allocated to user </h3>
       <form id="step_1_form">
         <fieldset>
-        {% if my_buckets|length == 0 %}
-          <div>You have no assigned project. Please contact the program coordinator</div>
-        {% elif my_buckets|length == 1 %}
-          <div>
-            <p>The only assigned project for this user is {{ my_buckets|list|first }}. If the data are for this project, proceed.</p>
-            <p>If you believe your data should be in a different project, please stop the process and contact the program coordinator</p>
-          </div>
-          <input type="hidden" id="sequence-project-id" value="{{ my_buckets|list|first }}"/>
-        {% else %}
-          <div>
-            <label for="sequence-project-id">Select your project:</label>
-            <select id="sequence-project-id" name="bucket">
-              <option value="0">------</option>
-              {% for bucket_name in my_buckets %}
-                <option value="{{ bucket_name }}">{{ bucket_name }}</option>
-              {% endfor %}
-            </select>
-            <p>If you you dont see your assigned project in the list, please stop the process and contact the program coordinator</p>
-          </div>
-        {% endif %}
+          {% if process_data and process_data['project_id'] %}
+            <div>Selected project id: <span class="fw-bold">{{ process_data['project_id'] }}</span></div>
+          {% else %}
+            {% if my_buckets|length == 0 %}
+              <div>You have no assigned project. Please contact the program coordinator</div>
+            {% elif my_buckets|length == 1 %}
+              <div>
+                <p>The only assigned project for this user is {{ my_buckets|list|first }}. If the data are for this project, proceed.</p>
+                <p>If you believe your data should be in a different project, please stop the process and contact the program coordinator</p>
+              </div>
+              <input type="hidden" id="sequence-project-id" value="{{ my_buckets|list|first }}"/>
+            {% else %}
+              <div>
+                <label for="sequence-project-id">Select your project:</label>
+                <select id="sequence-project-id" name="bucket">
+                  <option value="0">------</option>
+                  {% for bucket_name in my_buckets %}
+                    <option value="{{ bucket_name }}">{{ bucket_name }}</option>
+                  {% endfor %}
+                </select>
+                <p>If you you dont see your assigned project in the list, please stop the process and contact the program coordinator</p>
+              </div>
+            {% endif %}
+          {% endif %}
         </fieldset>
       </form>
     </div>
@@ -102,7 +106,7 @@
         </fieldset>
       </form>
     </div>
-
+    
     <div id="step_3" class="form-step-item">
       <h3> Step 3: Give us the common data for your project</h3>
       <form id="step_3_form">
