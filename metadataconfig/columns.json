@@ -17,6 +17,11 @@
     "check_function": "check_latitude_longitude",
     "required": "True"
   },
+  "Elevation": {
+    "help_tip": "Elevation in meters above sea level",
+    "check_function": "check_elevation",
+    "required": "True"
+  },  
   "Vegetation": {
     "help_tip": "List of names of local vegetation, if names unknown describe (trees, grass, forbs, etc)",
     "check_function": "check_vegetation",
@@ -66,11 +71,6 @@
   "DNA_concentration_ng_ul": {
     "help_tip": "Concentration of DNA (ng/ul).",
     "check_function": "check_dna_concentration",
-    "required": "True"
-  },
-  "Elevation": {
-    "help_tip": "Elevation in meters above sea level",
-    "check_function": "check_elevation",
     "required": "True"
   },
   "Sample_or_Control": {
