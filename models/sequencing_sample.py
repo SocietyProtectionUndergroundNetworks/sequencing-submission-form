@@ -60,7 +60,9 @@ class SequencingSample:
 
         # Identify the extra columns
         extra_columns = {
-            key: value for key, value in datadict.items() if key not in valid_keys
+            key: value
+            for key, value in datadict.items()
+            if key not in valid_keys
         }
 
         # Include sequencingUploadId in the filters
@@ -104,4 +106,3 @@ class SequencingSample:
         session.close()
 
         return new_sample_id
-
