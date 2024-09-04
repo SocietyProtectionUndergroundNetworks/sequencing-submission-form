@@ -38,3 +38,5 @@ seq_uploads
 seq_processed
 
 bucket_list.txt
+
+output_files/

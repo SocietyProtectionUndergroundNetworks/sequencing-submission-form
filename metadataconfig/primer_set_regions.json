@@ -1,14 +1,58 @@
 {
-  "ITS3/ITS4": "ITS2",
-  "WANDA/AML2": "SSU",
-  "ITS9mun/ITS4ngsUni": "Full ITS",
-  "ITS7/ITS4": "ITS2",
-  "ITS9/ITS4": "Full ITS",
-  "ITS1/ITS4": "Full ITS",
-  "ITS1/ITS2": "ITS1",
-  "ITS1/ITS3": "ITS1",  
-  "AML1/AML2": "SSU",
-  "NS31/AML2": "SSU",
-  "Other": "Other"
+  "ITS3/ITS4": {
+    "Region": "ITS2",
+    "Forward Primer": "GCATCGATGAAGAACGCAGC",
+    "Reverse Primer": "TCCTCCGCTTATTGATATGC"
+  },
+  "WANDA/AML2": {
+    "Region": "SSU",
+    "Forward Primer": "CAGCCGCGGTAATTCCAGCT",
+    "Reverse Primer": "GAACCCAAACACTTTGGTTTCC"
+  },
+  "ITS9mun/ITS4ngsUni": {
+    "Region": "Full ITS",
+    "Forward Primer": "TACACACCGCCCGTCG",
+    "Reverse Primer": "CCTSCSCTTANTDATATGC"
+  },
+  "ITS7/ITS4": {
+    "Region": "ITS2",
+    "Forward Primer": "",
+    "Reverse Primer": "TCCTCCGCTTATTGATATGC"
+  },  
+  "ITS9/ITS4": {
+    "Region": "Full ITS",
+    "Forward Primer": "GAACGCAGCRAAIIGCGATA",
+    "Reverse Primer": "TCCTCCGCTTATTGATATGC"
+  },
+  "ITS1/ITS4": {
+    "Region": "Full ITS",
+    "Forward Primer": "CTTGGTCATTTAGAGGAAGTAA",
+    "Reverse Primer": "TCCTCCGCTTATTGATATGC"
+  },
+  "ITS1/ITS2": {
+    "Region": "ITS1",
+    "Forward Primer": "TCCGTAGGTGAACCTGCGG",
+    "Reverse Primer": "GCTGCGTTCTTCATCGATGC"
+  },
+  "ITS1/ITS3": {
+    "Region": "ITS1",
+    "Forward Primer": "CTTGGTCATTTAGAGGAAGTAA",
+    "Reverse Primer": "GCTGCGTTCTTCATCGATGC"
+  },
+  "AML1/AML2": {
+    "Region": "SSU",
+    "Forward Primer": "ATCAACTTTCGATGGTAGGATAGA",
+    "Reverse Primer": "GAACCCAAACACTTTGGTTTCC"
+  },
+  "NS31/AML2": {
+    "Region": "SSU",
+    "Forward Primer": "TTGGAGGGCAAGTCTGGTGCC",
+    "Reverse Primer": "GAACCCAAACACTTTGGTTTCC"
+  },
+  "Other": {
+    "Region": "Other",
+    "Forward Primer": "",
+    "Reverse Primer": ""
+  }
 }
 

@@ -1,5 +1,7 @@
 import csv
 import re
+import os
+import json
 from helpers.bucket import list_buckets
 import logging
 
@@ -192,3 +194,29 @@ def validate_csv(file_path):
             return valid_buckets
     else:
         return valid_names
+
+
+def get_sequences_based_on_primers(forward_primer, reverse_primer):
+    current_dir = os.path.dirname(__file__)
+    base_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
+    regions_file_path = os.path.join(
+        base_dir, "metadataconfig", "primer_set_regions.json"
+    )
+
+    # Load the JSON file
+    with open(regions_file_path, "r") as f:
+        primer_set_region = json.load(f)
+
+    # Construct the key to search in the JSON
+    search_key = f"{forward_primer}/{reverse_primer}"
+
+    # Check if the key exists in the JSON
+    if search_key in primer_set_region:
+        region_data = primer_set_region[search_key]
+        return {
+            "Region": region_data.get("Region"),
+            "Forward Primer": region_data.get("Forward Primer"),
+            "Reverse Primer": region_data.get("Reverse Primer"),
+        }
+    else:
+        return None

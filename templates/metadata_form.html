@@ -974,6 +974,48 @@
       {% endif %}
     {% endif %}
 
+    {% if is_admin %}
+      
+      <div id="step_11" class="form-step-item">
+        <h3> Step 11: Admin only. Generate Mapping files</h3>
+        <form
+          method="POST"
+          action="/generate_mapping_files"
+          id="step_11_form"
+        >
+          <fieldset
+            {% if ((process_data and not process_data.files_uploading_confirmed) or (mapping_files_exist)) %}
+             disabled="disabled"
+            {% endif %}
+          >
+            <input type="submit" class="btn btn-primary" id="step_11_button">
+            <input type="hidden" name="process_id" value="{{ process_id }}">
+          </fieldset>
+        </form>
+      </div>
+    {% endif %}
+
+    {% if mapping_files_exist %}
+      {% if process_data and process_data.regions %}
+    
+        <table id="multiqc_reports" class="table-bordered mt-3">
+            <thead>
+              <tr>
+                <th scope="col" class="bg-gray">Region</th>
+                <th scope="col" class="bg-gray">Mapping file link</th>
+              </tr>
+            </thead>
+            {% for region in process_data.regions %}
+              <tbody>
+                <tr>
+                  <td>{{ region }}</th>
+                  <td><a href="show_mapping_file?process_id={{ process_data.id }}&region={{ region }}" target="_blank" class="link">Link</a></th>
+                </tr>
+              </tbody>
+            {% endfor %}
+        </table>
+      {% endif %}
+    {% endif %}
 
   </div>
 
@@ -2163,6 +2205,45 @@
 
   ////// ############################################# /////////
   ////// ############ STEP 10 ENDS HERE ############## /////////
+  ////// ############################################# /////////
+
+  ////// ############################################# /////////
+  ////// ############ STEP 11 STARTS HERE ############ /////////
+  ////// ############################################# /////////
+  function disableForm_step_11() {
+      $('#step_11_form fieldset').attr('disabled', 'disabled');
+  }  
+  $('#step_11_form').submit(function(event) {
+      event.preventDefault(); // Prevent default form submission
+      console.log('here, prevented default')
+      var formData = new FormData();
+      var form = $('#step_11_form');
+      var processId = form.find('input[name="process_id"]').val();
+      formData.append('process_id', processId);      
+      // Ask the user for confirmation
+      $.ajax({
+          url: '/generate_mapping_files',
+          type: 'POST',
+          data: formData,
+          contentType: false,
+          processData: false,
+          success: function(response) {
+              if (response.result=="1") {
+                window.location.reload();
+              }
+              disableForm_step_10()
+          },
+          error: function(xhr, status, error) {
+              console.error('Error:', error);
+              $('#step_11_msg').html("<p>An error occurred while processing the file.</p>").removeClass('text-success').addClass('text-danger');
+
+          }
+      });
+  });
+
+
+  ////// ############################################# /////////
+  ////// ############ STEP 11 ENDS HERE ############## /////////
   ////// ############################################# /////////
 
   ////// ############################################# /////////

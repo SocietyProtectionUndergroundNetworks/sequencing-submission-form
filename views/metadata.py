@@ -95,7 +95,11 @@ def metadata_form():
     valid_samples = False
     missing_sequencing_ids = []
     samples_data_complete = []
+    extra_data = {}
+    extra_data_keys = set()
     multiqc_report_exists = False
+    mapping_files_exist = False
+
     if process_id:
         process_data = SequencingUpload.get(process_id)
 
@@ -103,6 +107,26 @@ def metadata_form():
         regions = process_data["regions"]
 
         samples_data = SequencingUpload.get_samples(process_id)
+
+        # lets create the extra data dictionary
+        # Iterate through each sample in samples_data
+        for sample in samples_data:
+            # Ensure that both 'SampleID' and 'extracolumns_json'
+            # exist in the sample
+            if "SampleID" in sample:
+                extracolumns_json = sample.get("extracolumns_json")
+
+                if extracolumns_json:  # Check if extracolumns_json is not None
+                    # Add to extra_data dictionary
+                    extra_data[sample["SampleID"]] = extracolumns_json
+
+                    # Update the set of unique keys with keys from the
+                    # extracolumns_json dictionary
+                    extra_data_keys.update(extracolumns_json.keys())
+        # lets delete the extracolumns_json from the samples_data
+        for sample in samples_data:
+            if "extracolumns_json" in sample:
+                del sample["extracolumns_json"]
         sequencer_ids = SequencingUpload.get_sequencer_ids(process_id)
         valid_samples = SequencingUpload.validate_samples(process_id)
         missing_sequencing_ids = SequencingUpload.check_missing_sequencer_ids(
@@ -112,6 +136,9 @@ def metadata_form():
             SequencingUpload.get_samples_with_sequencers_and_files(process_id)
         )
         multiqc_report_exists = check_multiqc_report(process_id)
+        mapping_files_exist = SequencingUpload.check_mapping_files_exist(
+            process_id
+        )
 
     return render_template(
         "metadata_form.html",
@@ -131,6 +158,9 @@ def metadata_form():
         samples_data_complete=samples_data_complete,
         is_admin=current_user.admin,
         multiqc_report_exists=multiqc_report_exists,
+        extra_data_keys=extra_data_keys,
+        extra_data=extra_data,
+        mapping_files_exist=mapping_files_exist,
     )
 
 
@@ -849,4 +879,50 @@ def confirm_files_uploading_finished():
 def generate_multiqc_report():
     process_id = request.form.get("process_id")
     init_create_multiqc_report(process_id)
+    return []
+
+
+@metadata_bp.route(
+    "/generate_mapping_files",
+    methods=["POST"],
+    endpoint="generate_mapping_files",
+)
+@login_required
+@approved_required
+def generate_mapping_files():
+    process_id = request.form.get("process_id")
+    SequencingUpload.generate_mapping_files_for_process(process_id)
+    return (
+        jsonify({"result": 1}),
+        200,
+    )
+
+
+@metadata_bp.route(
+    "/show_mapping_file", methods=["GET"], endpoint="show_mapping_file"
+)
+@login_required
+@approved_required
+def show_mapping_file():
+    process_id = request.args.get("process_id")
+    region = request.args.get("region")
+
+    # Fetch process data from SequencingUpload model
+    process_data = SequencingUpload.get(process_id)
+
+    # Extract uploads folder and project id from process data
+    uploads_folder = process_data["uploads_folder"]
+
+    if region in process_data["regions"]:
+        mapping_file = os.path.join(
+            "seq_processed",
+            uploads_folder,
+            "mapping_files",
+            f"{region}_Mapping.txt",
+        )
+        abs_mapping_file = os.path.abspath(mapping_file)
+
+        if os.path.isfile(abs_mapping_file):
+            return send_file(abs_mapping_file, as_attachment=True)
+
     return []

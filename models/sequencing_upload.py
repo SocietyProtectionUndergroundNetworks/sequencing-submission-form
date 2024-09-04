@@ -5,8 +5,11 @@ import logging
 import os
 import json
 import shutil
+import csv
+from collections import defaultdict
 from helpers.dbm import connect_db, get_session
 from helpers.fastqc import init_create_fastqc_report, check_fastqc_report
+from helpers.csv import get_sequences_based_on_primers
 from models.db_model import (
     SequencingUploadsTable,
     SequencingSamplesTable,
@@ -207,32 +210,30 @@ class SequencingUpload:
         with open(regions_file_path, "r") as f:
             primer_set_region = json.load(f)
 
-        # If process_data does not exist, return all available regions
+        # Create a reverse lookup dictionary from primers to region names
+        primer_to_region = {
+            (key): value["Region"] for key, value in primer_set_region.items()
+        }
 
-        # specified primer sets
-        primer_set_1_regions = list(primer_set_region.values())
-        if (
-            region_1_forward_primer is not None
-            and region_1_reverse_primer is not None
-        ):
+        # Initialize sets to track unique regions
+        primer_set_1_regions = set()
+        if region_1_forward_primer and region_1_reverse_primer:
             primer_set_1 = (
-                region_1_forward_primer + "/" + region_1_reverse_primer
+                f"{region_1_forward_primer}/{region_1_reverse_primer}"
             )
-            if primer_set_1 in primer_set_region:
-                primer_set_1_regions = [primer_set_region[primer_set_1]]
+            if primer_set_1 in primer_to_region:
+                primer_set_1_regions.add(primer_to_region[primer_set_1])
 
-        primer_set_2_regions = list(primer_set_region.values())
-        if (
-            region_2_forward_primer is not None
-            and region_2_reverse_primer is not None
-        ):
+        primer_set_2_regions = set()
+        if region_2_forward_primer and region_2_reverse_primer:
             primer_set_2 = (
-                region_2_forward_primer + "/" + region_2_reverse_primer
+                f"{region_2_forward_primer}/{region_2_reverse_primer}"
             )
-            if primer_set_2 in primer_set_region:
-                primer_set_2_regions = [primer_set_region[primer_set_2]]
+            if primer_set_2 in primer_to_region:
+                primer_set_2_regions.add(primer_to_region[primer_set_2])
 
-        regions = list(set(primer_set_1_regions + primer_set_2_regions))
+        # Combine regions from both primer sets and return unique regions
+        regions = list(primer_set_1_regions.union(primer_set_2_regions))
 
         return regions
 
@@ -784,3 +785,188 @@ class SequencingUpload:
         session.close()
 
         return True
+
+    @classmethod
+    def generate_mapping_files_for_process(self, process_id):
+
+        samples_data_complete = self.get_samples_with_sequencers_and_files(
+            process_id
+        )
+        process_data = self.get(process_id)
+        uploads_folder = process_data["uploads_folder"]
+
+        country = process_data["Country"]
+        # Dictionary to hold data organized by region
+        region_data = defaultdict(list)
+
+        # lets get the primer sequences for regions
+        region_1_sequences = get_sequences_based_on_primers(
+            process_data["region_1_forward_primer"],
+            process_data["region_1_reverse_primer"],
+        )
+        region_2_sequences = get_sequences_based_on_primers(
+            process_data["region_2_forward_primer"],
+            process_data["region_2_reverse_primer"],
+        )
+
+        region_dict = {}
+        # Add region 1 data if available
+        if region_1_sequences:
+            region_dict[region_1_sequences["Region"]] = {
+                "Forward Primer": region_1_sequences["Forward Primer"],
+                "Reverse Primer": region_1_sequences["Reverse Primer"],
+            }
+
+        # Add region 2 data if available
+        if region_2_sequences:
+            region_dict[region_2_sequences["Region"]] = {
+                "Forward Primer": region_2_sequences["Forward Primer"],
+                "Reverse Primer": region_2_sequences["Reverse Primer"],
+            }
+
+        # Dictionary to accumulate files and other information for each sample
+        sample_info = {}
+
+        # Process each sample data
+        for sample_data in samples_data_complete:
+            sample_id = sample_data["SampleID"]
+            site_name = sample_data["Site_name"]
+            latitude = sample_data["Latitude"]
+            longitude = sample_data["Longitude"]
+            vegetation = sample_data["Vegetation"]
+            land_use = sample_data["Land_use"]
+            ecosystem = sample_data["Ecosystem"]
+            sample_or_control = sample_data["Sample_or_Control"]
+            sequencing_run = sample_data["SequencingRun"]
+
+            # Initialize sample_info dictionary if not already
+            if sample_id not in sample_info:
+                sample_info[sample_id] = {
+                    "site_name": site_name,
+                    "latitude": latitude,
+                    "longitude": longitude,
+                    "vegetation": vegetation,
+                    "land_use": land_use,
+                    "ecosystem": ecosystem,
+                    "sample_or_control": sample_or_control,
+                    "sequencing_run": sequencing_run,
+                    "files": defaultdict(list),  # Accumulate files by region
+                }
+
+            # Check if there are sequencers and uploaded files
+            if "sequencer_ids" in sample_data:
+                for sequencer in sample_data["sequencer_ids"]:
+                    region = sequencer["Region"]
+                    if "uploaded_files" in sequencer:
+                        for file_data in sequencer["uploaded_files"]:
+                            fastq_file = file_data["new_name"]
+                            # Accumulate files for this sample and region
+                            sample_info[sample_id]["files"][region].append(
+                                fastq_file
+                            )
+
+        # Create directory for output files if it doesn't exist
+        output_dir = "output_files"
+        output_dir = f"seq_processed/{uploads_folder}/" f"mapping_files/"
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Write files for each region
+        for sample_id, info in sample_info.items():
+            site_name = info["site_name"]
+            latitude = info["latitude"]
+            longitude = info["longitude"]
+            vegetation = info["vegetation"]
+            land_use = info["land_use"]
+            ecosystem = info["ecosystem"]
+            sample_or_control = info["sample_or_control"]
+            sequencing_run = info["sequencing_run"]
+
+            for region, files in info["files"].items():
+                # Sort filenames alphabetically and join with commas
+                sorted_files = sorted(files)
+                fastq_files_combined = ",".join(sorted_files)
+
+                forward_primer = region_dict[region]["Forward Primer"]
+                reverse_primer = region_dict[region]["Reverse Primer"]
+                # Add row to region data
+                region_data[region].append(
+                    [
+                        sample_id,
+                        fastq_files_combined,
+                        forward_primer,
+                        reverse_primer,
+                        site_name,
+                        latitude,
+                        longitude,
+                        country,
+                        vegetation,
+                        land_use,
+                        ecosystem,
+                        sample_or_control,
+                        sequencing_run,
+                    ]
+                )
+
+        # Write each region's data to a TSV file
+        for region, rows in region_data.items():
+            output_file_path = os.path.join(
+                output_dir, f"{region}_Mapping.txt"
+            )
+            with open(output_file_path, "w", newline="") as file:
+                writer = csv.writer(file, delimiter="\t")
+                writer.writerow(
+                    [
+                        "#SampleID",
+                        "fastqFile",
+                        "ForwardPrimer",
+                        "ReversePrimer",
+                        "Site_name",
+                        "Latitude",
+                        "Longitude",
+                        "Country",
+                        "Vegetation",
+                        "Land_use",
+                        "Ecosystem",
+                        "Sample_or_Control",
+                        "SequencingRun",
+                    ]
+                )
+                writer.writerows(rows)
+
+        return []
+
+    @classmethod
+    def check_mapping_files_exist(self, process_id):
+        process_data = self.get(process_id)
+
+        # Extract uploads folder and project id from process data
+        uploads_folder = process_data["uploads_folder"]
+
+        # Construct the path to the mappings folder
+        mappings_folder = os.path.join(
+            "seq_processed", uploads_folder, "mapping_files"
+        )
+
+        # Check if regions are specified
+        if process_data["regions"]:
+            # Iterate through each region
+            for region in process_data["regions"]:
+
+                # Construct the path to the potential mappings file
+                mapping_file = os.path.join(
+                    mappings_folder, f"{region}_Mapping.txt"
+                )
+
+                # Check if the mapping file exists
+                if not os.path.isfile(mapping_file):
+                    # If any mapping file does not exist, return
+                    # False immediately
+                    return False
+
+            # If all reports exist, return True
+            return True
+
+        else:
+            # If there are no regions specified, we can assume
+            # mappings do not exist
+            return False
