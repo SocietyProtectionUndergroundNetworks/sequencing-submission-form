@@ -53,9 +53,14 @@ class SequencingSample:
         # Get valid columns from the table's model class
         valid_keys = {c.name for c in SequencingSamplesTable.__table__.columns}
 
-        # Filter out invalid keys
+        # Filter out valid keys to create the filtered data dictionary
         filtered_datadict = {
             key: value for key, value in datadict.items() if key in valid_keys
+        }
+
+        # Identify the extra columns
+        extra_columns = {
+            key: value for key, value in datadict.items() if key not in valid_keys
         }
 
         # Include sequencingUploadId in the filters
@@ -85,6 +90,10 @@ class SequencingSample:
             if hasattr(new_sample, key):
                 setattr(new_sample, key, value)
 
+        # Add extra columns to the extracolumns_json field as JSON
+        if extra_columns:
+            new_sample.extracolumns_json = extra_columns
+
         session.add(new_sample)
         session.commit()
 
@@ -95,3 +104,4 @@ class SequencingSample:
         session.close()
 
         return new_sample_id
+

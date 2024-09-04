@@ -171,6 +171,7 @@ class SequencingSamplesTable(Base):
     sequencer_ids = relationship(
         "SequencingSequencerIDsTable", backref="sample"
     )
+    extracolumns_json = Column(JSON(none_as_null=True))
 
 
 class SequencingSequencerIDsTable(Base):

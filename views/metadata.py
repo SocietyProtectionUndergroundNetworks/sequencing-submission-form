@@ -240,6 +240,19 @@ def upload_metadata_file():
     expected_columns_data = get_columns_data()
     expected_columns = list(expected_columns_data.keys())
     if result["status"] == 1:
+        
+        
+        # if all is good, lets save the file they uploaded.
+        process_data = SequencingUpload.get(process_id)
+        uploads_folder = process_data["uploads_folder"]
+        
+        save_path = (
+            f"seq_uploads/{uploads_folder}/"
+            f"{filename}"
+        )
+        file.save(save_path)           
+        
+        
         # Create a list to hold the sample line IDs
         sample_line_ids = []
         # All the data that was uploaded was ok. Lets save them
