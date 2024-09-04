@@ -64,12 +64,12 @@
   },
   "Date_collected": {
     "field_type":"date",
-    "help_tip": "Date the sample was collected. Must be YYYY-DD-MM format",
+    "help_tip": "Date the sample was collected. Must be YYYY-MM-DD format",
     "check_function": "check_date_collected",
     "required": "True"
   },
   "DNA_concentration_ng_ul": {
-    "help_tip": "Concentration of DNA (ng/ul).",
+    "help_tip": "Concentration of DNA (ng/ul). If too low or NA, you can put 0",
     "check_function": "check_dna_concentration",
     "required": "True"
   },

@@ -95,6 +95,7 @@ def metadata_form():
     valid_samples = False
     missing_sequencing_ids = []
     samples_data_complete = []
+    multiqc_report_exists = False
     if process_id:
         process_data = SequencingUpload.get(process_id)
 
@@ -227,9 +228,15 @@ def upload_metadata_file():
             "%Y-%m-%d"
         )
 
+    # Strip degree symbols at the end of Latitude and Longitude values
+    if "Latitude" in df.columns:
+        df["Latitude"] = df["Latitude"].astype(str).str.rstrip('°')
+    if "Longitude" in df.columns:
+        df["Longitude"] = df["Longitude"].astype(str).str.rstrip('°')
+
     # Check metadata using the helper function
     result = check_metadata(df, using_scripps, multiple_sequencing_runs)
-
+    logger.info(result)
     expected_columns_data = get_columns_data()
     expected_columns = list(expected_columns_data.keys())
     if result["status"] == 1:
@@ -277,6 +284,7 @@ def upload_metadata_file():
 def upload_process_common_fields():
     # Parse form data from the request
     form_data = request.form.to_dict()
+    logger.info(form_data)
 
     process_id = SequencingUpload.create(datadict=form_data)
 

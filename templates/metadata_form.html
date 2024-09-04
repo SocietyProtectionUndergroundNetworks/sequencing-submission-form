@@ -112,9 +112,9 @@
       <form id="step_3_form">
         <fieldset disabled="disabled">
           {% if my_buckets|length == 1 %}
-            <input type="hidden" id="step_3_sequenceProjectId" value="{{ my_buckets|list|first }}"/>
+            <input type="hidden" id="step_3_sequenceProjectId" name="project_id" value="{{ my_buckets|list|first }}"/>
           {% else %}
-            <input type="hidden" id="step_3_sequenceProjectId" value=""/>
+            <input type="hidden" id="step_3_sequenceProjectId" name="project_id" value=""/>
           {% endif %}
           {% for column_key, column_values in project_common_data.items() %}
             <div class="form-group row mb-3" data-condition="{{ column_values.get('required', '') }}">
@@ -985,12 +985,11 @@
   ////// ############################################# /////////
   ////// ############ STEP 2 STARTS HERE ############# /////////
   ////// ############################################# /////////
+  function enableForm_step_2() {
+      $('#step_2_form fieldset').removeAttr('disabled');
+      $('#step_1_form fieldset').attr('disabled', 'disabled');
+  }
   $(document).ready(function() {
-    function enableForm_step_2() {
-        $('#step_2_form fieldset').removeAttr('disabled');
-        $('#step_1_form fieldset').attr('disabled', 'disabled');
-    }
-
     // Listen for changes in the radio buttons using_scripps
     $('input[name="using_scripps"]').change(function() {
         // Check if any radio button is checked
@@ -1049,17 +1048,14 @@
           var usingScrippsValue = $('input[name="using_scripps"]:checked').val();
           var usingScrippsText = usingScrippsValue == "1" ? "yes" : "no";
           formData.append('using_scripps', usingScrippsText);
+          console.log(formData)
 
           if ($('#sequence-project-id').is('input')) {
               var project_id = $('#sequence-project-id').val();
               console.log("Project ID from input field:", project_id);
-          }
-          // Check if the element is a select field
-          else if ($('#sequence-project-id').is('select')) {
-              $('#sequence-project-id').change(function() {
-                  var project_id = $(this).val();
-                  console.log("Selected Project ID from select field:", project_id);
-              });
+          } else if ($('#sequence-project-id').is('select')) { // Check if the element is a select field
+            var project_id = $('#sequence-project-id').val();
+            console.log("Selected Project ID from select field:", project_id);
           }
           formData.append('project_id', project_id);
 
