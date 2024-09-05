@@ -939,7 +939,7 @@ class SequencingUpload:
             # Copy the file to the correct bucket and folder
             init_bucket_chunked_upload_v2(
                 local_file_path=output_file_path,
-                destination_upload_directory="mapping_files",
+                destination_upload_directory=None,
                 destination_blob_name=mapping_filename,
                 sequencer_file_id=None,
                 bucket_name=bucket,

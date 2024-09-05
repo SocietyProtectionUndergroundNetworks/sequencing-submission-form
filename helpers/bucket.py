@@ -712,9 +712,12 @@ def bucket_chunked_upload_v2(
 
     # If the file is smaller than 30 MB, upload it directly
     if total_size <= 30 * 1024 * 1024:
-        blob = bucket.blob(
-            f"{destination_upload_directory}/{destination_blob_name}"
-        )
+        if destination_upload_directory:
+            blob = bucket.blob(
+                f"{destination_upload_directory}/{destination_blob_name}"
+            )
+        else:
+            blob = bucket.blob(f"{destination_blob_name}")
         blob.upload_from_filename(local_file_path)
 
         # Verify MD5 checksum
@@ -753,10 +756,15 @@ def bucket_chunked_upload_v2(
             if not data:
                 break
 
-            temp_blob = bucket.blob(
-                f"{destination_upload_directory}/"
-                f"{destination_blob_name}.part{chunk_num}"
-            )
+            if destination_upload_directory:
+                temp_blob = bucket.blob(
+                    f"{destination_upload_directory}/"
+                    f"{destination_blob_name}.part{chunk_num}"
+                )
+            else:
+                temp_blob = bucket.blob(
+                    f"{destination_blob_name}.part{chunk_num}"
+                )
             temp_blob.upload_from_string(
                 data, content_type="application/octet-stream"
             )
@@ -769,9 +777,12 @@ def bucket_chunked_upload_v2(
                 )
             print(f"Bytes uploaded: {file.tell()} / {total_size}", flush=True)
 
-        blob = bucket.blob(
-            f"{destination_upload_directory}/{destination_blob_name}"
-        )
+        if destination_upload_directory:
+            blob = bucket.blob(
+                f"{destination_upload_directory}/{destination_blob_name}"
+            )
+        else:
+            blob = bucket.blob(f"{destination_blob_name}")
         blob.compose(chunks)
 
         for temp_blob in chunks:
