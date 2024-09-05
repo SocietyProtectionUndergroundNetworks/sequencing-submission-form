@@ -912,10 +912,7 @@ class SequencingUpload:
                 )
 
         # Write each region's data to a TSV file
-        logger.info(region_data)
         for region, rows in region_data.items():
-            logger.info("We are doing the region ")
-            logger.info(region)
             mapping_filename = f"{region}_Mapping.txt"
             output_file_path = os.path.join(output_dir, mapping_filename)
             with open(output_file_path, "w", newline="") as file:
@@ -942,7 +939,7 @@ class SequencingUpload:
             # Copy the file to the correct bucket and folder
             init_bucket_chunked_upload_v2(
                 local_file_path=output_file_path,
-                destination_upload_directory=region,
+                destination_upload_directory="mapping_files",
                 destination_blob_name=mapping_filename,
                 sequencer_file_id=None,
                 bucket_name=bucket,
