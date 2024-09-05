@@ -248,7 +248,10 @@ def check_dna_concentration(value):
     Check if a single DNA_concentration_ng_ul value is a valid numeric value.
     """
     if not is_numeric(value):
-        return {"status": 0, "message": "Invalid value"}
+        return {
+            "status": 0,
+            "message": "Invalid value. Only numeric values are allowed",
+        }
     else:
         return {"status": 1, "message": "Valid value"}
 
@@ -258,7 +261,12 @@ def check_elevation(value):
     Check if a single elevation value is a valid positive integer.
     """
     if not is_positive_integer(value):
-        return {"status": 0, "message": "Invalid value"}
+        return {
+            "status": 0,
+            "message": (
+                "Invalid value. Only " "positive integer values are allowed"
+            ),
+        }
     else:
         return {"status": 1, "message": "Valid value"}
 
@@ -296,6 +304,18 @@ def check_latitude_longitude(value):
     format (WGS1984) and valid.
     """
 
+    # Check if the input contains any invalid characters like ° or letters
+    # Pattern to detect any non-numeric characters (except '.' and '-')
+    special_characters_pattern = r"[^\d\.\-]"
+    if re.search(special_characters_pattern, str(value)):
+        return {
+            "status": 0,
+            "message": (
+                "Invalid value: contains special "
+                "characters like degree symbol (°) or letters"
+            ),
+        }
+
     try:
         float_value = float(value)
 
@@ -312,8 +332,7 @@ def check_latitude_longitude(value):
                 return {
                     "status": 0,
                     "message": (
-                        "Invalid value: incorrect \
-                        precision for latitude"
+                        "Invalid value: incorrect precision for latitude"
                     ),
                 }
 
