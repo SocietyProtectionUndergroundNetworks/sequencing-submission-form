@@ -881,7 +881,9 @@ class SequencingUpload:
             land_use = info["land_use"]
             ecosystem = info["ecosystem"]
             sample_or_control = info["sample_or_control"]
-            sequencing_run = info["sequencing_run"]
+            sequencing_run = (
+                info["sequencing_run"] if info["sequencing_run"] else "NA"
+            )
 
             for region, files in info["files"].items():
                 # Sort filenames alphabetically and join with commas
