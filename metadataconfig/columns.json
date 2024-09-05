@@ -1,6 +1,6 @@
 {
   "SampleID": {
-    "help_tip": "Unique sample tracking ID for your project. This should be a name used to identify where you sampled, in addition to a unique number separated by an underscore. For example, a project sampling across Ghana could have the sample IDs “GH_1”, “GH_2”, and a project sampling in wetlands and mountains in Scotland could have the IDs “S_wetland_1”, “S_wetland_2”, “S_mountain_3”. Prepending the number with 0 is accepted, so “S_wetland_01”, “S_wetland_02”, “S_mountain_03” are also acceptable.",
+    "help_tip": "Required. Unique sample tracking ID for your project. This should be a name used to identify where you sampled, in addition to a unique number separated by an underscore. For example, a project sampling across Ghana could have the sample IDs “GH_1”, “GH_2”, and a project sampling in wetlands and mountains in Scotland could have the IDs “S_wetland_1”, “S_wetland_2”, “S_mountain_3”. Prepending the number with 0 is accepted, so “S_wetland_01”, “S_wetland_02”, “S_mountain_03” are also acceptable.",
     "check_function": "check_sample_id",
     "required": "True"
   },
@@ -8,74 +8,73 @@
     "help_tip": "Optional, the region or local name of site collected. Can be the same name for multiple samples."
   },
   "Latitude": {
-    "help_tip": "Latitude of coordinates measured using WGS1984 (default on most GPS). Ideally in decimal format",
+    "help_tip": "Required. Latitude of coordinates measured using WGS1984 (default on most GPS). Ideally in decimal format. Numeric only (no degree symbols) with a dot (.) seperator. Example 3.68823",
     "check_function": "check_latitude_longitude",
     "required": "True"
   },
   "Longitude": {
-    "help_tip": "Longitude of coordinates measured using WGS1984 (default on most GPS). Ideally in decimal format",
+    "help_tip": "Required. Longitude of coordinates measured using WGS1984 (default on most GPS). Ideally in decimal format. Numeric only (no degree symbols) with a dot (.) seperator. Example 39.68602",
     "check_function": "check_latitude_longitude",
     "required": "True"
   },
   "Elevation": {
-    "help_tip": "Elevation in meters above sea level",
+    "help_tip": "Required. Elevation in meters above sea level",
     "check_function": "check_elevation",
     "required": "True"
   },  
   "Vegetation": {
-    "help_tip": "List of names of local vegetation, if names unknown describe (trees, grass, forbs, etc)",
-    "check_function": "check_vegetation",
-    "required": "True"
+    "help_tip": "List of names of local vegetation, if names unknown describe (trees, grass, forbs, etc). Max 200 characters",
+    "check_function": "check_vegetation"
   },
   "Land_use": {
     "lookup_file": "land_use.json",
-    "help_tip": "Land use category of the site.",
+    "help_tip": "Required. Land use category of the site.",
     "required": "True"
   },
   "Agricultural_land": {
     "lookup_file": "agricultural_land.json",
-    "help_tip": "Was the land where the sample taken agricultural?",
+    "help_tip": "Required. Was the land where the sample taken agricultural?",
     "required": "True"
   },
   "Ecosystem": {
     "lookup_file": "ecosystems.json",
-    "help_tip": "Type of ecosystem.",
+    "help_tip": "Required. Type of ecosystem.",
     "required": "True"
   },
   "Grid_Size": {
     "lookup_file": "grid_size.json",
-    "help_tip": "Size of your sampling grid. 30m is the standard",
+    "help_tip": "Required. Size of your sampling grid. 30m is the standard",
     "required": "True"
   },
   "Soil_depth": {
     "lookup_file": "soil_depth.json",
-    "help_tip": "Depth of soil core. 5-10cm is the SPUN standard",
+    "help_tip": "Required. Depth of soil core. 5-10cm is the SPUN standard",
     "required": "True"
   },
   "Transport_refrigeration": {
     "lookup_file": "transport_refrigeration.json",
-    "help_tip": "Transport refrigeration method used",
+    "help_tip": "Required. Transport refrigeration method used",
     "required": "True"
   },
   "Drying": {
     "lookup_file": "drying.json",
-    "help_tip": "If airdried, select time drying. Airdrying includes drying with silica gel. Select ‘No’ if no airdrying carried out",
+    "help_tip": "Required. If airdried, select time drying. Airdrying includes drying with silica gel. Select ‘No’ if no airdrying carried out",
     "required": "True"
   },
   "Date_collected": {
     "field_type":"date",
-    "help_tip": "Date the sample was collected. Must be YYYY-MM-DD format",
+    "help_tip": "Required. Date the sample was collected. Must be YYYY-MM-DD format",
     "check_function": "check_date_collected",
     "required": "True"
   },
   "DNA_concentration_ng_ul": {
-    "help_tip": "Concentration of DNA (ng/ul). If too low or NA, you can put 0",
+    "help_tip": "Required. Concentration of DNA (ng/ul). If too low or NA, you can put 0. Numeric only.",
     "check_function": "check_dna_concentration",
     "required": "True"
   },
   "Sample_or_Control": {
     "lookup_file": "sample_or_control.json",
-    "help_tip": "Indicate ‘True sample' if the sample is a collected soil sample, 'Control' if sample is a negative control",
+    "help_tip": "Required. Indicate ‘True sample' if the sample is a collected soil sample, 'Control' if sample is a negative control",
     "required": "True"
   },
   "SequencingRun": {
