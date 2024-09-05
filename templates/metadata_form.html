@@ -1594,8 +1594,17 @@
           success: function(response) {
               console.log(response);
               if (response.result==1) {
-                window.location.reload();
+                {% if process_data and process_data.using_scripps %}
+                  $('#step_5_msg').html("<p>Thank you for submitting your metadata. That is all for now. We will contact you when we receive your data from scripps.</p>").removeClass('text-danger').addClass('text-success');
+                {% else %}
+                  window.location.reload();
+                {% endif %}
               }
+              
+              // Lets update step_5_msg  if this is a scripps. 
+              {% if process_data and process_data.using_scripps %}
+                $('#step_5_msg').html("<p>Thank you for submitting your metadata. That is all for now. We will contact you when we receive your data from scripps.</p>").removeClass('text-danger').addClass('text-success');
+              {% endif %}
           },
           error: function(xhr, status, error) {
               console.error('Error:', error);
