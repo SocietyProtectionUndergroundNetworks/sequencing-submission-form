@@ -719,18 +719,20 @@ def bucket_chunked_upload_v2(
 
         # Verify MD5 checksum
         blob_md5 = blob.md5_hash
-        # Convert known_md5 from hex to base64
-        known_md5_base64 = base64.b64encode(bytes.fromhex(known_md5)).decode(
-            "utf-8"
-        )
 
-        if blob_md5:
-            # Compare base64-encoded MD5 checksums
-            if known_md5_base64 == blob_md5:
-                if sequencer_file_id:
-                    update_sequencer_file_progress(sequencer_file_id, 100)
-            else:
-                raise ValueError("MD5 checksum does not match!")
+        if known_md5:
+            # Convert known_md5 from hex to base64
+            known_md5_base64 = base64.b64encode(
+                bytes.fromhex(known_md5)
+            ).decode("utf-8")
+
+            if blob_md5:
+                # Compare base64-encoded MD5 checksums
+                if known_md5_base64 == blob_md5:
+                    if sequencer_file_id:
+                        update_sequencer_file_progress(sequencer_file_id, 100)
+                else:
+                    raise ValueError("MD5 checksum does not match!")
 
         return True
 
@@ -775,18 +777,19 @@ def bucket_chunked_upload_v2(
         for temp_blob in chunks:
             temp_blob.delete()
 
-        # Verify MD5 checksum
-        blob_md5 = blob.md5_hash
-        # Convert known_md5 from hex to base64
-        known_md5_base64 = base64.b64encode(bytes.fromhex(known_md5)).decode(
-            "utf-8"
-        )
-        if blob_md5:
-            if known_md5_base64 == blob_md5:
-                if sequencer_file_id:
-                    update_sequencer_file_progress(sequencer_file_id, 100)
-            else:
-                raise ValueError("MD5 checksum does not match!")
+        if known_md5:
+            # Verify MD5 checksum
+            blob_md5 = blob.md5_hash
+            # Convert known_md5 from hex to base64
+            known_md5_base64 = base64.b64encode(
+                bytes.fromhex(known_md5)
+            ).decode("utf-8")
+            if blob_md5:
+                if known_md5_base64 == blob_md5:
+                    if sequencer_file_id:
+                        update_sequencer_file_progress(sequencer_file_id, 100)
+                else:
+                    raise ValueError("MD5 checksum does not match!")
 
         return True
 
