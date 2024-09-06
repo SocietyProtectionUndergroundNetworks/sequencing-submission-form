@@ -4,7 +4,7 @@ import subprocess
 import json
 from pathlib import Path
 from models.upload import Upload
-from helpers.bucket import bucket_upload_folder
+from helpers.bucket import bucket_upload_folder, bucket_chunked_upload
 
 import logging
 
@@ -279,6 +279,28 @@ def create_multiqc_report(process_id):
                 "seq_processed", uploads_folder, "fastqc", bucket, region
             )
             multiqc.run(multiqc_folder, outdir=multiqc_folder)
+            bucket_upload_directory = (
+                region + "/MultiQC_report/" + uploads_folder
+            )
+            # upload the html file
+            bucket_chunked_upload(
+                local_file_path=multiqc_folder + "/multiqc_report.html",
+                destination_upload_directory=bucket_upload_directory,
+                destination_blob_name="multiqc_report.html",
+                process_id=None,
+                upload_type=None,
+                bucket_name=bucket,
+            )
+
+            bucket_upload_directory = bucket_upload_directory + "/multiqc_data"
+            # and upload the folder of the report contents
+            bucket_upload_folder(
+                folder_path=multiqc_folder + "/multiqc_data",
+                destination_upload_directory=bucket_upload_directory,
+                process_id=None,
+                upload_type=None,
+                bucket=bucket,
+            )
     else:
         logger.info("There are no regions!")
 

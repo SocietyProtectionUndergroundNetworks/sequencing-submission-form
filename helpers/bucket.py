@@ -113,7 +113,10 @@ def bucket_chunked_upload(
             f"{destination_upload_directory}/{destination_blob_name}"
         )
         blob.upload_from_filename(local_file_path)
-        update_progress_db(process_id, upload_type, 100, destination_blob_name)
+        if process_id:
+            update_progress_db(
+                process_id, upload_type, 100, destination_blob_name
+            )
         return True
 
     # If the file is between 30 MB and 700 MB, do chunks of 30 MB each
@@ -143,12 +146,13 @@ def bucket_chunked_upload(
             chunks.append(temp_blob)
             chunk_num += 1
 
-            update_progress_db(
-                process_id,
-                upload_type,
-                (file.tell() / total_size) * 100,
-                destination_blob_name,
-            )
+            if process_id:
+                update_progress_db(
+                    process_id,
+                    upload_type,
+                    (file.tell() / total_size) * 100,
+                    destination_blob_name,
+                )
             print(f"Bytes uploaded: {file.tell()} / {total_size}", flush=True)
 
         blob = bucket.blob(
@@ -159,7 +163,10 @@ def bucket_chunked_upload(
         for temp_blob in chunks:
             temp_blob.delete()
 
-        update_progress_db(process_id, upload_type, 100, destination_blob_name)
+        if process_id:
+            update_progress_db(
+                process_id, upload_type, 100, destination_blob_name
+            )
         return True
 
 
