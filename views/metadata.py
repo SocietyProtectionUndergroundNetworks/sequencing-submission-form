@@ -75,6 +75,75 @@ def approved_required(view_func):
     return decorated_approved_view
 
 
+def process_uploaded_file(
+    process_id,
+    source_directory,
+    filename,
+    expected_md5,
+    process_data
+):
+    uploads_folder = process_data["uploads_folder"]
+    final_file_path = f"{source_directory}/{filename}"
+    # Save into the database the file
+    matching_sequencer_ids = (
+        SequencingSequencerId.get_matching_sequencer_ids(
+            process_id, filename
+        )
+    )
+
+    # assign the file to the correct sequencer in the database and
+    # process it further
+    if len(matching_sequencer_ids) == 1:
+        file_sequencer_id = matching_sequencer_ids[0]
+
+        new_filename = SequencingSequencerId.generate_new_filename(
+            process_id, filename
+        )
+        file_dict = {
+            "md5": expected_md5,
+            "original_filename": filename,
+            "new_name": new_filename,
+        }
+
+        new_file_uploaded_id = SequencingFileUploaded.create(
+            file_sequencer_id, file_dict
+        )
+        logger.info(
+            "The new_file_uploaded_id is " + str(new_file_uploaded_id)
+        )
+        # If a new filename is provided, copy the file to
+        # the new location
+        if new_filename:
+            # Get the data of the SequencingSequencerId
+            # to get the region
+            sequencerId = SequencingSequencerId.get(file_sequencer_id)
+            region = sequencerId.Region
+            bucket = process_data["project_id"]
+
+            processed_folder = f"seq_processed/{uploads_folder}"
+            processed_file_path = f"{processed_folder}/{new_filename}"
+            os.makedirs(
+                os.path.dirname(processed_file_path), exist_ok=True
+            )
+            shutil.copy2(final_file_path, processed_file_path)
+
+            init_create_fastqc_report(
+                new_filename, processed_folder, bucket, region
+            )
+
+            # Copy the file to the correct bucket and folder
+            init_bucket_chunked_upload_v2(
+                local_file_path=processed_file_path,
+                destination_upload_directory=region,
+                destination_blob_name=new_filename,
+                sequencer_file_id=new_file_uploaded_id,
+                bucket_name=bucket,
+                known_md5=expected_md5,
+            )
+            return new_filename
+    return None
+
+
 @metadata_bp.route("/metadata_form", endpoint="metadata_form")
 @login_required
 @approved_required
@@ -671,63 +740,15 @@ def sequencing_file_upload_completed():
                 )
                 os.remove(chunk_path)
 
-            # Save into the database the file
-            matching_sequencer_ids = (
-                SequencingSequencerId.get_matching_sequencer_ids(
-                    process_id, form_filename
-                )
+            source_directory = f"seq_uploads/{uploads_folder}"
+            new_filename = process_uploaded_file(
+                process_id=process_id,
+                source_directory=source_directory,
+                filename=form_filename,
+                expected_md5=expected_md5,
+                process_data=process_data
             )
-
-            # assign the file to the correct sequencer in the database and
-            # process it further
-            if len(matching_sequencer_ids) == 1:
-                file_sequencer_id = matching_sequencer_ids[0]
-
-                new_filename = SequencingSequencerId.generate_new_filename(
-                    process_id, form_filename
-                )
-                file_dict = {
-                    "md5": expected_md5,
-                    "original_filename": form_filename,
-                    "new_name": new_filename,
-                }
-
-                new_file_uploaded_id = SequencingFileUploaded.create(
-                    file_sequencer_id, file_dict
-                )
-                logger.info(
-                    "The new_file_uploaded_id is " + str(new_file_uploaded_id)
-                )
-                # If a new filename is provided, copy the file to
-                # the new location
-                if new_filename:
-                    # Get the data of the SequencingSequencerId
-                    # to get the region
-                    sequencerId = SequencingSequencerId.get(file_sequencer_id)
-                    region = sequencerId.Region
-                    bucket = process_data["project_id"]
-
-                    processed_folder = f"seq_processed/{uploads_folder}"
-                    processed_file_path = f"{processed_folder}/{new_filename}"
-                    os.makedirs(
-                        os.path.dirname(processed_file_path), exist_ok=True
-                    )
-                    shutil.copy2(final_file_path, processed_file_path)
-
-                    init_create_fastqc_report(
-                        new_filename, processed_folder, bucket, region
-                    )
-
-                    # Copy the file to the correct bucket and folder
-                    init_bucket_chunked_upload_v2(
-                        local_file_path=processed_file_path,
-                        destination_upload_directory=region,
-                        destination_blob_name=new_filename,
-                        sequencer_file_id=new_file_uploaded_id,
-                        bucket_name=bucket,
-                        known_md5=expected_md5,
-                    )
-
+            if new_filename:
                 return (
                     jsonify(
                         {
@@ -738,6 +759,7 @@ def sequencing_file_upload_completed():
                     ),
                     200,
                 )
+
     return "", 200
 
 
@@ -818,6 +840,21 @@ def delete_upload_process_v2():
     else:
         return redirect(url_for("metadata.all_uploads_v2"))
 
+
+@metadata_bp.route(
+    "/show_fastqc_report", methods=["GET"], endpoint="show_fastqc_report"
+)
+@login_required
+@approved_required
+def show_fastqc_report():
+    file_id = request.args.get("file_id")
+
+    fastqc_report = SequencingFileUploaded.get_fastqc_report(file_id)
+
+    if fastqc_report:
+        return send_file(fastqc_report)
+
+    return []
 
 @metadata_bp.route(
     "/show_multiqc_report", methods=["GET"], endpoint="show_multiqc_report"
@@ -926,3 +963,59 @@ def show_mapping_file():
             return send_file(abs_mapping_file, as_attachment=True)
 
     return []
+
+@metadata_bp.route(
+    "/sequencing_process_server_file",
+    methods=["POST"],
+    endpoint="sequencing_process_server_file"
+)
+@login_required
+@approved_required
+@admin_required
+def process_server_file():
+    process_id = request.form.get("process_id")
+    directory_name = request.form.get("directory_name")
+
+    if process_id:
+        process_data = SequencingUpload.get(process_id)
+        logger.info(process_id)
+        logger.info(directory_name)
+
+        # Construct the full directory path
+        full_directory_path = Path(directory_name)
+
+        # Check if the directory exists
+        if not full_directory_path.is_dir():
+            logger.error(f"Directory not found: {full_directory_path}")
+            return {"error": "Directory not found"}, 404
+
+        # Initialize the report list
+        report = []
+
+        # Loop through files in the directory
+        for file_path in full_directory_path.iterdir():
+            # Check if the file ends with '.fastq.gz'
+            if file_path.is_file() and file_path.name.endswith('.fastq.gz'):
+                logger.info(f"Found fastq.gz file: {file_path.name}")
+
+                actual_md5 = calculate_md5(file_path)
+
+                # Process and rename the file
+                new_filename = process_uploaded_file(
+                    process_id=process_id,
+                    source_directory=directory_name,
+                    filename=file_path.name,
+                    expected_md5=actual_md5,
+                    process_data=process_data
+                )
+
+                # Add the result to the report list
+                report.append({
+                    "original_filename": file_path.name,
+                    "new_filename": new_filename
+                })
+
+        # Return the report as part of the response
+        return {"message": "Files processed successfully", "report": report}, 200
+
+    return {"message": "No process_id provided"}, 400
