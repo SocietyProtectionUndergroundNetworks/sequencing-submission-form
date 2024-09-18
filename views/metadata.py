@@ -76,19 +76,13 @@ def approved_required(view_func):
 
 
 def process_uploaded_file(
-    process_id,
-    source_directory,
-    filename,
-    expected_md5,
-    process_data
+    process_id, source_directory, filename, expected_md5, process_data
 ):
     uploads_folder = process_data["uploads_folder"]
     final_file_path = f"{source_directory}/{filename}"
     # Save into the database the file
-    matching_sequencer_ids = (
-        SequencingSequencerId.get_matching_sequencer_ids(
-            process_id, filename
-        )
+    matching_sequencer_ids = SequencingSequencerId.get_matching_sequencer_ids(
+        process_id, filename
     )
 
     # assign the file to the correct sequencer in the database and
@@ -108,9 +102,7 @@ def process_uploaded_file(
         new_file_uploaded_id = SequencingFileUploaded.create(
             file_sequencer_id, file_dict
         )
-        logger.info(
-            "The new_file_uploaded_id is " + str(new_file_uploaded_id)
-        )
+        logger.info("The new_file_uploaded_id is " + str(new_file_uploaded_id))
         # If a new filename is provided, copy the file to
         # the new location
         if new_filename:
@@ -122,9 +114,7 @@ def process_uploaded_file(
 
             processed_folder = f"seq_processed/{uploads_folder}"
             processed_file_path = f"{processed_folder}/{new_filename}"
-            os.makedirs(
-                os.path.dirname(processed_file_path), exist_ok=True
-            )
+            os.makedirs(os.path.dirname(processed_file_path), exist_ok=True)
             shutil.copy2(final_file_path, processed_file_path)
 
             init_create_fastqc_report(
@@ -746,7 +736,7 @@ def sequencing_file_upload_completed():
                 source_directory=source_directory,
                 filename=form_filename,
                 expected_md5=expected_md5,
-                process_data=process_data
+                process_data=process_data,
             )
             if new_filename:
                 return (
@@ -856,6 +846,7 @@ def show_fastqc_report():
 
     return []
 
+
 @metadata_bp.route(
     "/show_multiqc_report", methods=["GET"], endpoint="show_multiqc_report"
 )
@@ -964,10 +955,11 @@ def show_mapping_file():
 
     return []
 
+
 @metadata_bp.route(
     "/sequencing_process_server_file",
     methods=["POST"],
-    endpoint="sequencing_process_server_file"
+    endpoint="sequencing_process_server_file",
 )
 @login_required
 @approved_required
@@ -995,7 +987,7 @@ def process_server_file():
         # Loop through files in the directory
         for file_path in full_directory_path.iterdir():
             # Check if the file ends with '.fastq.gz'
-            if file_path.is_file() and file_path.name.endswith('.fastq.gz'):
+            if file_path.is_file() and file_path.name.endswith(".fastq.gz"):
                 logger.info(f"Found fastq.gz file: {file_path.name}")
 
                 actual_md5 = calculate_md5(file_path)
@@ -1006,16 +998,21 @@ def process_server_file():
                     source_directory=directory_name,
                     filename=file_path.name,
                     expected_md5=actual_md5,
-                    process_data=process_data
+                    process_data=process_data,
                 )
 
                 # Add the result to the report list
-                report.append({
-                    "original_filename": file_path.name,
-                    "new_filename": new_filename
-                })
+                report.append(
+                    {
+                        "original_filename": file_path.name,
+                        "new_filename": new_filename,
+                    }
+                )
 
         # Return the report as part of the response
-        return {"message": "Files processed successfully", "report": report}, 200
+        return {
+            "message": "Files processed successfully",
+            "report": report,
+        }, 200
 
     return {"message": "No process_id provided"}, 400
