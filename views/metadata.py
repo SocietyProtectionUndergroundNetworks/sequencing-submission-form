@@ -33,6 +33,7 @@ from helpers.fastqc import (
     init_create_multiqc_report,
     check_multiqc_report,
 )
+from helpers.csv import sanitize_data
 import numpy as np
 from helpers.file_renaming import calculate_md5
 
@@ -166,6 +167,8 @@ def metadata_form():
         regions = process_data["regions"]
 
         samples_data = SequencingUpload.get_samples(process_id)
+
+        samples_data = sanitize_data(samples_data)
 
         # lets create the extra data dictionary
         # Iterate through each sample in samples_data
