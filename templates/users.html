@@ -42,7 +42,7 @@
         {% for user in all_users %}
           <tr>
               <td scope="row">
-                {% if user.uploads_count == 0 %}
+                {% if (user.uploads_count == 0 and user.uploads_v2_count == 0) %}
                   <a href="#" class="remove_user text-danger" data-user-id="{{ user.user.id }}">X</a>
                 {% endif %}
               </td>
