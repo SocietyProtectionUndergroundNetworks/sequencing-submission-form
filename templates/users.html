@@ -30,7 +30,8 @@
           <th scope="col">#</th>
           <th scope="col">Email</th>
           <th scope="col">Name</th>
-          <th scope="col">Upload processes</th>
+          <th scope="col">Upload processes v1</th>
+          <th scope="col">Upload processes v2</th>
           <th scope="col">Is Admin</th>
           <th scope="col">Is Approved</th>
           <th scope="col">Groups</th>
@@ -59,6 +60,14 @@
                   {{ user.uploads_count }}
                 {% endif %}
               </td>
+              <td>
+                {% if user.uploads_v2_count > 0 %}
+                  <a href="/user_uploads_v2?user_id={{ user.user.id }}">{{ user.uploads_v2_count }}</a>
+                {% else %}
+                  {{ user.uploads_v2_count }}
+                {% endif %}
+                
+              </td>              
               <td>
                 <form action="/update_admin_status" method="post" class="admin-form">
                   <input type="hidden" name="user_id" value="{{ user.user.id }}">
