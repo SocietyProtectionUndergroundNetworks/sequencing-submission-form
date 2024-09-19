@@ -22,6 +22,7 @@ from pathlib import Path
 from flask_login import current_user
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import desc
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -88,7 +89,7 @@ class SequencingUpload:
         if user_id is not None:
             query = query.filter(SequencingUploadsTable.user_id == user_id)
 
-        upload_dbs = query.all()
+        upload_dbs = query.order_by(desc(SequencingUploadsTable.id)).all()
 
         uploads = []
         for upload_db, user in upload_dbs:
