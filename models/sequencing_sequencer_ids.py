@@ -245,35 +245,32 @@ class SequencingSequencerId:
     def get_matching_sequencer_ids(cls, process_id, filename):
         db_engine = connect_db()
         session = get_session(db_engine)
-
-        # Extract the prefix from the filename, considering
-        # both with and without _
-        filename_prefix = filename.split(".")[
-            0
-        ]  # Get the filename without the extension
-
-        # Query to get all ids and SequencerIDs related to
-        # the given process_id
-        sequencer_ids = (
-            session.query(
-                SequencingSequencerIDsTable.id,
-                SequencingSequencerIDsTable.SequencerID,
-            )
-            .join(SequencingSamplesTable)
-            .filter(SequencingSamplesTable.sequencingUploadId == process_id)
-            .all()
-        )
-
-        # Extract id and SequencerID pairs from the query result
-        sequencer_ids = [(id, seq_id) for id, seq_id in sequencer_ids]
-
-        # Find matching sequencer IDs and return the corresponding ids
         matching_ids = []
-        for id, seq_id in sequencer_ids:
-            if seq_id == filename_prefix or filename_prefix.startswith(
-                seq_id + "_"
-            ):
-                matching_ids.append(id)
+
+        # Ensure the filename ends with .fastq.gz and strip it off
+        if filename.endswith(".fastq.gz"):
+            filename_no_ext = filename[:-9]  # Remove the .fastq.gz suffix
+
+            # Query to get all ids and SequencerIDs related to the given process_id
+            sequencer_ids = (
+                session.query(
+                    SequencingSequencerIDsTable.id,
+                    SequencingSequencerIDsTable.SequencerID,
+                )
+                .join(SequencingSamplesTable)
+                .filter(
+                    SequencingSamplesTable.sequencingUploadId == process_id
+                )
+                .all()
+            )
+
+            # Extract id and SequencerID pairs from the query result
+            sequencer_ids = [(id, seq_id) for id, seq_id in sequencer_ids]
+
+            # Find matching sequencer IDs and return the corresponding ids
+            for id, seq_id in sequencer_ids:
+                if filename_no_ext.startswith(seq_id):
+                    matching_ids.append(id)
 
         return matching_ids
 
@@ -282,10 +279,11 @@ class SequencingSequencerId:
         db_engine = connect_db()
         session = get_session(db_engine)
 
-        # Extract the prefix from the filename
-        filename_prefix = filename.split(".")[
-            0
-        ]  # Get the filename without the extension
+        # Ensure the filename ends with .fastq.gz and strip it off
+        if filename.endswith(".fastq.gz"):
+            filename_no_ext = filename[:-9]  # Remove the .fastq.gz suffix
+        else:
+            return None  # Return None if the filename doesn't have the correct suffix
 
         # Query to get all relevant records
         sequencer_records = (
@@ -301,7 +299,9 @@ class SequencingSequencerId:
 
         # Iterate through the results to find the matching record
         for sample_id, sequencer_id, region in sequencer_records:
-            if filename_prefix.startswith(sequencer_id):
+            if filename_no_ext.startswith(
+                sequencer_id
+            ):  # Match against the full name without the extension
                 # Generate the new filename
                 new_filename = filename.replace(
                     sequencer_id, f"{sample_id}_{region}"
