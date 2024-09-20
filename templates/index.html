@@ -22,15 +22,7 @@
     </div>
       {% if current_user.is_authenticated and current_user.approved %}
         {% if user_should_see_v2 or current_user.admin %}
-          {% if current_user.admin %}
-            <h3> Version 2 </h3>
-            <a href="/all_uploads_v2">
-              <div class="page-menu-item">
-                <h3>All v2 uploads</h3>
-              </div>
-            </a>
-
-          {% endif %}
+          <h3> Version 2 </h3>
           <a href="{{ url_for('metadata.metadata_form') }}">
             <div class="page-menu-item">
               <h3>Data submission form</h3>
@@ -51,9 +43,7 @@
           {% endif %}
         {% endif %}
         {% if (not user_should_see_v2) or current_user.admin %}
-          {% if current_user.admin %}
-            <h3> Version 1 </h3>
-          {% endif %}
+          <h3> Version 1 </h3>
           {% if gz_filedata %}
             <a href="/form_resume">
               <div class="page-menu-item">
@@ -90,13 +80,12 @@
               <h3>Start a new upload</h3>
             </div>
           </a>
-          <a href="/data">
-            <div class="page-menu-item">
-              <h3>My data</h3>
-            </div>
-          </a>
         {% endif %}
-
+        <a href="/data">
+          <div class="page-menu-item">
+            <h3>My data</h3>
+          </div>
+        </a>
       {% endif %}
       {% if current_user.is_authenticated and current_user.admin %}
         <h3> Admin </h3>
@@ -112,9 +101,14 @@
         </a>
         <a href="{{ url_for('upload.all_uploads') }}">
           <div class="page-menu-item">
-            <h3>All uploads</h3>
+            <h3>All v1 uploads</h3>
           </div>
         </a>
+        <a href="/all_uploads_v2">
+          <div class="page-menu-item">
+            <h3>All v2 uploads</h3>
+          </div>
+        </a>        
       {% endif %}
       <a href="/logout">
         <div class="page-menu-item">

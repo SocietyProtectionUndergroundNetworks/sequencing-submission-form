@@ -220,3 +220,26 @@ def get_sequences_based_on_primers(forward_primer, reverse_primer):
         }
     else:
         return None
+
+
+def sanitize_string(s):
+    """Escape quotes in a string."""
+    if isinstance(s, str):
+        return s.replace('"', '\\"')  # Escape double quotes
+    return s  # Return as is if not a string
+
+
+def sanitize_data(data):
+    """Recursively sanitize the input data."""
+    if isinstance(data, list):
+        return [
+            sanitize_data(item) for item in data
+        ]  # Sanitize each item in the list
+    elif isinstance(data, dict):
+        return {
+            key: sanitize_data(value) for key, value in data.items()
+        }  # Sanitize each value in the dict
+    else:
+        return sanitize_string(
+            data
+        )  # Escape string if it's not a list or dict

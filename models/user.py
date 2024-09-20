@@ -6,6 +6,7 @@ from models.db_model import (
     UploadTable,
     BucketTable,
     UserGroupsTable,
+    SequencingUploadsTable,
     user_groups_association,
 )
 from sqlalchemy import func, case
@@ -121,8 +122,20 @@ class User(UserMixin):
             .subquery()
         )
 
-        # Main query to get users along with aggregated
-        # upload data and group names
+        # Subquery to count sequencing uploads per user
+        sequencing_uploads_subquery = (
+            session.query(
+                SequencingUploadsTable.user_id,
+                func.count(SequencingUploadsTable.id).label(
+                    "uploads_v2_count"
+                ),
+            )
+            .group_by(SequencingUploadsTable.user_id)
+            .subquery()
+        )
+
+        # Main query to get users along with aggregated upload
+        # data, group names, and sequencing uploads count
         all_users_db = (
             session.query(
                 UserTable,
@@ -136,12 +149,19 @@ class User(UserMixin):
                     "reviewed_true_count"
                 ),
                 func.coalesce(groups_subquery.c.groups, "").label("groups"),
+                func.coalesce(
+                    sequencing_uploads_subquery.c.uploads_v2_count, 0
+                ).label("uploads_v2_count"),
             )
             .outerjoin(
                 uploads_subquery, UserTable.id == uploads_subquery.c.user_id
             )
             .outerjoin(
                 groups_subquery, UserTable.id == groups_subquery.c.user_id
+            )
+            .outerjoin(
+                sequencing_uploads_subquery,
+                UserTable.id == sequencing_uploads_subquery.c.user_id,
             )
             .options(
                 subqueryload(UserTable.buckets),  # Load buckets eagerly
@@ -159,6 +179,7 @@ class User(UserMixin):
             reviewed_false_count,
             reviewed_true_count,
             groups_str,
+            uploads_v2_count,
         ) in all_users_db:
             user_buckets = [bucket.id for bucket in user_db.buckets]
             user_groups = groups_str.split(",") if groups_str else []
@@ -175,6 +196,7 @@ class User(UserMixin):
                 ),
                 "uploads_count": uploads_count,
                 "reviewed_by_admin_count": reviewed_true_count,
+                "uploads_v2_count": uploads_v2_count,
             }
             all_users.append(user_info)
 

@@ -65,6 +65,7 @@
         </fieldset>
       </form>
     </div>
+
     <div id="step_2" class="form-step-item">
       <h3> Step 2: Tell us how you are going to run the sequencing</h3>
       <form id="step_2_form">
@@ -106,7 +107,7 @@
         </fieldset>
       </form>
     </div>
-    
+
     <div id="step_3" class="form-step-item">
       <h3> Step 3: Give us the common data for your project</h3>
       <form id="step_3_form">
@@ -161,7 +162,6 @@
       </form>
       <div id="step_3_msg"></div>
     </div>
-
 
     <div id="step_4" class="form-step-item">
       <h3> Step 4: Select how you are going to give us the metadata</h3>
@@ -891,6 +891,7 @@
 
       <div id="step_8" class="form-step-item">
         <h3> Step 8: Upload the fastq files</h3>
+        <div class="text-warning"> Please note: We want the RAW data in fastq.gz format</div>
         <form
           method="POST"
           action="/sequencing_file_upload"
@@ -908,6 +909,20 @@
         </form>
         <div id="step_8_filename"></div>
         <div id="step_8_msg" class="explanation"></div>
+        {% if is_admin %}
+          <h4> Local directory to scan (only admin)</h4>
+          <form
+            method="POST"
+            action="/sequencing_process_server_file"
+            id="step_8_form_process_server_file"
+            enctype="multipart/form-data"
+          >
+            <input type="input" id="step_8_direct_directory" name="step_8_direct_directory" />
+            <input type="hidden" name="process_id" value="{{ process_id }}">
+            <button type="button" class="btn btn-secondary" id="step_8_form_process_server_file_button" data-process_id="{{ process_id }}">Process local directory</button>
+          </form>
+        {% endif %}
+
       </div>
 
       <div id="step_9" class="form-step-item">
@@ -932,7 +947,7 @@
 
 
     {% if is_admin %}
-      
+
       <div id="step_10" class="form-step-item">
         <h3> Step 10: Admin only. Generate MultiQC report</h3>
         <form
@@ -954,7 +969,7 @@
 
     {% if multiqc_report_exists %}
       {% if process_data and process_data.regions %}
-    
+
         <table id="multiqc_reports" class="table-bordered mt-3">
             <thead>
               <tr>
@@ -975,7 +990,7 @@
     {% endif %}
 
     {% if is_admin %}
-      
+
       <div id="step_11" class="form-step-item">
         <h3> Step 11: Admin only. Generate Mapping files</h3>
         <form
@@ -997,7 +1012,7 @@
 
     {% if mapping_files_exist %}
       {% if process_data and process_data.regions %}
-    
+
         <table id="multiqc_reports" class="table-bordered mt-3">
             <thead>
               <tr>
@@ -1022,7 +1037,7 @@
   <script type="application/javascript">
   var markersArray = [];
   var project_common_data = JSON.parse('{{ project_common_data|tojson|safe }}');
-  var samples_data = JSON.parse('{{ samples_data|tojson|safe }}');
+  var samples_data = JSON.parse('{{ samples_data|tojson }}');
   var sequencing_regions_number = {{ process_data["Sequencing_regions_number"] if process_data["Sequencing_regions_number"] else 0 }};
   ////// ############################################# /////////
   ////// ############ STEP 2 STARTS HERE ############# /////////
@@ -1600,8 +1615,8 @@
                   window.location.reload();
                 {% endif %}
               }
-              
-              // Lets update step_5_msg  if this is a scripps. 
+
+              // Lets update step_5_msg  if this is a scripps.
               {% if process_data and process_data.using_scripps %}
                 $('#step_5_msg').html("<p>Thank you for submitting your metadata. That is all for now. We will contact you when we receive your data from scripps.</p>").removeClass('text-danger').addClass('text-success');
               {% endif %}
@@ -1916,7 +1931,7 @@
                 }
             },
             simultaneousUploads: 2,  // Set the maximum number of concurrent uploads
-            maxFiles: 2              // Optional: Set the maximum number of files to upload            
+            maxFiles: 2              // Optional: Set the maximum number of files to upload
         };
 
         var r = new Resumable(commonOptions);
@@ -2061,9 +2076,9 @@
             //     r.addFile(file.file);  // Re-add the file to Resumable.js
             //     r.upload();  // Restart the upload
             //     $("#" + file_msg_id).html("<p>Retrying upload...</p>").removeClass('text-danger');
-            // });            
+            // });
         });
-        
+
         // Add progress event listener to update the file upload progress
         // Add progress event listener to update the file upload progress
         r.on('fileProgress', function(file) {
@@ -2078,7 +2093,7 @@
 
             // Update the progress div with the current progress
             $('#' + progress_div_id).text('Upload Progress: ' + progress + '%');
-        });      
+        });
     }
     function calculateMD5(file, callback, updateCallback) {
         var chunkSize = 2097152; // 2 MB chunks
@@ -2119,6 +2134,45 @@
     $(document).ready(function() {
 
       setUpResumable()
+
+
+      $('#step_8_form_process_server_file_button').click(function(e) {
+        e.preventDefault(); // Prevent the default form submission
+
+        // Get the form data
+        var directoryName = $('#step_8_direct_directory').val();
+        var processId = $('input[name="process_id"]').val();
+
+        // Send the form data via AJAX
+        // HERE HERE HERE
+        $.ajax({
+          url: '/sequencing_process_server_file',
+          type: 'POST',
+          data: {
+            directory_name: directoryName,
+            process_id: processId
+          },
+          success: function(response) {
+            // Handle the response from the server
+            console.log(response);
+            // We automatically will start step 4 on the server, so lets start getting updates
+            //updateProgressRawFileBucket(process_id, file_id, file_name);
+            // We automatically will start step 5 on the server, so lets start getting updates
+            //updateProgressUnZip(process_id, file_id, file_name);
+          },
+          error: function(jqXHR, textStatus, errorThrown) {
+            // Handle any errors that occurred during the request
+            console.error('Error:', textStatus, errorThrown);
+          }
+        });
+      });
+
+
+
+
+
+
+
 
       function uploadSequencingFile() {
           var fileInput = $('#step_8_upload_file_button')[0];
@@ -2182,14 +2236,14 @@
   ////// ############################################# /////////
   function disableForm_step_10() {
       $('#step_10_form fieldset').attr('disabled', 'disabled');
-  }  
+  }
   $('#step_10_form').submit(function(event) {
       event.preventDefault(); // Prevent default form submission
       console.log('here, prevented default')
       var formData = new FormData();
       var form = $('#step_10_form');
       var processId = form.find('input[name="process_id"]').val();
-      formData.append('process_id', processId);      
+      formData.append('process_id', processId);
       // Ask the user for confirmation
       $.ajax({
           url: '/generate_multiqc_report',
@@ -2221,14 +2275,14 @@
   ////// ############################################# /////////
   function disableForm_step_11() {
       $('#step_11_form fieldset').attr('disabled', 'disabled');
-  }  
+  }
   $('#step_11_form').submit(function(event) {
       event.preventDefault(); // Prevent default form submission
       console.log('here, prevented default')
       var formData = new FormData();
       var form = $('#step_11_form');
       var processId = form.find('input[name="process_id"]').val();
-      formData.append('process_id', processId);      
+      formData.append('process_id', processId);
       // Ask the user for confirmation
       $.ajax({
           url: '/generate_mapping_files',
