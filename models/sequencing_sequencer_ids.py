@@ -251,7 +251,8 @@ class SequencingSequencerId:
         if filename.endswith(".fastq.gz"):
             filename_no_ext = filename[:-9]  # Remove the .fastq.gz suffix
 
-            # Query to get all ids and SequencerIDs related to the given process_id
+            # Query to get all ids and SequencerIDs
+            # related to the given process_id
             sequencer_ids = (
                 session.query(
                     SequencingSequencerIDsTable.id,
@@ -283,7 +284,8 @@ class SequencingSequencerId:
         if filename.endswith(".fastq.gz"):
             filename_no_ext = filename[:-9]  # Remove the .fastq.gz suffix
         else:
-            return None  # Return None if the filename doesn't have the correct suffix
+            # Return None if the filename doesn't have the correct suffix
+            return None
 
         # Query to get all relevant records
         sequencer_records = (
