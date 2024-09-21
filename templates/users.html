@@ -36,6 +36,7 @@
           <th scope="col">Is Approved</th>
           <th scope="col">Groups</th>
           <th scope="col">Buckets Access</th>
+          <th scope="col">GoodGrands slug</th>
         </tr>
       </thead>
       <tbody id="files_body">
@@ -130,6 +131,9 @@
                   </select>
                 </form>
               </td>
+              <td>
+                {{ user.user.goodgrands_slug }}
+              </td>                              
           </tr>
         {% endfor %}
       </tbody>
