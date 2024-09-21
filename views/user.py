@@ -9,6 +9,7 @@ from flask import (
     render_template,
     session,
     Blueprint,
+    jsonify,
 )
 from oauthlib.oauth2 import WebApplicationClient
 from extensions import login_manager
@@ -24,6 +25,7 @@ from models.user_groups import UserGroups
 from models.bucket import Bucket
 from models.preapproved_user import PreapprovedUser
 from helpers.bucket import list_buckets
+from helpers.goodgrands import get_goodgrands_users
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -393,3 +395,43 @@ def add_preapproved_user():
     )
 
     return redirect(url_for("user.users"))
+
+
+@user_bp.route(
+    "/match_goodgrands",
+    methods=["GET"],
+    endpoint="match_goodgrands",
+)
+@login_required
+@admin_required
+def match_goodgrands():
+    goodgrand_users = get_goodgrands_users()  # From API
+    app_users = User.get_all()  # From your app
+    matched_users = []
+
+    for gg_user in goodgrand_users["data"]:
+        gg_email = gg_user["email"]
+        goodgrands_slug = gg_user["slug"]
+
+        # Match app users by email
+        for app_user in app_users:
+            if app_user["user"].email == gg_email:
+                user_id = app_user["user"].id
+                # Log and append match
+                logger.info(
+                    "Updating user id %s, email %s " "with the ggslug: %s",
+                    user_id,
+                    gg_email,
+                    goodgrands_slug,
+                )
+                User.add_user_goodgrands_slug(user_id, goodgrands_slug)
+                matched_users.append(
+                    {
+                        "user_id": user_id,
+                        "email": gg_email,
+                        "goodgrands_slug": goodgrands_slug,
+                    }
+                )
+                break
+
+    return jsonify(matched_users)
