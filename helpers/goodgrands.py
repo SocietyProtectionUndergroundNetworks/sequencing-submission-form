@@ -5,31 +5,50 @@ import logging
 logger = logging.getLogger("my_app_logger")
 
 
-def get_applications():
-    # Replace with your actual API key
+def get_goodgrands_applications():
     api_key = os.environ.get("GOODGRANDS_API_KEY")
-    url = "https://api.cr4ce.com/application"
-
-    # Set up headers for the request
+    url = "https://api.cr4ce.com/application"  # Replace with the correct endpoint if needed
     headers = {
-        "Accept": "application/vnd.Creative Force.v2.1+json",  # JSON response
+        "Accept": "application/vnd.Creative Force.v2.1+json",
         "x-api-key": api_key,
         "x-api-language": "en_GB",
     }
+    
+    all_applications = []
+    while url:
+        response = requests.get(url, headers=headers)
 
-    # Make a GET request to the API
+        if response.status_code == 200:
+            data = response.json()
+            all_applications.extend(data['data'])  # Append the applications to the list
+            url = data.get('next_page_url')  # Get the next page URL
+        else:
+            logger.info(f"Error: {response.status_code}")
+            logger.info(response.text)
+            break
+
+    return all_applications if all_applications else None
+
+def get_goodgrands_application(slug):
+    api_key = os.environ.get("GOODGRANDS_API_KEY")
+    url = "https://api.cr4ce.com/application/" + slug  # Replace with the correct endpoint if needed
+    headers = {
+        "Accept": "application/vnd.Creative Force.v2.1+json",
+        "x-api-key": api_key,
+        "x-api-language": "en_GB",
+    }
+    
+    application = []
     response = requests.get(url, headers=headers)
-
-    # Check the response
+    logger.info(response.text)
     if response.status_code == 200:
-        logger.info("Success!")
-        logger.info(response.json())  # Print the returned data
-        return response
+        application = response.json()
+        logger.info(application)
     else:
         logger.info(f"Error: {response.status_code}")
         logger.info(response.text)
 
-    return None
+    return application if application else None
 
 
 def get_goodgrands_users():
@@ -46,8 +65,8 @@ def get_goodgrands_users():
 
         if response.status_code == 200:
             data = response.json()
-            all_users.extend(data["data"])  # Append the users to the list
-            url = data.get("next_page_url")  # Get the next page URL
+            all_users.extend(data['data'])  # Append the users to the list
+            url = data.get('next_page_url')  # Get the next page URL
         else:
             logger.info(f"Error: {response.status_code}")
             logger.info(response.text)

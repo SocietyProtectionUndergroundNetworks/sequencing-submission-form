@@ -25,7 +25,11 @@ from models.user_groups import UserGroups
 from models.bucket import Bucket
 from models.preapproved_user import PreapprovedUser
 from helpers.bucket import list_buckets
-from helpers.goodgrands import get_goodgrands_users
+from helpers.goodgrands import (
+    get_goodgrands_users,
+    get_goodgrands_applications,
+    get_goodgrands_application
+)
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -435,3 +439,33 @@ def match_goodgrands():
                 break
 
     return jsonify(matched_users)
+
+
+@user_bp.route(
+    "/test1",
+    methods=["GET"],
+    endpoint="test1",
+)
+@login_required
+@admin_required
+def test1():
+    goodgrand_applications = get_goodgrands_applications()
+    app_users = User.get_all()
+    logger.info(goodgrand_applications)
+
+    return jsonify(goodgrand_applications)
+
+
+@user_bp.route(
+    "/test2",
+    methods=["GET"],
+    endpoint="test2",
+)
+@login_required
+@admin_required
+def test2():
+    goodgrand_application = get_goodgrands_application("wdYOmAnM")
+
+    logger.info(goodgrand_application)
+
+    return jsonify(goodgrand_application)
