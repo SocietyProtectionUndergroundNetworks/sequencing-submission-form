@@ -405,11 +405,11 @@ def add_preapproved_user():
 @login_required
 @admin_required
 def match_goodgrands():
-    goodgrand_users = get_goodgrands_users()  # From API
-    app_users = User.get_all()  # From your app
+    goodgrand_users = get_goodgrands_users()
+    app_users = User.get_all()
     matched_users = []
 
-    for gg_user in goodgrand_users["data"]:
+    for gg_user in goodgrand_users:
         gg_email = gg_user["email"]
         goodgrands_slug = gg_user["slug"]
 
@@ -419,7 +419,7 @@ def match_goodgrands():
                 user_id = app_user["user"].id
                 # Log and append match
                 logger.info(
-                    "Updating user id %s, email %s " "with the ggslug: %s",
+                    "Updating user id %s, email %s with the ggslug: %s",
                     user_id,
                     gg_email,
                     goodgrands_slug,

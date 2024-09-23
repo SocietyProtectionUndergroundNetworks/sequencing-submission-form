@@ -25,7 +25,7 @@ class User(UserMixin):
         profile_pic,
         admin,
         approved,
-        goodgrands_slug,
+        goodgrands_slug=None,
         buckets=None,
         groups=None,
     ):
