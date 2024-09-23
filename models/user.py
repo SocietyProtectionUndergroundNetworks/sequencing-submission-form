@@ -25,6 +25,7 @@ class User(UserMixin):
         profile_pic,
         admin,
         approved,
+        goodgrands_slug=None,
         buckets=None,
         groups=None,
     ):
@@ -34,6 +35,7 @@ class User(UserMixin):
         self.profile_pic = profile_pic
         self.admin = admin
         self.approved = approved
+        self.goodgrands_slug = goodgrands_slug
         self.buckets = buckets or []
         self.groups = groups
 
@@ -56,6 +58,7 @@ class User(UserMixin):
             email=user_db.email,
             profile_pic=user_db.profile_pic,
             admin=user_db.admin,
+            goodgrands_slug=user_db.goodgrands_slug,
             approved=user_db.approved,
             buckets=buckets,
         )
@@ -191,6 +194,7 @@ class User(UserMixin):
                     profile_pic=user_db.profile_pic,
                     admin=user_db.admin,
                     approved=user_db.approved,
+                    goodgrands_slug=user_db.goodgrands_slug,
                     buckets=user_buckets,
                     groups=user_groups,
                 ),
@@ -234,6 +238,19 @@ class User(UserMixin):
         else:
             session.close()
             raise ValueError(f"User with ID '{user_id}' not found")
+
+    @classmethod
+    def add_user_goodgrands_slug(cls, user_id, goodgrands_slug):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        user_db = session.query(UserTable).filter_by(id=user_id).first()
+
+        if user_db:
+            user_db.goodgrands_slug = goodgrands_slug
+            session.commit()
+
+        session.close()
 
     @classmethod
     def add_user_group_access(cls, user_id, group_id):
