@@ -7,6 +7,8 @@ import logging
 import psutil
 import json
 import hashlib
+import io
+import csv
 from pathlib import Path
 from werkzeug.utils import secure_filename
 from flask import (
@@ -19,6 +21,7 @@ from flask import (
     url_for,
     send_file,
     abort,
+    Response,
 )
 from flask_login import (
     current_user,
@@ -34,6 +37,7 @@ from helpers.bucket import (
     init_upload_final_files_to_storage,
     delete_bucket_folder,
     init_process_fastq_files,
+    count_fastq_gz_files_in_buckets,
 )
 from helpers.slack import send_message_to_slack
 from helpers.unzip import get_progress_db_unzip, unzip_raw
@@ -1309,3 +1313,40 @@ def admin_remove_file():
             "status": 1,
         }
     )
+
+
+@upload_bp.route(
+    "/count_bucket_files",
+    methods=["GET"],
+    endpoint="count_bucket_files",
+)
+@login_required
+@admin_required
+def count_bucket_files():
+    # Count the files
+    data = count_fastq_gz_files_in_buckets()
+
+    # Create a string buffer to hold CSV data
+    output = io.StringIO()
+    csv_writer = csv.writer(output)
+
+    # Write header
+    csv_writer.writerow(["Bucket Name", "Prefix", "Count"])
+
+    # Write data
+    for row in data:
+        csv_writer.writerow(row)
+
+    # Get the CSV string
+    csv_string = output.getvalue()
+
+    # Create a response with the CSV data
+    response = Response(
+        csv_string,
+        mimetype="text/csv",
+        headers={
+            "Content-Disposition": "attachment;filename=count_bucket_files.csv"
+        },
+    )
+
+    return response
