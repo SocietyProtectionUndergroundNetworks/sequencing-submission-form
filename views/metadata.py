@@ -1031,9 +1031,14 @@ def test_lotus2():
 
         input_dir = "/seq_processed/00066_20240919NZAZDW"
         output_dir = "/seq_processed/00066_20240919NZAZDW/lotus2_report"
-        mapping_file = "/seq_processed/00066_20240919NZAZDW/mapping_files/ITS2_Mapping.txt"
-        ref_db = "/lotus2_files/UNITE/sh_refs_qiime_ver10_97_04.04.2024.fasta"  # Adjust as needed
-        tax4ref_db = "/lotus2_files/UNITE/sh_taxonomy_qiime_ver10_97_04.04.2024.txt"  # Adjust as needed
+        mapping_file = (
+            "/seq_processed/00066_20240919NZAZDW/mapping_files/"
+            "ITS2_Mapping.txt"
+        )
+        ref_db = "/lotus2_files/UNITE/sh_refs_qiime_ver10_97_04.04.2024.fasta"
+        tax4ref_db = (
+            "/lotus2_files/UNITE/sh_taxonomy_qiime_ver10_97_04.04.2024.txt"
+        )
         amplicon_type = "ITS2"
 
         result = run_lotus2_command.delay(
@@ -1067,7 +1072,11 @@ def test_lotus2():
 def test_lotus3():
     from helpers.lotus2 import init_generate_lotus2_report
 
-    result = init_generate_lotus2_report()
+    process_id = 55
+    input_dir = "/seq_processed/00055_20240902XQ7T8U"
+    amplicon_type = "ITS2"
+
+    result = init_generate_lotus2_report(process_id, input_dir, amplicon_type)
     if result is None:
         return jsonify({"error": "Failed to execute command"}), 500
     return jsonify({"result": result})

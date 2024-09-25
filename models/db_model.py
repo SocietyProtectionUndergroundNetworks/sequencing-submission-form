@@ -144,7 +144,7 @@ class SequencingUploadsTable(Base):
     DNA_conc_instrument = Column(String(255), nullable=True)
     reviewed_by_admin = Column(Boolean, default=False)
     files_uploading_confirmed = Column(Boolean, default=False)
-    lotus2_report_task_id = Column(Integer, nullable=True)
+    lotus2_report_task_id = Column(String(255), nullable=True)
     lotus2_report_started_at = Column(DateTime, nullable=True)
     lotus2_report_status = Column(String(255), nullable=True)
     lotus2_report_result = Column(Text, nullable=True)

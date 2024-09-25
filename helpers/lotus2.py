@@ -1,25 +1,36 @@
-import os
 import docker
 import logging
-import time
+from datetime import datetime
 
 # PROCESS_DIR =
 client = docker.from_env()
 logger = logging.getLogger("my_app_logger")
 
 
-def init_generate_lotus2_report(process_id, input_dir, type):
+def init_generate_lotus2_report(process_id, input_dir, amplicon_type):
 
     from tasks import generate_lotus2_report_async
 
     try:
         result = generate_lotus2_report_async.delay(
-            process_id, input_dir, type
+            process_id, input_dir, amplicon_type
         )
         logger.info(
             f"Celery generate_lotus2_report_async task "
             f"called successfully! Task ID: {result.id}"
         )
+        from models.sequencing_upload import SequencingUpload
+
+        SequencingUpload.update_field(
+            process_id, "lotus2_report_task_id", result.id
+        )
+        SequencingUpload.update_field(
+            process_id, "lotus2_report_started_at", datetime.utcnow()
+        )
+        SequencingUpload.update_field(
+            process_id, "lotus2_report_status", "Started"
+        )
+
     except Exception as e:
         logger.error(
             "This is an error message from helpers/bucket.py "
@@ -37,14 +48,7 @@ def init_generate_lotus2_report(process_id, input_dir, type):
     return {"msg": "Process initiated"}
 
 
-def generate_lotus2_report(process_id, input_dir, type):
-    input_file_content = "default_input_data"
-    SHARED_DATA_DIR = "/app/seq_processed/00055_20240902XQ7T8U/"
-
-    # Create input file for Lotus2 in the shared volume
-    input_file_path = os.path.join(SHARED_DATA_DIR, "input_data.txt")
-    with open(input_file_path, "w") as f:
-        f.write(input_file_content)
+def generate_lotus2_report(process_id, input_dir, amplicon_type):
 
     try:
         # Run Lotus2 inside the 'spun-lotus2' container
@@ -52,17 +56,17 @@ def generate_lotus2_report(process_id, input_dir, type):
         command = [
             "lotus2",
             "-i",
-            "/seq_processed/00055_20240902XQ7T8U",
+            input_dir,
             "-o",
-            "/seq_processed/00055_20240902XQ7T8U/lotus2_report",
+            input_dir + "/lotus2_report",
             "-m",
-            "/seq_processed/00055_20240902XQ7T8U/mapping_files/ITS2_Mapping.txt",
+            input_dir + "/mapping_files/ITS2_Mapping.txt",
             "-refDB",
             "/lotus2_files/UNITE/sh_refs_qiime_ver10_97_04.04.2024.fasta",
             "-tax4refDB",
             "/lotus2_files/UNITE/sh_taxonomy_qiime_ver10_97_04.04.2024.txt",
             "-amplicon_type",
-            "ITS2",
+            amplicon_type,
             "-LCA_idthresh",
             "97,95,93,91,88,78",
             "-tax_group",
@@ -83,8 +87,17 @@ def generate_lotus2_report(process_id, input_dir, type):
         result = container.exec_run(command)
         logger.info(result.output)
 
+        from models.sequencing_upload import SequencingUpload
+
+        SequencingUpload.update_field(
+            process_id, "lotus2_report_status", "Finished"
+        )
+        SequencingUpload.update_field(
+            process_id, "lotus2_report_result", result.output
+        )
+
         # Log the status of report generation
-        logger.info("Lotus2 report generation has started.")
+        logger.info("Lotus2 report generation has finished.")
 
     except Exception as e:
         logger.error(f"Error generating Lotus2 report: {str(e)}")
