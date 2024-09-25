@@ -847,3 +847,56 @@ def init_bucket_chunked_upload_v2(
         logger.error(e)
 
     return {"msg": "Process initiated"}
+
+
+def count_fastq_gz_files_in_buckets():
+    # Instantiate a client
+    storage_client = storage.Client()
+
+    # List the buckets in the project
+    buckets = list(storage_client.list_buckets())
+
+    result = []  # This will hold the results
+
+    # Iterate over each bucket
+    for bucket in buckets:
+        bucket_name = bucket.name
+
+        logger.info(
+            f"Checking bucket: {bucket_name}"
+        )  # Log which bucket is being checked
+
+        # List all blobs in the bucket
+        all_blobs = storage_client.list_blobs(bucket_name)
+
+        # Dictionary to hold counts by prefix
+        counts_by_prefix = {}
+
+        # Iterate over each blob
+        for blob in all_blobs:
+            # Check if the blob ends with .fastq.gz
+            if blob.name.endswith(".fastq.gz"):
+                # Extract the prefix (first-level directory)
+                prefix = "/".join(
+                    blob.name.split("/")[:-1]
+                )  # Get everything before the last slash
+
+                # Initialize count for the prefix if not already present
+                if prefix not in counts_by_prefix:
+                    counts_by_prefix[prefix] = 0
+
+                # Increment the count for this prefix
+                counts_by_prefix[prefix] += 1
+
+                logger.info(
+                    f"Found blob: {blob.name} in prefix: {prefix}"
+                )  # Log each found blob
+
+        # Add results to the final result list
+        for prefix, count in counts_by_prefix.items():
+            result.append(
+                [bucket_name, prefix, count]
+            )  # Append bucket, prefix, and count
+
+    logger.info(f"Final results: {result}")  # Log final results
+    return result
