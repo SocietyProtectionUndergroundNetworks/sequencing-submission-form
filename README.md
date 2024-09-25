@@ -13,6 +13,11 @@ To run the application locally, you will need:
 Optional (but really helpfull)
 - [Gnu Make](https://www.gnu.org/software/make/)  . (If you are using mac and homebrew: [Gnu Make For Mac](https://formulae.brew.sh/formula/make) )
 
+If you are developing on mac, and you need to test the lotus2 integration, you will have to use the docker-compose-dev-mac.yml file. 
+TLDR: The integration is using the docker.sock so that one container (flask) can call a command on an other (lotus2). Because on mac the - /var/run/docker.sock is created 
+by the docker service, and is not available to manipulate (aka, change permissions), it always appears as owned by root. This means that non root users cannot access it.
+The solution was adopted by the following article: https://qmacro.org/blog/posts/2023/12/22/using-the-docker-cli-in-a-container-on-macos/
+
 ## Preparation:
 
 #### The following two steps you can avoid by asking an other developer the json credentials of the existing service account used for development
@@ -31,15 +36,18 @@ Optional (but really helpfull)
 - Set GOOGLE_CLIENT_CALLBACK_URL=http://127.0.0.1/login/callback
 - The GOOGLE_VM_PROPERTY is not needed for the application, only to create a shortcut for sshing to the virtual machine. You can safely ignore it.
 
+### Lotus2 files
+We are using the UNITE database for lotus2, which is not included automatically in the lotus2 docker image (as opposing to when you install lotus2 via conda, where it is included).
+This means that we need to manualy download the files and place them in the lotus2_files/UNITE/ folder.
+We want the QIME release from https://unite.ut.ee/repository.php . Download the latest version, unzip it and place the .fasta and .txt files in the lotus2_files/UNITE/ folder.
+At the moment of writting this note, the filenames were sh_refs_qiime_ver10_97_04.04.2024.fasta and sh_taxonomy_qiime_ver10_97_04.04.2024.txt
+Equivalent changes need to happen to the helpers/lotus2.py to point to these two files if you use a newer version.
 
 #### Do docker things: 
 - Copy the `docker-compose-dev.yml` to `docker-compose.yml`
 - Copy the `nginx.conf-local-ssh` `nginx.conf`
 - Do `docker-compose up`
 - Access your application at http://127.0.0.1
-
-#### Give back
-Anything that was not in the above instructions and gave you pain, add it to the instructions. 
 
 # Deployment
 
@@ -58,3 +66,5 @@ To create the templates, visit /create_xls_template  (aka in a dev environment :
 - template_with_dropdowns_for_google_sheets.xlsx
 - template_with_dropdowns_for_one_drive_and_excel.xlsx
 
+#### Give back
+Anything that was not in the above instructions and gave you pain, add it to the instructions. 

@@ -1019,3 +1019,55 @@ def process_server_file():
         }, 200
 
     return {"message": "No process_id provided"}, 400
+
+
+@metadata_bp.route("/test_lotus2", methods=["GET"], endpoint="test_lotus2")
+@login_required
+@approved_required
+def test_lotus2():
+    from tasks import run_lotus2_command
+
+    try:
+
+        input_dir = "/seq_processed/00066_20240919NZAZDW"
+        output_dir = "/seq_processed/00066_20240919NZAZDW/lotus2_report"
+        mapping_file = "/seq_processed/00066_20240919NZAZDW/mapping_files/ITS2_Mapping.txt"
+        ref_db = "/lotus2_files/UNITE/sh_refs_qiime_ver10_97_04.04.2024.fasta"  # Adjust as needed
+        tax4ref_db = "/lotus2_files/UNITE/sh_taxonomy_qiime_ver10_97_04.04.2024.txt"  # Adjust as needed
+        amplicon_type = "ITS2"
+
+        result = run_lotus2_command.delay(
+            input_dir,
+            output_dir,
+            mapping_file,
+            ref_db,
+            tax4ref_db,
+            amplicon_type,
+        )
+
+        logger.info(
+            f"Celery run_lotus2_command"
+            f" task called successfully! "
+            f"Task ID: {result.id}."
+        )
+        # task_id = result.id
+        # upload.update_fastqc_process_id(process_id, task_id)
+    except Exception as e:
+        logger.error(
+            "This is an error message from helpers/bucket.py "
+            "while trying to bucket_chunked_upload_v2_async"
+        )
+        logger.error(e)
+    return []
+
+
+@metadata_bp.route("/test_lotus3", methods=["GET"], endpoint="test_lotus3")
+@login_required
+@approved_required
+def test_lotus3():
+    from helpers.lotus2 import init_generate_lotus2_report
+
+    result = init_generate_lotus2_report()
+    if result is None:
+        return jsonify({"error": "Failed to execute command"}), 500
+    return jsonify({"result": result})

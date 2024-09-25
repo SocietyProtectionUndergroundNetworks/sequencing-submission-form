@@ -12,6 +12,12 @@ from helpers.fastqc import (
     create_fastqc_report,
     create_multiqc_report,
 )
+from helpers.lotus2 import generate_lotus2_report
+
+
+@celery_app.task
+def generate_lotus2_report_async(process_id, input_dir, type):
+    generate_lotus2_report(process_id, input_dir, type)
 
 
 @celery_app.task
@@ -66,7 +72,6 @@ def bucket_chunked_upload_v2_async(
         bucket_name,
         known_md5,
     )
-
 
 @celery_app.task
 def create_multiqc_report_async(process_id):
