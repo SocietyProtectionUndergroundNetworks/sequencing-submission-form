@@ -43,7 +43,7 @@ class UserTable(Base):
     admin = Column(Boolean, default=False)
     uploads = relationship("UploadTable", backref="user")
     approved = Column(Boolean, default=False)
-    goodgrands_slug = Column(String(50), nullable=False)
+    goodgrands_slug = Column(String(50), nullable=True)
     buckets = relationship(
         "BucketTable", secondary=association_table, backref="users"
     )
