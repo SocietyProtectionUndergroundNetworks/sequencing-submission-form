@@ -67,7 +67,14 @@ class User(UserMixin):
 
     @classmethod
     def create(
-        cls, id_, name, email, profile_pic, admin=False, approved=False
+        cls,
+        id_,
+        name,
+        email,
+        profile_pic,
+        admin=False,
+        approved=False,
+        goodgrands_slug=None,
     ):
         db_engine = connect_db()
         session = get_session(db_engine)
@@ -79,6 +86,7 @@ class User(UserMixin):
             profile_pic=profile_pic,
             admin=admin,
             approved=approved,
+            goodgrands_slug=goodgrands_slug,
         )
 
         session.add(new_user)

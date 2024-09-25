@@ -53,6 +53,9 @@ logscelery:
 logsnginx:
 	docker-compose logs -f --tail=200 nginx
 
+logsredis:
+	docker-compose logs -f --tail=200 redis
+
 migration:
 	docker-compose exec flask alembic revision --autogenerate -m "${description}"
 
