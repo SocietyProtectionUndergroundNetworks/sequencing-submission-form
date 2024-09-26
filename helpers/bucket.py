@@ -943,3 +943,31 @@ def count_fastq_gz_files_in_buckets():
 
     logger.info(f"Final results: {result}")  # Log final results
     return result
+
+
+def check_file_exists_in_bucket(
+    local_file_path,
+    destination_upload_directory,
+    destination_blob_name,
+    bucket_name,
+):
+    # Configure Google Cloud Storage
+    if bucket_name is None:
+        bucket_name = os.environ.get("GOOGLE_STORAGE_BUCKET_NAME")
+
+    bucket_name = bucket_name.lower()
+
+    # Initialize the storage client and get the bucket
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+
+    # Construct the full blob name
+    blob_name = os.path.join(
+        destination_upload_directory, destination_blob_name
+    )
+
+    # Check if the blob exists in the bucket
+    blob = bucket.blob(blob_name)
+    exists = blob.exists()
+
+    return exists

@@ -10,6 +10,7 @@ from collections import defaultdict
 from helpers.dbm import connect_db, get_session
 from helpers.fastqc import init_create_fastqc_report, check_fastqc_report
 from helpers.csv import get_sequences_based_on_primers
+from helpers.bucket import check_file_exists_in_bucket
 from models.db_model import (
     SequencingUploadsTable,
     SequencingSamplesTable,
@@ -998,6 +999,7 @@ class SequencingUpload:
 
         # Extract uploads folder from process data
         uploads_folder = process_data["uploads_folder"]
+        bucket = process_data["project_id"]
         results = []  # To store the results for each region
 
         # Iterate through each region
@@ -1010,6 +1012,7 @@ class SequencingUpload:
                     "demulti": False,
                     "LotuS_run": False,
                 },
+                "bucket_log_exists": False,
             }
 
             # Check if the region is "ITS2" or "SSU"
@@ -1034,7 +1037,7 @@ class SequencingUpload:
                         "LotuSLogS",
                     )
 
-                    # Check if the required log files exist
+                    # Check if the required log files exist locally
                     lotus_progout_file = os.path.join(
                         log_folder, "LotuS_progout.log"
                     )
@@ -1052,7 +1055,18 @@ class SequencingUpload:
                         os.path.isfile(lotus_run_file)
                     )
 
+                    # Check if we need to verify files in the bucket
+                    bucket_directory = f"{region}/lotus2_report/LotuSLogS"
+                    # Check if LotuS_progout.log exists in the bucket
+                    bucket_progout_exists = check_file_exists_in_bucket(
+                        local_file_path=lotus_progout_file,
+                        destination_upload_directory=bucket_directory,
+                        destination_blob_name="LotuS_progout.log",
+                        bucket_name=bucket,
+                    )
+                    region_result["bucket_log_exists"] = bucket_progout_exists
+
             # Append the region result to the results list
             results.append(region_result)
-
+        logger.info(results)
         return results
