@@ -693,6 +693,49 @@ def update_sequencer_file_progress(sequencer_file_id, progress):
     session.close()
 
 
+# Quite similar to bucket_upload_folder but accomodating for a different data
+# model in version 2 of the application.
+# To keep things simple, we are redoing the function with different parameters
+# the original function can be removed when version1 will be out of commision
+def bucket_upload_folder_v2(folder_path, destination_upload_directory, bucket):
+    for root, _, files in os.walk(folder_path):
+        for file_name in files:
+            file_path = os.path.join(root, file_name)
+            destination_blob_name = os.path.relpath(file_path, folder_path)
+            bucket_chunked_upload_v2(
+                local_file_path=file_path,
+                destination_upload_directory=destination_upload_directory,
+                destination_blob_name=destination_blob_name,
+                sequencer_file_id=None,
+                bucket_name=bucket,
+                known_md5=None,
+            )
+            logger.info("Uploaded file " + file_path)
+
+
+def init_bucket_upload_folder_v2(
+    folder_path, destination_upload_directory, bucket
+):
+    from tasks import bucket_upload_folder_v2_async
+
+    try:
+        result = bucket_upload_folder_v2_async.delay(
+            folder_path, destination_upload_directory, bucket
+        )
+        logger.info(
+            f"Celery bucket_upload_folder_v2_async task "
+            f"called successfully! Task ID: {result.id}"
+        )
+    except Exception as e:
+        logger.error(
+            "This is an error message from helpers/bucket.py "
+            " while trying to bucket_upload_folder_v2_async"
+        )
+        logger.error(e)
+
+    return {"msg": "Process initiated"}
+
+
 # Quite similar to bucket_chunked_upload but accomodating for a different data
 # model in version 2 of the application.
 # To keep things simple, we are redoing the function with different parameters

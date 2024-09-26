@@ -1020,16 +1020,108 @@
                 <th scope="col" class="bg-gray">Mapping file link</th>
               </tr>
             </thead>
-            {% for region in process_data.regions %}
-              <tbody>
+            <tbody>
+              {% for region in process_data.regions %}
                 <tr>
                   <td>{{ region }}</th>
                   <td><a href="show_mapping_file?process_id={{ process_data.id }}&region={{ region }}" target="_blank" class="link">Link</a></th>
                 </tr>
-              </tbody>
-            {% endfor %}
+              {% endfor %}
+            </tbody>
         </table>
       {% endif %}
+    {% endif %}
+
+    {% if is_admin %}
+
+      <div id="step_12" class="form-step-item">
+        <h3> Step 12: Admin only. Generate lotus2 report</h3>
+        <form
+          method="POST"
+          action="/generate_lotus2_report"
+          id="step_12_form"
+        >
+          {% set disable_fieldset = not mapping_files_exist %}
+          
+          {# Check if any report has started (i.e., status is not None) #}
+          {% if lotus2_report | selectattr('report_status', 'ne', none) | list %}
+            {% set disable_fieldset = True %}
+          {% endif %}
+
+          <fieldset
+            {% if disable_fieldset %}
+             disabled="disabled"
+            {% endif %}
+          >
+            <input type="submit" class="btn btn-primary" id="step_12_button">
+            <input type="hidden" name="process_id" value="{{ process_id }}">
+          </fieldset>
+        </form>
+      </div>
+    {% endif %}
+
+    {% if process_data and process_data.regions and lotus2_report %}
+
+      <table id="lotus2_reports" class="table-bordered mt-3">
+          <thead>
+            <tr>
+              <th scope="col" class="bg-gray">Region</th>
+              <th scope="col" class="bg-gray">Lotus 2 report status</th>
+              <th scope="col" class="bg-gray">LotuS_progout.log</th>
+              <th scope="col" class="bg-gray">demulti.log</th>
+              <th scope="col" class="bg-gray">LotuS_run.log</th>
+              <th scope="col" class="bg-gray">Bucket</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for region_data in lotus2_report %}
+              <tr>
+                <td>{{ region_data.region }}</td>
+                <td>{{ region_data.report_status }}</td>
+                <td>
+                  {% if region_data.log_files_exist.LotuS_progout %}
+                    <span class="text-success">
+                      <a href="show_lotus2_file?file=LotuS_progout&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                        Exists
+                      </a>
+                    </span>
+                  {% else %}
+                    <span class="text-danger">Not Found</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if region_data.log_files_exist.demulti %}
+                    <span class="text-success">
+                      <a href="show_lotus2_file?file=demulti&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                        Exists
+                      </a>
+                    </span>
+                  {% else %}
+                    <span class="text-danger">Not Found</span>
+                  {% endif %}
+                </td>                
+                <td>
+                  {% if region_data.log_files_exist.LotuS_run %}
+                    <span class="text-success">
+                      <a href="show_lotus2_file?file=LotuS_run&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                        Exists
+                      </a>
+                    </span>
+                  {% else %}
+                    <span class="text-danger">Not Found</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if region_data.report_status == "Finished" %}
+                    <a href="upload_lotus2_to_bucket?process_id={{ process_data.id }}&region={{ region_data.region }}" class="btn btn-primary">
+                      Upload to bucket
+                    </a>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+      </table>
     {% endif %}
 
   </div>
@@ -1931,7 +2023,6 @@
                 }
             },
             simultaneousUploads: 2,  // Set the maximum number of concurrent uploads
-            maxFiles: 2              // Optional: Set the maximum number of files to upload
         };
 
         var r = new Resumable(commonOptions);
@@ -2167,13 +2258,6 @@
         });
       });
 
-
-
-
-
-
-
-
       function uploadSequencingFile() {
           var fileInput = $('#step_8_upload_file_button')[0];
           var file = fileInput.files[0];
@@ -2278,7 +2362,6 @@
   }
   $('#step_11_form').submit(function(event) {
       event.preventDefault(); // Prevent default form submission
-      console.log('here, prevented default')
       var formData = new FormData();
       var form = $('#step_11_form');
       var processId = form.find('input[name="process_id"]').val();
@@ -2307,6 +2390,44 @@
 
   ////// ############################################# /////////
   ////// ############ STEP 11 ENDS HERE ############## /////////
+  ////// ############################################# /////////
+
+  ////// ############################################# /////////
+  ////// ############ STEP 12 STARTS HERE ############ /////////
+  ////// ############################################# /////////
+  function disableForm_step_12() {
+      $('#step_12_form fieldset').attr('disabled', 'disabled');
+  }
+  $('#step_12_form').submit(function(event) {
+      event.preventDefault(); // Prevent default form submission
+      var formData = new FormData();
+      var form = $('#step_12_form');
+      var processId = form.find('input[name="process_id"]').val();
+      formData.append('process_id', processId);
+      // Ask the user for confirmation
+      $.ajax({
+          url: '/generate_lotus2_report',
+          type: 'POST',
+          data: formData,
+          contentType: false,
+          processData: false,
+          success: function(response) {
+              if (response.result=="1") {
+                window.location.reload();
+              }
+              disableForm_step_12();
+          },
+          error: function(xhr, status, error) {
+              console.error('Error:', error);
+              $('#step_12_msg').html("<p>An error occurred while trying to generate the lotus2 report.</p>").removeClass('text-success').addClass('text-danger');
+
+          }
+      });
+  });
+
+
+  ////// ############################################# /////////
+  ////// ############ STEP 12 ENDS HERE ############## /////////
   ////// ############################################# /////////
 
   ////// ############################################# /////////

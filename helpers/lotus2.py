@@ -3,17 +3,16 @@ import logging
 from datetime import datetime
 
 # PROCESS_DIR =
-client = docker.from_env()
 logger = logging.getLogger("my_app_logger")
 
 
-def init_generate_lotus2_report(process_id, input_dir, amplicon_type):
+def init_generate_lotus2_report(region_nr, process_id, input_dir, region):
 
     from tasks import generate_lotus2_report_async
 
     try:
         result = generate_lotus2_report_async.delay(
-            process_id, input_dir, amplicon_type
+            region_nr, process_id, input_dir, region
         )
         logger.info(
             f"Celery generate_lotus2_report_async task "
@@ -22,13 +21,19 @@ def init_generate_lotus2_report(process_id, input_dir, amplicon_type):
         from models.sequencing_upload import SequencingUpload
 
         SequencingUpload.update_field(
-            process_id, "lotus2_report_task_id", result.id
+            process_id,
+            "region_" + str(region_nr) + "_lotus2_report_task_id",
+            result.id,
         )
         SequencingUpload.update_field(
-            process_id, "lotus2_report_started_at", datetime.utcnow()
+            process_id,
+            "region_" + str(region_nr) + "_lotus2_report_started_at",
+            datetime.utcnow(),
         )
         SequencingUpload.update_field(
-            process_id, "lotus2_report_status", "Started"
+            process_id,
+            "region_" + str(region_nr) + "_lotus2_report_status",
+            "Started",
         )
 
     except Exception as e:
@@ -48,56 +53,111 @@ def init_generate_lotus2_report(process_id, input_dir, amplicon_type):
     return {"msg": "Process initiated"}
 
 
-def generate_lotus2_report(process_id, input_dir, amplicon_type):
+def generate_lotus2_report(region_nr, process_id, input_dir, region):
+    client = docker.from_env()
+    from models.sequencing_upload import SequencingUpload
+
+    logger.info("Trying for:")
+    logger.info(" - region_nr : " + str(region_nr))
+    logger.info(" - process_id : " + str(process_id))
+    logger.info(" - input_dir : " + str(input_dir))
+    logger.info(" - region : " + str(region))
 
     try:
         # Run Lotus2 inside the 'spun-lotus2' container
         container = client.containers.get("spun-lotus2")
-        command = [
-            "lotus2",
-            "-i",
-            input_dir,
-            "-o",
-            input_dir + "/lotus2_report",
-            "-m",
-            input_dir + "/mapping_files/ITS2_Mapping.txt",
-            "-refDB",
-            "/lotus2_files/UNITE/sh_refs_qiime_ver10_97_04.04.2024.fasta",
-            "-tax4refDB",
-            "/lotus2_files/UNITE/sh_taxonomy_qiime_ver10_97_04.04.2024.txt",
-            "-amplicon_type",
-            amplicon_type,
-            "-LCA_idthresh",
-            "97,95,93,91,88,78",
-            "-tax_group",
-            "fungi",
-            "-taxAligner",
-            "blast",
-            "-clustering",
-            "vsearch",
-            "-derepMin",
-            "10:1,5:2,3:3",
-            "-sdmopt",
-            "/lotus2_files/sdm_miSeq_ITS.txt",
-            "-id",
-            "0.97",
-        ]
+        output_path = input_dir + "/lotus2_report/" + region
 
-        # Run the command inside the container
-        result = container.exec_run(command)
-        logger.info(result.output)
+        if region == "ITS2":
 
-        from models.sequencing_upload import SequencingUpload
+            refDB = (
+                "/lotus2_files/UNITE/sh_refs_qiime_ver10_97_04.04.2024.fasta"
+            )
+            tax4refDB = (
+                "/lotus2_files/UNITE/sh_taxonomy_qiime_ver10_97_04.04.2024.txt"
+            )
+            sdmopt = "/lotus2_files/sdm_miSeq_ITS.txt"
+            mapping_file = input_dir + "/mapping_files/ITS2_Mapping.txt"
 
-        SequencingUpload.update_field(
-            process_id, "lotus2_report_status", "Finished"
-        )
-        SequencingUpload.update_field(
-            process_id, "lotus2_report_result", result.output
-        )
+            logger.info(" - Here we will try the command")
+            command = [
+                "lotus2",
+                "-i",
+                input_dir,
+                "-o",
+                output_path,
+                "-m",
+                mapping_file,
+                "-refDB",
+                refDB,
+                "-tax4refDB",
+                tax4refDB,
+                "-amplicon_type",
+                region,
+                "-LCA_idthresh",
+                "97,95,93,91,88,78",
+                "-tax_group",
+                "fungi",
+                "-taxAligner",
+                "blast",
+                "-clustering",
+                "vsearch",
+                "-derepMin",
+                "10:1,5:2,3:3",
+                "-sdmopt",
+                sdmopt,
+                "-id",
+                "0.97",
+            ]
+            logger.info(" - the command is: ")
+            logger.info(command)
+            # Run the command inside the container
+            result = container.exec_run(command)
+            logger.info(result.output)
 
-        # Log the status of report generation
-        logger.info("Lotus2 report generation has finished.")
+            SequencingUpload.update_field(
+                process_id,
+                "region_" + str(region_nr) + "_lotus2_report_status",
+                "Finished",
+            )
+            SequencingUpload.update_field(
+                process_id,
+                "region_" + str(region_nr) + "_lotus2_report_result",
+                result.output,
+            )
+
+        elif region == "SSU":
+            logger.info(
+                "SSU region detected. No Lotus2 command will be executed."
+            )
+            SequencingUpload.update_field(
+                process_id,
+                "region_" + str(region_nr) + "_lotus2_report_status",
+                "Skipped. No report needed for SSU.",
+            )
+            return  # Exit function early if SSU is detected
+
+        else:
+            logger.info(
+                "Lotus2 report generation for amplicon "
+                + region
+                + " cannot be generated as we don't have the details."
+            )
+            SequencingUpload.update_field(
+                process_id,
+                "region_" + str(region_nr) + "_lotus2_report_status",
+                "Abandoned. Unknown region.",
+            )
 
     except Exception as e:
         logger.error(f"Error generating Lotus2 report: {str(e)}")
+        SequencingUpload.update_field(
+            process_id,
+            "region_" + str(region_nr) + "_lotus2_report_status",
+            "Error while generating.",
+        )
+        SequencingUpload.update_field(
+            process_id,
+            "region_" + str(region_nr) + "_lotus2_report_result",
+            str(e),
+        )

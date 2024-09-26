@@ -5,6 +5,7 @@ from helpers.bucket import (
     download_bucket_contents,
     process_fastq_files,
     bucket_chunked_upload_v2,
+    bucket_upload_folder_v2,
 )
 from helpers.unzip import unzip_raw_file
 from helpers.fastqc import (
@@ -16,8 +17,17 @@ from helpers.lotus2 import generate_lotus2_report
 
 
 @celery_app.task
-def generate_lotus2_report_async(process_id, input_dir, amplicon_type):
-    generate_lotus2_report(process_id, input_dir, amplicon_type)
+def generate_lotus2_report_async(
+    region_nr, process_id, input_dir, amplicon_type
+):
+    generate_lotus2_report(region_nr, process_id, input_dir, amplicon_type)
+
+
+@celery_app.task
+def bucket_upload_folder_v2_async(
+    folder_path, destination_upload_directory, bucket
+):
+    bucket_upload_folder_v2(folder_path, destination_upload_directory, bucket)
 
 
 @celery_app.task

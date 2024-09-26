@@ -36,6 +36,7 @@ from helpers.fastqc import (
 from helpers.csv import sanitize_data
 import numpy as np
 from helpers.file_renaming import calculate_md5
+from helpers.lotus2 import init_generate_lotus2_report
 
 from pathlib import Path
 
@@ -159,6 +160,7 @@ def metadata_form():
     extra_data_keys = set()
     multiqc_report_exists = False
     mapping_files_exist = False
+    lotus2_report = []
 
     if process_id:
         process_data = SequencingUpload.get(process_id)
@@ -202,6 +204,8 @@ def metadata_form():
             process_id
         )
 
+        lotus2_report = SequencingUpload.check_lotus2_reports_exist(process_id)
+
     return render_template(
         "metadata_form.html",
         my_buckets=my_buckets,
@@ -223,6 +227,7 @@ def metadata_form():
         extra_data_keys=extra_data_keys,
         extra_data=extra_data,
         mapping_files_exist=mapping_files_exist,
+        lotus2_report=lotus2_report,
     )
 
 
@@ -1021,62 +1026,108 @@ def process_server_file():
     return {"message": "No process_id provided"}, 400
 
 
-@metadata_bp.route("/test_lotus2", methods=["GET"], endpoint="test_lotus2")
+@metadata_bp.route(
+    "/generate_lotus2_report",
+    methods=["POST"],
+    endpoint="generate_lotus2_report",
+)
 @login_required
 @approved_required
-def test_lotus2():
-    from tasks import run_lotus2_command
+def generate_lotus2_report():
+    process_id = request.form.get("process_id")
 
-    try:
+    process_data = SequencingUpload.get(process_id)
 
-        input_dir = "/seq_processed/00066_20240919NZAZDW"
-        output_dir = "/seq_processed/00066_20240919NZAZDW/lotus2_report"
-        mapping_file = (
-            "/seq_processed/00066_20240919NZAZDW/mapping_files/"
-            "ITS2_Mapping.txt"
-        )
-        ref_db = "/lotus2_files/UNITE/sh_refs_qiime_ver10_97_04.04.2024.fasta"
-        tax4ref_db = (
-            "/lotus2_files/UNITE/sh_taxonomy_qiime_ver10_97_04.04.2024.txt"
-        )
-        amplicon_type = "ITS2"
-
-        result = run_lotus2_command.delay(
-            input_dir,
-            output_dir,
-            mapping_file,
-            ref_db,
-            tax4ref_db,
-            amplicon_type,
+    region_nr = 0
+    input_dir = "seq_processed/" + process_data["uploads_folder"]
+    for region in process_data["regions"]:
+        region_nr += 1
+        result = init_generate_lotus2_report(
+            region_nr, process_id, input_dir, region
         )
 
-        logger.info(
-            f"Celery run_lotus2_command"
-            f" task called successfully! "
-            f"Task ID: {result.id}."
-        )
-        # task_id = result.id
-        # upload.update_fastqc_process_id(process_id, task_id)
-    except Exception as e:
-        logger.error(
-            "This is an error message from helpers/bucket.py "
-            "while trying to bucket_chunked_upload_v2_async"
-        )
-        logger.error(e)
-    return []
-
-
-@metadata_bp.route("/test_lotus3", methods=["GET"], endpoint="test_lotus3")
-@login_required
-@approved_required
-def test_lotus3():
-    from helpers.lotus2 import init_generate_lotus2_report
-
-    process_id = 55
-    input_dir = "/seq_processed/00055_20240902XQ7T8U"
-    amplicon_type = "ITS2"
-
-    result = init_generate_lotus2_report(process_id, input_dir, amplicon_type)
-    if result is None:
-        return jsonify({"error": "Failed to execute command"}), 500
     return jsonify({"result": result})
+
+
+@metadata_bp.route(
+    "/show_lotus2_file", methods=["GET"], endpoint="show_lotus2_file"
+)
+@login_required
+@approved_required
+def show_lotus2_file():
+    process_id = request.args.get("process_id")
+    region = request.args.get("region")
+    file = request.args.get("file")
+
+    if file in ["LotuS_progout", "demulti", "LotuS_run"]:
+        # Fetch process data from SequencingUpload model
+        process_data = SequencingUpload.get(process_id)
+
+        # Check the lotus2 report details
+        lotus2_report = SequencingUpload.check_lotus2_reports_exist(process_id)
+
+        # Find the corresponding region in the lotus2 report
+        region_data = next(
+            (item for item in lotus2_report if item["region"] == region), None
+        )
+
+        if region_data:
+            # Construct the base path for the log folder
+            uploads_folder = process_data["uploads_folder"]
+            log_folder = os.path.join(
+                "seq_processed",
+                uploads_folder,
+                "lotus2_report",
+                region,
+                "LotuSLogS",
+            )
+
+            # Determine the full file path based on the requested file
+            if file == "LotuS_progout":
+                file_path = os.path.join(log_folder, "LotuS_progout.log")
+            elif file == "demulti":
+                file_path = os.path.join(log_folder, "demulti.log")
+            elif file == "LotuS_run":
+                file_path = os.path.join(log_folder, "LotuS_run.log")
+
+            # Check if the file exists
+            if os.path.isfile(file_path):
+                # Open and return the contents of the file
+                with open(file_path, "r") as f:
+                    file_contents = f.read()
+                return file_contents, 200, {"Content-Type": "text/plain"}
+            else:
+                return {"error": "File not found"}, 404
+
+    return {"error": "Invalid request"}, 400
+
+
+@metadata_bp.route(
+    "/upload_lotus2_to_bucket",
+    methods=["GET"],
+    endpoint="upload_lotus2_to_bucket",
+)
+@login_required
+@approved_required
+def upload_lotus2_to_bucket():
+    process_id = request.args.get("process_id")
+    region = request.args.get("region")
+    process_data = SequencingUpload.get(process_id)
+    bucket = process_data["project_id"]
+    output_path = (
+        "seq_processed/"
+        + process_data["uploads_folder"]
+        + "/lotus2_report/"
+        + region
+    )
+
+    from helpers.bucket import init_bucket_upload_folder_v2
+
+    init_bucket_upload_folder_v2(
+        folder_path=output_path,
+        destination_upload_directory=region + "/lotus2_report",
+        bucket=bucket,
+    )
+    return redirect(
+        url_for("metadata.metadata_form", process_id=process_id) + "#step_9"
+    )

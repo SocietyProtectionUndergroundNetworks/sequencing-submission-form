@@ -195,13 +195,7 @@ class SequencingUpload:
         return 1
 
     @classmethod
-    def get_regions(
-        cls,
-        region_1_forward_primer=None,
-        region_1_reverse_primer=None,
-        region_2_forward_primer=None,
-        region_2_reverse_primer=None,
-    ):
+    def get_region(cls, forward_primer, reverse_primer):
         current_dir = os.path.dirname(__file__)
         base_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
         regions_file_path = os.path.join(
@@ -217,26 +211,40 @@ class SequencingUpload:
             (key): value["Region"] for key, value in primer_set_region.items()
         }
 
-        # Initialize sets to track unique regions
-        primer_set_1_regions = set()
+        # Combine forward and reverse primer
+        primer_set = f"{forward_primer}/{reverse_primer}"
+
+        # Return the corresponding region if it exists
+        return primer_to_region.get(primer_set, None)
+
+    @classmethod
+    def get_regions(
+        cls,
+        region_1_forward_primer=None,
+        region_1_reverse_primer=None,
+        region_2_forward_primer=None,
+        region_2_reverse_primer=None,
+    ):
+        # Initialize a list to keep regions in order
+        regions = []
+
+        # Get region for the first pair of primers if provided
         if region_1_forward_primer and region_1_reverse_primer:
-            primer_set_1 = (
-                f"{region_1_forward_primer}/{region_1_reverse_primer}"
+            region_1 = cls.get_region(
+                region_1_forward_primer, region_1_reverse_primer
             )
-            if primer_set_1 in primer_to_region:
-                primer_set_1_regions.add(primer_to_region[primer_set_1])
+            if region_1:
+                regions.append(region_1)
 
-        primer_set_2_regions = set()
+        # Get region for the second pair of primers if provided
         if region_2_forward_primer and region_2_reverse_primer:
-            primer_set_2 = (
-                f"{region_2_forward_primer}/{region_2_reverse_primer}"
+            region_2 = cls.get_region(
+                region_2_forward_primer, region_2_reverse_primer
             )
-            if primer_set_2 in primer_to_region:
-                primer_set_2_regions.add(primer_to_region[primer_set_2])
+            if region_2:
+                regions.append(region_2)
 
-        # Combine regions from both primer sets and return unique regions
-        regions = list(primer_set_1_regions.union(primer_set_2_regions))
-
+        # Return the regions in the order they were added
         return regions
 
     @classmethod
@@ -983,3 +991,68 @@ class SequencingUpload:
             # If there are no regions specified, we can assume
             # mappings do not exist
             return False
+
+    @classmethod
+    def check_lotus2_reports_exist(cls, process_id):
+        process_data = cls.get(process_id)
+
+        # Extract uploads folder from process data
+        uploads_folder = process_data["uploads_folder"]
+        results = []  # To store the results for each region
+
+        # Iterate through each region
+        for index, region in enumerate(process_data["regions"]):
+            region_result = {
+                "region": region,
+                "report_status": None,
+                "log_files_exist": {
+                    "LotuS_progout": False,
+                    "demulti": False,
+                    "LotuS_run": False,
+                },
+            }
+
+            # Check if the region is "ITS2" or "SSU"
+            if region in ["ITS2", "SSU"]:
+                # Construct the status field based on the index
+                region_status_field = (
+                    f"region_{index + 1}_lotus2_report_status"
+                )
+                report_status = process_data.get(region_status_field)
+
+                # Update report status in the result dictionary
+                region_result["report_status"] = report_status
+
+                # Proceed only if the status is "Finished"
+                if report_status == "Finished":
+                    # Construct the path to the log files inside uploads_folder
+                    log_folder = os.path.join(
+                        "seq_processed",
+                        uploads_folder,
+                        "lotus2_report",
+                        region,
+                        "LotuSLogS",
+                    )
+
+                    # Check if the required log files exist
+                    lotus_progout_file = os.path.join(
+                        log_folder, "LotuS_progout.log"
+                    )
+                    demulti_file = os.path.join(log_folder, "demulti.log")
+                    lotus_run_file = os.path.join(log_folder, "LotuS_run.log")
+
+                    # Update the existence status in the result dictionary
+                    region_result["log_files_exist"]["LotuS_progout"] = (
+                        os.path.isfile(lotus_progout_file)
+                    )
+                    region_result["log_files_exist"]["demulti"] = (
+                        os.path.isfile(demulti_file)
+                    )
+                    region_result["log_files_exist"]["LotuS_run"] = (
+                        os.path.isfile(lotus_run_file)
+                    )
+
+            # Append the region result to the results list
+            results.append(region_result)
+
+        return results
