@@ -1067,6 +1067,7 @@
             <tr>
               <th scope="col" class="bg-gray">Region</th>
               <th scope="col" class="bg-gray">Lotus 2 report status</th>
+              <th scope="col" class="bg-gray">Command outcome</th>
               <th scope="col" class="bg-gray">LotuS_progout.log</th>
               <th scope="col" class="bg-gray">demulti.log</th>
               <th scope="col" class="bg-gray">LotuS_run.log</th>
@@ -1079,9 +1080,21 @@
                 <td>{{ region_data.region }}</td>
                 <td>{{ region_data.report_status }}</td>
                 <td>
+                  {% if region_data.command_outcome %}
+                    <span class="text-success">
+                      <a href="show_lotus2_outcome?type=command_outcome&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                        Exists
+                      </a>
+                    </span>
+                  {% else %}
+                    <span class="text-danger">Not generated</span>
+                  {% endif %}
+                </td>                
+
+                <td>
                   {% if region_data.log_files_exist.LotuS_progout %}
                     <span class="text-success">
-                      <a href="show_lotus2_file?file=LotuS_progout&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                      <a href="show_lotus2_outcome?type=LotuS_progout&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
                         Exists
                       </a>
                     </span>
@@ -1092,7 +1105,7 @@
                 <td>
                   {% if region_data.log_files_exist.demulti %}
                     <span class="text-success">
-                      <a href="show_lotus2_file?file=demulti&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                      <a href="show_lotus2_outcome?type=demulti&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
                         Exists
                       </a>
                     </span>
@@ -1103,7 +1116,7 @@
                 <td>
                   {% if region_data.log_files_exist.LotuS_run %}
                     <span class="text-success">
-                      <a href="show_lotus2_file?file=LotuS_run&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                      <a href="show_lotus2_outcome?type=LotuS_run&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
                         Exists
                       </a>
                     </span>

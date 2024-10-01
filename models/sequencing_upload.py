@@ -997,7 +997,7 @@ class SequencingUpload:
     def check_lotus2_reports_exist(cls, process_id):
         process_data = cls.get(process_id)
 
-        # Extract uploads folder from process data
+        # Extract uploads folder and bucket from process data
         uploads_folder = process_data["uploads_folder"]
         bucket = process_data["project_id"]
         results = []  # To store the results for each region
@@ -1013,6 +1013,7 @@ class SequencingUpload:
                     "LotuS_run": False,
                 },
                 "bucket_log_exists": False,
+                "command_outcome": False,  # Default to False
             }
 
             # Check if the region is "ITS2" or "SSU"
@@ -1025,6 +1026,16 @@ class SequencingUpload:
 
                 # Update report status in the result dictionary
                 region_result["report_status"] = report_status
+
+                # Check if command outcome exists
+                command_outcome_field = (
+                    f"region_{index + 1}_lotus2_report_result"
+                )
+                command_outcome = process_data.get(command_outcome_field)
+
+                # Set command_outcome to False if empty
+                if command_outcome:
+                    region_result["command_outcome"] = command_outcome
 
                 # Proceed only if the status is "Finished"
                 if report_status == "Finished":
@@ -1068,5 +1079,6 @@ class SequencingUpload:
 
             # Append the region result to the results list
             results.append(region_result)
+
         logger.info(results)
         return results

@@ -127,15 +127,76 @@ def generate_lotus2_report(region_nr, process_id, input_dir, region):
             )
 
         elif region == "SSU":
-            logger.info(
-                "SSU region detected. No Lotus2 command will be executed."
+
+            # SILVA ONLY
+            # The following two would be if we only
+            # wanted to use the SILVA database
+            refDB = (
+                "lotus2_files/SILVA/SILVA_138.2_SSURef_NR99_tax_silva.fasta.gz"
             )
+            tax4refDB = "lotus2_files/SILVA/SLV_138.1_SSU.tax"
+
+            # The following two is if we want to use
+            # both the ___ and the SILVA database
+            refDB = (
+                "lotus2_files/vt_types_fasta_from_05-06-2019.qiime.fasta,"
+                "lotus2_files/SILVA/SLV_138.1_SSU.fasta"
+            )
+
+            tax4refDB = (
+                "/lotus2_files/vt_types_GF.txt,"
+                "lotus2_files/SILVA/SLV_138.1_SSU.tax"
+            )
+
+            sdmopt = "/usr/local/share/lotus2-2.34.1-0/configs/sdm_miSeq2.txt"
+            mapping_file = input_dir + "/mapping_files/SSU_Mapping.txt"
+
+            logger.info(" - Here we will try the command")
+            command = [
+                "lotus2",
+                "-i",
+                input_dir,
+                "-o",
+                output_path,
+                "-m",
+                mapping_file,
+                "-refDB",
+                refDB,
+                "-tax4refDB",
+                tax4refDB,
+                "-amplicon_type",
+                region,
+                "-LCA_idthresh",
+                "97,95,93,91,88,78,0",
+                "-tax_group",
+                "fungi",
+                "-taxAligner",
+                "blast",
+                "-clustering",
+                "dada2",
+                "-LCA_cover",
+                "0.97",
+                "-derepMin",
+                "10:1,5:2,3:3",
+                "-sdmopt",
+                sdmopt,
+            ]
+            logger.info(" - the command is: ")
+            logger.info(command)
+            # Run the command inside the container
+            result = container.exec_run(command)
+            logger.info(result.output)
+
             SequencingUpload.update_field(
                 process_id,
                 "region_" + str(region_nr) + "_lotus2_report_status",
-                "Skipped. No report needed for SSU.",
+                "Finished",
             )
-            return  # Exit function early if SSU is detected
+            SequencingUpload.update_field(
+                process_id,
+                "region_" + str(region_nr) + "_lotus2_report_result",
+                result.output,
+            )
 
         else:
             logger.info(

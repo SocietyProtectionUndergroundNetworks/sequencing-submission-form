@@ -39,9 +39,16 @@ The solution was adopted by the following article: https://qmacro.org/blog/posts
 ### Lotus2 files
 We are using the UNITE database for lotus2, which is not included automatically in the lotus2 docker image (as opposing to when you install lotus2 via conda, where it is included).
 This means that we need to manualy download the files and place them in the lotus2_files/UNITE/ folder.
+
+#### UNITE database
 We want the QIME release from https://unite.ut.ee/repository.php . Download the latest version, unzip it and place the .fasta and .txt files in the lotus2_files/UNITE/ folder.
 At the moment of writting this note, the filenames were sh_refs_qiime_ver10_97_04.04.2024.fasta and sh_taxonomy_qiime_ver10_97_04.04.2024.txt
 Equivalent changes need to happen to the helpers/lotus2.py to point to these two files if you use a newer version.
+
+#### SILVA database
+The two files we need are SLV_138.1_SSU.fasta  and SLV_138.1_SSU.tax . 
+To find them we used an existing installation of lotus2 via conda, and copied them from /lotus2/share/lotus2-2.34.1-0/DB/
+We copied them with the same names as above in the lotus2_files/SILVA/ folder.
 
 #### Do docker things: 
 - Copy the `docker-compose-dev.yml` to `docker-compose.yml`

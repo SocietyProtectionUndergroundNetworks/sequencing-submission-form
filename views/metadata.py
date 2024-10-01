@@ -1050,16 +1050,21 @@ def generate_lotus2_report():
 
 
 @metadata_bp.route(
-    "/show_lotus2_file", methods=["GET"], endpoint="show_lotus2_file"
+    "/show_lotus2_outcome", methods=["GET"], endpoint="show_lotus2_outcome"
 )
 @login_required
 @approved_required
-def show_lotus2_file():
+def show_lotus2_outcome():
     process_id = request.args.get("process_id")
     region = request.args.get("region")
-    file = request.args.get("file")
+    file_type = request.args.get("type")  # Renamed 'file' to 'type'
 
-    if file in ["LotuS_progout", "demulti", "LotuS_run"]:
+    if file_type in [
+        "LotuS_progout",
+        "demulti",
+        "LotuS_run",
+        "command_outcome",
+    ]:
         # Fetch process data from SequencingUpload model
         process_data = SequencingUpload.get(process_id)
 
@@ -1082,13 +1087,19 @@ def show_lotus2_file():
                 "LotuSLogS",
             )
 
-            # Determine the full file path based on the requested file
-            if file == "LotuS_progout":
+            # Handle log files and command_output
+            if file_type == "LotuS_progout":
                 file_path = os.path.join(log_folder, "LotuS_progout.log")
-            elif file == "demulti":
+            elif file_type == "demulti":
                 file_path = os.path.join(log_folder, "demulti.log")
-            elif file == "LotuS_run":
+            elif file_type == "LotuS_run":
                 file_path = os.path.join(log_folder, "LotuS_run.log")
+            elif file_type == "command_outcome":
+                command_output = region_data.get("command_outcome")
+                if command_output:
+                    return command_output, 200, {"Content-Type": "text/plain"}
+                else:
+                    return {"error": "Command output not found"}, 404
 
             # Check if the file exists
             if os.path.isfile(file_path):
