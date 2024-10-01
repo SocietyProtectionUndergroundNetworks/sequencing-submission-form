@@ -38,7 +38,7 @@ import numpy as np
 from helpers.file_renaming import calculate_md5
 from helpers.lotus2 import (
     init_generate_lotus2_report,
-    delete_generated_lotus2_report
+    delete_generated_lotus2_report,
 )
 
 from pathlib import Path
@@ -1046,8 +1046,8 @@ def generate_lotus2_report():
     input_dir = "seq_processed/" + process_data["uploads_folder"]
     for region_db in process_data["regions"]:
         region_nr += 1
-        if (region == region_db):
-            result = init_generate_lotus2_report(
+        if region == region_db:
+            init_generate_lotus2_report(
                 region_nr, process_id, input_dir, region
             )
 
@@ -1071,8 +1071,8 @@ def delete_lotus2_report():
     input_dir = "seq_processed/" + process_data["uploads_folder"]
     for region_db in process_data["regions"]:
         region_nr += 1
-        if (region == region_db):
-            result = delete_generated_lotus2_report(
+        if region == region_db:
+            delete_generated_lotus2_report(
                 region_nr, process_id, input_dir, region
             )
 

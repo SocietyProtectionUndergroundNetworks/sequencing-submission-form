@@ -224,6 +224,7 @@ def generate_lotus2_report(region_nr, process_id, input_dir, region):
             str(e),
         )
 
+
 def delete_generated_lotus2_report(region_nr, process_id, input_dir, region):
 
     from models.sequencing_upload import SequencingUpload
