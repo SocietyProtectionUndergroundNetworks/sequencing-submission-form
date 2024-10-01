@@ -1,5 +1,6 @@
 import docker
 import logging
+import shutil
 from datetime import datetime
 
 # PROCESS_DIR =
@@ -222,3 +223,32 @@ def generate_lotus2_report(region_nr, process_id, input_dir, region):
             "region_" + str(region_nr) + "_lotus2_report_result",
             str(e),
         )
+
+def delete_generated_lotus2_report(region_nr, process_id, input_dir, region):
+
+    from models.sequencing_upload import SequencingUpload
+
+    SequencingUpload.update_field(
+        process_id,
+        "region_" + str(region_nr) + "_lotus2_report_task_id",
+        None,
+    )
+    SequencingUpload.update_field(
+        process_id,
+        "region_" + str(region_nr) + "_lotus2_report_started_at",
+        None,
+    )
+    SequencingUpload.update_field(
+        process_id,
+        "region_" + str(region_nr) + "_lotus2_report_status",
+        None,
+    )
+    SequencingUpload.update_field(
+        process_id,
+        "region_" + str(region_nr) + "_lotus2_report_result",
+        None,
+    )
+    output_path = input_dir + "/lotus2_report/" + region
+    shutil.rmtree(output_path)
+
+    return {"msg": "Process initiated"}

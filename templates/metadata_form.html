@@ -1036,27 +1036,6 @@
 
       <div id="step_12" class="form-step-item">
         <h3> Step 12: Admin only. Generate lotus2 report</h3>
-        <form
-          method="POST"
-          action="/generate_lotus2_report"
-          id="step_12_form"
-        >
-          {% set disable_fieldset = not mapping_files_exist %}
-          
-          {# Check if any report has started (i.e., status is not None) #}
-          {% if lotus2_report | selectattr('report_status', 'ne', none) | list %}
-            {% set disable_fieldset = True %}
-          {% endif %}
-
-          <fieldset
-            {% if disable_fieldset %}
-             disabled="disabled"
-            {% endif %}
-          >
-            <input type="submit" class="btn btn-primary" id="step_12_button">
-            <input type="hidden" name="process_id" value="{{ process_id }}">
-          </fieldset>
-        </form>
       </div>
     {% endif %}
 
@@ -1078,7 +1057,36 @@
             {% for region_data in lotus2_report %}
               <tr>
                 <td>{{ region_data.region }}</td>
-                <td>{{ region_data.report_status }}</td>
+                <td>
+                  {{ region_data.report_status }}
+
+                  {% if not region_data.report_status %}
+                    <form
+                      method="POST"
+                      action="/generate_lotus2_report"
+                      class="step_12_form_run_report"
+                    >
+                      <fieldset>
+                        <input type="submit" class="btn btn-primary" value="Generate">
+                        <input type="hidden" name="process_id" value="{{ process_id }}">
+                        <input type="hidden" name="region" value="{{ region_data.region }}">
+                      </fieldset>
+                    </form>
+                  {% else %}
+                  <form
+                    method="POST"
+                    action="/delete_lotus2_report"
+                    class="step_12_form_delete_report"
+                  >
+                    <fieldset>
+                      <input type="submit" class="btn btn-primary" value="Delete">
+                      <input type="hidden" name="process_id" value="{{ process_id }}">
+                      <input type="hidden" name="region" value="{{ region_data.region }}">
+                    </fieldset>
+                  </form>
+                  {% endif %}
+
+                </td>
                 <td>
                   {% if region_data.command_outcome %}
                     <span class="text-success">
@@ -1089,7 +1097,7 @@
                   {% else %}
                     <span class="text-danger">Not generated</span>
                   {% endif %}
-                </td>                
+                </td>
 
                 <td>
                   {% if region_data.log_files_exist.LotuS_progout %}
@@ -1112,7 +1120,7 @@
                   {% else %}
                     <span class="text-danger">Not Found</span>
                   {% endif %}
-                </td>                
+                </td>
                 <td>
                   {% if region_data.log_files_exist.LotuS_run %}
                     <span class="text-success">
@@ -2412,16 +2420,18 @@
   ////// ############################################# /////////
   ////// ############ STEP 12 STARTS HERE ############ /////////
   ////// ############################################# /////////
-  function disableForm_step_12() {
-      $('#step_12_form fieldset').attr('disabled', 'disabled');
+  function disableForm_step_12_run_report(form) {
+      form.find('fieldset').attr('disabled', 'disabled');
   }
-  $('#step_12_form').submit(function(event) {
+  $('.step_12_form_run_report').submit(function(event) {
       event.preventDefault(); // Prevent default form submission
       var formData = new FormData();
-      var form = $('#step_12_form');
+      var form = $(this); // Target the current form instance
       var processId = form.find('input[name="process_id"]').val();
+      var region = form.find('input[name="region"]').val();
       formData.append('process_id', processId);
-      // Ask the user for confirmation
+      formData.append('region', region);
+
       $.ajax({
           url: '/generate_lotus2_report',
           type: 'POST',
@@ -2429,15 +2439,42 @@
           contentType: false,
           processData: false,
           success: function(response) {
-              if (response.result=="1") {
+              if (response.result == "1") {
                 window.location.reload();
               }
-              disableForm_step_12();
           },
           error: function(xhr, status, error) {
               console.error('Error:', error);
-              $('#step_12_msg').html("<p>An error occurred while trying to generate the lotus2 report.</p>").removeClass('text-success').addClass('text-danger');
+              form.find('.step_12_msg').html("<p>An error occurred while trying to generate the Lotus2 report.</p>").removeClass('text-success').addClass('text-danger');
+          }
+      });
+  });
+  function disableForm_step_12_delete_report(form) {
+      form.find('fieldset').attr('disabled', 'disabled');
+  }
+  $('.step_12_form_delete_report').submit(function(event) {
+      event.preventDefault(); // Prevent default form submission
+      var formData = new FormData();
+      var form = $(this); // Target the current form instance
+      var processId = form.find('input[name="process_id"]').val();
+      var region = form.find('input[name="region"]').val();
+      formData.append('process_id', processId);
+      formData.append('region', region);
 
+      $.ajax({
+          url: '/delete_lotus2_report',
+          type: 'POST',
+          data: formData,
+          contentType: false,
+          processData: false,
+          success: function(response) {
+              if (response.result == "1") {
+                window.location.reload();
+              }
+          },
+          error: function(xhr, status, error) {
+              console.error('Error:', error);
+              form.find('.step_12_msg').html("<p>An error occurred while trying to generate the Lotus2 report.</p>").removeClass('text-success').addClass('text-danger');
           }
       });
   });

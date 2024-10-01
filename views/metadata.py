@@ -36,7 +36,10 @@ from helpers.fastqc import (
 from helpers.csv import sanitize_data
 import numpy as np
 from helpers.file_renaming import calculate_md5
-from helpers.lotus2 import init_generate_lotus2_report
+from helpers.lotus2 import (
+    init_generate_lotus2_report,
+    delete_generated_lotus2_report
+)
 
 from pathlib import Path
 
@@ -1037,16 +1040,43 @@ def generate_lotus2_report():
     process_id = request.form.get("process_id")
 
     process_data = SequencingUpload.get(process_id)
+    region = request.form.get("region")
 
     region_nr = 0
     input_dir = "seq_processed/" + process_data["uploads_folder"]
-    for region in process_data["regions"]:
+    for region_db in process_data["regions"]:
         region_nr += 1
-        result = init_generate_lotus2_report(
-            region_nr, process_id, input_dir, region
-        )
+        if (region == region_db):
+            result = init_generate_lotus2_report(
+                region_nr, process_id, input_dir, region
+            )
 
-    return jsonify({"result": result})
+    return jsonify({"result": 1})
+
+
+@metadata_bp.route(
+    "/delete_lotus2_report",
+    methods=["POST"],
+    endpoint="delete_lotus2_report",
+)
+@login_required
+@approved_required
+def delete_lotus2_report():
+    process_id = request.form.get("process_id")
+    region = request.form.get("region")
+
+    process_data = SequencingUpload.get(process_id)
+
+    region_nr = 0
+    input_dir = "seq_processed/" + process_data["uploads_folder"]
+    for region_db in process_data["regions"]:
+        region_nr += 1
+        if (region == region_db):
+            result = delete_generated_lotus2_report(
+                region_nr, process_id, input_dir, region
+            )
+
+    return jsonify({"result": 1})
 
 
 @metadata_bp.route(
