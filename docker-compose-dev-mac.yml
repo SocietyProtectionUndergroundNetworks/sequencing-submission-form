@@ -1,0 +1,163 @@
+version: '2.4'
+
+services:
+  socat:
+    image: alpine/socat
+    container_name: spun-socat
+    networks:
+      - flask
+    command: 'tcp-listen:2375,fork,reuseaddr unix-connect:/var/run/docker.sock'
+    user: root
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+
+  flask: &flask
+    build:
+      context: .
+      dockerfile: Dockerfile-flask
+      args:
+        FLASK_PROCESS_USER: ${FLASK_PROCESS_USER}
+        FLASK_PROCESS_USER_ID: ${FLASK_PROCESS_USER_ID}
+        FLASK_PROCESS_GROUP_ID: ${FLASK_PROCESS_GROUP_ID}    
+    container_name: spun-flask
+    depends_on:
+      - db
+      - socat  # Ensure socat is running before Flask
+    expose:
+      - 56733
+    volumes:
+      - .:/app
+      - ${GOOGLE_APPLICATION_CREDENTIALS_PATH}:/google_auth_file/key_file.json
+      - /var/run/docker.sock:/var/run/docker.sock
+    env_file:
+      - .env
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/google_auth_file/key_file.json
+      - OAUTHLIB_INSECURE_TRANSPORT=1
+      - PORT=56733
+      - DOCKER_HOST=tcp://socat:2375  # Set Docker host to socat
+    networks:
+      - flask
+    command: ["alembic", "upgrade", "head"]
+
+  celery-worker:
+    container_name: spun-celery-worker  # Unique name for the Celery worker container
+    build:
+      context: .
+      dockerfile: Dockerfile-flask
+      args:
+        FLASK_PROCESS_USER: ${FLASK_PROCESS_USER}
+        FLASK_PROCESS_USER_ID: ${FLASK_PROCESS_USER_ID}
+        FLASK_PROCESS_GROUP_ID: ${FLASK_PROCESS_GROUP_ID}  
+    depends_on:
+      - db
+      - redis
+      - socat  # Ensure socat is running before Celery worker
+    expose:
+      - 56734
+    ports:
+      - "5001:5001"  # Example port mapping for Celery worker
+    volumes:
+      - .:/app
+      - ${GOOGLE_APPLICATION_CREDENTIALS_PATH}:/google_auth_file/key_file.json
+    env_file:
+      - .env
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/google_auth_file/key_file.json
+      - OAUTHLIB_INSECURE_TRANSPORT=1
+      - PORT=56734
+      - DOCKER_HOST=tcp://socat:2375  # Set Docker host to socat
+    networks:
+      - flask
+    entrypoint: celery -A app.celery worker --loglevel=info  # Celery worker command
+
+  nginx:
+    image: nginx:alpine
+    container_name: spun-flask-nginx
+    restart: unless-stopped
+    ports:
+      - 80:80
+    volumes:
+      - ./nginx.conf-local-nossh:/etc/nginx/nginx.conf:ro
+      - ./certbot/www/:/var/www/certbot/:ro
+    networks:
+      - flask
+
+  db:
+    image: mysql:5.7
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=flask
+      - MYSQL_USER=flask
+      - MYSQL_PASSWORD=flask
+    volumes:
+      - ./mysql:/var/lib/mysql      
+    networks:
+      - database
+      - flask
+    restart: unless-stopped
+
+  adminer:
+    depends_on:
+      - db
+    volumes:
+      - ./config/docker/adminer/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
+    image: adminer
+    ports:
+      - 8080:8080
+    environment:
+      - ADMINER_DESIGN=pepa-linha
+      - VIRTUAL_HOST=db.b4b.local
+      - VIRTUAL_PORT=8080
+    networks:
+      - database
+    restart: unless-stopped
+
+  lotus2:
+    image: quay.io/biocontainers/lotus2:2.34.1--hdfd78af_0
+    container_name: spun-lotus2
+    volumes:
+      - ./seq_processed:/seq_processed  #v2 processed files
+      - ./processing:/processing  #v1 processed files
+      - ./lotus2_files:/lotus2_files  #v1 processed files
+      - ./run_lotus2.sh:/usr/local/bin/run_lotus2.sh
+    networks:
+      - flask
+    command: ["tail", "-f", "/dev/null"]  # Keep the container running
+
+  redis:
+    image: "redis:latest"
+    volumes:
+      - ./config/docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    ports:
+      - "6379:6379"
+    networks:
+      - flask
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+
+  flake8:
+    build:
+      context: .
+      dockerfile: Dockerfile-flake8-black
+    command: flake8
+    volumes:
+      - .:/app
+    working_dir: /app
+
+  black:
+    build:
+      context: .
+      dockerfile: Dockerfile-flake8-black
+    command: black .
+    volumes:
+      - .:/app
+    working_dir: /app
+
+networks:
+  default:
+    name: default_network
+  database:
+  flask:
+    driver: bridge

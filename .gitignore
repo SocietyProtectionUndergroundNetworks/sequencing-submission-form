@@ -40,3 +40,7 @@ seq_processed
 bucket_list.txt
 
 output_files/
+
+lotus2_files/UNITE/
+
+lotus2_files/SILVA/

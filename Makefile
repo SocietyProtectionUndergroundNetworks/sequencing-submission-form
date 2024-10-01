@@ -44,6 +44,9 @@ bashnginx:
 bashdb:
 	docker-compose run --rm db /bin/sh
 
+bashlotus:
+	docker-compose run --rm lotus2 /bin/sh
+
 logsflask:
 	docker-compose logs -f --tail=200 flask
 
@@ -55,6 +58,9 @@ logsnginx:
 
 logsredis:
 	docker-compose logs -f --tail=200 redis
+
+logslotus:
+	docker-compose logs -f --tail=200 lotus2
 
 migration:
 	docker-compose exec flask alembic revision --autogenerate -m "${description}"

@@ -36,6 +36,7 @@ from helpers.fastqc import (
 from helpers.csv import sanitize_data
 import numpy as np
 from helpers.file_renaming import calculate_md5
+from helpers.lotus2 import init_generate_lotus2_report
 
 from pathlib import Path
 
@@ -159,6 +160,7 @@ def metadata_form():
     extra_data_keys = set()
     multiqc_report_exists = False
     mapping_files_exist = False
+    lotus2_report = []
 
     if process_id:
         process_data = SequencingUpload.get(process_id)
@@ -202,6 +204,8 @@ def metadata_form():
             process_id
         )
 
+        lotus2_report = SequencingUpload.check_lotus2_reports_exist(process_id)
+
     return render_template(
         "metadata_form.html",
         my_buckets=my_buckets,
@@ -223,6 +227,7 @@ def metadata_form():
         extra_data_keys=extra_data_keys,
         extra_data=extra_data,
         mapping_files_exist=mapping_files_exist,
+        lotus2_report=lotus2_report,
     )
 
 
@@ -1019,3 +1024,121 @@ def process_server_file():
         }, 200
 
     return {"message": "No process_id provided"}, 400
+
+
+@metadata_bp.route(
+    "/generate_lotus2_report",
+    methods=["POST"],
+    endpoint="generate_lotus2_report",
+)
+@login_required
+@approved_required
+def generate_lotus2_report():
+    process_id = request.form.get("process_id")
+
+    process_data = SequencingUpload.get(process_id)
+
+    region_nr = 0
+    input_dir = "seq_processed/" + process_data["uploads_folder"]
+    for region in process_data["regions"]:
+        region_nr += 1
+        result = init_generate_lotus2_report(
+            region_nr, process_id, input_dir, region
+        )
+
+    return jsonify({"result": result})
+
+
+@metadata_bp.route(
+    "/show_lotus2_outcome", methods=["GET"], endpoint="show_lotus2_outcome"
+)
+@login_required
+@approved_required
+def show_lotus2_outcome():
+    process_id = request.args.get("process_id")
+    region = request.args.get("region")
+    file_type = request.args.get("type")  # Renamed 'file' to 'type'
+
+    if file_type in [
+        "LotuS_progout",
+        "demulti",
+        "LotuS_run",
+        "command_outcome",
+    ]:
+        # Fetch process data from SequencingUpload model
+        process_data = SequencingUpload.get(process_id)
+
+        # Check the lotus2 report details
+        lotus2_report = SequencingUpload.check_lotus2_reports_exist(process_id)
+
+        # Find the corresponding region in the lotus2 report
+        region_data = next(
+            (item for item in lotus2_report if item["region"] == region), None
+        )
+
+        if region_data:
+            # Construct the base path for the log folder
+            uploads_folder = process_data["uploads_folder"]
+            log_folder = os.path.join(
+                "seq_processed",
+                uploads_folder,
+                "lotus2_report",
+                region,
+                "LotuSLogS",
+            )
+
+            # Handle log files and command_output
+            if file_type == "LotuS_progout":
+                file_path = os.path.join(log_folder, "LotuS_progout.log")
+            elif file_type == "demulti":
+                file_path = os.path.join(log_folder, "demulti.log")
+            elif file_type == "LotuS_run":
+                file_path = os.path.join(log_folder, "LotuS_run.log")
+            elif file_type == "command_outcome":
+                command_output = region_data.get("command_outcome")
+                if command_output:
+                    return command_output, 200, {"Content-Type": "text/plain"}
+                else:
+                    return {"error": "Command output not found"}, 404
+
+            # Check if the file exists
+            if os.path.isfile(file_path):
+                # Open and return the contents of the file
+                with open(file_path, "r") as f:
+                    file_contents = f.read()
+                return file_contents, 200, {"Content-Type": "text/plain"}
+            else:
+                return {"error": "File not found"}, 404
+
+    return {"error": "Invalid request"}, 400
+
+
+@metadata_bp.route(
+    "/upload_lotus2_to_bucket",
+    methods=["GET"],
+    endpoint="upload_lotus2_to_bucket",
+)
+@login_required
+@approved_required
+def upload_lotus2_to_bucket():
+    process_id = request.args.get("process_id")
+    region = request.args.get("region")
+    process_data = SequencingUpload.get(process_id)
+    bucket = process_data["project_id"]
+    output_path = (
+        "seq_processed/"
+        + process_data["uploads_folder"]
+        + "/lotus2_report/"
+        + region
+    )
+
+    from helpers.bucket import init_bucket_upload_folder_v2
+
+    init_bucket_upload_folder_v2(
+        folder_path=output_path,
+        destination_upload_directory=region + "/lotus2_report",
+        bucket=bucket,
+    )
+    return redirect(
+        url_for("metadata.metadata_form", process_id=process_id) + "#step_9"
+    )

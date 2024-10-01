@@ -33,3 +33,5 @@ xlrd
 
 openpyxl
 debugpy # Required for debugging.
+
+docker
