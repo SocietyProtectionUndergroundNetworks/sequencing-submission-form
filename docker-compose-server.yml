@@ -17,11 +17,23 @@ services:
     volumes:
       - .:/app
       - ${GOOGLE_APPLICATION_CREDENTIALS_PATH}:/google_auth_file/key_file.json
+      - /var/run/docker.sock:/var/run/docker.sock      
     env_file:
       - .env
     user: "1000:1000"
     networks:
       - flask      
+
+  lotus2:
+    image: quay.io/biocontainers/lotus2:2.34.1--hdfd78af_0
+    container_name: spun-lotus2
+    volumes:
+      - ./seq_processed:/seq_processed  #v2 processed files
+      - ./processing:/processing  #v1 processed files
+      - ./lotus2_files:/lotus2_files  #v1 processed files
+    networks:
+      - flask
+    command: ["tail", "-f", "/dev/null"]  # Keep the container running
 
   celery-worker:
     container_name: spun-celery-worker  # Unique name for the Celery worker container
