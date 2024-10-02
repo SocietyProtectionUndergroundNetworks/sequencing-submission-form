@@ -1011,6 +1011,7 @@ class SequencingUpload:
                     "LotuS_progout": False,
                     "demulti": False,
                     "LotuS_run": False,
+                    "phyloseq": False,
                 },
                 "bucket_log_exists": False,
                 "command_outcome": False,  # Default to False
@@ -1040,11 +1041,15 @@ class SequencingUpload:
                 # Proceed only if the status is "Finished"
                 if report_status == "Finished":
                     # Construct the path to the log files inside uploads_folder
-                    log_folder = os.path.join(
+                    report_folder = os.path.join(
                         "seq_processed",
                         uploads_folder,
                         "lotus2_report",
                         region,
+                    )
+
+                    log_folder = os.path.join(
+                        report_folder,
                         "LotuSLogS",
                     )
 
@@ -1054,6 +1059,9 @@ class SequencingUpload:
                     )
                     demulti_file = os.path.join(log_folder, "demulti.log")
                     lotus_run_file = os.path.join(log_folder, "LotuS_run.log")
+                    phyloseq_file = os.path.join(
+                        report_folder, "phyloseq.Rdata"
+                    )
 
                     # Update the existence status in the result dictionary
                     region_result["log_files_exist"]["LotuS_progout"] = (
@@ -1064,6 +1072,9 @@ class SequencingUpload:
                     )
                     region_result["log_files_exist"]["LotuS_run"] = (
                         os.path.isfile(lotus_run_file)
+                    )
+                    region_result["log_files_exist"]["phyloseq"] = (
+                        os.path.isfile(phyloseq_file)
                     )
 
                     # Check if we need to verify files in the bucket

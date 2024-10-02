@@ -1094,6 +1094,7 @@ def show_lotus2_outcome():
         "demulti",
         "LotuS_run",
         "command_outcome",
+        "phyloseq",
     ]:
         # Fetch process data from SequencingUpload model
         process_data = SequencingUpload.get(process_id)
@@ -1109,14 +1110,14 @@ def show_lotus2_outcome():
         if region_data:
             # Construct the base path for the log folder
             uploads_folder = process_data["uploads_folder"]
-            log_folder = os.path.join(
-                "seq_processed",
-                uploads_folder,
-                "lotus2_report",
-                region,
-                "LotuSLogS",
+            report_folder = os.path.join(
+                "seq_processed", uploads_folder, "lotus2_report", region
             )
 
+            log_folder = os.path.join(
+                report_folder,
+                "LotuSLogS",
+            )
             # Handle log files and command_output
             if file_type == "LotuS_progout":
                 file_path = os.path.join(log_folder, "LotuS_progout.log")
@@ -1124,6 +1125,9 @@ def show_lotus2_outcome():
                 file_path = os.path.join(log_folder, "demulti.log")
             elif file_type == "LotuS_run":
                 file_path = os.path.join(log_folder, "LotuS_run.log")
+            elif file_type == "phyloseq":
+                file_path = os.path.join(log_folder, "phyloseq.Rdata")
+                return send_file(file_path, as_attachment=True)
             elif file_type == "command_outcome":
                 command_output = region_data.get("command_outcome")
                 if command_output:

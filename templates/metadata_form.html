@@ -1050,6 +1050,7 @@
               <th scope="col" class="bg-gray">LotuS_progout.log</th>
               <th scope="col" class="bg-gray">demulti.log</th>
               <th scope="col" class="bg-gray">LotuS_run.log</th>
+              <th scope="col" class="bg-gray">phyloseq.Rdata</th>
               <th scope="col" class="bg-gray">Bucket</th>
             </tr>
           </thead>
@@ -1125,6 +1126,17 @@
                   {% if region_data.log_files_exist.LotuS_run %}
                     <span class="text-success">
                       <a href="show_lotus2_outcome?type=LotuS_run&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                        Exists
+                      </a>
+                    </span>
+                  {% else %}
+                    <span class="text-danger">Not Found</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if region_data.log_files_exist.phyloseq %}
+                    <span class="text-success">
+                      <a href="show_lotus2_outcome?type=phyloseq&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
                         Exists
                       </a>
                     </span>
