@@ -206,3 +206,30 @@ class SequencingFilesUploadedTable(Base):
     new_name = Column(String(255), nullable=True)
     md5 = Column(String(50), nullable=True)
     bucket_upload_progress = Column(Integer, nullable=True)
+
+
+class SequencingCompanyUploadTable(Base):
+    __tablename__ = "sequencing_company_uploads"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"))
+    created_at = Column(DateTime, default=func.now())
+    uploads_folder = Column(String(20), nullable=True)
+    csv_filename = Column(String(255), nullable=True)
+    tar_filename = Column(String(255), nullable=True)
+
+
+class SequencingCompanyInputTable(Base):
+    __tablename__ = "sequencing_company_input"
+    id = Column(Integer, primary_key=True)
+    sequencingCompanyUploadId = Column(
+        Integer,
+        ForeignKey("sequencing_company_uploads.id", ondelete="CASCADE"),
+    )
+    sample_number = Column(String(255), nullable=True)
+    sample_id = Column(String(255), nullable=True)
+    sequencer_id = Column(String(255), nullable=True)
+    sequencing_provider = Column(String(255), nullable=True)
+    project = Column(String(50), nullable=True)
+    region = Column(String(50), nullable=True)
+    index_1 = Column(String(50), nullable=True)
+    barcode_2 = Column(String(50), nullable=True)

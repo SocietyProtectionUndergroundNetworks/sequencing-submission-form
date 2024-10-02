@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnSuA4Ss2PkkikSOLtYs8BlYIeeIK1h99ty4YfvRPAlzr377vr3CXDb7sb7eEEBYjDtcYj+AjBH3FLv5uSJuXg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js" integrity="sha512-7Pi/otdlbbCR+LnW+F7PwFcSDJOuUJB3OxtEHbg4vSMvzvJjde4Po1v4BR9Gdc9aXNUNFVUY+SK51wWT8WF0Gg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <title>Upload scripps data</title>
+</head>
+<body>
+  <div class="app-navbar">
+    <a href="https://spun.earth" class="logo"></a>
+    <div class="menu">
+      <ul>
+        <li><a href="https://spun.earth">Spun Website</a></li>
+        <li><a href="/">App homepage</a></li>
+        <li><a href="/logout">Logout</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="content" style="p-4">
+    <h1> Scripps file upload Form </h1>
+    <div id="msg" class="text-info">{{ msg }}</div>
+
+    <div id="form_reporting">
+      {% if form_reporting %}
+        {% for data in form_reporting %}
+          <div class="text-info">{{ data }}</div>
+        {% endfor %}
+      {% endif %}
+    </div>
+{{ upload }}
+
+    <div id="step_1" class="form-step-item">
+      <h3> Step 1: Upload csv file with sequencer IDs from scripps </h3>
+      <form
+          method="POST"
+          action="/scripps_upload_sequencing_file"
+          enctype="multipart/form-data"
+          id="step_1_file_upload"
+      >
+        <input type="file" id="step_1_file_upload_button" accept=".csv">
+        <input type="hidden" name="upload_id" value="{{ upload_id }}">
+      </form>
+      <div id="step_1_filename">
+        {% if upload.csv_filename %}
+          Uploaded file: {{ upload.csv_filename }}
+        {% endif %}
+      </div>
+      <div id="step_1_msg"></div>
+    </div>
+
+    <table id="sequencerIdsTable" class="table-bordered">
+        <thead>
+            <tr>
+                <th scope="col" class="bg-gray">DbID</th>
+                <th scope="col" class="bg-gray">Sample_Number</th>
+                <th scope="col" class="bg-gray">Sample_ID</th>
+                <th scope="col" class="bg-gray">Sequencer_ID</th>
+                <th scope="col" class="bg-gray">Sequencing_provider</th>
+                <th scope="col" class="bg-gray">Project</th>
+                <th scope="col" class="bg-gray">Region</th>
+                <th scope="col" class="bg-gray">Index_1</th>
+                <th scope="col" class="bg-gray">Barcode_2</th>
+                <th scope="col" class="bg-gray">Metadata uploaded SampleID</th>
+                <th scope="col" class="bg-gray">Problems</th>
+            </tr>
+        </thead>
+
+        <tbody>
+          {% for input_line in input_lines %}
+            <tr>
+              <td>{{ input_line["id"] }}</td>
+              <td>{{ input_line["sample_number"] }}</td>
+              <td>{{ input_line["sample_id"] }}</td>
+              <td>{{ input_line["sequencer_id"] }}</td>
+              <td>{{ input_line["sequencing_provider"] }}</td>
+              <td>{{ input_line["project"] }}</td>
+              <td>{{ input_line["region"] }}</td>
+              <td>{{ input_line["index_1"] }}</td>
+              <td>{{ input_line["barcode_2"] }}</td>
+              <td>{{ input_line["SampleID"] }}</td>
+              <td class="text-danger">{{ input_line["problems"] }}</td>
+            </tr>
+          {% endfor %}
+
+        </tbody>
+    </table>
+
+
+  </div>
+
+  <script type="application/javascript">
+  ////// ############################################# /////////
+  ////// ####### STEP 1 UPLOAD FILE STARTS HERE ###### /////////
+  ////// ############################################# /////////
+
+  $(document).ready(function() {
+      $('#step_1_file_upload_button').on('change', function () {
+          var fileInput = $('#step_1_file_upload_button')[0];
+          var file = fileInput.files[0];   
+
+          var form = $('#step_1_file_upload_button').closest('form');
+          var upload_id = form.find('input[name="upload_id"]').val();
+          
+          var formData = new FormData();
+          formData.append('file', file);
+          formData.append('upload_id', upload_id);  // Move this line here to include upload_id
+
+          if (file) {
+              var fileName = file.name;
+              $('#step_1_filename').html("<h4>File uploaded: " + fileName + "</h4>");
+          }    
+          if (!file) {
+              alert("Please select a file.");
+              return;
+          }
+
+          $.ajax({
+              url: '/scripps_upload_sequencing_file',
+              type: 'POST',
+              data: formData,
+              contentType: false,
+              processData: false,
+              success: function(response) {
+                  // If there are problems
+                  if (response.has_problems) {
+                      response.data.forEach(function(input_line) {
+                          // console.log(input_line)
+                          var problems = input_line.problems || ""; // Default if no problems
+                          $('#sequencerIdsTable tbody').append(`
+                              <tr>
+                                  <td>${input_line.id || ""}</td>
+                                  <td>${input_line.sample_number || ""}</td>
+                                  <td>${input_line.sample_id || ""}</td>
+                                  <td>${input_line.sequencer_id || ""}</td>
+                                  <td>${input_line.sequencing_provider || ""}</td>
+                                  <td>${input_line.project || ""}</td>
+                                  <td>${input_line.region || ""}</td>
+                                  <td>${input_line.index_1 || ""}</td>
+                                  <td>${input_line.barcode_2 || ""}</td>
+                                  <td></td>
+                                  <td class="text-danger">${problems}</td>
+                              </tr>
+                          `);
+                      });
+                  } else {
+                      // If no problems, you can reload the page or handle it as needed
+                      window.location.href = `/scripps_form?upload_id=${response.upload_id}`;
+                  }
+              },
+              error: function(xhr, status, error) {
+                  console.error('Error:', error);
+                  $('#step_1_msg').html("<p>An error occurred while processing the file.</p>").removeClass('text-success').addClass('text-danger');
+
+                  // Reset the file input
+                  fileInput.value = "";
+              }
+          });
+      });
+  });
+
+
+  ////// ############################################# /////////
+  ////// ####### STEP 1 UPLOAD FILE ENDS HERE ###### /////////
+  ////// ############################################# /////////
+
+
+  </script>
+
+  <style>
+</body>
+</html>

@@ -4,6 +4,7 @@ from .user import user_bp
 from .upload import upload_bp
 from .data import data_bp
 from .metadata import metadata_bp
+from .scripps import scripps_bp
 
 
 def create_app():
@@ -26,5 +27,6 @@ def create_app():
     app.register_blueprint(upload_bp)
     app.register_blueprint(data_bp)
     app.register_blueprint(metadata_bp)
+    app.register_blueprint(scripps_bp)
 
     return app
