@@ -1126,7 +1126,7 @@ def show_lotus2_outcome():
             elif file_type == "LotuS_run":
                 file_path = os.path.join(log_folder, "LotuS_run.log")
             elif file_type == "phyloseq":
-                file_path = os.path.join(log_folder, "phyloseq.Rdata")
+                file_path = os.path.join(report_folder, "phyloseq.Rdata")
                 return send_file(file_path, as_attachment=True)
             elif file_type == "command_outcome":
                 command_output = region_data.get("command_outcome")
