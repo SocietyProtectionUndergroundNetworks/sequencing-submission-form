@@ -100,18 +100,6 @@ def scripps_upload_sequencing_file():
             logger.error(f"CSV file has incorrect columns: {df.columns}")
             return {"error": "Invalid column names"}, 400
 
-        # If an upload_id is provided, use it; otherwise, create a new upload
-        if upload_id:
-            existing_upload = SequencingCompanyUpload.get(upload_id)
-            if existing_upload:
-                # Update the existing upload's filename
-                existing_upload.csv_filename = filename
-            else:
-                logger.error("Upload ID does not exist")
-                return {"error": "Upload ID does not exist"}, 400
-        else:
-            upload_id = SequencingCompanyUpload.create(filename)
-
         df = df.dropna(how="all")
         # Replace NaN values with None for compatibility with MySQL
         df = df.where(pd.notnull(df), None)
@@ -135,6 +123,19 @@ def scripps_upload_sequencing_file():
 
         # If there are no problems, add the records to the database
         if not response_data["has_problems"]:
+            
+            # If an upload_id is provided, use it; otherwise, create a new upload
+            if upload_id:
+                existing_upload = SequencingCompanyUpload.get(upload_id)
+                if existing_upload:
+                    # Update the existing upload's filename
+                    existing_upload.csv_filename = filename
+                else:
+                    logger.error("Upload ID does not exist")
+                    return {"error": "Upload ID does not exist"}, 400
+            else:
+                upload_id = SequencingCompanyUpload.create(filename)            
+            
             for _, row in df_with_problems.iterrows():
                 SequencingCompanyInput.create(upload_id, row.to_dict())
 

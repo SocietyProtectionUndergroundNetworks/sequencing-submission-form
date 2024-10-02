@@ -30,7 +30,6 @@
         {% endfor %}
       {% endif %}
     </div>
-{{ upload }}
 
     <div id="step_1" class="form-step-item">
       <h3> Step 1: Upload csv file with sequencer IDs from scripps </h3>
@@ -126,9 +125,13 @@
               success: function(response) {
                   // If there are problems
                   if (response.has_problems) {
+                      var uniqueProblems = new Set();
                       response.data.forEach(function(input_line) {
                           // console.log(input_line)
                           var problems = input_line.problems || ""; // Default if no problems
+                          if (problems) {
+                              uniqueProblems.add(problems);  // Add the problem to the set
+                          }                          
                           $('#sequencerIdsTable tbody').append(`
                               <tr>
                                   <td>${input_line.id || ""}</td>
@@ -145,6 +148,14 @@
                               </tr>
                           `);
                       });
+                      // Convert the unique problems set to a list and join them into a string with line breaks
+                      var problemsList = Array.from(uniqueProblems).join("<br>");
+
+                      // Update the #step_1_msg div with the list of problems
+                      $('#step_1_msg').html(`
+                          <p class="text-danger">The following problems were found:</p>
+                          <p class="text-danger">${problemsList}</p>
+                      `);                      
                   } else {
                       // If no problems, you can reload the page or handle it as needed
                       window.location.href = `/scripps_form?upload_id=${response.upload_id}`;
