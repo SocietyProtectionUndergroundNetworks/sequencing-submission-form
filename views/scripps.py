@@ -123,8 +123,9 @@ def scripps_upload_sequencing_file():
 
         # If there are no problems, add the records to the database
         if not response_data["has_problems"]:
-            
-            # If an upload_id is provided, use it; otherwise, create a new upload
+
+            # If an upload_id is provided, use it; otherwise,
+            # create a new upload
             if upload_id:
                 existing_upload = SequencingCompanyUpload.get(upload_id)
                 if existing_upload:
@@ -134,8 +135,8 @@ def scripps_upload_sequencing_file():
                     logger.error("Upload ID does not exist")
                     return {"error": "Upload ID does not exist"}, 400
             else:
-                upload_id = SequencingCompanyUpload.create(filename)            
-            
+                upload_id = SequencingCompanyUpload.create(filename)
+
             for _, row in df_with_problems.iterrows():
                 SequencingCompanyInput.create(upload_id, row.to_dict())
 
