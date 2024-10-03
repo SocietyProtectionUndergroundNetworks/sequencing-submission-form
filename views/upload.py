@@ -214,6 +214,10 @@ def app_instructions():
         return render_template("app_instructions_v2.html")
     return render_template("app_instructions.html")
 
+@upload_bp.route("/app_instructions_v2", endpoint="app_instructions_v2")
+def app_instructions_v2():
+    return render_template("app_instructions_v2.html")
+
 
 @upload_bp.route("/csv_sample", endpoint="csv_sample")
 def csv_sample():
