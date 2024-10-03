@@ -1134,7 +1134,7 @@ def show_lotus2_outcome():
                     "seq_processed",
                     uploads_folder,
                     "lotus2_report",
-                    region
+                    region,
                 )
                 file_path = os.path.join(report_folder, "phyloseq.Rdata")
                 return send_file(file_path, as_attachment=True)

@@ -4,7 +4,7 @@ import math
 import logging
 import json
 import pandas as pd
-
+from flask_login import current_user
 
 logger = logging.getLogger("my_app_logger")
 
@@ -36,6 +36,10 @@ def get_columns_data():
                     value["options"] = json.load(lookup)
             else:
                 value["options"] = []  # Handle missing or unsupported files
+
+            # Check for allowAdminNA and if the user is an admin
+            if value.get("allowAdminNA") == "True" and current_user.admin:
+                value["options"].append("NA")
 
     return data
 
@@ -182,16 +186,6 @@ def check_field_length_value(value, max_length):
         return {"status": 1, "message": "Valid value"}
 
 
-def check_agricultural_land_value(value):
-    """
-    Check if a single Agricultural_land value is valid ('yes' or 'no').
-    """
-    if value not in ["yes", "no"]:
-        return {"status": 0, "message": "Invalid value"}
-    else:
-        return {"status": 1, "message": "Valid value"}
-
-
 def check_field_values_lookup(df, valid_values, field_name, allow_empty=True):
     """
     Check if field_name values are valid based on the valid_values list.
@@ -235,7 +229,6 @@ def check_date_collected(date):
     """
     # Regular expression for YYYY-MM-DD format
     date_format = r"\b\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])\b"
-    logger.info(date)
 
     if not re.match(date_format, str(date)):
         return {"status": 0, "message": "Invalid value"}
@@ -461,13 +454,17 @@ def check_row(row, expected_columns_data):
         and row["Sample_or_Control"] == "Control"
     ):
         return {"status": 1}
-
     row_issues = {}
     row_status = 1
 
     for column_key, column_values in expected_columns_data.items():
         if column_key not in row.index:
             continue  # Skip missing columns
+
+        allow_admin_na = (
+            column_values.get("allowAdminNA", False) == "True"
+            and current_user.admin
+        )
 
         # Check if the field is required but has empty values
         column_data = row[column_key]
@@ -477,30 +474,34 @@ def check_row(row, expected_columns_data):
                 or column_data == ""
                 or (isinstance(column_data, float) and math.isnan(column_data))
             ):
-                row_issues[column_key] = {
-                    "status": 0,
-                    "invalid": [
-                        {
-                            "row": row.name,
-                            "value": "",
-                            "message": (
-                                f"Required column {column_key} \
-                                has empty values"
-                            ),
-                        }
-                    ],
-                    "message": (
-                        f"Required column {column_key} has empty values"
-                    ),
-                }
-                row_status = 0
-                # Skip further checks for this column if empty values found
-                continue
+                if not allow_admin_na:
+                    row_issues[column_key] = {
+                        "status": 0,
+                        "invalid": [
+                            {
+                                "row": row.name,
+                                "value": "",
+                                "message": (
+                                    f"Required column {column_key} \
+                                    has empty values"
+                                ),
+                            }
+                        ],
+                        "message": (
+                            f"Required column {column_key} has empty values"
+                        ),
+                    }
+                    row_status = 0
+                    # Skip further checks for this column if empty values found
+                    continue
 
         # Perform specific checks based on the type of validation
         if "options" in column_values:
             options_check_result = check_field_values_lookup(
-                pd.DataFrame([row]), column_values["options"], column_key
+                pd.DataFrame([row]),
+                column_values["options"],
+                column_key,
+                allow_admin_na,
             )
             if options_check_result["status"] == 0:
                 row_status = 0

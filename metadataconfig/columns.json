@@ -20,7 +20,8 @@
   "Elevation": {
     "help_tip": "Required. Elevation in meters above sea level",
     "check_function": "check_elevation",
-    "required": "True"
+    "required": "True",
+    "allowAdminNA": "True"
   },  
   "Vegetation": {
     "help_tip": "List of names of local vegetation, if names unknown describe (trees, grass, forbs, etc). Max 200 characters",
@@ -29,17 +30,20 @@
   "Land_use": {
     "lookup_file": "land_use.json",
     "help_tip": "Required. Land use category of the site.",
-    "required": "True"
+    "required": "True",
+    "allowAdminNA": "True"
   },
   "Agricultural_land": {
     "lookup_file": "agricultural_land.json",
     "help_tip": "Required. Was the land where the sample taken agricultural?",
-    "required": "True"
+    "required": "True",
+    "allowAdminNA": "True"
   },
   "Ecosystem": {
     "lookup_file": "ecosystems.json",
     "help_tip": "Required. Type of ecosystem.",
-    "required": "True"
+    "required": "True",
+    "allowAdminNA": "True"
   },
   "Grid_Size": {
     "lookup_file": "grid_size.json",
@@ -54,18 +58,21 @@
   "Transport_refrigeration": {
     "lookup_file": "transport_refrigeration.json",
     "help_tip": "Required. Transport refrigeration method used",
-    "required": "True"
+    "required": "True",
+    "allowAdminNA": "True"
   },
   "Drying": {
     "lookup_file": "drying.json",
     "help_tip": "Required. If airdried, select time drying. Airdrying includes drying with silica gel. Select ‘No’ if no airdrying carried out",
-    "required": "True"
+    "required": "True",
+    "allowAdminNA": "True"
   },
   "Date_collected": {
     "field_type":"date",
     "help_tip": "Required. Date the sample was collected. Must be YYYY-MM-DD format",
     "check_function": "check_date_collected",
-    "required": "True"
+    "required": "True",
+    "allowAdminNA": "True"
   },
   "DNA_concentration_ng_ul": {
     "help_tip": "Required. Concentration of DNA (ng/ul). If too low or NA, you can put 0. Numeric only.",
