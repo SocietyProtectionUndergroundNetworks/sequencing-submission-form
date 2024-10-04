@@ -91,6 +91,11 @@ dbexport:
 dbbackup:
 	gsutil cp backup/backup.sql gs://${GOOGLE_STORAGE_BUCKET_NAME}/backup/
 
+dbexportbackup:
+	docker-compose run --rm db mysqldump -h${MYSQL_HOST} -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} > backup/backup.sql
+	ls -l backup/backup.sql
+	gsutil cp backup/backup.sql gs://${GOOGLE_STORAGE_BUCKET_NAME}/backup/
+
 sshvm:
 	gcloud compute ssh ${GOOGLE_VM_PROPERTY}
 
