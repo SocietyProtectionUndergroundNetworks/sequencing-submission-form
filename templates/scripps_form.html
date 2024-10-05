@@ -62,7 +62,10 @@
                 <th scope="col" class="bg-gray">Region</th>
                 <th scope="col" class="bg-gray">Index_1</th>
                 <th scope="col" class="bg-gray">Barcode_2</th>
+                <th scope="col" class="bg-gray">Metadata Upload ID</th>
                 <th scope="col" class="bg-gray">Metadata uploaded SampleID</th>
+                <th scope="col" class="bg-gray">Sequencer ID exists</th>
+                <th scope="col" class="bg-gray">Filename Identified</th>
                 <th scope="col" class="bg-gray">Problems</th>
             </tr>
         </thead>
@@ -79,7 +82,22 @@
               <td>{{ input_line["region"] }}</td>
               <td>{{ input_line["index_1"] }}</td>
               <td>{{ input_line["barcode_2"] }}</td>
+              <td>{{ input_line["metadata_upload_id"] }}</td>
               <td>{{ input_line["SampleID"] }}</td>
+              <td>
+                {% if input_line["matching_files"] %}
+                  {% for filename in input_line["matching_files"] %}
+                    {{ filename }}<br>
+                  {% endfor %}
+                {% endif %}  
+              </td>
+              <td 
+                {% if input_line["sequencer_exists"] %}
+                  class="text-danger"
+                {% endif %}
+              >
+                {{ input_line["sequencer_exists"] }}
+              </td>
               <td class="text-danger">{{ input_line["problems"] }}</td>
             </tr>
           {% endfor %}
@@ -87,7 +105,91 @@
         </tbody>
     </table>
 
+    <div id="step_2" class="form-step-item">
+      <h3> Step 2: Point to the folder on the server where the scripps files are located </h3>
+      {% if upload %}
+      <form
+          method="GET"
+          action="/scripps_form"
+          id="step_2_form_process_server_file"
+          enctype="multipart/form-data"
+      >
+          <input type="text" id="step_2_direct_directory" name="directory_name" value="{{ directory_name }}" placeholder="Enter directory name" />
+          <input type="hidden" name="upload_id" value="{{ upload.id }}" />
+          <button type="submit" class="btn btn-secondary" id="step_8_form_process_server_file_button" data-process_id="{{ process_id }}">
+              Process local directory
+          </button>
+      </form>
+      {% endif %}
+    </div>
+    
+    {% if upload %}
+      <div class="pt-2"></div>
+      <table id="sequencerIdsTable" class="table-bordered">
+        <thead>
+            <tr>
+                <th scope="col" class="bg-gray">Project</th>
+                <th scope="col" class="bg-gray">Metadata upload ID</th>
+                <th scope="col" class="bg-gray">Total records</th>
+                <th scope="col" class="bg-gray">Matched</th>
+                <th scope="col" class="bg-gray">Unmatched</th>
+                <th scope="col" class="bg-gray">Sequencer Exists</th>
+                <th scope="col" class="bg-gray">Task</th>
+            </tr>
+        </thead>      
+        <tbody>
+          {% for project in report %}
+            <tr>
+              <td>{{ project['project'] }}</td>
+              <td>
+                {% if project['metadata_upload_id'] %}
+                  <a href="metadata_form?process_id={{ project['metadata_upload_id'] }}" target="_blank" class="link">
+                    {{ project['metadata_upload_id'] }}
+                  </a>
+                {% else %}
+                  {{ project['metadata_upload_id'] }}
+                {% endif %}
+              </td>
+              <td>{{ project['total'] }}</td>
+              <td>{{ project['matched'] }}</td>
+              <td>{{ project['unmatched'] }}</td>
+              <td>{{ project['sequencer_exists'] }}</td>  
+              <td>
+                {% if (project['project'] in ['sequencing_blanks', 'sequencing_blanks_dev']) %}
+                  Sequencing blanks lines.
+                  <form
+                    method="POST"
+                    action="/move_sequencing_blank_records"
+                    id="move_sequencing_blank_records"
+                  >
+                    <fieldset>
+                      <input type="submit" class="btn btn-primary" value="Move">
+                      <input type="hidden" name="directory_name" value="{{ directory_name }}" />
+                      <input type="hidden" name="upload_id" value="{{ upload.id }}">
+                    </fieldset>
+                  </form>   
+                {% elif (project['unmatched']== 0 and not project['sequencer_exists']) %}
+                  Move sequencer ids to project
+                  <form
+                    method="POST"
+                    action="/move_sequencer_ids_to_project"
+                    class="move_sequencer_ids_to_project"
+                  >
+                    <fieldset>
+                      <input type="submit" class="btn btn-primary" value="Move">
+                      <input type="hidden" name="upload_id" value="{{ upload.id }}">
+                      <input type="hidden" name="directory_name" value="{{ directory_name }}" />
+                      <input type="hidden" name="metadata_upload_id" value="{{ project['metadata_upload_id'] }}">
+                    </fieldset>
+                  </form>                    
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
 
+        </tbody>      
+      </table>
+    {% endif %}  
   </div>
 
   <script type="application/javascript">
@@ -167,6 +269,35 @@
 
                   // Reset the file input
                   fileInput.value = "";
+              }
+          });
+      });
+
+
+
+      $('.move_sequencer_ids_to_project').submit(function(event) {
+          event.preventDefault(); // Prevent default form submission
+          var formData = new FormData();
+          var form = $(this); // Target the current form instance
+          var upload_id = form.find('input[name="upload_id"]').val();
+          var metadata_upload_id = form.find('input[name="metadata_upload_id"]').val();
+          formData.append('upload_id', upload_id);
+          formData.append('metadata_upload_id', metadata_upload_id);
+
+          $.ajax({
+              url: '/move_sequencer_ids_to_project',
+              type: 'POST',
+              data: formData,
+              contentType: false,
+              processData: false,
+              success: function(response) {
+                  if (response.result == "1") {
+                    window.location.reload();
+                  }
+              },
+              error: function(xhr, status, error) {
+                  console.error('Error:', error);
+                  form.find('.step_12_msg').html("<p>An error occurred while trying to generate the Lotus2 report.</p>").removeClass('text-success').addClass('text-danger');
               }
           });
       });
