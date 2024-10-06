@@ -888,8 +888,9 @@
           </fieldset>
         </form>
       </div>
+    {% endif %}
 
-
+    {% if process_data and (not process_data.using_scripps or is_admin) %}
       <div id="step_8" class="form-step-item">
         <h3> Step 8: Upload the fastq files</h3>
         <div class="text-warning"> Please note: We want the RAW data in fastq.gz format</div>
