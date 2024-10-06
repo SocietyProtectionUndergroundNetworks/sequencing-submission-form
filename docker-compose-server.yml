@@ -1,4 +1,16 @@
 services:
+  socat:
+    image: alpine/socat
+    container_name: spun-socat
+    networks:
+      - flask
+    command: 'tcp-listen:2375,fork,reuseaddr unix-connect:/var/run/docker.sock'
+    user: root
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+
   flask: &flask
     build:
       context: .
@@ -12,15 +24,15 @@ services:
       - db  
     environment:
       - PORT=56733
+      - DOCKER_HOST=tcp://socat:2375  # Set Docker host to socat
     expose:
       - 56733      
     volumes:
       - .:/app
       - ${GOOGLE_APPLICATION_CREDENTIALS_PATH}:/google_auth_file/key_file.json
-      - /var/run/docker.sock:/var/run/docker.sock      
+      - /var/run/docker.sock:/var/run/docker.sock
     env_file:
       - .env
-    user: "1000:1000"
     networks:
       - flask      
 
@@ -54,13 +66,14 @@ services:
     volumes:
       - .:/app
       - ${GOOGLE_APPLICATION_CREDENTIALS_PATH}:/google_auth_file/key_file.json
+      - /var/run/docker.sock:/var/run/docker.sock
     env_file:
       - .env
     environment:
       - PORT=56734
+      - DOCKER_HOST=tcp://socat:2375  # Set Docker host to socat
     networks:
       - flask
-    user: "1000:1000"
     entrypoint: celery -A app.celery worker --loglevel=info  # Celery worker command
     
 
@@ -81,9 +94,7 @@ services:
       - flask
 
   db:
-    build:
-      context: .
-      dockerfile: Dockerfile-mysql
+    image: mysql:5.7
     volumes:
       - ./mysql:/var/lib/mysql    
     environment:
@@ -95,7 +106,7 @@ services:
     restart: unless-stopped
 
   redis:
-    image: "redis:latest"
+    image: "redis:6.2"
     volumes:
       - ./config/docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
     ports:
