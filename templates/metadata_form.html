@@ -300,11 +300,12 @@
       <div id="step_5_msg"></div>
     </div>
 
-    <div id="step_6-container"
-      {% if process_data and process_data.using_scripps %}
-        style="display:none"
-      {% endif %} >
-      <div id="step_6" class="form-step-item">
+    <div id="step_6-container">
+      <div id="step_6" class="form-step-item"
+        {% if process_data and process_data.using_scripps %}
+          style="display:none"
+        {% endif %}
+      >
         <h3> Step 6: Provide the sequencer ID</h3>
 
         <form id="step_6_form">
@@ -475,7 +476,7 @@
         <div id="step_6_filename"></div>
         <div id="step_6_msg"></div>
       </div>
-      {% if process_data and not process_data.using_scripps %}
+      {% if (process_data and not process_data.using_scripps) or samples_data_complete %}
         <div id="next_to_step_6" class="next-to-step">
           <h4> Expected number of files per sequence is {{ nr_files_per_sequence }} </h4>
           <h4> Number of sequencing regions is {{ process_data["Sequencing_regions_number"] }} </h4>
@@ -887,8 +888,9 @@
           </fieldset>
         </form>
       </div>
+    {% endif %}
 
-
+    {% if process_data and (not process_data.using_scripps or is_admin) %}
       <div id="step_8" class="form-step-item">
         <h3> Step 8: Upload the fastq files</h3>
         <div class="text-warning"> Please note: We want the RAW data in fastq.gz format</div>
@@ -1074,17 +1076,17 @@
                       </fieldset>
                     </form>
                   {% else %}
-                  <form
-                    method="POST"
-                    action="/delete_lotus2_report"
-                    class="step_12_form_delete_report"
-                  >
-                    <fieldset>
-                      <input type="submit" class="btn btn-primary" value="Delete">
-                      <input type="hidden" name="process_id" value="{{ process_id }}">
-                      <input type="hidden" name="region" value="{{ region_data.region }}">
-                    </fieldset>
-                  </form>
+                    <form
+                      method="POST"
+                      action="/delete_lotus2_report"
+                      class="step_12_form_delete_report"
+                    >
+                      <fieldset>
+                        <input type="submit" class="btn btn-primary" value="Delete">
+                        <input type="hidden" name="process_id" value="{{ process_id }}">
+                        <input type="hidden" name="region" value="{{ region_data.region }}">
+                      </fieldset>
+                    </form>
                   {% endif %}
 
                 </td>
