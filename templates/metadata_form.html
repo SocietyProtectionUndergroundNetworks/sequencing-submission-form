@@ -2019,7 +2019,7 @@
   ////// ############################################# /////////
   ////// ############ STEP 8 STARTS HERE ############# /////////
   ////// ############################################# /////////
-  {% if process_data and not process_data.using_scripps %}
+  {% if process_data and (not process_data.using_scripps or is_admin) %}
     function enableForm_step_8() {
         $('#step_8_form fieldset').removeAttr('disabled');
     }
@@ -2272,7 +2272,8 @@
         // Get the form data
         var directoryName = $('#step_8_direct_directory').val();
         var processId = $('input[name="process_id"]').val();
-
+        console.log('We will try to process the directory:')
+        console.log(directoryName)
         // Send the form data via AJAX
         // HERE HERE HERE
         $.ajax({
