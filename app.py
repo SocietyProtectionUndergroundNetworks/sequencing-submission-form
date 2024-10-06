@@ -20,6 +20,8 @@ app.config["SESSION_SQLALCHEMY"] = db
 Session(app)
 
 # Celery configuration
+# CELERY_TASK_TIME_LIMIT is set to 24 hours
+# (adjust based on your longest task)
 app.config.update(
     CELERY_BROKER_URL=os.environ.get(
         "CELERY_BROKER_URL", "redis://redis:6379/0"
@@ -31,7 +33,7 @@ app.config.update(
     CELERY_ACCEPT_CONTENT=["json"],
     CELERY_RESULT_SERIALIZER="json",
     CELERY_TASK_TRACK_STARTED=True,
-    CELERY_TASK_TIME_LIMIT=86400,  # 24 hours (adjust based on your longest task)
+    CELERY_TASK_TIME_LIMIT=86400,
 )
 
 # Secret key generation
