@@ -64,39 +64,58 @@ def scripps_form():
         if directory_name:
             # Construct the full directory path and check for files
             full_directory_path = Path(directory_name)
-            fastq_files = list(full_directory_path.glob("*.fastq.gz"))  # Look for .fastq.gz files
-            
-            # Now associate files with the input_lines based on the Sequencer_ID
+            fastq_files = list(
+                full_directory_path.glob("*.fastq.gz")
+            )  # Look for .fastq.gz files
+
+            # Now associate files with the input_lines
+            # based on the Sequencer_ID
             for line in input_lines:
-                sequencer_id = line.get('sequencer_id', '')
+                sequencer_id = line.get("sequencer_id", "")
                 if sequencer_id:
                     # Check if any of the files start with the sequencer ID
                     matching_files = [
-                        f.name for f in fastq_files if f.name.startswith(sequencer_id)
+                        f.name
+                        for f in fastq_files
+                        if f.name.startswith(sequencer_id)
                     ]
 
-                    line['matching_files'] = matching_files  # Add matched files to the line
+                    line["matching_files"] = (
+                        matching_files  # Add matched files to the line
+                    )
 
         # Existing logic for grouping the records and generating the report
         grouped_data = defaultdict(list)
         for line in input_lines:
-            sequencer_exists = line.get('sequencer_exists', False)
-            group_key = (line['project'], line['metadata_upload_id'], sequencer_exists)
+            sequencer_exists = line.get("sequencer_exists", False)
+            group_key = (
+                line["project"],
+                line["metadata_upload_id"],
+                sequencer_exists,
+            )
             grouped_data[group_key].append(line)
 
         report = []
-        for (project, metadata_upload_id, sequencer_exists), records in grouped_data.items():
+        for (
+            project,
+            metadata_upload_id,
+            sequencer_exists,
+        ), records in grouped_data.items():
             total_records = len(records)
-            matched_records = sum(1 for record in records if record['SampleID'] is not None)
+            matched_records = sum(
+                1 for record in records if record["SampleID"] is not None
+            )
             unmatched_records = total_records - matched_records
-            report.append({
-                'project': project,
-                'metadata_upload_id': metadata_upload_id,
-                'sequencer_exists': sequencer_exists,
-                'total': total_records,
-                'matched': matched_records,
-                'unmatched': unmatched_records
-            })
+            report.append(
+                {
+                    "project": project,
+                    "metadata_upload_id": metadata_upload_id,
+                    "sequencer_exists": sequencer_exists,
+                    "total": total_records,
+                    "matched": matched_records,
+                    "unmatched": unmatched_records,
+                }
+            )
 
     return render_template(
         "scripps_form.html",
@@ -104,8 +123,9 @@ def scripps_form():
         upload_id=upload_id,
         input_lines=input_lines,
         report=report,
-        directory_name=directory_name
+        directory_name=directory_name,
     )
+
 
 @scripps_bp.route(
     "/all_scripps_uploads", methods=["GET"], endpoint="all_scripps_uploads"
@@ -116,9 +136,9 @@ def scripps_form():
 def all_scripps_uploads():
     scripps_uploads = SequencingCompanyUpload.get_all()
     return render_template(
-        "scripps_uploads.html",
-        scripps_uploads=scripps_uploads
+        "scripps_uploads.html", scripps_uploads=scripps_uploads
     )
+
 
 @scripps_bp.route(
     "/scripps_upload_sequencing_file",
@@ -221,29 +241,14 @@ def scripps_upload_sequencing_file():
 def move_sequencer_ids_to_project():
     upload_id = request.form.get("upload_id")
     metadata_upload_id = request.form.get("metadata_upload_id")
-    
-    SequencingCompanyInput.copy_sequencer_ids_to_metadata_upload(upload_id, metadata_upload_id)
-    
-    logger.info('upload_id: ' + str(upload_id))
-    logger.info('metadata_upload_id: ' + str(metadata_upload_id))
-    return (
-        {'result':1},
-        200,
+
+    SequencingCompanyInput.copy_sequencer_ids_to_metadata_upload(
+        upload_id, metadata_upload_id
     )
 
-@scripps_bp.route(
-    "/scripps_process_server_file",
-    methods=["POST"],
-    endpoint="scripps_process_server_file",
-)
-@login_required
-@approved_required
-@admin_required
-def scripps_process_server_file():
-    upload_id = request.form.get("upload_id")
-    directory_name = request.form.get("directory_name")
-
-    if upload_id:
-        process_data = SequencingCompanyUpload.get(process_id)
-        logger.info(process_id)
-        logger.info(directory_name)
+    logger.info("upload_id: " + str(upload_id))
+    logger.info("metadata_upload_id: " + str(metadata_upload_id))
+    return (
+        {"result": 1},
+        200,
+    )

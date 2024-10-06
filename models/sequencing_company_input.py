@@ -109,21 +109,36 @@ class SequencingCompanyInput:
             project_id = record_dict.get("project")
 
             if sample_id and project_id:
-                existing_sample_id, metadata_upload_id = cls.check_sample_exists(sample_id, project_id)
-                record_dict["SampleID"] = existing_sample_id if existing_sample_id else None
-                record_dict["metadata_upload_id"] = metadata_upload_id if metadata_upload_id else None
+                existing_sample_id, metadata_upload_id = (
+                    cls.check_sample_exists(sample_id, project_id)
+                )
+                record_dict["SampleID"] = (
+                    existing_sample_id if existing_sample_id else None
+                )
+                record_dict["metadata_upload_id"] = (
+                    metadata_upload_id if metadata_upload_id else None
+                )
 
-            # If the project is not "sequencing_blanks_dev" or "sequencing_blanks" and no SampleID found
-            if project_id not in ["sequencing_blanks_dev", "sequencing_blanks"]:
+            # If the project is not "sequencing_blanks_dev" or
+            # "sequencing_blanks" and no SampleID found
+            if project_id not in [
+                "sequencing_blanks_dev",
+                "sequencing_blanks",
+            ]:
                 if not record_dict.get("SampleID"):
                     if "problems" not in record_dict:
                         record_dict["problems"] = []
-                    record_dict["problems"] = "The sample ID was not found in that project"
+                    record_dict["problems"] = (
+                        "The sample ID was not found in that project"
+                    )
 
-            # Check if SequencingSequencerIDsTable has a record for this sample_id and region
-            sequencer_info = cls.check_sequencer_exists(record_dict.get('SampleID'), record_dict.get('region'))
-            record_dict['sequencer_exists'] = bool(sequencer_info)
-            record_dict['sequencer_info'] = sequencer_info
+            # Check if SequencingSequencerIDsTable has a record
+            # for this sample_id and region
+            sequencer_info = cls.check_sequencer_exists(
+                record_dict.get("SampleID"), record_dict.get("region")
+            )
+            record_dict["sequencer_exists"] = bool(sequencer_info)
+            record_dict["sequencer_info"] = sequencer_info
 
             all_records.append(record_dict)
 
@@ -194,7 +209,9 @@ class SequencingCompanyInput:
 
         session.close()  # Always close the session after the query
 
-        return [sample.id, sample.sequencingUploadId] if sample else [None, None]
+        return (
+            [sample.id, sample.sequencingUploadId] if sample else [None, None]
+        )
 
     @classmethod
     def check_sequencer_exists(cls, sample_id, region):
@@ -204,7 +221,8 @@ class SequencingCompanyInput:
         db_engine = connect_db()
         session = get_session(db_engine)
 
-        # Query to check if the sequencer entry exists for the sample_id and region
+        # Query to check if the sequencer entry
+        # exists for the sample_id and region
         sequencer_entry = (
             session.query(SequencingSequencerIDsTable)
             .filter_by(sequencingSampleId=sample_id, Region=region)
@@ -213,19 +231,25 @@ class SequencingCompanyInput:
 
         session.close()
 
-        return {
-            'SequencerID': sequencer_entry.SequencerID,
-            'Index_1': sequencer_entry.Index_1,
-            'Index_2': sequencer_entry.Index_2,
-        } if sequencer_entry else None
-
+        return (
+            {
+                "SequencerID": sequencer_entry.SequencerID,
+                "Index_1": sequencer_entry.Index_1,
+                "Index_2": sequencer_entry.Index_2,
+            }
+            if sequencer_entry
+            else None
+        )
 
     @classmethod
-    def copy_sequencer_ids_to_metadata_upload(cls, upload_id, metadata_upload_id):
+    def copy_sequencer_ids_to_metadata_upload(
+        cls, upload_id, metadata_upload_id
+    ):
         db_engine = connect_db()
         session = get_session(db_engine)
 
-        # Retrieve all records from SequencingCompanyInputTable with the given upload_id
+        # Retrieve all records from
+        # SequencingCompanyInputTable with the given upload_id
         input_records = (
             session.query(SequencingCompanyInputTable)
             .filter_by(sequencingCompanyUploadId=upload_id)
@@ -234,8 +258,10 @@ class SequencingCompanyInput:
 
         for record in input_records:
             # Check if the corresponding sample exists
-            sample_id, sequencingUploadId = cls.check_sample_exists(record.sample_id, record.project)
-            
+            sample_id, sequencingUploadId = cls.check_sample_exists(
+                record.sample_id, record.project
+            )
+
             if not sample_id:
                 # If the sample does not exist, continue to the next record
                 continue
@@ -250,17 +276,18 @@ class SequencingCompanyInput:
             if existing_entry:
                 # If the record already exists, skip this record
                 continue
-            
+
             if int(metadata_upload_id) == int(sequencingUploadId):
-                # If the record doesn't exist, create a new entry in SequencingSequencerIDsTable
+                # If the record doesn't exist, create a new entry
+                # in SequencingSequencerIDsTable
                 new_sequencer_entry = SequencingSequencerIDsTable(
                     sequencingSampleId=sample_id,
                     SequencerID=record.sequencer_id,
                     Region=record.region,
                     Index_1=record.index_1,
-                    Index_2=record.barcode_2
+                    Index_2=record.barcode_2,
                 )
-                
+
                 session.add(new_sequencer_entry)
 
         # Commit the new entries to the database
