@@ -223,9 +223,16 @@ def get_sequences_based_on_primers(forward_primer, reverse_primer):
 
 
 def sanitize_string(s):
-    """Escape quotes in a string."""
+    """Escape quotes and other special characters in a string."""
     if isinstance(s, str):
-        return s.replace('"', '\\"')  # Escape double quotes
+        # Escape double quotes
+        s = s.replace('"', '\\"')
+        # Escape newline characters
+        s = s.replace("\n", "\\n")
+        # Optionally escape backslashes if needed
+        s = s.replace("\\", "\\\\")  # Escape backslashes
+        # Escape any other characters as necessary
+        # Add more replacements as needed for your use case
     return s  # Return as is if not a string
 
 

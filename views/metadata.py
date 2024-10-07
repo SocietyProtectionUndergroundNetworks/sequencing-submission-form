@@ -111,10 +111,10 @@ def process_uploaded_file(
         )
 
         if existing_file_id:
-            logger.info(
-                f"File {filename} already exists in the database with ID "
-                f"{existing_file_id}. Skipping."
-            )
+            # logger.info(
+            #    f"File {filename} already exists in the database with ID "
+            #    f"{existing_file_id}. Skipping."
+            # )
             return None  # File already exists, return None to skip processing
 
         # Create a new entry in the database for the file
@@ -1010,7 +1010,7 @@ def sequencing_process_server_file():
         # Initialize the report list and a counter for processed files
         report = []
         processed_files_count = 0
-        max_files_to_process = 20
+        max_files_to_process = 50
 
         # Loop through files in the directory
         for file_path in full_directory_path.iterdir():
@@ -1023,7 +1023,7 @@ def sequencing_process_server_file():
 
             # Check if the file ends with '.fastq.gz'
             if file_path.is_file() and file_path.name.endswith(".fastq.gz"):
-                logger.info(f"Found fastq.gz file: {file_path.name}")
+                # logger.info(f"Found fastq.gz file: {file_path.name}")
 
                 actual_md5 = calculate_md5(file_path)
 
