@@ -22,18 +22,15 @@ Session(app)
 # Celery configuration
 # CELERY_TASK_TIME_LIMIT is set to 24 hours
 # (adjust based on your longest task)
+# Configuration in Flask application
 app.config.update(
-    CELERY_BROKER_URL=os.environ.get(
-        "CELERY_BROKER_URL", "redis://redis:6379/0"
-    ),
-    CELERY_RESULT_BACKEND=os.environ.get(
-        "CELERY_RESULT_BACKEND", "redis://redis:6379/0"
-    ),
-    CELERY_TASK_SERIALIZER="json",
-    CELERY_ACCEPT_CONTENT=["json"],
-    CELERY_RESULT_SERIALIZER="json",
-    CELERY_TASK_TRACK_STARTED=True,
-    CELERY_TASK_TIME_LIMIT=86400,
+    broker_url="redis://redis:6379/0",
+    result_backend="redis://redis:6379/0",
+    accept_content=["json"],
+    result_serializer="json",
+    task_serializer="json",
+    task_acks_late=True,
+    worker_prefetch_multiplier=1,
 )
 
 # Secret key generation
