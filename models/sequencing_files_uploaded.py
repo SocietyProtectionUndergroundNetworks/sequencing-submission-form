@@ -30,6 +30,7 @@ class SequencingFileUploaded:
         session.close()
 
         if not db_data:
+            session.close()
             return None
 
         dict_data = db_data.__dict__

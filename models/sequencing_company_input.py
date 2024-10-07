@@ -30,6 +30,7 @@ class SequencingCompanyInput:
         session.close()
 
         if not upload_db:
+            session.close()
             return None
 
         # Assuming upload_db is an instance of some SQLAlchemy model

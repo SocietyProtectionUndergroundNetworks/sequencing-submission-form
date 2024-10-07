@@ -62,6 +62,7 @@ class SequencingSequencerId:
 
         if existing_record:
             # If record exists, return its id
+            session.close()
             return existing_record.id, "existing"
         else:
             # If record does not exist, create a new one
@@ -83,6 +84,7 @@ class SequencingSequencerId:
             session.add(new_record)
             session.commit()
             # Return the id of the newly created record
+            session.close()
             return new_record.id, "new"
 
     @classmethod
@@ -273,6 +275,7 @@ class SequencingSequencerId:
                 if filename_no_ext.startswith(seq_id):
                     matching_ids.append(id)
 
+        session.close()
         return matching_ids
 
     @classmethod
@@ -285,6 +288,7 @@ class SequencingSequencerId:
             filename_no_ext = filename[:-9]  # Remove the .fastq.gz suffix
         else:
             # Return None if the filename doesn't have the correct suffix
+            session.close()
             return None
 
         # Query to get all relevant records
@@ -308,7 +312,9 @@ class SequencingSequencerId:
                 new_filename = filename.replace(
                     sequencer_id, f"{sample_id}_{region}"
                 )
+                session.close()
                 return new_filename
 
         # Return None if no matching record is found
+        session.close()
         return None
