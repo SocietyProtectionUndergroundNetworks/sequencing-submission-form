@@ -9,7 +9,7 @@ import csv
 from collections import defaultdict
 from helpers.dbm import connect_db, get_session
 from helpers.fastqc import init_create_fastqc_report, check_fastqc_report
-from helpers.csv import get_sequences_based_on_primers
+from helpers.csv import get_sequences_based_on_primers, sanitize_string
 from helpers.bucket import check_file_exists_in_bucket
 from models.db_model import (
     SequencingUploadsTable,
@@ -845,11 +845,11 @@ class SequencingUpload:
             site_name = sample_data["Site_name"]
             latitude = sample_data["Latitude"]
             longitude = sample_data["Longitude"]
-            vegetation = sample_data["Vegetation"]
-            land_use = sample_data["Land_use"]
-            ecosystem = sample_data["Ecosystem"]
+            vegetation = sanitize_string(sample_data["Vegetation"])
+            land_use = sanitize_string(sample_data["Land_use"])
+            ecosystem = sanitize_string(sample_data["Ecosystem"])
             sample_or_control = sample_data["Sample_or_Control"]
-            sequencing_run = sample_data["SequencingRun"]
+            sequencing_run = sanitize_string(sample_data["SequencingRun"])
 
             # Initialize sample_info dictionary if not already
             if sample_id not in sample_info:
