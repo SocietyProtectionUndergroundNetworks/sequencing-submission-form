@@ -556,12 +556,14 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                          {% if is_admin %}
-                                            <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
-                                                   data-file-id="{{ files[0].id }}"
-                                                   {% if files[0].exclude_from_mapping %}checked{% endif %}>
-                                          {% else %}
-                                            {% if files[0].exclude_from_mapping %} excluded {% endif %}>
+                                          {% if files|length > 0 %}
+                                            {% if is_admin %}
+                                              <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
+                                                     data-file-id="{{ files[0].id }}"
+                                                     {% if files[0].exclude_from_mapping %}checked{% endif %}>
+                                            {% else %}
+                                              {% if files[0].exclude_from_mapping %} excluded {% endif %}>
+                                            {% endif %}
                                           {% endif %}
                                         </td>
                                     </tr>
@@ -597,12 +599,14 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                          {% if is_admin %}
-                                            <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
-                                                   data-file-id="{{ files[1].id }}"
-                                                   {% if files[1].exclude_from_mapping %}checked{% endif %}>
-                                          {% else %}
-                                            {% if files[1].exclude_from_mapping %} excluded {% endif %}>
+                                          {% if files|length > 0 %}
+                                            {% if is_admin %}
+                                              <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
+                                                     data-file-id="{{ files[1].id }}"
+                                                     {% if files[1].exclude_from_mapping %}checked{% endif %}>
+                                            {% else %}
+                                              {% if files[1].exclude_from_mapping %} excluded {% endif %}>
+                                            {% endif %}
                                           {% endif %}
                                         </td>
                                     </tr>
@@ -653,12 +657,14 @@
                                           {% endif %}
                                         </td>
                                         <td>
-                                          {% if is_admin %}
-                                            <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
-                                                   data-file-id="{{ files[0].id }}"
-                                                   {% if files[0].exclude_from_mapping %}checked{% endif %}>
-                                          {% else %}
-                                            {% if files[0].exclude_from_mapping %} excluded {% endif %}>
+                                          {% if files|length > 0 %}
+                                            {% if is_admin %}
+                                              <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
+                                                     data-file-id="{{ files[0].id }}"
+                                                     {% if files[0].exclude_from_mapping %}checked{% endif %}>
+                                            {% else %}
+                                              {% if files[0].exclude_from_mapping %} excluded {% endif %}>
+                                            {% endif %}
                                           {% endif %}
                                         </td>
                                     </tr>
@@ -694,12 +700,14 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                          {% if is_admin %}
-                                            <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
-                                                   data-file-id="{{ files[1].id }}"
-                                                   {% if files[1].exclude_from_mapping %}checked{% endif %}>
-                                          {% else %}
-                                            {% if files[1].exclude_from_mapping %} excluded {% endif %}>
+                                          {% if files|length > 0 %}
+                                            {% if is_admin %}
+                                              <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
+                                                     data-file-id="{{ files[1].id }}"
+                                                     {% if files[1].exclude_from_mapping %}checked{% endif %}>
+                                            {% else %}
+                                              {% if files[1].exclude_from_mapping %} excluded {% endif %}>
+                                            {% endif %}
                                           {% endif %}
                                         </td>
                                     </tr>
@@ -848,12 +856,14 @@
                               {% endif %}
                             </td>
                             <td>
-                              {% if is_admin %}
-                                <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
-                                       data-file-id="{{ files[0].id }}"
-                                       {% if files[0].exclude_from_mapping %}checked{% endif %}>
-                              {% else %}
-                                {% if files[0].exclude_from_mapping %} excluded {% endif %}>
+                              {% if files|length > 0 %}
+                                {% if is_admin %}
+                                  <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
+                                         data-file-id="{{ files[0].id }}"
+                                         {% if files[0].exclude_from_mapping %}checked{% endif %}>
+                                {% else %}
+                                  {% if files[0].exclude_from_mapping %} excluded {% endif %}>
+                                {% endif %}
                               {% endif %}
                             </td>
                           </tr>
