@@ -109,6 +109,7 @@ services:
     image: "redis:6.2"
     volumes:
       - ./config/docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
+      - redis_data:/data  # Mount a volume for Redis data
     ports:
       - "6379:6379"
     networks:
