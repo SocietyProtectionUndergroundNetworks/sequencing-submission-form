@@ -205,6 +205,7 @@ class SequencingFilesUploadedTable(Base):
     original_filename = Column(String(255), nullable=True)
     new_name = Column(String(255), nullable=True)
     md5 = Column(String(50), nullable=True)
+    exclude_from_mapping = Column(Boolean, default=False)
     bucket_upload_progress = Column(Integer, nullable=True)
 
 

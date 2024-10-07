@@ -804,8 +804,6 @@ class SequencingUpload:
         def sanitize_mapping_string(value):
             if value is None:
                 return "NA"  # Or any default value
-            # Remove unwanted characters, replace
-            # spaces with underscores, and strip
             sanitized = re.sub(
                 r"\s+", "_", value.strip()
             )  # Replace spaces with underscores
@@ -820,12 +818,12 @@ class SequencingUpload:
         process_data = self.get(process_id)
         uploads_folder = process_data["uploads_folder"]
         bucket = process_data["project_id"]
-
         country = process_data["Country"]
+
         # Dictionary to hold data organized by region
         region_data = defaultdict(list)
 
-        # lets get the primer sequences for regions
+        # Get the primer sequences for regions
         region_1_sequences = get_sequences_based_on_primers(
             process_data["region_1_forward_primer"],
             process_data["region_1_reverse_primer"],
@@ -836,21 +834,17 @@ class SequencingUpload:
         )
 
         region_dict = {}
-        # Add region 1 data if available
         if region_1_sequences:
             region_dict[region_1_sequences["Region"]] = {
                 "Forward Primer": region_1_sequences["Forward Primer"],
                 "Reverse Primer": region_1_sequences["Reverse Primer"],
             }
-
-        # Add region 2 data if available
         if region_2_sequences:
             region_dict[region_2_sequences["Region"]] = {
                 "Forward Primer": region_2_sequences["Forward Primer"],
                 "Reverse Primer": region_2_sequences["Reverse Primer"],
             }
 
-        # Dictionary to accumulate files and other information for each sample
         sample_info = {}
 
         # Process each sample data
@@ -884,16 +878,25 @@ class SequencingUpload:
                 for sequencer in sample_data["sequencer_ids"]:
                     region = sequencer["Region"]
                     if "uploaded_files" in sequencer:
+                        paired_files = []
                         for file_data in sequencer["uploaded_files"]:
                             fastq_file = file_data["new_name"]
-                            # Accumulate files for this sample and region
-                            sample_info[sample_id]["files"][region].append(
-                                fastq_file
+                            exclude_from_mapping = file_data.get(
+                                "exclude_from_mapping", False
+                            )
+
+                            # Only accumulate files that are not excluded
+                            if not exclude_from_mapping:
+                                paired_files.append(fastq_file)
+
+                        # Ensure files are in pairs (forward and reverse)
+                        if len(paired_files) == 2:
+                            sample_info[sample_id]["files"][region].extend(
+                                paired_files
                             )
 
         # Create directory for output files if it doesn't exist
-        output_dir = "output_files"
-        output_dir = f"seq_processed/{uploads_folder}/" f"mapping_files/"
+        output_dir = f"seq_processed/{uploads_folder}/mapping_files/"
         os.makedirs(output_dir, exist_ok=True)
 
         # Write files for each region
@@ -912,28 +915,32 @@ class SequencingUpload:
             for region, files in info["files"].items():
                 # Sort filenames alphabetically and join with commas
                 sorted_files = sorted(files)
-                fastq_files_combined = ",".join(sorted_files)
 
-                forward_primer = region_dict[region]["Forward Primer"]
-                reverse_primer = region_dict[region]["Reverse Primer"]
-                # Add row to region data
-                region_data[region].append(
-                    [
-                        sample_id,
-                        fastq_files_combined,
-                        forward_primer,
-                        reverse_primer,
-                        site_name,
-                        latitude,
-                        longitude,
-                        sanitize_mapping_string(country),
-                        sanitize_mapping_string(vegetation),
-                        sanitize_mapping_string(land_use),
-                        sanitize_mapping_string(ecosystem),
-                        sample_or_control,
-                        sequencing_run,
-                    ]
-                )
+                # Ensure we have exactly two files (paired)
+                if len(sorted_files) == 2:
+                    fastq_files_combined = ",".join(sorted_files)
+
+                    forward_primer = region_dict[region]["Forward Primer"]
+                    reverse_primer = region_dict[region]["Reverse Primer"]
+
+                    # Add row to region data
+                    region_data[region].append(
+                        [
+                            sample_id,
+                            fastq_files_combined,
+                            forward_primer,
+                            reverse_primer,
+                            site_name,
+                            latitude,
+                            longitude,
+                            sanitize_mapping_string(country),
+                            sanitize_mapping_string(vegetation),
+                            sanitize_mapping_string(land_use),
+                            sanitize_mapping_string(ecosystem),
+                            sample_or_control,
+                            sequencing_run,
+                        ]
+                    )
 
         # Write each region's data to a TSV file
         for region, rows in region_data.items():

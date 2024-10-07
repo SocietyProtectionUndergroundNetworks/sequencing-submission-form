@@ -1065,6 +1065,7 @@ def sequencing_process_server_file():
 )
 @login_required
 @approved_required
+@admin_required
 def generate_lotus2_report():
     process_id = request.form.get("process_id")
 
@@ -1090,6 +1091,7 @@ def generate_lotus2_report():
 )
 @login_required
 @approved_required
+@admin_required
 def delete_lotus2_report():
     process_id = request.form.get("process_id")
     region = request.form.get("region")
@@ -1193,6 +1195,7 @@ def show_lotus2_outcome():
 )
 @login_required
 @approved_required
+@admin_required
 def upload_lotus2_to_bucket():
     process_id = request.args.get("process_id")
     region = request.args.get("region")
@@ -1215,3 +1218,22 @@ def upload_lotus2_to_bucket():
     return redirect(
         url_for("metadata.metadata_form", process_id=process_id) + "#step_9"
     )
+
+
+@metadata_bp.route(
+    "/exclude_from_mapping",
+    methods=["POST"],
+    endpoint="exclude_from_mapping",
+)
+@login_required
+@approved_required
+@admin_required
+def exclude_from_mapping():
+    data = request.get_json()
+    file_id = data.get("file_id")
+    exclude = data.get("exclude")
+
+    SequencingFileUploaded.update_field(
+        file_id, "exclude_from_mapping", exclude
+    )
+    return jsonify({"success": True, "file_id": file_id, "exclude": exclude})

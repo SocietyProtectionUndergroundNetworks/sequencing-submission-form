@@ -493,6 +493,7 @@
                       <th scope="col" class="bg-gray">New Names</th>
                       <th scope="col" class="bg-gray">Report</th>
                       <th scope="col" class="bg-gray">Storage</th>
+                      <th scope="col" class="bg-gray">Exclude from mapping</th>
                   </tr>
               </thead>
 
@@ -554,6 +555,15 @@
                                                 {% endif %}
                                             {% endif %}
                                         </td>
+                                        <td>
+                                          {% if is_admin %}
+                                            <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
+                                                   data-file-id="{{ files[0].id }}"
+                                                   {% if files[0].exclude_from_mapping %}checked{% endif %}>
+                                          {% else %}
+                                            {% if files[0].exclude_from_mapping %} excluded {% endif %}>
+                                          {% endif %}
+                                        </td>
                                     </tr>
 
                                     <!-- Handle second file if it exists -->
@@ -585,6 +595,15 @@
                                                     {{ files[1].bucket_upload_progress }}%
                                                 {% endif %}
                                             {% endif %}
+                                        </td>
+                                        <td>
+                                          {% if is_admin %}
+                                            <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
+                                                   data-file-id="{{ files[1].id }}"
+                                                   {% if files[1].exclude_from_mapping %}checked{% endif %}>
+                                          {% else %}
+                                            {% if files[1].exclude_from_mapping %} excluded {% endif %}>
+                                          {% endif %}
                                         </td>
                                     </tr>
                                 {% else %}
@@ -633,6 +652,15 @@
                                               {% endif %}
                                           {% endif %}
                                         </td>
+                                        <td>
+                                          {% if is_admin %}
+                                            <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
+                                                   data-file-id="{{ files[0].id }}"
+                                                   {% if files[0].exclude_from_mapping %}checked{% endif %}>
+                                          {% else %}
+                                            {% if files[0].exclude_from_mapping %} excluded {% endif %}>
+                                          {% endif %}
+                                        </td>
                                     </tr>
 
                                     <!-- Handle second file if it exists -->
@@ -665,6 +693,15 @@
                                                 {% endif %}
                                             {% endif %}
                                         </td>
+                                        <td>
+                                          {% if is_admin %}
+                                            <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
+                                                   data-file-id="{{ files[1].id }}"
+                                                   {% if files[1].exclude_from_mapping %}checked{% endif %}>
+                                          {% else %}
+                                            {% if files[1].exclude_from_mapping %} excluded {% endif %}>
+                                          {% endif %}
+                                        </td>
                                     </tr>
                                 {% endif %}
                             {% else %}
@@ -695,6 +732,7 @@
                                         </td>
                                         <td id="FCQ_{{ row.id }}_A"></td>
                                         <td id="FBP_{{ row.id }}_A"></td>
+                                        <td></td>
                                     </tr>
 
                                     <tr>
@@ -706,6 +744,7 @@
                                         </td>
                                         <td id="FCQ_{{ row.id }}_B"></td>
                                         <td id="FBP_{{ row.id }}_B"></td>
+                                        <td></td>
                                     </tr>
                                 {% else %}
                                     <tr>
@@ -731,6 +770,7 @@
                                         </td>
                                         <td id="FCQ_{{ row.id }}_A"></td>
                                         <td id="FBP_{{ row.id }}_A"></td>
+                                        <td></td>
                                     </tr>
 
                                     <tr>
@@ -742,6 +782,7 @@
                                         </td>
                                         <td id="FCQ_{{ row.id }}_B"></td>
                                         <td id="FBP_{{ row.id }}_B"></td>
+                                        <td></td>
                                     </tr>
                                 {% endif %}
                             {% endif %}
@@ -782,6 +823,7 @@
                                 <span class="red">Not uploaded</span>
                               {% endif %}
                             </td>
+                            <td>ExM</td>
                           </tr>
                         {% else %}
                           <!-- For subsequent sequencers in the same row -->
@@ -803,6 +845,15 @@
                                 {{ files[0].original_filename }}
                               {% else %}
                                 <span class="red">Not uploaded</span>
+                              {% endif %}
+                            </td>
+                            <td>
+                              {% if is_admin %}
+                                <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
+                                       data-file-id="{{ files[0].id }}"
+                                       {% if files[0].exclude_from_mapping %}checked{% endif %}>
+                              {% else %}
+                                {% if files[0].exclude_from_mapping %} excluded {% endif %}>
                               {% endif %}
                             </td>
                           </tr>
@@ -828,6 +879,7 @@
                             <td id="F_{{ row.id }}_A">
                               <span class="red">Not available</span>
                             </td>
+                            <td></td>
                           </tr>
                         {% else %}
                           <tr>
@@ -846,6 +898,7 @@
                             <td id="F_{{ row.id }}_A">
                               <span class="red">Not available</span>
                             </td>
+                            <td></td>
                           </tr>
                         {% endif %}
                       {% endif %}
@@ -1969,6 +2022,30 @@
       });
     });
 
+
+    $('.step_6_exclude_file_from_mapping_checkbox').change(function() {
+        var fileId = $(this).data('file-id');
+        var isChecked = $(this).is(':checked');
+
+        // Send an AJAX request to your application
+        $.ajax({
+            url: '/exclude_from_mapping',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                file_id: fileId,
+                exclude: isChecked
+            }),
+            success: function(response) {
+                // Optionally handle success (e.g., show a success message)
+                console.log('File exclusion updated:', response);
+            },
+            error: function(xhr, status, error) {
+                // Optionally handle errors
+                console.error('Error updating file exclusion:', error);
+            }
+        });
+    });
 
   });
   ////// ############################################# /////////
