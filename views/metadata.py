@@ -983,6 +983,40 @@ def show_mapping_file():
 
 
 @metadata_bp.route(
+    "/delete_mapping_file", methods=["GET"], endpoint="delete_mapping_file"
+)
+@login_required
+@admin_required
+@approved_required
+def delete_mapping_file():
+    process_id = request.args.get("process_id")
+    region = request.args.get("region")
+
+    # Fetch process data from SequencingUpload model
+    process_data = SequencingUpload.get(process_id)
+
+    # Extract uploads folder and project id from process data
+    uploads_folder = process_data["uploads_folder"]
+
+    if region in process_data["regions"]:
+        mapping_file = os.path.join(
+            "seq_processed",
+            uploads_folder,
+            "mapping_files",
+            f"{region}_Mapping.txt",
+        )
+        abs_mapping_file = os.path.abspath(mapping_file)
+
+        # Check if the file exists and delete it if it does
+        if os.path.exists(abs_mapping_file):
+            os.remove(abs_mapping_file)
+
+    return redirect(
+        url_for("metadata.metadata_form", process_id=process_id) + "#step_11"
+    )
+
+
+@metadata_bp.route(
     "/sequencing_process_server_file",
     methods=["POST"],
     endpoint="sequencing_process_server_file",

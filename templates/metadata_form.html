@@ -1089,7 +1089,12 @@
               {% for region in process_data.regions %}
                 <tr>
                   <td>{{ region }}</th>
-                  <td><a href="show_mapping_file?process_id={{ process_data.id }}&region={{ region }}" target="_blank" class="link">Link</a></th>
+                  <td>
+                    <a href="show_mapping_file?process_id={{ process_data.id }}&region={{ region }}" target="_blank" class="link">Link</a>
+                    {% if is_admin %}
+                      <a href="delete_mapping_file?process_id={{ process_data.id }}&region={{ region }}" class="link text-danger">X</a>
+                    {% endif %}
+                  </th>
                 </tr>
               {% endfor %}
             </tbody>
