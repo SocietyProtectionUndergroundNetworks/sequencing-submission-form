@@ -6,6 +6,7 @@ import os
 import json
 import shutil
 import csv
+import re
 from collections import defaultdict
 from helpers.dbm import connect_db, get_session
 from helpers.fastqc import init_create_fastqc_report, check_fastqc_report
@@ -800,6 +801,19 @@ class SequencingUpload:
     @classmethod
     def generate_mapping_files_for_process(self, process_id):
 
+        def sanitize_mapping_string(value):
+            if value is None:
+                return "NA"  # Or any default value
+            # Remove unwanted characters, replace
+            # spaces with underscores, and strip
+            sanitized = re.sub(
+                r"\s+", "_", value.strip()
+            )  # Replace spaces with underscores
+            sanitized = re.sub(
+                r"[^\w\-_]", "", sanitized
+            )  # Remove unwanted characters
+            return sanitized
+
         samples_data_complete = self.get_samples_with_sequencers_and_files(
             process_id
         )
@@ -912,10 +926,10 @@ class SequencingUpload:
                         site_name,
                         latitude,
                         longitude,
-                        country,
-                        vegetation,
-                        land_use,
-                        ecosystem,
+                        sanitize_mapping_string(country),
+                        sanitize_mapping_string(vegetation),
+                        sanitize_mapping_string(land_use),
+                        sanitize_mapping_string(ecosystem),
                         sample_or_control,
                         sequencing_run,
                     ]
