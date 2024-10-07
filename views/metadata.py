@@ -975,7 +975,7 @@ def show_mapping_file():
 @login_required
 @approved_required
 @admin_required
-def process_server_file():
+def sequencing_process_server_file():
     process_id = request.form.get("process_id")
     directory_name = request.form.get("directory_name")
 
@@ -992,11 +992,20 @@ def process_server_file():
             logger.error(f"Directory not found: {full_directory_path}")
             return {"error": "Directory not found"}, 404
 
-        # Initialize the report list
+        # Initialize the report list and a counter for processed files
         report = []
+        processed_files_count = 0
+        max_files_to_process = 10
 
         # Loop through files in the directory
         for file_path in full_directory_path.iterdir():
+            # Stop processing if we've reached the limit
+            if processed_files_count >= max_files_to_process:
+                logger.info(
+                    f"Maximum of {max_files_to_process} files processed."
+                )
+                break
+
             # Check if the file ends with '.fastq.gz'
             if file_path.is_file() and file_path.name.endswith(".fastq.gz"):
                 logger.info(f"Found fastq.gz file: {file_path.name}")
@@ -1012,17 +1021,22 @@ def process_server_file():
                     process_data=process_data,
                 )
 
-                # Add the result to the report list
-                report.append(
-                    {
-                        "original_filename": file_path.name,
-                        "new_filename": new_filename,
-                    }
-                )
+                # Only increment the counter if file was successfully processed
+                if new_filename:
+                    report.append(
+                        {
+                            "original_filename": file_path.name,
+                            "new_filename": new_filename,
+                        }
+                    )
+                    processed_files_count += 1
 
         # Return the report as part of the response
         return {
-            "message": "Files processed successfully",
+            "message": (
+                f"Files processed successfully. "
+                f"Processed {processed_files_count} files."
+            ),
             "report": report,
         }, 200
 
