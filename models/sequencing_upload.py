@@ -19,6 +19,7 @@ from models.db_model import (
     SequencingFilesUploadedTable,
     UserTable,
 )
+from models.sequencing_files_uploaded import SequencingFileUploaded
 from helpers.bucket import init_bucket_chunked_upload_v2
 from pathlib import Path
 from flask_login import current_user
@@ -735,6 +736,7 @@ class SequencingUpload:
 
         uploaded_files_dict = {}
         for file, sample_id, region in uploaded_files:
+
             # Check if the FastQC report exists
             fastqc_report = check_fastqc_report(
                 file.new_name, bucket, region, uploads_folder
@@ -744,6 +746,10 @@ class SequencingUpload:
                 init_create_fastqc_report(
                     file.new_name, processed_folder, bucket, region
                 )
+            else:
+                # Check if the total_sequences_number is updated
+                if not file.total_sequences_number:
+                    SequencingFileUploaded.update_total_sequences(file.id)
 
             sequencer_id = file.sequencerId
             if sample_id not in uploaded_files_dict:
@@ -1112,5 +1118,4 @@ class SequencingUpload:
             # Append the region result to the results list
             results.append(region_result)
 
-        logger.info(results)
         return results

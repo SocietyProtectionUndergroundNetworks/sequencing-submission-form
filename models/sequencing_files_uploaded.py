@@ -6,7 +6,10 @@ from models.db_model import (
     SequencingSequencerIDsTable,
     SequencingSamplesTable,
 )
-from helpers.fastqc import check_fastqc_report
+from helpers.fastqc import (
+    check_fastqc_report,
+    extract_total_sequences_from_fastqc_zip,
+)
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -137,7 +140,7 @@ class SequencingFileUploaded:
         return False
 
     @classmethod
-    def get_fastqc_report(cls, id):
+    def get_fastqc_report(cls, id, return_format="html"):
         # Connect to the database and create a session
         db_engine = connect_db()
         session = get_session(db_engine)
@@ -182,13 +185,8 @@ class SequencingFileUploaded:
 
         # Call the check_fastqc_report function
         fastqc_report = check_fastqc_report(
-            filename, bucket, region, upload_folder
+            filename, bucket, region, upload_folder, return_format
         )
-
-        if fastqc_report:
-            logger.info(f"FastQC report found: {fastqc_report}")
-        else:
-            logger.warning(f"No FastQC report found for file: {filename}")
 
         return fastqc_report
 
@@ -216,3 +214,12 @@ class SequencingFileUploaded:
         session.close()
 
         return True
+
+    @classmethod
+    def update_total_sequences(cls, id):
+        abs_zip_path = cls.get_fastqc_report(id, return_format="zip")
+        total_sequences = extract_total_sequences_from_fastqc_zip(abs_zip_path)
+
+        if isinstance(total_sequences, int):
+            cls.update_field(id, "total_sequences_number", total_sequences)
+        return total_sequences

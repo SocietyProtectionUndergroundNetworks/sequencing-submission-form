@@ -2,6 +2,7 @@ import os
 import multiqc
 import subprocess
 import json
+import zipfile
 from pathlib import Path
 from models.upload import Upload
 from helpers.bucket import bucket_upload_folder, bucket_chunked_upload
@@ -231,7 +232,9 @@ def init_create_fastqc_report(fastq_file, input_folder, bucket, region):
         logger.error(e)
 
 
-def check_fastqc_report(filename, bucket, region, upload_folder):
+def check_fastqc_report(
+    filename, bucket, region, upload_folder, return_format="html"
+):
     logger = logging.getLogger(__name__)
 
     if filename:
@@ -260,7 +263,10 @@ def check_fastqc_report(filename, bucket, region, upload_folder):
 
         # Check if both files exist
         if os.path.isfile(abs_html_file) and os.path.isfile(abs_zip_file):
-            return abs_html_file
+            if return_format == "zip":
+                return abs_zip_file
+            else:
+                return abs_html_file
 
     # If either of the files doesn't exist, return False
     return False
@@ -356,3 +362,56 @@ def check_multiqc_report(process_id):
     else:
         # If there are no regions specified, we can assume reports do not exist
         return False
+
+
+def extract_total_sequences_from_fastqc_zip(abs_zip_path):
+    """
+    Extract the 'Total Sequences' value from a FastQC .zip
+    report using its absolute path
+    without unzipping it.
+
+    :param abs_zip_path: Absolute path to the FastQC .zip report.
+    :return: Total Sequences value (int) or None if not found.
+    """
+    if not os.path.isabs(abs_zip_path):
+        logger.info(
+            f"The provided path is not an absolute path: {abs_zip_path}"
+        )
+        return None
+
+    if not os.path.exists(abs_zip_path):
+        logger.info(f"File not found: {abs_zip_path}")
+        return None
+
+    total_sequences = None
+    fastqc_data_filename = "fastqc_data.txt"
+    try:
+        with zipfile.ZipFile(abs_zip_path, "r") as zip_ref:
+            # Find the file 'fastqc_data.txt' within any folder inside the zip
+            fastqc_data_path = None
+            for file_name in zip_ref.namelist():
+                if file_name.endswith(fastqc_data_filename):
+                    fastqc_data_path = file_name
+                    break
+
+            if fastqc_data_path:
+                # Read the fastqc_data.txt content
+                with zip_ref.open(fastqc_data_path) as fastqc_data_file:
+                    for line in fastqc_data_file:
+                        line = line.decode("utf-8")  # Convert bytes to string
+                        # Find the line that starts with 'Total Sequences'
+                        if line.startswith("Total Sequences"):
+                            total_sequences = int(line.split("\t")[1].strip())
+                            break
+            else:
+                logger.info(
+                    f"{fastqc_data_filename} not found in the zip archive."
+                )
+    except zipfile.BadZipFile:
+        logger.info(f"Error: {abs_zip_path} is not a valid zip file.")
+    except Exception as e:
+        logger.info(
+            f"An error occurred while reading the FastQC report zip: {e}"
+        )
+
+    return total_sequences

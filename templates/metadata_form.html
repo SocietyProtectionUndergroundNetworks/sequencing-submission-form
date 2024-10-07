@@ -493,6 +493,7 @@
                       <th scope="col" class="bg-gray">New Names</th>
                       <th scope="col" class="bg-gray">Report</th>
                       <th scope="col" class="bg-gray">Storage</th>
+                      <th scope="col" class="bg-gray">Sequences Number</th>
                       <th scope="col" class="bg-gray">Exclude from mapping</th>
                   </tr>
               </thead>
@@ -556,6 +557,13 @@
                                             {% endif %}
                                         </td>
                                         <td>
+                                            {% if files|length > 0 %}
+                                                {% if files[0].total_sequences_number %}
+                                                    {{ files[0].total_sequences_number }}
+                                                {% endif %}
+                                            {% endif %}
+                                        </td>
+                                        <td>
                                           {% if files|length > 0 %}
                                             {% if is_admin %}
                                               <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
@@ -595,6 +603,13 @@
                                             {% if files|length > 1 %}
                                                 {% if files[1].bucket_upload_progress %}
                                                     {{ files[1].bucket_upload_progress }}%
+                                                {% endif %}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if files|length > 0 %}
+                                                {% if files[1].total_sequences_number %}
+                                                    {{ files[1].total_sequences_number }}
                                                 {% endif %}
                                             {% endif %}
                                         </td>
@@ -657,6 +672,13 @@
                                           {% endif %}
                                         </td>
                                         <td>
+                                            {% if files|length > 0 %}
+                                                {% if files[0].total_sequences_number %}
+                                                    {{ files[0].total_sequences_number }}
+                                                {% endif %}
+                                            {% endif %}
+                                        </td>
+                                        <td>
                                           {% if files|length > 0 %}
                                             {% if is_admin %}
                                               <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
@@ -696,6 +718,13 @@
                                             {% if files|length > 1 %}
                                                 {% if files[1].bucket_upload_progress %}
                                                     {{ files[1].bucket_upload_progress }}%
+                                                {% endif %}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if files|length > 0 %}
+                                                {% if files[1].total_sequences_number %}
+                                                    {{ files[1].total_sequences_number }}
                                                 {% endif %}
                                             {% endif %}
                                         </td>
@@ -741,6 +770,7 @@
                                         <td id="FCQ_{{ row.id }}_A"></td>
                                         <td id="FBP_{{ row.id }}_A"></td>
                                         <td></td>
+                                        <td></td>
                                     </tr>
 
                                     <tr>
@@ -752,6 +782,7 @@
                                         </td>
                                         <td id="FCQ_{{ row.id }}_B"></td>
                                         <td id="FBP_{{ row.id }}_B"></td>
+                                        <td></td>
                                         <td></td>
                                     </tr>
                                 {% else %}
@@ -779,6 +810,7 @@
                                         <td id="FCQ_{{ row.id }}_A"></td>
                                         <td id="FBP_{{ row.id }}_A"></td>
                                         <td></td>
+                                        <td></td>
                                     </tr>
 
                                     <tr>
@@ -790,6 +822,7 @@
                                         </td>
                                         <td id="FCQ_{{ row.id }}_B"></td>
                                         <td id="FBP_{{ row.id }}_B"></td>
+                                        <td></td>
                                         <td></td>
                                     </tr>
                                 {% endif %}
