@@ -85,13 +85,14 @@ def process_uploaded_file(
 ):
     uploads_folder = process_data["uploads_folder"]
     final_file_path = f"{source_directory}/{filename}"
+
     # Save into the database the file
     matching_sequencer_ids = SequencingSequencerId.get_matching_sequencer_ids(
         process_id, filename
     )
 
-    # assign the file to the correct sequencer in the database and
-    # process it further
+    # Assign the file to the correct sequencer in
+    # the database and process it further
     if len(matching_sequencer_ids) == 1:
         file_sequencer_id = matching_sequencer_ids[0]
 
@@ -104,15 +105,27 @@ def process_uploaded_file(
             "new_name": new_filename,
         }
 
+        # Check if the file already exists before creating a new one
+        existing_file_id = SequencingFileUploaded.check_if_exists(
+            file_sequencer_id, file_dict
+        )
+
+        if existing_file_id:
+            logger.info(
+                f"File {filename} already exists in the database with ID "
+                f"{existing_file_id}. Skipping."
+            )
+            return None  # File already exists, return None to skip processing
+
+        # Create a new entry in the database for the file
         new_file_uploaded_id = SequencingFileUploaded.create(
             file_sequencer_id, file_dict
         )
         logger.info("The new_file_uploaded_id is " + str(new_file_uploaded_id))
-        # If a new filename is provided, copy the file to
-        # the new location
+
+        # If a new filename is provided, copy the file to the new location
         if new_filename:
-            # Get the data of the SequencingSequencerId
-            # to get the region
+            # Get the data of the SequencingSequencerId to get the region
             sequencerId = SequencingSequencerId.get(file_sequencer_id)
             region = sequencerId.Region
             bucket = process_data["project_id"]
@@ -122,6 +135,7 @@ def process_uploaded_file(
             os.makedirs(os.path.dirname(processed_file_path), exist_ok=True)
             shutil.copy2(final_file_path, processed_file_path)
 
+            # Generate FastQC report
             init_create_fastqc_report(
                 new_filename, processed_folder, bucket, region
             )
@@ -136,7 +150,8 @@ def process_uploaded_file(
                 known_md5=expected_md5,
             )
             return new_filename
-    return None
+
+    return None  # No matching sequencer ID or no processing occurred
 
 
 @metadata_bp.route("/metadata_form", endpoint="metadata_form")

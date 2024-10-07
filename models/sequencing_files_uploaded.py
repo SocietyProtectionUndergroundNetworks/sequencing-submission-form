@@ -100,6 +100,42 @@ class SequencingFileUploaded:
         return new_file_upload_id
 
     @classmethod
+    def check_if_exists(cls, sequencerId, datadict):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        # Get valid columns from the table's model class
+        valid_keys = {
+            c.name for c in SequencingFilesUploadedTable.__table__.columns
+        }
+
+        # Filter out invalid keys from datadict
+        filtered_datadict = {
+            key: value for key, value in datadict.items() if key in valid_keys
+        }
+
+        # Create filters based on the filtered datadict and sequencerId
+        filters = [
+            getattr(SequencingFilesUploadedTable, key) == value
+            for key, value in filtered_datadict.items()
+        ]
+        filters.append(SequencingFilesUploadedTable.sequencerId == sequencerId)
+
+        # Query to check if an identical record exists
+        existing_record = (
+            session.query(SequencingFilesUploadedTable)
+            .filter(*filters)
+            .first()
+        )
+
+        session.close()
+
+        # If record exists, return the id; otherwise, return False
+        if existing_record:
+            return existing_record.id
+        return False
+
+    @classmethod
     def get_fastqc_report(cls, id):
         # Connect to the database and create a session
         db_engine = connect_db()
