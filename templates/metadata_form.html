@@ -1171,6 +1171,7 @@
                       class="step_12_form_run_report"
                     >
                       <fieldset>
+                        <input type="checkbox" id="debug-checkbox" name="debug">
                         <input type="submit" class="btn btn-primary" value="Generate">
                         <input type="hidden" name="process_id" value="{{ process_id }}">
                         <input type="hidden" name="region" value="{{ region_data.region }}">
@@ -2569,8 +2570,11 @@
       var form = $(this); // Target the current form instance
       var processId = form.find('input[name="process_id"]').val();
       var region = form.find('input[name="region"]').val();
+      var debug = form.find('input[name="debug"]').is(':checked') ? '1' : '0';
+
       formData.append('process_id', processId);
       formData.append('region', region);
+      formData.append('debug', debug);
 
       $.ajax({
           url: '/generate_lotus2_report',

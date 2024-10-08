@@ -7,13 +7,15 @@ from datetime import datetime
 logger = logging.getLogger("my_app_logger")
 
 
-def init_generate_lotus2_report(region_nr, process_id, input_dir, region):
+def init_generate_lotus2_report(
+    region_nr, process_id, input_dir, region, debug=False
+):
 
     from tasks import generate_lotus2_report_async
 
     try:
         result = generate_lotus2_report_async.delay(
-            region_nr, process_id, input_dir, region
+            region_nr, process_id, input_dir, region, debug
         )
         logger.info(
             f"Celery generate_lotus2_report_async task "
@@ -54,7 +56,7 @@ def init_generate_lotus2_report(region_nr, process_id, input_dir, region):
     return {"msg": "Process initiated"}
 
 
-def generate_lotus2_report(region_nr, process_id, input_dir, region):
+def generate_lotus2_report(region_nr, process_id, input_dir, region, debug):
     client = docker.from_env()
     from models.sequencing_upload import SequencingUpload
 
@@ -63,6 +65,11 @@ def generate_lotus2_report(region_nr, process_id, input_dir, region):
     logger.info(" - process_id : " + str(process_id))
     logger.info(" - input_dir : " + str(input_dir))
     logger.info(" - region : " + str(region))
+    logger.info(" - debug : " + str(debug))
+
+    debug_command = ""
+    if debug:
+        debug_command = " --debug "
 
     try:
         # Run Lotus2 inside the 'spun-lotus2' container
@@ -83,6 +90,7 @@ def generate_lotus2_report(region_nr, process_id, input_dir, region):
             logger.info(" - Here we will try the command")
             command = [
                 "lotus2",
+                debug_command,
                 "-i",
                 input_dir,
                 "-o",
@@ -155,6 +163,7 @@ def generate_lotus2_report(region_nr, process_id, input_dir, region):
             logger.info(" - Here we will try the command")
             command = [
                 "lotus2",
+                debug_command,
                 "-i",
                 input_dir,
                 "-o",

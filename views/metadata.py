@@ -1102,6 +1102,9 @@ def sequencing_process_server_file():
 @admin_required
 def generate_lotus2_report():
     process_id = request.form.get("process_id")
+    debug = request.form.get("debug")
+    logger.info("The debug is")
+    logger.info(debug)
 
     process_data = SequencingUpload.get(process_id)
     region = request.form.get("region")
@@ -1112,7 +1115,7 @@ def generate_lotus2_report():
         region_nr += 1
         if region == region_db:
             init_generate_lotus2_report(
-                region_nr, process_id, input_dir, region
+                region_nr, process_id, input_dir, region, debug
             )
 
     return jsonify({"result": 1})
