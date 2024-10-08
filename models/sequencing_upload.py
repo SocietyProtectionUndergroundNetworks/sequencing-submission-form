@@ -856,7 +856,7 @@ class SequencingUpload:
         # Process each sample data
         for sample_data in samples_data_complete:
             sample_id = sample_data["SampleID"]
-            site_name = sample_data["Site_name"]
+            site_name = sanitize_string(sample_data["Site_name"])
             latitude = sample_data["Latitude"]
             longitude = sample_data["Longitude"]
             vegetation = sanitize_string(sample_data["Vegetation"])
