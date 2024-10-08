@@ -77,7 +77,7 @@ def generate_lotus2_report(region_nr, process_id, input_dir, region, debug):
         output_path = input_dir + "/lotus2_report/" + region
 
         if region == "ITS2":
-            container = client.containers.get("spun-lotus2_34")
+            container = client.containers.get("spun-lotus2")
             refDB = (
                 "/lotus2_files/UNITE/sh_refs_qiime_ver10_97_04.04.2024.fasta"
             )
@@ -136,7 +136,7 @@ def generate_lotus2_report(region_nr, process_id, input_dir, region, debug):
             )
 
         elif region == "SSU":
-            container = client.containers.get("spun-lotus2_28")
+            container = client.containers.get("spun-lotus2")
             # SILVA ONLY
             # The following two would be if we only
             # wanted to use the SILVA database
@@ -187,7 +187,7 @@ def generate_lotus2_report(region_nr, process_id, input_dir, region, debug):
                 "-LCA_cover",
                 "0.97",
                 "-derepMin",
-                "10:1,5:2,3:3",
+                "6:1,4:2,3:3",
                 "-sdmopt",
                 sdmopt,
             ]
