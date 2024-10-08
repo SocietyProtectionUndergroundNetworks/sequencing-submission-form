@@ -69,15 +69,15 @@ def generate_lotus2_report(region_nr, process_id, input_dir, region, debug):
 
     debug_command = ""
     if debug:
-        debug_command = " --debug "
+        debug_command = " -v --debug "
 
     try:
         # Run Lotus2 inside the 'spun-lotus2' container
-        container = client.containers.get("spun-lotus2")
+
         output_path = input_dir + "/lotus2_report/" + region
 
         if region == "ITS2":
-
+            container = client.containers.get("spun-lotus2_34")
             refDB = (
                 "/lotus2_files/UNITE/sh_refs_qiime_ver10_97_04.04.2024.fasta"
             )
@@ -136,7 +136,7 @@ def generate_lotus2_report(region_nr, process_id, input_dir, region, debug):
             )
 
         elif region == "SSU":
-
+            container = client.containers.get("spun-lotus2_28")
             # SILVA ONLY
             # The following two would be if we only
             # wanted to use the SILVA database
