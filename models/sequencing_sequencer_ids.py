@@ -311,7 +311,7 @@ class SequencingSequencerId:
             ):  # Match against the full name without the extension
                 # Generate the new filename
                 new_filename = filename.replace(
-                    sequencer_id, f"{sample_id}_{region}"
+                    sequencer_id, f"{sample_id}_{region}_"
                 )
                 session.close()
                 return new_filename
