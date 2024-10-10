@@ -68,7 +68,7 @@ def generate_lotus2_report(region_nr, process_id, input_dir, region, debug):
     logger.info(" - debug : " + str(debug))
 
     debug_command = ""
-    if debug:
+    if debug==1:
         debug_command = " -v --debug "
 
     try:
@@ -157,7 +157,7 @@ def generate_lotus2_report(region_nr, process_id, input_dir, region, debug):
                 "lotus2_files/SILVA/SLV_138.1_SSU.tax"
             )
 
-            sdmopt = "/usr/local/share/lotus2-2.28.1-1/configs/sdm_miSeq2.txt"
+            sdmopt = "/usr/local/share/lotus2-2.28.1-1/configs/sdm_miSeq.txt"
             mapping_file = input_dir + "/mapping_files/SSU_Mapping.txt"
 
             logger.info(" - Here we will try the command")
