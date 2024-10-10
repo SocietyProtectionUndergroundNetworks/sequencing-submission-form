@@ -84,8 +84,9 @@ class SequencingSequencerId:
             session.add(new_record)
             session.commit()
             # Return the id of the newly created record
+            new_record_id = new_record.id
             session.close()
-            return new_record.id, "new"
+            return new_record_id, "new"
 
     @classmethod
     def check_df_and_add_records(cls, process_id, df, process_data):
