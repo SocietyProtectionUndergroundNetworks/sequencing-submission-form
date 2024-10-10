@@ -127,7 +127,7 @@ plot(p)
                                      
 ##### Extract out ECMs from FungalTraits database and phyloseq object. For this step, you need to have downloaded the file "EcM_guild_assignment_13225_2020_466_MOESM4_ESM.csv" from the SPUN 'project_bioinformatics_and_processing' Github repository
 
-fungaltraits<- read.csv("/home/bethan/guild_assignment/EcM_guild_assignment_13225_2020_466_MOESM4_ESM.csv")
+fungaltraits<- read.csv("/usr/src/app/13225_2020_466_MOESM4_ESM.csv")
 
 # Using dplyr and stringr to extract the Genus label to match with phyloseq object's taxa table. Also filter to string match and ectomycorrhizal fungi. The final df is just the fungal traits database subset to ectomycorrhizal fungi and an altered string for genus. 
 fungal_traits_ecm<- fungaltraits %>%
