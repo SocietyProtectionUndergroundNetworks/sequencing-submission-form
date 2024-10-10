@@ -68,7 +68,7 @@ def generate_lotus2_report(region_nr, process_id, input_dir, region, debug):
     logger.info(" - debug : " + str(debug))
 
     debug_command = ""
-    if debug==1:
+    if debug == 1:
         debug_command = " -v --debug "
 
     try:
