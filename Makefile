@@ -47,6 +47,9 @@ bashdb:
 bashlotus:
 	docker-compose run --rm lotus2 /bin/sh
 
+bashredis:
+	docker-compose run --rm redis /bin/sh
+		
 logsflask:
 	docker-compose logs -f --tail=200 flask
 
