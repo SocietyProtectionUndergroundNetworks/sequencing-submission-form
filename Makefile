@@ -49,7 +49,10 @@ bashlotus:
 
 bashredis:
 	docker-compose run --rm redis /bin/sh
-		
+
+bashr:
+	docker-compose run --rm r_service /bin/sh
+
 logsflask:
 	docker-compose logs -f --tail=200 flask
 
@@ -61,6 +64,9 @@ logsnginx:
 
 logsredis:
 	docker-compose logs -f --tail=200 redis
+
+logsr:
+	docker-compose logs -f --tail=200 r_service
 
 logslotus:
 	docker-compose logs -f --tail=200 lotus2
