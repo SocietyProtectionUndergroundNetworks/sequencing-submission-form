@@ -49,6 +49,11 @@
     "Forward Primer": "TTGGAGGGCAAGTCTGGTGCC",
     "Reverse Primer": "GAACCCAAACACTTTGGTTTCC"
   },
+  "ITS86F/ITS4": {
+    "Region": "ITS2",
+    "Forward Primer": "GTGAATCATCGAATCTTTGAA",
+    "Reverse Primer": "TCCTCCGCTTATTGATATGC"
+  },  
   "Other": {
     "Region": "Other",
     "Forward Primer": "",
