@@ -77,7 +77,8 @@
   "DNA_concentration_ng_ul": {
     "help_tip": "Required. Concentration of DNA (ng/ul). If too low or NA, you can put 0. Numeric only.",
     "check_function": "check_dna_concentration",
-    "required": "True"
+    "required": "True",
+    "allowAdminNA": "True"
   },
   "Sample_or_Control": {
     "lookup_file": "sample_or_control.json",
