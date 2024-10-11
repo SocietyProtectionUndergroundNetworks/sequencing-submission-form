@@ -9,7 +9,6 @@ Create Date: 2024-10-11 07:13:29.143316
 from typing import Sequence, Union
 
 from alembic import op
-import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
@@ -23,11 +22,21 @@ def upgrade() -> None:
     op.execute(
         """
         ALTER TABLE sequencing_uploads
-        MODIFY COLUMN Expedition_lead VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
-        MODIFY COLUMN Sequencing_facility VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
-        MODIFY COLUMN Collaborators VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, 
-        MODIFY COLUMN region_1_lotus2_report_result TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
-        MODIFY COLUMN region_2_lotus2_report_result TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
+        MODIFY COLUMN Expedition_lead
+            VARCHAR(255) CHARACTER SET utf8mb4
+            COLLATE utf8mb4_unicode_ci,
+        MODIFY COLUMN Sequencing_facility
+            VARCHAR(255) CHARACTER SET utf8mb4
+            COLLATE utf8mb4_unicode_ci,
+        MODIFY COLUMN Collaborators
+            VARCHAR(255) CHARACTER SET utf8mb4
+            COLLATE utf8mb4_unicode_ci,
+        MODIFY COLUMN region_1_lotus2_report_result
+            TEXT CHARACTER SET utf8mb4
+            COLLATE utf8mb4_unicode_ci,
+        MODIFY COLUMN region_2_lotus2_report_result
+            TEXT CHARACTER SET utf8mb4
+            COLLATE utf8mb4_unicode_ci
         ;
     """
     )
@@ -37,11 +46,21 @@ def downgrade() -> None:
     op.execute(
         """
         ALTER TABLE sequencing_uploads
-        MODIFY COLUMN Expedition_lead VARCHAR(255) CHARACTER SET latin1 COLLATE latin1_swedish_ci,
-        MODIFY COLUMN Sequencing_facility VARCHAR(255) CHARACTER SET latin1 COLLATE latin1_swedish_ci,
-        MODIFY COLUMN Collaborators VARCHAR(255) CHARACTER SET latin1 COLLATE latin1_swedish_ci,
-        MODIFY COLUMN region_1_lotus2_report_result TEXT CHARACTER SET latin1 COLLATE latin1_swedish_ci,
-        MODIFY COLUMN region_2_lotus2_report_result TEXT CHARACTER SET latin1 COLLATE latin1_swedish_ci  
+        MODIFY COLUMN Expedition_lead
+            VARCHAR(255) CHARACTER SET latin1
+            COLLATE latin1_swedish_ci,
+        MODIFY COLUMN Sequencing_facility
+            VARCHAR(255) CHARACTER SET latin1
+            COLLATE latin1_swedish_ci,
+        MODIFY COLUMN Collaborators
+            VARCHAR(255) CHARACTER SET latin1
+            COLLATE latin1_swedish_ci,
+        MODIFY COLUMN region_1_lotus2_report_result
+            TEXT CHARACTER SET latin1
+            COLLATE latin1_swedish_ci,
+        MODIFY COLUMN region_2_lotus2_report_result
+            TEXT CHARACTER SET latin1
+            COLLATE latin1_swedish_ci
         ;
     """
     )
