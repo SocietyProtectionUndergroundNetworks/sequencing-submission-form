@@ -118,7 +118,9 @@ def check_sample_id(sample_id):
 
     # Updated pattern to allow any combination of letters, numbers, and
     # underscores before the last underscore
-    if not current_user.admin:
+    if current_user.admin:
+        return {"status": 1, "message": "Valid value"}
+    else:
         pattern = re.compile(r"^[A-Za-z0-9_]+_[0-9]+$")
         if not pattern.match(sample_id_str):
             return {
@@ -129,26 +131,28 @@ def check_sample_id(sample_id):
                 ),
             }
 
-    # Split into base part and number
-    match = re.match(r"^(.*)_(\d+)$", sample_id_str)
-    if match:
-        base_part, unique_number = match.groups()
+        # Split into base part and number
+        match = re.match(r"^(.*)_(\d+)$", sample_id_str)
+        if match:
+            base_part, unique_number = match.groups()
 
-        # Ensure the base part does not end with an underscore
-        if base_part.endswith("_"):
-            return {
-                "status": 0,
-                "message": "Base part must not end with an underscore",
-            }
+            # Ensure the base part does not end with an underscore
+            if base_part.endswith("_"):
+                return {
+                    "status": 0,
+                    "message": "Base part must not end with an underscore",
+                }
 
-        # Ensure the unique number is a positive integer
-        if not unique_number.isdigit() or int(unique_number) <= 0:
-            return {
-                "status": 0,
-                "message": "Unique number must be one or more positive digits",
-            }
+            # Ensure the unique number is a positive integer
+            if not unique_number.isdigit() or int(unique_number) <= 0:
+                return {
+                    "status": 0,
+                    "message": (
+                        "Unique number must be one or more positive digits"
+                    ),
+                }
 
-        return {"status": 1, "message": "Valid value"}
+            return {"status": 1, "message": "Valid value"}
 
     return {"status": 0, "message": "Invalid format: general issue"}
 
