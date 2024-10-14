@@ -118,15 +118,16 @@ def check_sample_id(sample_id):
 
     # Updated pattern to allow any combination of letters, numbers, and
     # underscores before the last underscore
-    pattern = re.compile(r"^[A-Za-z0-9_]+_[0-9]+$")
-    if not pattern.match(sample_id_str):
-        return {
-            "status": 0,
-            "message": (
-                "Invalid format: must end with "
-                " an underscore followed by digits"
-            ),
-        }
+    if not current_user.admin:
+        pattern = re.compile(r"^[A-Za-z0-9_]+_[0-9]+$")
+        if not pattern.match(sample_id_str):
+            return {
+                "status": 0,
+                "message": (
+                    "Invalid format: must end with "
+                    " an underscore followed by digits"
+                ),
+            }
 
     # Split into base part and number
     match = re.match(r"^(.*)_(\d+)$", sample_id_str)
