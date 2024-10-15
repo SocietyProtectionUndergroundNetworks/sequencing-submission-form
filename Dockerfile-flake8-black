@@ -7,8 +7,5 @@ WORKDIR /app
 COPY requirements-flake8-black.txt .
 RUN pip install -r requirements-flake8-black.txt
 
-# Copy project files
-COPY . .
-
 # Command to run the application
 CMD ["python", "app.py"]

@@ -607,14 +607,14 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            {% if files|length > 0 %}
+                                            {% if files|length > 1 %}
                                                 {% if files[1].total_sequences_number %}
                                                     {{ files[1].total_sequences_number }}
                                                 {% endif %}
                                             {% endif %}
                                         </td>
                                         <td>
-                                          {% if files|length > 0 %}
+                                          {% if files|length > 1 %}
                                             {% if is_admin %}
                                               <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
                                                      data-file-id="{{ files[1].id }}"
@@ -864,7 +864,45 @@
                                 <span class="red">Not uploaded</span>
                               {% endif %}
                             </td>
-                            <td>ExM</td>
+                            <td id="FNN_{{ sequencer.id }}_A">
+                                {% if files|length > 0 %}
+                                    {{ files[0].new_name }}
+                                {% else %}
+                                    <span class="red">Not uploaded</span>
+                                {% endif %}
+                            </td>
+                            <td id="FCQ_{{ sequencer.id }}_A">
+                                {% if files|length > 0 %}
+                                    {% if files[0].fastqc_report %}
+                                        <a href="show_fastqc_report?file_id={{ files[0].id }}" target="_blank" class="link">Done</a>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                            <td id="FBP_{{ sequencer.id }}_A">
+                                {% if files|length > 0 %}
+                                    {% if files[0].bucket_upload_progress %}
+                                        {{ files[0].bucket_upload_progress }}%
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if files|length > 0 %}
+                                    {% if files[0].total_sequences_number %}
+                                        {{ files[0].total_sequences_number }}
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                            <td>
+                              {% if files|length > 0 %}
+                                {% if is_admin %}
+                                  <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
+                                         data-file-id="{{ files[0].id }}"
+                                         {% if files[0].exclude_from_mapping %}checked{% endif %}>
+                                {% else %}
+                                  {% if files[0].exclude_from_mapping %} excluded {% endif %}>
+                                {% endif %}
+                              {% endif %}
+                            </td>
                           </tr>
                         {% else %}
                           <!-- For subsequent sequencers in the same row -->
@@ -987,6 +1025,7 @@
     {% endif %}
 
     {% if process_data and (not process_data.using_scripps or is_admin) %}
+
       <div id="step_8" class="form-step-item">
         <h3> Step 8: Upload the fastq files</h3>
         <div class="text-warning"> Please note: We want the RAW data in fastq.gz format</div>
@@ -1019,6 +1058,23 @@
             <input type="hidden" name="process_id" value="{{ process_id }}">
             <button type="button" class="btn btn-secondary" id="step_8_form_process_server_file_button" data-process_id="{{ process_id }}">Process local directory</button>
           </form>
+
+
+          <div id="step_8_case_3" class="explanation">
+            <h4> (Admin only) Migration </h4>
+            <form
+                method="POST"
+                action="/upload_sequencer_ids_migration_file"
+                enctype="multipart/form-data"
+                id="step_8_file_upload_migration"
+            >
+              <input type="hidden" name="process_id" value="{{ process_id }}">
+              <input type="file" id="step_8_file_migration_upload_button" accept=".csv">
+            </form>
+          </div>
+          <div id="step_8_migration_filename"></div>
+
+
         {% endif %}
 
       </div>
@@ -2453,6 +2509,66 @@
       }
 
     });
+
+    ////// Following part can be removed after all migrations complete /////////
+    $('#step_8_file_migration_upload_button').on('change', function () {
+      var fileInput = $('#step_8_file_migration_upload_button')[0];
+      var file = fileInput.files[0];
+
+      if (file) {
+          var fileName = file.name;
+          $('#step_8_migration_filename').html("<h4>File uploaded: " + fileName + "</h4>");
+      }
+
+      if (!file) {
+          alert("Please select a file.");
+          return;
+      }
+
+      var formData = new FormData();
+      formData.append('file', file);
+
+      var form = $('#step_8_file_migration_upload_button').closest('form');
+      var processId = form.find('input[name="process_id"]').val();
+      formData.append('process_id', processId);
+
+
+      $.ajax({
+          url: '/upload_sequencer_ids_migration_file',
+          type: 'POST',
+          data: formData,
+          contentType: false,
+          processData: false,
+          success: function(response) {
+              console.log(response);
+              $('#step_8_msg').html('').removeClass('text-danger text-success');
+              // Reset the file input
+              fileInput.value = "";
+              if (response.result == 0) {
+                  response.messages.forEach(function(message) {
+                      // Create a new paragraph element for each message
+                      $('<p></p>')
+                          .text(message)
+                          .removeClass('text-success')
+                          .addClass('text-danger')
+                          .appendTo('#step_8_msg');
+                  });
+              } else {
+                window.location.reload();
+              }
+          },
+          error: function(xhr, status, error) {
+              console.error('Error:', error);
+              $('#step_8_msg').html("<p>An error occurred while processing the file.</p>").removeClass('text-success').addClass('text-danger');
+
+              // Reset the file input
+              fileInput.value = "";
+          }
+      });
+    });
+
+
+
   {% endif %}
   ////// ############################################# /////////
   ////// ############ STEP 8 ENDS HERE ############### /////////

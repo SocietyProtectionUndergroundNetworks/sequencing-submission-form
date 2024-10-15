@@ -495,6 +495,58 @@ def upload_form():
     return render_template("form.html", is_admin=current_user.admin)
 
 
+@upload_bp.route("/mathed_files_db", endpoint="mathed_files_db")
+@login_required
+@admin_required
+@approved_required
+def mathed_files_db():
+    process_id = request.args.get("process_id", 0)
+    default_process_id = 0
+    logger.info(process_id)
+    try:
+        process_id = int(process_id)
+    except (ValueError, TypeError):
+        # Handle the case where process_id is not a valid
+        # integer or convertible to an integer
+        process_id = default_process_id
+
+    if isinstance(process_id, int) and (process_id != 0):
+        upload = Upload.get(process_id)
+        matching_files_dict = upload.get_files_json()
+
+        # Create a CSV in memory
+        output = io.StringIO()
+        csv_writer = csv.writer(output)
+
+        # Write the header
+        csv_writer.writerow(
+            ["old_filename", "new_filename", "bucket", "folder", "sample_id"]
+        )
+
+        # Write the data
+        for old_filename, data in matching_files_dict.items():
+            new_filename = data.get("new_filename", "")
+            bucket = data.get("bucket", "")
+            folder = data.get("folder", "")
+            sample_id = data.get("sample_id", "")
+            csv_writer.writerow(
+                [old_filename, new_filename, bucket, folder, sample_id]
+            )
+
+        # Prepare the response
+        output.seek(0)  # Go to the start of the StringIO object
+        return Response(
+            output,
+            mimetype="text/csv",
+            headers={
+                "Content-Disposition": "attachment;filename=matching_files.csv"
+            },
+        )
+
+    # If process_id is invalid, return an error or appropriate response
+    return "Invalid process ID", 400
+
+
 @upload_bp.route(
     "/clear_file_upload", methods=["POST"], endpoint="clear_file_upload"
 )
