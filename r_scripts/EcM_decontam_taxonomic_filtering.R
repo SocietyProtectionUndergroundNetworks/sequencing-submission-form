@@ -84,7 +84,7 @@ for (i in row_indices){
 
 names(taxonomy_table) <- classification
 datatable(taxonomy_table)
-
+write_tableHTML(tableHTML(taxonomy_table), file = 'contaminants.html')
 
 ## Prune contaminant taxa from the phyloseq tax_table
 physeq_decontam <- prune_taxa(!contamdf.prev.1$contaminant, physeq)
