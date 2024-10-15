@@ -1103,7 +1103,7 @@ def sequencing_process_server_file():
 def generate_lotus2_report():
     process_id = request.form.get("process_id")
     debug = request.form.get("debug")
-    clustering = request.form.get("clustering", "vsearch")    
+    clustering = request.form.get("clustering", "vsearch")
     logger.info("The debug is")
     logger.info(debug)
     logger.info("The clustering is")

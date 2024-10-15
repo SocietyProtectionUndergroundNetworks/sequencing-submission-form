@@ -147,7 +147,7 @@ def generate_lotus2_report(
             )
             tax4refDB = "lotus2_files/SILVA/SLV_138.1_SSU.tax"
             clustering_method = "dada2"
-            if clustering=="vsearch":
+            if clustering == "vsearch":
                 clustering_method = "vsearch"
             # The following two is if we want to use
             # both the ___ and the SILVA database
