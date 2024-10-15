@@ -8,14 +8,14 @@ logger = logging.getLogger("my_app_logger")
 
 
 def init_generate_lotus2_report(
-    region_nr, process_id, input_dir, region, debug=False
+    region_nr, process_id, input_dir, region, debug=False, clustering=""
 ):
 
     from tasks import generate_lotus2_report_async
 
     try:
         result = generate_lotus2_report_async.delay(
-            region_nr, process_id, input_dir, region, debug
+            region_nr, process_id, input_dir, region, debug, clustering
         )
         logger.info(
             f"Celery generate_lotus2_report_async task "
@@ -56,7 +56,9 @@ def init_generate_lotus2_report(
     return {"msg": "Process initiated"}
 
 
-def generate_lotus2_report(region_nr, process_id, input_dir, region, debug):
+def generate_lotus2_report(
+    region_nr, process_id, input_dir, region, debug, clustering
+):
     client = docker.from_env()
     from models.sequencing_upload import SequencingUpload
 
@@ -144,7 +146,9 @@ def generate_lotus2_report(region_nr, process_id, input_dir, region, debug):
                 "lotus2_files/SILVA/SILVA_138.2_SSURef_NR99_tax_silva.fasta.gz"
             )
             tax4refDB = "lotus2_files/SILVA/SLV_138.1_SSU.tax"
-
+            clustering_method = "dada2"
+            if clustering=="vsearch":
+                clustering_method = "vsearch"
             # The following two is if we want to use
             # both the ___ and the SILVA database
             refDB = (
@@ -183,7 +187,7 @@ def generate_lotus2_report(region_nr, process_id, input_dir, region, debug):
                 "-taxAligner",
                 "blast",
                 "-clustering",
-                "dada2",
+                clustering_method,
                 "-LCA_cover",
                 "0.97",
                 "-derepMin",

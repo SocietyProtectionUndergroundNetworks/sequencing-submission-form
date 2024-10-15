@@ -1229,6 +1229,13 @@
                       <fieldset>
                         Debug: <input type="checkbox" id="debug-checkbox" name="debug"> <br>
                         <input type="submit" class="btn btn-primary" value="Generate">
+                        {% if region_data.region=='SSU' %}
+                          <label for="clustering">Clustering Method:</label>
+                          <select name="clustering" id="clustering">
+                              <option value="dada2">DADA2</option>
+                              <option value="vsearch">VSEARCH</option>
+                          </select>
+                        {% endif %}
                         <input type="hidden" name="process_id" value="{{ process_id }}">
                         <input type="hidden" name="region" value="{{ region_data.region }}">
                       </fieldset>
@@ -2691,6 +2698,12 @@
       formData.append('process_id', processId);
       formData.append('region', region);
       formData.append('debug', debug);
+
+      // Check if the clustering field exists and add it if present
+      var clustering = form.find('select[name="clustering"]').val();
+      if (clustering) {
+          formData.append('clustering', clustering);
+      }
 
       $.ajax({
           url: '/generate_lotus2_report',

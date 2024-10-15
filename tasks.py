@@ -18,10 +18,10 @@ from helpers.lotus2 import generate_lotus2_report
 
 @celery_app.task
 def generate_lotus2_report_async(
-    region_nr, process_id, input_dir, amplicon_type, debug
+    region_nr, process_id, input_dir, amplicon_type, debug, clustering
 ):
     generate_lotus2_report(
-        region_nr, process_id, input_dir, amplicon_type, debug
+        region_nr, process_id, input_dir, amplicon_type, debug, clustering
     )
 
 
