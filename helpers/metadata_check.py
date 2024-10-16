@@ -38,7 +38,11 @@ def get_columns_data():
                 value["options"] = []  # Handle missing or unsupported files
 
             # Check for allowAdminNA and if the user is an admin
-            if value.get("allowAdminNA") == "True" and current_user.admin:
+            if (
+                current_user.is_authenticated
+                and current_user.admin
+                and value.get("allowAdminNA") == "True"
+            ):
                 value["options"].append("NA")
 
     return data
