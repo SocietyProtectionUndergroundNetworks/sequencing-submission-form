@@ -217,6 +217,7 @@ def metadata_form():
         samples_data_complete = (
             SequencingUpload.get_samples_with_sequencers_and_files(process_id)
         )
+
         multiqc_report_exists = check_multiqc_report(process_id)
         mapping_files_exist = SequencingUpload.check_mapping_files_exist(
             process_id
@@ -1277,3 +1278,123 @@ def exclude_from_mapping():
         file_id, "exclude_from_mapping", exclude
     )
     return jsonify({"success": True, "file_id": file_id, "exclude": exclude})
+
+
+@metadata_bp.route(
+    "/upload_sequencer_ids_migration_file",
+    methods=["POST"],
+    endpoint="upload_sequencer_ids_migration_file",
+)
+@login_required
+@admin_required
+@approved_required
+def upload_sequencer_ids_migration_file():
+    file = request.files.get("file")
+    process_id = request.form.get("process_id")
+    if not file:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    # Read uploaded file and get its column names
+    filename = file.filename
+    file_extension = os.path.splitext(filename)[1].lower()
+
+    if file_extension == ".csv":
+        df = pd.read_csv(file)
+    else:
+        return jsonify({"error": "Unsupported file type"}), 400
+    df = df.dropna(how="all")
+
+    # Retrieve process samples and sequencer IDs
+    samples_data_complete = (
+        SequencingUpload.get_samples_with_sequencers_and_files(process_id)
+    )
+
+    result = []
+
+    # Iterate over each row in the DataFrame
+    for _, row in df.iterrows():
+        sample_id = row["sample_id"]
+        sequencer_id = row["sequencer_id"]
+
+        # Find the sample data for the current sample_id
+        sample_data = next(
+            (s for s in samples_data_complete if s["SampleID"] == sample_id),
+            None,
+        )
+        if not sample_data:
+            result.append(f"No sample found for sample_id: {sample_id}")
+            continue
+
+        # Check if the sequencer ID exists for this sample
+        existing_sequencer = next(
+            (
+                s
+                for s in sample_data["sequencer_ids"]
+                if s["SequencerID"] == sequencer_id
+            ),
+            None,
+        )
+
+        if not existing_sequencer:
+            # Create a new sequencer ID record since it doesn't exist
+            sequencer_data, existing = SequencingSequencerId.create(
+                sample_id=sample_data["id"],
+                sequencer_id=sequencer_id,
+                region=row["folder"],
+                index_1="",
+                index_2="",
+            )
+            result.append(
+                f"Created new sequencer ID "
+                f"{sequencer_id} for sample {sample_id}."
+            )
+            # Store the database ID of the newly created sequencer.
+            sequencer_db_id = sequencer_data
+        else:
+            sequencer_db_id = existing_sequencer[
+                "id"
+            ]  # Use the database ID of the existing sequencer.
+            result.append(
+                f"Existing sequencer ID {sequencer_id} "
+                f"found for sample {sample_id}."
+            )
+
+        # Handle the associated files
+        existing_files = [
+            file
+            for sequencer in sample_data["sequencer_ids"]
+            if sequencer["id"] == sequencer_db_id
+            for file in sequencer.get("uploaded_files", [])
+        ]
+
+        # Check if a file with the same original
+        # and new filename already exists
+        file_exists = any(
+            file["original_filename"] == row["old_filename"]
+            and file["new_name"] == row["new_filename"]
+            for file in existing_files
+        )
+
+        if not file_exists:
+            # Create a new file record in the database
+            file_dict = {
+                "original_filename": row["old_filename"],
+                "new_name": row["new_filename"],
+            }
+            SequencingFileUploaded.create(sequencer_db_id, file_dict)
+            result.append(
+                f"Created new file record with original filename "
+                f"'{row['old_filename']}' and new filename "
+                f"'{row['new_filename']}' for sample "
+                f"'{sample_id}' and sequencer ID "
+                f"'{sequencer_id}'."
+            )
+        else:
+            result.append(
+                f"File with original filename '{row['old_filename']}' "
+                f"already exists "
+                f"for sample '{sample_id}' "
+                f"and sequencer ID '{sequencer_id}'."
+            )
+
+    return jsonify({"result": 1, "messages": result}), 200
