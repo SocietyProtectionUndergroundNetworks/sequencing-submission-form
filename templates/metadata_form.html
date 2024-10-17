@@ -2564,9 +2564,22 @@
                 window.location.reload();
               }
           },
-          error: function(xhr, status, error) {
-              console.error('Error:', error);
-              $('#step_8_msg').html("<p>An error occurred while processing the file.</p>").removeClass('text-success').addClass('text-danger');
+          error: function(xhr) {
+              // Try to parse the JSON response from the server
+              let errorMessage = "An error occurred while processing the file.";
+              try {
+                  let response = JSON.parse(xhr.responseText);
+                  if (response.error) {
+                      errorMessage = response.error;
+                  }
+              } catch (e) {
+                  console.error('Failed to parse error response:', e);
+              }
+
+              $('#step_8_msg')
+                  .html(`<p>${errorMessage}</p>`)
+                  .removeClass('text-success')
+                  .addClass('text-danger');
 
               // Reset the file input
               fileInput.value = "";
@@ -2698,12 +2711,6 @@
       formData.append('process_id', processId);
       formData.append('region', region);
       formData.append('debug', debug);
-
-      // Check if the clustering field exists and add it if present
-      var clustering = form.find('select[name="clustering"]').val();
-      if (clustering) {
-          formData.append('clustering', clustering);
-      }
 
       $.ajax({
           url: '/generate_lotus2_report',
