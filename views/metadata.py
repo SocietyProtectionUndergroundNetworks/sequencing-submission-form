@@ -218,6 +218,14 @@ def metadata_form():
             SequencingUpload.get_samples_with_sequencers_and_files(process_id)
         )
 
+        # check if we have files without fastq report
+        has_empty_fastqc_report = any(
+            not file.get("fastqc_report")
+            for entry in samples_data_complete
+            for sequencer in entry.get("sequencer_ids", [])
+            for file in sequencer.get("uploaded_files", [])
+        )
+
         multiqc_report_exists = check_multiqc_report(process_id)
         mapping_files_exist = SequencingUpload.check_mapping_files_exist(
             process_id
@@ -247,6 +255,7 @@ def metadata_form():
         extra_data=extra_data,
         mapping_files_exist=mapping_files_exist,
         lotus2_report=lotus2_report,
+        has_empty_fastqc_report=has_empty_fastqc_report,
     )
 
 
@@ -930,10 +939,25 @@ def confirm_files_uploading_finished():
     endpoint="generate_multiqc_report",
 )
 @login_required
+@admin_required
 @approved_required
 def generate_multiqc_report():
     process_id = request.form.get("process_id")
     init_create_multiqc_report(process_id)
+    return []
+
+
+@metadata_bp.route(
+    "/generate_fastqc_reports",
+    methods=["POST"],
+    endpoint="generate_fastqc_reports",
+)
+@login_required
+@admin_required
+@approved_required
+def generate_fastqc_reports():
+    process_id = request.form.get("process_id")
+    SequencingUpload.get_samples_with_sequencers_and_files(process_id)
     return []
 
 
@@ -943,6 +967,7 @@ def generate_multiqc_report():
     endpoint="generate_mapping_files",
 )
 @login_required
+@admin_required
 @approved_required
 def generate_mapping_files():
     process_id = request.form.get("process_id")

@@ -9,7 +9,7 @@ import csv
 import re
 from collections import defaultdict
 from helpers.dbm import connect_db, get_session
-from helpers.fastqc import check_fastqc_report
+from helpers.fastqc import init_create_fastqc_report, check_fastqc_report
 from helpers.csv import get_sequences_based_on_primers, sanitize_string
 from helpers.bucket import check_file_exists_in_bucket
 from models.db_model import (
@@ -775,6 +775,68 @@ class SequencingUpload:
         # Close the session
         session.close()
         return result
+
+    @classmethod
+    def ensure_fastqc_reports(self, sequencingUploadId):
+        # Connect to the database and create a session
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        # Fetch the SequencingUpload instance
+        upload_instance = (
+            session.query(SequencingUploadsTable)
+            .filter_by(id=sequencingUploadId)
+            .first()
+        )
+
+        # If no instance is found, return early
+        if not upload_instance:
+            session.close()
+            return
+
+        # Access the 'project' field
+        bucket = upload_instance.project_id
+        uploads_folder = upload_instance.uploads_folder
+
+        # Fetch related uploaded files
+        uploaded_files = (
+            session.query(
+                SequencingFilesUploadedTable,
+                SequencingSamplesTable.id.label("sample_id"),
+                SequencingSequencerIDsTable.Region,
+            )
+            .join(
+                SequencingSequencerIDsTable,
+                SequencingFilesUploadedTable.sequencerId
+                == SequencingSequencerIDsTable.id,
+            )
+            .join(
+                SequencingSamplesTable,
+                SequencingSequencerIDsTable.sequencingSampleId
+                == SequencingSamplesTable.id,
+            )
+            .filter(
+                SequencingSamplesTable.sequencingUploadId == sequencingUploadId
+            )
+            .all()
+        )
+
+        # Iterate through the files and check for FastQC reports
+        for file, sample_id, region in uploaded_files:
+            # Check if the FastQC report exists
+            fastqc_report = check_fastqc_report(
+                file.new_name, bucket, region, uploads_folder
+            )
+
+            # If the report is missing, create it
+            if not fastqc_report:
+                processed_folder = f"seq_processed/{uploads_folder}"
+                init_create_fastqc_report(
+                    file.new_name, processed_folder, bucket, region
+                )
+
+        # Close the session
+        session.close()
 
     @classmethod
     def update_field(cls, id, fieldname, value):
