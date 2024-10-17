@@ -741,12 +741,7 @@ class SequencingUpload:
             fastqc_report = check_fastqc_report(
                 file.new_name, bucket, region, uploads_folder
             )
-            if not fastqc_report:
-                processed_folder = f"seq_processed/{uploads_folder}"
-                init_create_fastqc_report(
-                    file.new_name, processed_folder, bucket, region
-                )
-            else:
+            if fastqc_report:
                 # Check if the total_sequences_number is updated
                 if not file.total_sequences_number:
                     SequencingFileUploaded.update_total_sequences(file.id)

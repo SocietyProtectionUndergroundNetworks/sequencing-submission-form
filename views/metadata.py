@@ -1380,6 +1380,7 @@ def upload_sequencer_ids_migration_file():
             file_dict = {
                 "original_filename": row["old_filename"],
                 "new_name": row["new_filename"],
+                "bucket_upload_progress": "100",
             }
             SequencingFileUploaded.create(sequencer_db_id, file_dict)
             result.append(
