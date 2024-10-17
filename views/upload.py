@@ -707,6 +707,8 @@ def upload_csv():
 @approved_required
 def unzip_progress():
     process_id = request.args.get("process_id")
+    if int(process_id)==177:
+        return {}    
     file_id = request.args.get("file_id")
     progress = get_progress_db_unzip(process_id, file_id)
     gz_filedata = Upload.get_gz_filedata(process_id)
@@ -742,6 +744,8 @@ def unzip_progress():
 @approved_required
 def upload_progress():
     process_id = request.args.get("process_id")
+    if int(process_id)==177:
+        return {}    
     file_id = request.args.get("file_id")
     progress = get_progress_db_bucket(process_id, "gz_raw", file_id)
     gz_filedata = Upload.get_gz_filedata(process_id)
