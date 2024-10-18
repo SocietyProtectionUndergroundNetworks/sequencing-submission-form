@@ -120,6 +120,17 @@ def check_sample_id(sample_id):
     if not sample_id_str:
         return {"status": 0, "message": "SampleID cannot be empty"}
 
+    # Check if it contains invalid characters (anything other than
+    # letters, numbers, and underscores)
+    if not re.match(r"^[A-Za-z0-9_]+$", sample_id_str):
+        return {
+            "status": 0,
+            "message": (
+                "SampleID contains invalid characters. "
+                "Only letters, numbers, and underscores are allowed."
+            ),
+        }
+
     # Updated pattern to allow any combination of letters, numbers, and
     # underscores before the last underscore
     if current_user.admin:
