@@ -957,7 +957,7 @@ def generate_multiqc_report():
 @approved_required
 def generate_fastqc_reports():
     process_id = request.form.get("process_id")
-    SequencingUpload.get_samples_with_sequencers_and_files(process_id)
+    SequencingUpload.ensure_fastqc_reports(process_id)
     return []
 
 
