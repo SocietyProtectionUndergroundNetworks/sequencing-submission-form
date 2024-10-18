@@ -178,6 +178,7 @@ def metadata_form():
     extra_data_keys = set()
     multiqc_report_exists = False
     mapping_files_exist = False
+    has_empty_fastqc_report = False
     lotus2_report = []
 
     if process_id:
