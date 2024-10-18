@@ -839,6 +839,72 @@ class SequencingUpload:
         session.close()
 
     @classmethod
+    def ensure_bucket_upload_progress(self, sequencingUploadId):
+        # Connect to the database and create a session
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        # Fetch the SequencingUpload instance
+        upload_instance = (
+            session.query(SequencingUploadsTable)
+            .filter_by(id=sequencingUploadId)
+            .first()
+        )
+
+        # If no instance is found, return early
+        if not upload_instance:
+            session.close()
+            return
+
+        # Access the 'project' field
+        bucket = upload_instance.project_id
+        uploads_folder = upload_instance.uploads_folder
+
+        # Fetch related uploaded files
+        uploaded_files = (
+            session.query(
+                SequencingFilesUploadedTable,
+                SequencingSamplesTable.id.label("sample_id"),
+                SequencingSequencerIDsTable.Region,
+            )
+            .join(
+                SequencingSequencerIDsTable,
+                SequencingFilesUploadedTable.sequencerId
+                == SequencingSequencerIDsTable.id,
+            )
+            .join(
+                SequencingSamplesTable,
+                SequencingSequencerIDsTable.sequencingSampleId
+                == SequencingSamplesTable.id,
+            )
+            .filter(
+                SequencingSamplesTable.sequencingUploadId == sequencingUploadId
+            )
+            .all()
+        )
+
+        # Iterate through the files and check the bucket_upload_progress
+        for file, sample_id, region in uploaded_files:
+            if not file.bucket_upload_progress:
+                # Construct the local path to the processed file
+                processed_file_path = (
+                    f"seq_processed/{uploads_folder}/{file.new_name}"
+                )
+
+                # Start the chunked upload to the bucket
+                init_bucket_chunked_upload_v2(
+                    local_file_path=processed_file_path,
+                    destination_upload_directory=region,
+                    destination_blob_name=file.new_name,
+                    sequencer_file_id=file.id,
+                    bucket_name=bucket,
+                    known_md5=None,
+                )
+
+        # Close the session
+        session.close()
+
+    @classmethod
     def update_field(cls, id, fieldname, value):
         db_engine = connect_db()
         session = get_session(db_engine)

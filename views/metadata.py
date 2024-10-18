@@ -963,6 +963,21 @@ def generate_fastqc_reports():
 
 
 @metadata_bp.route(
+    "/ensure_bucket_uploads",
+    methods=["GET"],
+    endpoint="ensure_bucket_uploads",
+)
+@login_required
+@admin_required
+@approved_required
+def ensure_bucket_uploads():
+    process_id = request.form.get("process_id")
+    if process_id:
+        SequencingUpload.ensure_bucket_upload_progress(process_id)
+    return {}
+
+
+@metadata_bp.route(
     "/generate_mapping_files",
     methods=["POST"],
     endpoint="generate_mapping_files",
