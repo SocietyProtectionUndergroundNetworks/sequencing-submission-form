@@ -971,7 +971,7 @@ def generate_fastqc_reports():
 @admin_required
 @approved_required
 def ensure_bucket_uploads():
-    process_id = request.form.get("process_id")
+    process_id = request.args.get("process_id")
     if process_id:
         SequencingUpload.ensure_bucket_upload_progress(process_id)
     return {}

@@ -12,6 +12,7 @@ from helpers.dbm import connect_db, get_session
 from helpers.fastqc import init_create_fastqc_report, check_fastqc_report
 from helpers.csv import get_sequences_based_on_primers, sanitize_string
 from helpers.bucket import check_file_exists_in_bucket
+from helpers.file_renaming import calculate_md5
 from models.db_model import (
     SequencingUploadsTable,
     SequencingSamplesTable,
@@ -891,6 +892,14 @@ class SequencingUpload:
                     f"seq_processed/{uploads_folder}/{file.new_name}"
                 )
 
+                # Calculate MD5 if it is null
+                if not file.md5:
+                    file.md5 = calculate_md5(
+                        processed_file_path
+                    )  # Calculate MD5
+                    # Update the md5 field in the database
+                    session.commit()  # Commit the change to the database
+
                 # Start the chunked upload to the bucket
                 init_bucket_chunked_upload_v2(
                     local_file_path=processed_file_path,
@@ -898,7 +907,7 @@ class SequencingUpload:
                     destination_blob_name=file.new_name,
                     sequencer_file_id=file.id,
                     bucket_name=bucket,
-                    known_md5=None,
+                    known_md5=file.md5,  # Pass the calculated MD5
                 )
 
         # Close the session
