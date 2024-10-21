@@ -12,6 +12,7 @@ from helpers.dbm import connect_db, get_session
 from helpers.fastqc import init_create_fastqc_report, check_fastqc_report
 from helpers.csv import get_sequences_based_on_primers, sanitize_string
 from helpers.bucket import check_file_exists_in_bucket
+from helpers.file_renaming import calculate_md5
 from models.db_model import (
     SequencingUploadsTable,
     SequencingSamplesTable,
@@ -741,12 +742,7 @@ class SequencingUpload:
             fastqc_report = check_fastqc_report(
                 file.new_name, bucket, region, uploads_folder
             )
-            if not fastqc_report:
-                processed_folder = f"seq_processed/{uploads_folder}"
-                init_create_fastqc_report(
-                    file.new_name, processed_folder, bucket, region
-                )
-            else:
+            if fastqc_report:
                 # Check if the total_sequences_number is updated
                 if not file.total_sequences_number:
                     SequencingFileUploaded.update_total_sequences(file.id)
@@ -780,6 +776,142 @@ class SequencingUpload:
         # Close the session
         session.close()
         return result
+
+    @classmethod
+    def ensure_fastqc_reports(self, sequencingUploadId):
+        # Connect to the database and create a session
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        # Fetch the SequencingUpload instance
+        upload_instance = (
+            session.query(SequencingUploadsTable)
+            .filter_by(id=sequencingUploadId)
+            .first()
+        )
+
+        # If no instance is found, return early
+        if not upload_instance:
+            session.close()
+            return
+
+        # Access the 'project' field
+        bucket = upload_instance.project_id
+        uploads_folder = upload_instance.uploads_folder
+
+        # Fetch related uploaded files
+        uploaded_files = (
+            session.query(
+                SequencingFilesUploadedTable,
+                SequencingSamplesTable.id.label("sample_id"),
+                SequencingSequencerIDsTable.Region,
+            )
+            .join(
+                SequencingSequencerIDsTable,
+                SequencingFilesUploadedTable.sequencerId
+                == SequencingSequencerIDsTable.id,
+            )
+            .join(
+                SequencingSamplesTable,
+                SequencingSequencerIDsTable.sequencingSampleId
+                == SequencingSamplesTable.id,
+            )
+            .filter(
+                SequencingSamplesTable.sequencingUploadId == sequencingUploadId
+            )
+            .all()
+        )
+
+        # Iterate through the files and check for FastQC reports
+        for file, sample_id, region in uploaded_files:
+            # Check if the FastQC report exists
+            fastqc_report = check_fastqc_report(
+                file.new_name, bucket, region, uploads_folder
+            )
+
+            # If the report is missing, create it
+            if not fastqc_report:
+                processed_folder = f"seq_processed/{uploads_folder}"
+                init_create_fastqc_report(
+                    file.new_name, processed_folder, bucket, region
+                )
+
+        # Close the session
+        session.close()
+
+    @classmethod
+    def ensure_bucket_upload_progress(self, sequencingUploadId):
+        # Connect to the database and create a session
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        # Fetch the SequencingUpload instance
+        upload_instance = (
+            session.query(SequencingUploadsTable)
+            .filter_by(id=sequencingUploadId)
+            .first()
+        )
+
+        # If no instance is found, return early
+        if not upload_instance:
+            session.close()
+            return
+
+        # Access the 'project' field
+        bucket = upload_instance.project_id
+        uploads_folder = upload_instance.uploads_folder
+
+        # Fetch related uploaded files
+        uploaded_files = (
+            session.query(
+                SequencingFilesUploadedTable,
+                SequencingSamplesTable.id.label("sample_id"),
+                SequencingSequencerIDsTable.Region,
+            )
+            .join(
+                SequencingSequencerIDsTable,
+                SequencingFilesUploadedTable.sequencerId
+                == SequencingSequencerIDsTable.id,
+            )
+            .join(
+                SequencingSamplesTable,
+                SequencingSequencerIDsTable.sequencingSampleId
+                == SequencingSamplesTable.id,
+            )
+            .filter(
+                SequencingSamplesTable.sequencingUploadId == sequencingUploadId
+            )
+            .all()
+        )
+
+        # Iterate through the files and check the bucket_upload_progress
+        for file, sample_id, region in uploaded_files:
+            if not file.bucket_upload_progress:
+                # Construct the local path to the processed file
+                processed_file_path = (
+                    f"seq_processed/{uploads_folder}/{file.new_name}"
+                )
+
+                # Calculate MD5 if it is null
+                if not file.md5:
+                    file.md5 = calculate_md5(
+                        processed_file_path
+                    )  # Calculate MD5
+                    # Update the md5 field in the database
+                    session.commit()  # Commit the change to the database
+
+                # Start the chunked upload to the bucket
+                init_bucket_chunked_upload_v2(
+                    local_file_path=processed_file_path,
+                    destination_upload_directory=region,
+                    destination_blob_name=file.new_name,
+                    sequencer_file_id=file.id,
+                    bucket_name=bucket,
+                    known_md5=file.md5,  # Pass the calculated MD5
+                )
+
+        # Close the session
+        session.close()
 
     @classmethod
     def update_field(cls, id, fieldname, value):

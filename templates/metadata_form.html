@@ -722,14 +722,14 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            {% if files|length > 0 %}
+                                            {% if files|length > 1 %}
                                                 {% if files[1].total_sequences_number %}
                                                     {{ files[1].total_sequences_number }}
                                                 {% endif %}
                                             {% endif %}
                                         </td>
                                         <td>
-                                          {% if files|length > 0 %}
+                                          {% if files|length > 1 %}
                                             {% if is_admin %}
                                               <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
                                                      data-file-id="{{ files[1].id }}"
@@ -1104,20 +1104,40 @@
 
       <div id="step_10" class="form-step-item">
         <h3> Step 10: Admin only. Generate MultiQC report</h3>
-        <form
-          method="POST"
-          action="/generate_multiqc_report"
-          id="step_10_form"
-        >
-          <fieldset
-            {% if ((process_data and not process_data.files_uploading_confirmed) or (multiqc_report_exists)) %}
-             disabled="disabled"
-            {% endif %}
+        {% if has_empty_fastqc_report %}
+          <div> There are missing fastqc report files. Generate them first </div>
+          <form
+            method="POST"
+            action="/generate_fastqc_reports"
+            id="step_10_form_fastqc"
           >
-            <input type="submit" class="btn btn-primary" id="step_10_button">
-            <input type="hidden" name="process_id" value="{{ process_id }}">
-          </fieldset>
-        </form>
+            <fieldset
+              {% if ((process_data and not process_data.files_uploading_confirmed) or (multiqc_report_exists)) %}
+               disabled="disabled"
+              {% endif %}
+            >
+              <input type="submit" class="btn btn-primary" id="step_10_button_fastqc">
+              <input type="hidden" name="process_id" value="{{ process_id }}">
+            </fieldset>
+          </form>
+        {% else %}
+          <div> All fastqc report files accounted for. Generate the multiqc report </div>
+          <form
+            method="POST"
+            action="/generate_multiqc_report"
+            id="step_10_form"
+          >
+            <fieldset
+              {% if ((process_data and not process_data.files_uploading_confirmed) or (multiqc_report_exists)) %}
+               disabled="disabled"
+              {% endif %}
+            >
+              <input type="submit" class="btn btn-primary" id="step_10_button">
+              <input type="hidden" name="process_id" value="{{ process_id }}">
+            </fieldset>
+          </form>
+        {% endif %}
+
       </div>
     {% endif %}
 
@@ -1219,34 +1239,41 @@
                 <td>{{ region_data.region }}</td>
                 <td>
                   {{ region_data.report_status }}
-
-                  {% if not region_data.report_status %}
-                    <form
-                      method="POST"
-                      action="/generate_lotus2_report"
-                      class="step_12_form_run_report"
-                    >
-                      <fieldset>
-                        Debug: <input type="checkbox" id="debug-checkbox" name="debug"> <br>
-                        <input type="submit" class="btn btn-primary" value="Generate">
-                        <input type="hidden" name="process_id" value="{{ process_id }}">
-                        <input type="hidden" name="region" value="{{ region_data.region }}">
-                      </fieldset>
-                    </form>
-                  {% else %}
-                    <form
-                      method="POST"
-                      action="/delete_lotus2_report"
-                      class="step_12_form_delete_report"
-                    >
-                      <fieldset>
-                        <input type="submit" class="btn btn-primary" value="Delete">
-                        <input type="hidden" name="process_id" value="{{ process_id }}">
-                        <input type="hidden" name="region" value="{{ region_data.region }}">
-                      </fieldset>
-                    </form>
+                  {% if is_admin %}
+                    {% if not region_data.report_status %}
+                      <form
+                        method="POST"
+                        action="/generate_lotus2_report"
+                        class="step_12_form_run_report"
+                      >
+                        <fieldset>
+                          Debug: <input type="checkbox" id="debug-checkbox" name="debug"> <br>
+                          <input type="submit" class="btn btn-primary" value="Generate">
+                          {% if region_data.region=='SSU' %}
+                            <label for="clustering">Clustering Method:</label>
+                            <select name="clustering" id="clustering">
+                                <option value="dada2">DADA2</option>
+                                <option value="vsearch">VSEARCH</option>
+                            </select>
+                          {% endif %}
+                          <input type="hidden" name="process_id" value="{{ process_id }}">
+                          <input type="hidden" name="region" value="{{ region_data.region }}">
+                        </fieldset>
+                      </form>
+                    {% else %}
+                      <form
+                        method="POST"
+                        action="/delete_lotus2_report"
+                        class="step_12_form_delete_report"
+                      >
+                        <fieldset>
+                          <input type="submit" class="btn btn-primary" value="Delete">
+                          <input type="hidden" name="process_id" value="{{ process_id }}">
+                          <input type="hidden" name="region" value="{{ region_data.region }}">
+                        </fieldset>
+                      </form>
+                    {% endif %}
                   {% endif %}
-
                 </td>
                 <td>
                   {% if region_data.command_outcome %}
@@ -2557,9 +2584,22 @@
                 window.location.reload();
               }
           },
-          error: function(xhr, status, error) {
-              console.error('Error:', error);
-              $('#step_8_msg').html("<p>An error occurred while processing the file.</p>").removeClass('text-success').addClass('text-danger');
+          error: function(xhr) {
+              // Try to parse the JSON response from the server
+              let errorMessage = "An error occurred while processing the file.";
+              try {
+                  let response = JSON.parse(xhr.responseText);
+                  if (response.error) {
+                      errorMessage = response.error;
+                  }
+              } catch (e) {
+                  console.error('Failed to parse error response:', e);
+              }
+
+              $('#step_8_msg')
+                  .html(`<p>${errorMessage}</p>`)
+                  .removeClass('text-success')
+                  .addClass('text-danger');
 
               // Reset the file input
               fileInput.value = "";
@@ -2630,7 +2670,32 @@
           }
       });
   });
+  $('#step_10_form_fastqc').submit(function(event) {
+      event.preventDefault(); // Prevent default form submission
+      console.log('here, prevented default')
+      var formData = new FormData();
+      var form = $('#step_10_form_fastqc');
+      var processId = form.find('input[name="process_id"]').val();
+      formData.append('process_id', processId);
+      // Ask the user for confirmation
+      $.ajax({
+          url: '/generate_fastqc_reports',
+          type: 'POST',
+          data: formData,
+          contentType: false,
+          processData: false,
+          success: function(response) {
+              if (response.result=="ok") {
+                window.location.replace("/metadata_form?process_id=" + response.process_id);
+              }
+          },
+          error: function(xhr, status, error) {
+              console.error('Error:', error);
+              $('#step_10_msg').html("<p>An error occurred while processing the file.</p>").removeClass('text-success').addClass('text-danger');
 
+          }
+      });
+  });
 
   ////// ############################################# /////////
   ////// ############ STEP 10 ENDS HERE ############## /////////
@@ -2691,6 +2756,12 @@
       formData.append('process_id', processId);
       formData.append('region', region);
       formData.append('debug', debug);
+
+      // Check if the clustering field exists and add it if present
+      var clustering = form.find('select[name="clustering"]').val();
+      if (clustering) {
+          formData.append('clustering', clustering);
+      }
 
       $.ajax({
           url: '/generate_lotus2_report',
