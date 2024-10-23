@@ -81,7 +81,10 @@ def generate_lotus2_report(
         if region == "ITS2":
             container = client.containers.get("spun-lotus2")
             sdmopt = "/lotus2_files/sdm_miSeq_ITS.txt"
-            mapping_file = input_dir + "/mapping_files/ITS2_Mapping.txt"
+            input_dir = "/" + input_dir
+            mapping_file = (
+                "/app/" + input_dir + "/mapping_files/ITS2_Mapping.txt"
+            )
 
             logger.info(" - Here we will try the command")
             command = [
@@ -112,10 +115,11 @@ def generate_lotus2_report(
                 "-id",
                 "0.97",
             ]
+            command_str = "source activate lotus2_env && " + " ".join(command)
             logger.info(" - the command is: ")
-            logger.info(command)
+            logger.info(command_str)
             # Run the command inside the container
-            result = container.exec_run(command)
+            result = container.exec_run(["bash", "-c", command_str])
             logger.info(result.output)
 
             SequencingUpload.update_field(
@@ -130,31 +134,28 @@ def generate_lotus2_report(
             )
 
         elif region == "SSU":
+            # We used to define the container differently
+            # because we had two different versions of lotus2
             container = client.containers.get("spun-lotus2")
-            # SILVA ONLY
-            # The following two would be if we only
-            # wanted to use the SILVA database
-            refDB = (
-                "lotus2_files/SILVA/SILVA_138.2_SSURef_NR99_tax_silva.fasta.gz"
-            )
-            tax4refDB = "lotus2_files/SILVA/SLV_138.1_SSU.tax"
             clustering_method = "dada2"
             if clustering == "vsearch":
                 clustering_method = "vsearch"
             # The following two is if we want to use
             # both the ___ and the SILVA database
             refDB = (
-                "lotus2_files/vt_types_fasta_from_05-06-2019.qiime.fasta,"
-                "lotus2_files/SILVA/SLV_138.1_SSU.fasta"
+                "lotus2_files/vt_types_fasta_from_05-06-2019.qiime.fasta,SLV"
             )
 
-            tax4refDB = (
-                "/lotus2_files/vt_types_GF.txt,"
-                "lotus2_files/SILVA/SLV_138.1_SSU.tax"
-            )
+            tax4refDB = "/lotus2_files/vt_types_GF.txt"
 
-            sdmopt = "/usr/local/share/lotus2-2.28.1-1/configs/sdm_miSeq.txt"
-            mapping_file = input_dir + "/mapping_files/SSU_Mapping.txt"
+            sdmopt = (
+                "/home/condauser/miniconda/envs/lotus2_env/share/"
+                "lotus2-2.34.1-0/configs/sdm_miSeq.txt"
+            )
+            input_dir = "/" + input_dir
+            mapping_file = (
+                "/app/" + input_dir + "/mapping_files/SSU_Mapping.txt"
+            )
 
             logger.info(" - Here we will try the command")
             command = [
@@ -187,10 +188,11 @@ def generate_lotus2_report(
                 "-sdmopt",
                 sdmopt,
             ]
+            command_str = "source activate lotus2_env && " + " ".join(command)
             logger.info(" - the command is: ")
-            logger.info(command)
+            logger.info(command_str)
             # Run the command inside the container
-            result = container.exec_run(command)
+            result = container.exec_run(["bash", "-c", command_str])
             logger.info(result.output)
 
             SequencingUpload.update_field(
