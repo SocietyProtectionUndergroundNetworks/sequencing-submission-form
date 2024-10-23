@@ -79,13 +79,7 @@ def generate_lotus2_report(
         output_path = input_dir + "/lotus2_report/" + region
 
         if region == "ITS2":
-            container = client.containers.get("spun-lotus2_34")
-            refDB = (
-                "/lotus2_files/UNITE/sh_refs_qiime_ver10_97_04.04.2024.fasta"
-            )
-            tax4refDB = (
-                "/lotus2_files/UNITE/sh_taxonomy_qiime_ver10_97_04.04.2024.txt"
-            )
+            container = client.containers.get("spun-lotus2")
             sdmopt = "/lotus2_files/sdm_miSeq_ITS.txt"
             mapping_file = input_dir + "/mapping_files/ITS2_Mapping.txt"
 
@@ -100,9 +94,7 @@ def generate_lotus2_report(
                 "-m",
                 mapping_file,
                 "-refDB",
-                refDB,
-                "-tax4refDB",
-                tax4refDB,
+                "UNITE",
                 "-amplicon_type",
                 region,
                 "-LCA_idthresh",
@@ -138,7 +130,7 @@ def generate_lotus2_report(
             )
 
         elif region == "SSU":
-            container = client.containers.get("spun-lotus2_28")
+            container = client.containers.get("spun-lotus2")
             # SILVA ONLY
             # The following two would be if we only
             # wanted to use the SILVA database
