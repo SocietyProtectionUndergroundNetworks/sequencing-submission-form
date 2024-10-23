@@ -75,13 +75,12 @@ def generate_lotus2_report(
 
     try:
         # Run Lotus2 inside the 'spun-lotus2' container
-
+        input_dir = "/" + input_dir
         output_path = input_dir + "/lotus2_report/" + region
 
         if region == "ITS2":
             container = client.containers.get("spun-lotus2")
             sdmopt = "/lotus2_files/sdm_miSeq_ITS.txt"
-            input_dir = "/" + input_dir
             mapping_file = (
                 "/app/" + input_dir + "/mapping_files/ITS2_Mapping.txt"
             )
@@ -152,7 +151,6 @@ def generate_lotus2_report(
                 "/home/condauser/miniconda/envs/lotus2_env/share/"
                 "lotus2-2.34.1-0/configs/sdm_miSeq.txt"
             )
-            input_dir = "/" + input_dir
             mapping_file = (
                 "/app/" + input_dir + "/mapping_files/SSU_Mapping.txt"
             )
