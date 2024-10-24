@@ -86,20 +86,11 @@ COPY config/docker/lotus2/autoInstall.pl /home/condauser/miniconda/envs/lotus2_e
 # Make the autoInstall.pl script executable
 # RUN chmod +x /home/condauser/miniconda/envs/lotus2_env/share/lotus2-2.34.1-0/autoInstall2.pl
 
-# Run the autoInstall.pl script directly (optional for testing)
+# Run the autoInstall.pl script directly
 RUN /home/condauser/miniconda/envs/lotus2_env/share/lotus2-2.34.1-0/autoInstall2.pl > /home/condauser/autoInstall.log 2>&1
 
 # Clean up conda packages to reduce image size
 RUN conda clean -afy
 
-# Accept user details as arguments
-ARG FLASK_PROCESS_USER
-ARG FLASK_PROCESS_USER_ID
-ARG FLASK_PROCESS_GROUP_ID
-
-# Create the Flask user with the specified UID and GID
-RUN groupadd -g ${FLASK_PROCESS_GROUP_ID} ${FLASK_PROCESS_USER} \
-    && useradd -u ${FLASK_PROCESS_USER_ID} -g ${FLASK_PROCESS_GROUP_ID} -m ${FLASK_PROCESS_USER}
-
-# Specify the default command (optional)
+# Specify the default command
 CMD ["/bin/bash"]

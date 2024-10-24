@@ -1,8 +1,6 @@
 import docker
 import logging
 import shutil
-import os
-import subprocess
 from datetime import datetime
 
 # PROCESS_DIR =
@@ -83,9 +81,7 @@ def generate_lotus2_report(
         if region == "ITS2":
             container = client.containers.get("spun-lotus2")
             sdmopt = "/lotus2_files/sdm_miSeq_ITS.txt"
-            mapping_file = (
-                "/app/" + input_dir + "/mapping_files/ITS2_Mapping.txt"
-            )
+            mapping_file = input_dir + "/mapping_files/ITS2_Mapping.txt"
 
             logger.info(" - Here we will try the command")
             command = [
@@ -153,9 +149,7 @@ def generate_lotus2_report(
                 "/home/condauser/miniconda/envs/lotus2_env/share/"
                 "lotus2-2.34.1-0/configs/sdm_miSeq.txt"
             )
-            mapping_file = (
-                "/app/" + input_dir + "/mapping_files/SSU_Mapping.txt"
-            )
+            mapping_file = input_dir + "/mapping_files/SSU_Mapping.txt"
 
             logger.info(" - Here we will try the command")
             command = [
@@ -194,11 +188,6 @@ def generate_lotus2_report(
             # Run the command inside the container
             result = container.exec_run(["bash", "-c", command_str])
             logger.info(result.output)
-
-            # Change ownership of the report files
-            flask_user_id = os.getenv("FLASK_PROCESS_USER_ID")
-            flask_group_id = os.getenv("FLASK_PROCESS_GROUP_ID")
-            change_ownership(output_path, flask_user_id, flask_group_id)
 
             SequencingUpload.update_field(
                 process_id,
@@ -265,11 +254,3 @@ def delete_generated_lotus2_report(region_nr, process_id, input_dir, region):
     shutil.rmtree(output_path)
 
     return {"msg": "Process initiated"}
-
-
-# Define the function to change ownership of generated files
-def change_ownership(path, user_id, group_id):
-    # Use subprocess to recursively change ownership
-    # of the directory and its contents
-    command = f"chown -R {user_id}:{group_id} {path}"
-    subprocess.run(command, shell=True, check=True)
