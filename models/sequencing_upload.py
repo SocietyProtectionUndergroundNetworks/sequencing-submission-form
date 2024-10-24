@@ -1047,7 +1047,7 @@ class SequencingUpload:
             ecosystem = info["ecosystem"]
             sample_or_control = info["sample_or_control"]
             sequencing_run = (
-                info["sequencing_run"] if info["sequencing_run"] else "NA"
+                info["sequencing_run"] if info["sequencing_run"] else "Run_1"
             )
 
             for region, files in info["files"].items():
@@ -1060,6 +1060,16 @@ class SequencingUpload:
 
                     forward_primer = region_dict[region]["Forward Primer"]
                     reverse_primer = region_dict[region]["Reverse Primer"]
+
+                    # If Sample_or_Control is "Control"
+                    # set the relevant fields to empty strings
+                    if sample_or_control == "Control":
+                        latitude = ""
+                        longitude = ""
+                        country = ""
+                        vegetation = ""
+                        land_use = ""
+                        ecosystem = ""
 
                     # Add row to region data
                     region_data[region].append(
