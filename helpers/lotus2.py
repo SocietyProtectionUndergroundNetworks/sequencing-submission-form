@@ -140,14 +140,14 @@ def generate_lotus2_report(
             # The following two is if we want to use
             # both the ___ and the SILVA database
             refDB = (
-                "lotus2_files/vt_types_fasta_from_05-06-2019.qiime.fasta,SLV"
+                "/lotus2_files/vt_types_fasta_from_05-06-2019.qiime.fasta,SLV"
             )
 
             tax4refDB = "/lotus2_files/vt_types_GF.txt"
 
             sdmopt = (
                 "/home/condauser/miniconda/envs/lotus2_env/share/"
-                "lotus2-2.34.1-0/configs/sdm_miSeq.txt"
+                "lotus2-2.34.1-0/configs/sdm_miSeq2.txt"
             )
             mapping_file = input_dir + "/mapping_files/SSU_Mapping.txt"
 
@@ -178,7 +178,7 @@ def generate_lotus2_report(
                 "-LCA_cover",
                 "0.97",
                 "-derepMin",
-                "6:1,4:2,3:3",
+                "10:1,5:2,3:3",
                 "-sdmopt",
                 sdmopt,
             ]
