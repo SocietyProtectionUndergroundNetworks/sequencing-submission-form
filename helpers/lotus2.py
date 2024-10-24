@@ -1,6 +1,8 @@
 import docker
 import logging
 import shutil
+import os
+import subprocess
 from datetime import datetime
 
 # PROCESS_DIR =
@@ -193,6 +195,11 @@ def generate_lotus2_report(
             result = container.exec_run(["bash", "-c", command_str])
             logger.info(result.output)
 
+            # Change ownership of the report files
+            flask_user_id = os.getenv("FLASK_PROCESS_USER_ID")
+            flask_group_id = os.getenv("FLASK_PROCESS_GROUP_ID")
+            change_ownership(output_path, flask_user_id, flask_group_id)
+
             SequencingUpload.update_field(
                 process_id,
                 "region_" + str(region_nr) + "_lotus2_report_status",
@@ -258,3 +265,11 @@ def delete_generated_lotus2_report(region_nr, process_id, input_dir, region):
     shutil.rmtree(output_path)
 
     return {"msg": "Process initiated"}
+
+
+# Define the function to change ownership of generated files
+def change_ownership(path, user_id, group_id):
+    # Use subprocess to recursively change ownership
+    # of the directory and its contents
+    command = f"chown -R {user_id}:{group_id} {path}"
+    subprocess.run(command, shell=True, check=True)

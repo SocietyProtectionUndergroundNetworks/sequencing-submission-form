@@ -40,6 +40,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile-lotus2
+      args:
+        FLASK_PROCESS_USER: ${FLASK_PROCESS_USER}
+        FLASK_PROCESS_USER_ID: ${FLASK_PROCESS_USER_ID}
+        FLASK_PROCESS_GROUP_ID: ${FLASK_PROCESS_GROUP_ID}
+    environment:
+      FLASK_PROCESS_USER: ${FLASK_PROCESS_USER}
+      FLASK_PROCESS_USER_ID: ${FLASK_PROCESS_USER_ID}
+      FLASK_PROCESS_GROUP_ID: ${FLASK_PROCESS_GROUP_ID}      
     container_name: spun-lotus2
     volumes:
       - ./seq_processed:/seq_processed  #v2 processed files
