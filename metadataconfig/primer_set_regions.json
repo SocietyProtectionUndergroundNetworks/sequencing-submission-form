@@ -53,7 +53,12 @@
     "Region": "ITS2",
     "Forward Primer": "GTGAATCATCGAATCTTTGAA",
     "Reverse Primer": "TCCTCCGCTTATTGATATGC"
-  },  
+  },
+  "AMV4-5NF/AMDGR": {
+    "Region": "SSU",
+    "Forward Primer": "AAGCTCGTAGTTGAATTTCG",
+    "Reverse Primer": "CCCAACTATCCCTATTAATCAT"
+  },
   "Other": {
     "Region": "Other",
     "Forward Primer": "",
