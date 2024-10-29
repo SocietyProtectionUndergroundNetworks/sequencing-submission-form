@@ -319,11 +319,11 @@ class SequencingFileUploaded:
             # Determine if result.new_name is the
             # first or second in the sorted list
             if result.new_name == new_names[0]:
-                logger.info("result.new_name is the first file.")
+                # logger.info("result.new_name is the first file.")
                 # You can also assign a variable if needed
                 sequence = region_sequences["Forward Primer"]
             elif result.new_name == new_names[1]:
-                logger.info("result.new_name is the second file.")
+                # logger.info("result.new_name is the second file.")
                 # Assign a variable if needed
                 sequence = region_sequences["Reverse Primer"]
             else:
@@ -340,9 +340,9 @@ class SequencingFileUploaded:
             primer_occurrences_count = count_primer_occurrences(
                 abs_path, sequence
             )
-            logger.info(primer_occurrences_count)
 
             if isinstance(primer_occurrences_count, int):
+                logger.info("id: " + str(id))
                 cls.update_field(
                     id, "primer_occurrences_count", primer_occurrences_count
                 )
