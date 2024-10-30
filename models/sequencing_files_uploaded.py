@@ -104,8 +104,6 @@ class SequencingFileUploaded:
 
         session.close()
 
-        cls.update_primer_occurrences_count(new_file_upload_id)
-
         return new_file_upload_id
 
     @classmethod
