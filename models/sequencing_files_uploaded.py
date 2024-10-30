@@ -311,6 +311,7 @@ class SequencingFileUploaded:
             )
             .all()
         )
+        session.close()
         new_names = [file.new_name for file in result_files]
         # Check if there are exactly two files
         if len(new_names) == 2:
@@ -352,4 +353,5 @@ class SequencingFileUploaded:
         else:
             logger.info("There are not exactly two files.")
 
+        session.close()
         return []
