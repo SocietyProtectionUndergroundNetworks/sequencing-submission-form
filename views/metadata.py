@@ -1440,3 +1440,22 @@ def upload_sequencer_ids_migration_file():
             )
 
     return jsonify({"result": 1, "messages": result}), 200
+
+
+@metadata_bp.route(
+    "/reset_primers_count",
+    methods=["GET"],
+    endpoint="reset_primers_count",
+)
+@login_required
+@admin_required
+@approved_required
+def reset_primers_count():
+    process_id = request.args.get("process_id")
+
+    if process_id:
+        SequencingUpload.reset_primers_count(process_id)
+        return redirect(
+            url_for("metadata.metadata_form", process_id=process_id)
+            + "#step_9"
+        )

@@ -297,7 +297,7 @@ class SequencingFileUploaded:
             forward_primer,
             reverse_primer,
         )
-        logger.info(region_sequences)
+        # logger.info(region_sequences)
 
         # Find out if this is the forward or reverse file
         # Files with this sequencer ID

@@ -1265,3 +1265,12 @@ class SequencingUpload:
             results.append(region_result)
 
         return results
+
+    @classmethod
+    def reset_primers_count(cls, id):
+        files = cls.get_uploaded_files(id)
+        for file in files:
+            # SequencingFileUploaded.update_field(
+            #    file["id"], "primer_occurrences_count", None
+            # )
+            SequencingFileUploaded.update_primer_occurrences_count(file["id"])
