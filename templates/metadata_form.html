@@ -1109,6 +1109,7 @@
             enctype="multipart/form-data"
           >
             <input type="input" id="step_8_direct_directory" name="step_8_direct_directory" />
+            <input type="input" id="step_8_sequencing_run" name="step_8_sequencing_run" />
             <input type="hidden" name="process_id" value="{{ process_id }}">
             <button type="button" class="btn btn-secondary" id="step_8_form_process_server_file_button" data-process_id="{{ process_id }}">Process local directory</button>
           </form>
@@ -2537,6 +2538,7 @@
 
         // Get the form data
         var directoryName = $('#step_8_direct_directory').val();
+        var sequencingRun = $('#step_8_sequencing_run').val();
         var processId = $('input[name="process_id"]').val();
         console.log('We will try to process the directory:')
         console.log(directoryName)
@@ -2547,7 +2549,8 @@
           type: 'POST',
           data: {
             directory_name: directoryName,
-            process_id: processId
+            process_id: processId,
+            sequencing_run: sequencingRun
           },
           success: function(response) {
             // Handle the response from the server

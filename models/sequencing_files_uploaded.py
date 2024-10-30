@@ -351,7 +351,10 @@ class SequencingFileUploaded:
 
             return primer_occurrences_count
         else:
+            logger.info("While trying the id: " + str(id))
             logger.info("There are not exactly two files.")
+            logger.info("The new names is:")
+            logger.info(new_names)
 
         session.close()
         return []
