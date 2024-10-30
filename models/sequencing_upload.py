@@ -746,10 +746,6 @@ class SequencingUpload:
                 # Check if the total_sequences_number is updated
                 if not file.total_sequences_number:
                     SequencingFileUploaded.update_total_sequences(file.id)
-                if file.primer_occurrences_count is None:
-                    SequencingFileUploaded.update_primer_occurrences_count(
-                        file.id
-                    )
 
             sequencer_id = file.sequencerId
             if sample_id not in uploaded_files_dict:
