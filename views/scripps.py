@@ -205,7 +205,9 @@ def scripps_upload_sequencing_file():
                 existing_upload = SequencingCompanyUpload.get(upload_id)
                 if existing_upload:
                     # Update the existing upload's filename
-                    SequencingCompanyUpload.update_field(upload_id, 'csv_filename', filename)
+                    SequencingCompanyUpload.update_field(
+                        upload_id, "csv_filename", filename
+                    )
                 else:
                     logger.error("Upload ID does not exist")
                     return {"error": "Upload ID does not exist"}, 400
