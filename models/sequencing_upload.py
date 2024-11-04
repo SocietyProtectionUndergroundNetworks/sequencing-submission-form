@@ -126,7 +126,7 @@ class SequencingUpload:
             uploads_folder = filtered_dict["uploads_folder"]
             if uploads_folder:
                 total_size, fastq_count = cls.get_directory_size(
-                    os.path.join("seq_uploads", uploads_folder)
+                    os.path.join("seq_processed", uploads_folder)
                 )
                 upload.total_uploads_file_size = total_size
                 upload.nr_fastq_files = fastq_count

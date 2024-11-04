@@ -48,7 +48,6 @@
           <th scope="col">Nr of Sequencer IDs</th>
           <th scope="col">Nr of files per sequence</th>
           <th scope="col">Nr of files</th>
-          <th scope="col">Files size uploads folder</th>
           <th scope="col">Files size processing folder</th>
           <th scope="col">Reviewed by admin</th>
           {% if is_admin %}
@@ -105,9 +104,6 @@
               <td>{{ upload.nr_files_per_sequence }}</td>
               <td class="{% if upload.nr_fastq_files < (upload.nr_sequencer_ids * upload.nr_files_per_sequence) %}text-danger{% endif %}">
                   {{ upload.nr_fastq_files }}
-              </td>
-              <td>
-                {{ '%.1f' | format(upload.total_uploads_file_size / (1024*1024)) }} MB
               </td>
               <td>
                 {{ '%.1f' | format(upload.total_uploads_file_size / (1024*1024)) }} MB
