@@ -94,7 +94,7 @@
                   {{ upload.regions[1] }} <br>
                 {% endif %}
               </td>
-              <td class="{{ 'text-success' if upload.region_1_plyloseq_exists else 'text-danger' }}">
+              <td class="{{ 'text-success' if upload.region_2_plyloseq_exists else 'text-danger' }}">
                 {% if upload.regions|length > 1 %}
                   {{ upload.region_2_plyloseq_exists }}
                 {% endif %}
