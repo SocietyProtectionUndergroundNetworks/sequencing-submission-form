@@ -1092,7 +1092,7 @@ def sequencing_process_server_file():
         # Initialize the report list and a counter for processed files
         report = []
         processed_files_count = 0
-        max_files_to_process = 50
+        max_files_to_process = 150
 
         # Loop through files in the directory
         for file_path in full_directory_path.iterdir():
