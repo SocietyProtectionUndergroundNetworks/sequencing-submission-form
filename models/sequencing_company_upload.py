@@ -141,7 +141,6 @@ class SequencingCompanyUpload:
 
         return new_upload_id
 
-
     @classmethod
     def update_field(cls, id, fieldname, value):
         db_engine = connect_db()
@@ -149,7 +148,9 @@ class SequencingCompanyUpload:
 
         # Fetch the existing record
         upload_db = (
-            session.query(SequencingCompanyUploadTable).filter_by(id=id).first()
+            session.query(SequencingCompanyUploadTable)
+            .filter_by(id=id)
+            .first()
         )
 
         if not upload_db:
