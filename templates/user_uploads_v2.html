@@ -41,12 +41,19 @@
           <th scope="col">Uploads folder</th>
           <th scope="col">Nr of Samples</th>
           <th scope="col">Nr of Regions</th>
+          <th scope="col">Region 1</th>
+          <th scope="col">Phyloseq 1 exists</th>
+          <th scope="col">Region 2</th>
+          <th scope="col">Phyloseq 2 exists</th>
           <th scope="col">Nr of Sequencer IDs</th>
           <th scope="col">Nr of files per sequence</th>
           <th scope="col">Nr of files</th>
           <th scope="col">Files size uploads folder</th>
           <th scope="col">Files size processing folder</th>
           <th scope="col">Reviewed by admin</th>
+          {% if is_admin %}
+            <th scope="col">Delete</th>
+          {% endif %}
         </tr>
       </thead>
       <tbody id="files_body">
@@ -56,23 +63,42 @@
                 <a href="/metadata_form?process_id={{ upload.id }}">
                   {{ upload.id }}
                 </a>
-                {% if is_admin %}
-                  <br><a href="#" class="text-danger delete-upload" data-process-id="{{ upload.id }}" data-user-id="{{ user_id }}" data-order-by="{{ order_by }}">
-                      X
-                  </a>
-                {% endif %}
               </td>
               {% if not user_id %}
                 <td>{{ upload.user_name }}</td>
                 <td>{{ upload.user_email }}</td>
               {% endif %}
-              <td>{{ upload.project_id }}</td>            
+              <td>
+                  <a href="/metadata_form?process_id={{ upload.id }}">
+                    {{ upload.project_id }}
+                  </a>
+              </td>            
               <td>{{ upload.created_at }}</td>
               <td>{{ upload.updated_at }}</td>
               <td>{{ upload.using_scripps }}</td>
               <td>{{ upload.uploads_folder }}</td>
               <td>{{ upload.nr_samples }}</td>
               <td>{{ upload.nr_regions }}</td>
+              <td>
+                {% if upload.regions|length > 0 %}
+                  {{ upload.regions[0] }}
+                {% endif %}
+              </td>
+              <td class="{{ 'text-success' if upload.region_1_plyloseq_exists else 'text-danger' }}">
+                {% if upload.regions|length > 0 %}
+                  {{ upload.region_1_plyloseq_exists }}
+                {% endif %}
+              </td>
+              <td>
+                {% if upload.regions|length > 1 %}
+                  {{ upload.regions[1] }} <br>
+                {% endif %}
+              </td>
+              <td class="{{ 'text-success' if upload.region_1_plyloseq_exists else 'text-danger' }}">
+                {% if upload.regions|length > 1 %}
+                  {{ upload.region_2_plyloseq_exists }}
+                {% endif %}
+              </td>              
               <td class="{% if upload.nr_sequencer_ids < (upload.nr_samples * upload.nr_regions) %}text-danger{% endif %}">
                   {{ upload.nr_sequencer_ids }}
               </td>
@@ -101,6 +127,13 @@
                   {{ upload.reviewed_by_admin }}
                 {% endif %}
               </td>
+              {% if is_admin %}
+                <td>
+                  <a href="#" class="text-danger delete-upload" data-process-id="{{ upload.id }}" data-user-id="{{ user_id }}" data-order-by="{{ order_by }}">
+                    X
+                  </a>
+                </td>
+              {% endif %}              
           </tr>
         {% endfor %}
       </tbody>

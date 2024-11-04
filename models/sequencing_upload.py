@@ -142,6 +142,25 @@ class SequencingUpload:
             )
             upload.nr_samples = nr_samples
 
+            upload.region_1_plyloseq_exists = False
+            upload.region_2_plyloseq_exists = False
+            for index, region in enumerate(upload.regions):
+                if uploads_folder:
+                    phyloseq_file = os.path.join(
+                        "seq_processed",
+                        uploads_folder,
+                        "lotus2_report",
+                        region,
+                        "phyloseq.Rdata",
+                    )
+                    file_exists = os.path.isfile(phyloseq_file)
+                    if file_exists:
+                        setattr(
+                            upload,
+                            f"region_{index+1}_plyloseq_exists",
+                            file_exists,
+                        )
+
             # Count the number of sequencer IDs associated with this upload
             nr_sequencer_ids = (
                 session.query(SequencingSequencerIDsTable)
