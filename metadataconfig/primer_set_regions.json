@@ -42,7 +42,7 @@
   "ITS5/ITS2": {
     "Region": "ITS1",
     "Forward Primer": "GGAAGTAAAAGTCGTAACAAGG",
-    "Reverse Primer": "TCCTCCGCTTATTGATATGC"
+    "Reverse Primer": "GCTGCGTTCTTCATCGATGC"
   },
   "AML1/AML2": {
     "Region": "SSU",
