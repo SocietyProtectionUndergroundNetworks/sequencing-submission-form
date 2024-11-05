@@ -245,7 +245,9 @@ class SequencingSequencerId:
         }
 
     @classmethod
-    def get_matching_sequencer_ids(cls, process_id, filename):
+    def get_matching_sequencer_ids(
+        cls, process_id, filename, sequencing_run=None
+    ):
         db_engine = connect_db()
         session = get_session(db_engine)
         matching_ids = []
@@ -255,8 +257,8 @@ class SequencingSequencerId:
             filename_no_ext = filename[:-9]  # Remove the .fastq.gz suffix
 
             # Query to get all ids and SequencerIDs
-            # related to the given process_id
-            sequencer_ids = (
+            # Start building the query
+            query = (
                 session.query(
                     SequencingSequencerIDsTable.id,
                     SequencingSequencerIDsTable.SequencerID,
@@ -265,8 +267,16 @@ class SequencingSequencerId:
                 .filter(
                     SequencingSamplesTable.sequencingUploadId == process_id
                 )
-                .all()
             )
+
+            # Apply additional filter if sequencing_run is not None
+            if sequencing_run is not None:
+                query = query.filter(
+                    SequencingSamplesTable.SequencingRun == sequencing_run
+                )
+
+            # Execute the query and retrieve results
+            sequencer_ids = query.all()
 
             # Extract id and SequencerID pairs from the query result
             sequencer_ids = [(id, seq_id) for id, seq_id in sequencer_ids]

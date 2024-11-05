@@ -81,14 +81,19 @@ def approved_required(view_func):
 
 
 def process_uploaded_file(
-    process_id, source_directory, filename, expected_md5, process_data
+    process_id,
+    source_directory,
+    filename,
+    expected_md5,
+    process_data,
+    sequencing_run=None,
 ):
     uploads_folder = process_data["uploads_folder"]
     final_file_path = f"{source_directory}/{filename}"
 
     # Save into the database the file
     matching_sequencer_ids = SequencingSequencerId.get_matching_sequencer_ids(
-        process_id, filename
+        process_id, filename, sequencing_run
     )
 
     # Assign the file to the correct sequencer in
@@ -1069,6 +1074,7 @@ def delete_mapping_file():
 def sequencing_process_server_file():
     process_id = request.form.get("process_id")
     directory_name = request.form.get("directory_name")
+    sequencing_run = request.form.get("sequencing_run")
 
     if process_id:
         process_data = SequencingUpload.get(process_id)
@@ -1086,7 +1092,7 @@ def sequencing_process_server_file():
         # Initialize the report list and a counter for processed files
         report = []
         processed_files_count = 0
-        max_files_to_process = 50
+        max_files_to_process = 150
 
         # Loop through files in the directory
         for file_path in full_directory_path.iterdir():
@@ -1110,6 +1116,7 @@ def sequencing_process_server_file():
                     filename=file_path.name,
                     expected_md5=actual_md5,
                     process_data=process_data,
+                    sequencing_run=sequencing_run,
                 )
 
                 # Only increment the counter if file was successfully processed
@@ -1440,3 +1447,22 @@ def upload_sequencer_ids_migration_file():
             )
 
     return jsonify({"result": 1, "messages": result}), 200
+
+
+@metadata_bp.route(
+    "/reset_primers_count",
+    methods=["GET"],
+    endpoint="reset_primers_count",
+)
+@login_required
+@admin_required
+@approved_required
+def reset_primers_count():
+    process_id = request.args.get("process_id")
+
+    if process_id:
+        SequencingUpload.reset_primers_count(process_id)
+        return redirect(
+            url_for("metadata.metadata_form", process_id=process_id)
+            + "#step_9"
+        )

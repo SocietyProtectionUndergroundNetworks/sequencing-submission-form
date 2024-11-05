@@ -126,7 +126,7 @@ class SequencingUpload:
             uploads_folder = filtered_dict["uploads_folder"]
             if uploads_folder:
                 total_size, fastq_count = cls.get_directory_size(
-                    os.path.join("seq_uploads", uploads_folder)
+                    os.path.join("seq_processed", uploads_folder)
                 )
                 upload.total_uploads_file_size = total_size
                 upload.nr_fastq_files = fastq_count
@@ -141,6 +141,25 @@ class SequencingUpload:
                 .count()
             )
             upload.nr_samples = nr_samples
+
+            upload.region_1_plyloseq_exists = False
+            upload.region_2_plyloseq_exists = False
+            for index, region in enumerate(upload.regions):
+                if uploads_folder:
+                    phyloseq_file = os.path.join(
+                        "seq_processed",
+                        uploads_folder,
+                        "lotus2_report",
+                        region,
+                        "phyloseq.Rdata",
+                    )
+                    file_exists = os.path.isfile(phyloseq_file)
+                    if file_exists:
+                        setattr(
+                            upload,
+                            f"region_{index+1}_plyloseq_exists",
+                            file_exists,
+                        )
 
             # Count the number of sequencer IDs associated with this upload
             nr_sequencer_ids = (
@@ -1047,7 +1066,7 @@ class SequencingUpload:
             ecosystem = info["ecosystem"]
             sample_or_control = info["sample_or_control"]
             sequencing_run = (
-                info["sequencing_run"] if info["sequencing_run"] else "NA"
+                info["sequencing_run"] if info["sequencing_run"] else "Run_1"
             )
 
             for region, files in info["files"].items():
@@ -1060,6 +1079,16 @@ class SequencingUpload:
 
                     forward_primer = region_dict[region]["Forward Primer"]
                     reverse_primer = region_dict[region]["Reverse Primer"]
+
+                    # If Sample_or_Control is "Control"
+                    # set the relevant fields to empty strings
+                    if sample_or_control == "Control":
+                        latitude = ""
+                        longitude = ""
+                        country = ""
+                        vegetation = ""
+                        land_use = ""
+                        ecosystem = ""
 
                     # Add row to region data
                     region_data[region].append(
@@ -1251,3 +1280,12 @@ class SequencingUpload:
             results.append(region_result)
 
         return results
+
+    @classmethod
+    def reset_primers_count(cls, id):
+        files = cls.get_uploaded_files(id)
+        for file in files:
+            # SequencingFileUploaded.update_field(
+            #    file["id"], "primer_occurrences_count", None
+            # )
+            SequencingFileUploaded.update_primer_occurrences_count(file["id"])

@@ -1,0 +1,96 @@
+# Start with a lightweight base image
+FROM ubuntu:22.04
+
+# Set the environment variables for non-interactive installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Update package list
+RUN apt-get update
+
+# Install wget for downloading files
+RUN apt-get install -y wget
+
+# Install bzip2 for decompressing files (often used with conda packages)
+RUN apt-get install -y bzip2
+
+# Install ca-certificates to ensure HTTPS requests can be made securely
+RUN apt-get install -y ca-certificates
+
+# Install curl for transferring data with URLs (useful for fetching scripts or files)
+RUN apt-get install -y curl
+
+# Install git for version control (needed for cloning repositories or managing code)
+RUN apt-get install -y git
+
+# Install necessary libraries for graphical applications and dependencies
+RUN apt-get install -y libglib2.0-0 \
+    libxext6 \
+    libsm6 \
+    libxrender1
+
+# Install sudo to allow the user to run commands with elevated privileges if needed
+RUN apt-get install -y sudo
+
+# Install R and Rscript
+RUN apt-get install -y r-base
+
+# Install additional libraries that may be needed
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libboost-all-dev \
+    libxml2-dev \
+    libcurl4-openssl-dev \
+    zlib1g-dev \
+    libgomp1
+
+# Clean up the apt cache to reduce image size
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Create a new user to avoid running as root
+RUN useradd -ms /bin/bash condauser
+
+# Switch to this user
+USER condauser
+WORKDIR /home/condauser
+
+# Download and install Miniconda
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+
+RUN bash miniconda.sh -b -p $HOME/miniconda 
+
+RUN rm miniconda.sh
+
+# Update PATH to include conda
+ENV PATH="/home/condauser/miniconda/bin:$PATH"
+
+# Configure conda to add necessary channels for Lotus2
+RUN conda config --add channels bioconda 
+
+RUN conda config --add channels conda-forge
+
+# Install mamba for faster package installations (optional but recommended)
+RUN conda install -y mamba -n base -c conda-forge
+
+# Install Lotus2 using mamba with -y to confirm changes automatically
+RUN mamba create -n lotus2_env -c bioconda lotus2 -y
+
+# Switch to lotus2_env and install required development tools
+RUN /home/condauser/miniconda/bin/conda install -n lotus2_env -y gcc make
+
+# Install sdm using mamba in the lotus2_env
+RUN /home/condauser/miniconda/bin/mamba install -n lotus2_env -c bioconda sdm=2.18 -y
+
+# Copy the autoInstall.pl script from the local file system to the Docker image
+COPY config/docker/lotus2/autoInstall.pl /home/condauser/miniconda/envs/lotus2_env/share/lotus2-2.34.1-0/autoInstall2.pl
+
+# Make the autoInstall.pl script executable
+# RUN chmod +x /home/condauser/miniconda/envs/lotus2_env/share/lotus2-2.34.1-0/autoInstall2.pl
+
+# Run the autoInstall.pl script directly
+RUN /home/condauser/miniconda/envs/lotus2_env/share/lotus2-2.34.1-0/autoInstall2.pl > /home/condauser/autoInstall.log 2>&1
+
+# Clean up conda packages to reduce image size
+RUN conda clean -afy
+
+# Specify the default command
+CMD ["/bin/bash"]

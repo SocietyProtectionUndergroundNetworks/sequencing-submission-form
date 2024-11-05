@@ -208,6 +208,7 @@ class SequencingFilesUploadedTable(Base):
     exclude_from_mapping = Column(Boolean, default=False)
     total_sequences_number = Column(Integer, nullable=True)
     bucket_upload_progress = Column(Integer, nullable=True)
+    primer_occurrences_count = Column(Integer, nullable=True)
 
 
 class SequencingCompanyUploadTable(Base):

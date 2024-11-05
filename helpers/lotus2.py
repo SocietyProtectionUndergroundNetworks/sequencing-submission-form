@@ -75,19 +75,15 @@ def generate_lotus2_report(
 
     try:
         # Run Lotus2 inside the 'spun-lotus2' container
-
+        input_dir = "/" + input_dir
         output_path = input_dir + "/lotus2_report/" + region
 
-        if region == "ITS2":
-            container = client.containers.get("spun-lotus2_34")
-            refDB = (
-                "/lotus2_files/UNITE/sh_refs_qiime_ver10_97_04.04.2024.fasta"
-            )
-            tax4refDB = (
-                "/lotus2_files/UNITE/sh_taxonomy_qiime_ver10_97_04.04.2024.txt"
-            )
+        if region in ["ITS2", "ITS2"]:
+            container = client.containers.get("spun-lotus2")
             sdmopt = "/lotus2_files/sdm_miSeq_ITS.txt"
-            mapping_file = input_dir + "/mapping_files/ITS2_Mapping.txt"
+            mapping_file = (
+                input_dir + "/mapping_files/" + region + "_Mapping.txt"
+            )
 
             logger.info(" - Here we will try the command")
             command = [
@@ -100,9 +96,7 @@ def generate_lotus2_report(
                 "-m",
                 mapping_file,
                 "-refDB",
-                refDB,
-                "-tax4refDB",
-                tax4refDB,
+                "UNITE",
                 "-amplicon_type",
                 region,
                 "-LCA_idthresh",
@@ -120,10 +114,11 @@ def generate_lotus2_report(
                 "-id",
                 "0.97",
             ]
+            command_str = "source activate lotus2_env && " + " ".join(command)
             logger.info(" - the command is: ")
-            logger.info(command)
+            logger.info(command_str)
             # Run the command inside the container
-            result = container.exec_run(command)
+            result = container.exec_run(["bash", "-c", command_str])
             logger.info(result.output)
 
             SequencingUpload.update_field(
@@ -138,30 +133,24 @@ def generate_lotus2_report(
             )
 
         elif region == "SSU":
-            container = client.containers.get("spun-lotus2_28")
-            # SILVA ONLY
-            # The following two would be if we only
-            # wanted to use the SILVA database
-            refDB = (
-                "lotus2_files/SILVA/SILVA_138.2_SSURef_NR99_tax_silva.fasta.gz"
-            )
-            tax4refDB = "lotus2_files/SILVA/SLV_138.1_SSU.tax"
+            # We used to define the container differently
+            # because we had two different versions of lotus2
+            container = client.containers.get("spun-lotus2")
             clustering_method = "dada2"
             if clustering == "vsearch":
                 clustering_method = "vsearch"
             # The following two is if we want to use
             # both the ___ and the SILVA database
             refDB = (
-                "lotus2_files/vt_types_fasta_from_05-06-2019.qiime.fasta,"
-                "lotus2_files/SILVA/SLV_138.1_SSU.fasta"
+                "/lotus2_files/vt_types_fasta_from_05-06-2019.qiime.fasta,SLV"
             )
 
-            tax4refDB = (
-                "/lotus2_files/vt_types_GF.txt,"
-                "lotus2_files/SILVA/SLV_138.1_SSU.tax"
-            )
+            tax4refDB = "/lotus2_files/vt_types_GF.txt"
 
-            sdmopt = "/usr/local/share/lotus2-2.28.1-1/configs/sdm_miSeq.txt"
+            sdmopt = (
+                "/home/condauser/miniconda/envs/lotus2_env/share/"
+                "lotus2-2.34.1-0/configs/sdm_miSeq2.txt"
+            )
             mapping_file = input_dir + "/mapping_files/SSU_Mapping.txt"
 
             logger.info(" - Here we will try the command")
@@ -191,14 +180,15 @@ def generate_lotus2_report(
                 "-LCA_cover",
                 "0.97",
                 "-derepMin",
-                "6:1,4:2,3:3",
+                "10:1,5:2,3:3",
                 "-sdmopt",
                 sdmopt,
             ]
+            command_str = "source activate lotus2_env && " + " ".join(command)
             logger.info(" - the command is: ")
-            logger.info(command)
+            logger.info(command_str)
             # Run the command inside the container
-            result = container.exec_run(command)
+            result = container.exec_run(["bash", "-c", command_str])
             logger.info(result.output)
 
             SequencingUpload.update_field(

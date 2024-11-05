@@ -39,6 +39,11 @@
     "Forward Primer": "CTTGGTCATTTAGAGGAAGTAA",
     "Reverse Primer": "GCTGCGTTCTTCATCGATGC"
   },
+  "ITS5/ITS2": {
+    "Region": "ITS1",
+    "Forward Primer": "GGAAGTAAAAGTCGTAACAAGG",
+    "Reverse Primer": "GCTGCGTTCTTCATCGATGC"
+  },
   "AML1/AML2": {
     "Region": "SSU",
     "Forward Primer": "ATCAACTTTCGATGGTAGGATAGA",
@@ -53,7 +58,12 @@
     "Region": "ITS2",
     "Forward Primer": "GTGAATCATCGAATCTTTGAA",
     "Reverse Primer": "TCCTCCGCTTATTGATATGC"
-  },  
+  },
+  "AMV4-5NF/AMDGR": {
+    "Region": "SSU",
+    "Forward Primer": "AAGCTCGTAGTTGAATTTCG",
+    "Reverse Primer": "CCCAACTATCCCTATTAATCAT"
+  },
   "Other": {
     "Region": "Other",
     "Forward Primer": "",
