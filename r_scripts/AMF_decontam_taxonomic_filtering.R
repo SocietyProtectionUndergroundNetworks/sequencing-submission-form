@@ -6,16 +6,17 @@ library(tidyverse)
 library(readxl)
 library(dplyr)
 
-## Create a function for loading a phyloseq object
+# Get positional args and set [1] working directory, and [2] output dir
+args <- commandArgs(trailingOnly = TRUE)
+setwd(args[1])
+output_dir <- args[2]
 
+## Create a function for loading a phyloseq object
 loadRData <- function(fileName){
   #loads an RData file, and returns it
   load(fileName)
   get(ls()[ls() != "fileName"])
 }
-
-### Set working directory - change to desired project data location. 'lotus2_ITS2' is the standard output for EcM data processed through SPUN. 
-setwd("/seq_processed/00055_20240902XQ7T8U/lotus2_report/ITS2")
 
 ### Load phyloseq object 
 physeq <- loadRData("phyloseq.Rdata")
@@ -35,7 +36,7 @@ df <- as.data.frame(sample_data(physeq)) # Put sample_data into a ggplot-friendl
 df$LibrarySize <- sample_sums(physeq)
 df <- df[order(df$LibrarySize),]
 df$Index <- seq(nrow(df))
-ggplot(data=df, aes(x=Index, y=LibrarySize, color=Sample_or_Control)) + geom_point()
+ggsave(paste0(output_dir,"/","LibrarySize.pdf"),ggplot(data=df, aes(x=Index, y=LibrarySize, color=Sample_or_Control)) + geom_point())
 
 
 #### WARNING: If no negative control sample labelled 'Control' was included, skip to line 96 ####
@@ -59,8 +60,8 @@ physeq.pa.pos <- prune_samples(sample_data(physeq.pa)$Sample_or_Control == "True
 # Make data.frame of prevalence in positive and negative samples
 df.pa <- data.frame(pa.pos=taxa_sums(physeq.pa.pos), pa.neg=taxa_sums(physeq.pa.neg),
                     contaminant=contamdf.prev.1$contaminant)
-ggplot(data=df.pa, aes(x=pa.neg, y=pa.pos, color=contaminant)) + geom_point() +
-  xlab("Prevalence (Negative Controls)") + ylab("Prevalence (True Samples)")
+ggsave(paste0(output_dir,"/","control_vs_sample.pdf"),ggplot(data=df.pa, aes(x=pa.neg, y=pa.pos, color=contaminant)) + geom_point() +
+  xlab("Prevalence (Negative Controls)") + ylab("Prevalence (True Samples)"))
 
 
 ## Extract the taxonomic classifications of the identified contaminants
@@ -83,11 +84,11 @@ datatable(taxonomy_table)
 physeq_decontam <- prune_taxa(!contamdf.prev.1$contaminant, physeq)
 
 ## Save file. Note: this must be opened in R using: phyoseq_decontam <- readRDS("physeq_decontam.Rdata")
-saveRDS(physeq_decontam, file="physeq_decontam.Rdata")
+saveRDS(physeq_decontam, file=paste0(output_dir,"/","physeq_decontam.Rdata"))
 
 ## Move the pre-decontaminated phyloseq object into a folder labelled 'pre_decontam'
-dir.create("pre_decontam")
-file.rename(from="phyloseq.Rdata",to="pre_decontam/phyloseq.Rdata")
+# dir.create("pre_decontam")
+# file.rename(from="phyloseq.Rdata",to="pre_decontam/phyloseq.Rdata")
 
                                      
 ####  Create rarefaction curves for the samples #### 
@@ -117,13 +118,16 @@ p <- p +
   )
 
 plot(p)
-                                     
+pdf(paste0(output_dir,"/","filtered_rarefaction.pdf"))
+
+
 ## Subset filtered phloseq object to include only the three classes of Mucoromycota that are AMF: "Glomeromycetes", "Archaeosporomycetes" and "Paraglomeromycetes" 
 
 amf_physeq <- physeq%>% subset_taxa(Class =="Glomeromycetes" | Class ==  "Archaeosporomycetes" | Class ==  "Paraglomeromycetes" )
 
 ## Save file. Note: this must be opened in R using: amf_physeq <- readRDS("physeq_decontam.Rdata")
-saveRDS(amf_physeq, file="amf_physeq.Rdata")
+saveRDS(amf_physeq, file=paste0(output_dir,"/","amf_physeq.Rdata"))
 
 ## Test and explore
 plot_bar(amf_physeq, fill="Genus")
+pdf(paste0(output_dir,"/","amf_physeq_by_genus.pdf"))

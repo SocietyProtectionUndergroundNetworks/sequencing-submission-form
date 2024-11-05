@@ -10,17 +10,17 @@ library(data.table)
 library(doParallel)
 library(tidyverse)
 
-## Create a function for loading a phyloseq object
+# Get positional args and set [1] working directory, and [2] output dir
+args <- commandArgs(trailingOnly = TRUE)
+setwd(args[1])
+output_dir <- args[2]
 
+## Create a function for loading a phyloseq object
 loadRData <- function(fileName){
   #loads an RData file, and returns it
   load(fileName)
   get(ls()[ls() != "fileName"])
 }
-
-### Set working directory - change to desired project data location. 'lotus2_ITS2' is the standard output for EcM data processed through SPUN. 
-
-setwd("/seq_processed/bethan/lotus2_ITS2")
 
 ### Load phyloseq object
 physeq <- loadRData("phyloseq.Rdata")
@@ -40,7 +40,7 @@ df <- as.data.frame(sample_data(physeq)) # Put sample_data into a ggplot-friendl
 df$LibrarySize <- sample_sums(physeq)
 df <- df[order(df$LibrarySize),]
 df$Index <- seq(nrow(df))
-ggplot(data=df, aes(x=Index, y=LibrarySize, color=Sample_or_Control)) + geom_point()
+ggsave(paste0(output_dir,"/","LibrarySize.pdf"),ggplot(data=df, aes(x=Index, y=LibrarySize, color=Sample_or_Control)) + geom_point())
 
 #### WARNING: If no negative control sample labelled 'Control' was included, skip to line 96 ####
 ## Identify contaminants - prevalence - https://bioconductor.org/packages/devel/bioc/vignettes/decontam/inst/doc/decontam_intro.html#identifying-contaminants-in-marker-gene-and-metagenomics-data
@@ -64,8 +64,8 @@ physeq.pa.pos <- prune_samples(sample_data(physeq.pa)$Sample_or_Control == "True
 # Make data.frame of prevalence in positive and negative samples
 df.pa <- data.frame(pa.pos=taxa_sums(physeq.pa.pos), pa.neg=taxa_sums(physeq.pa.neg),
                     contaminant=contamdf.prev.1$contaminant)
-ggplot(data=df.pa, aes(x=pa.neg, y=pa.pos, color=contaminant)) + geom_point() +
-  xlab("Prevalence (Negative Controls)") + ylab("Prevalence (True Samples)")
+ggsave(paste0(output_dir,"/","control_vs_sample.pdf"),ggplot(data=df.pa, aes(x=pa.neg, y=pa.pos, color=contaminant)) + geom_point() +
+  xlab("Prevalence (Negative Controls)") + ylab("Prevalence (True Samples)"))
 
 
 
@@ -84,13 +84,14 @@ for (i in row_indices){
 
 names(taxonomy_table) <- classification
 datatable(taxonomy_table)
-write_tableHTML(tableHTML(taxonomy_table), file = 'contaminants.html')
+write_tableHTML(tableHTML(taxonomy_table), file = paste0(output_dir,"/","contaminants.html"))
+write_csv(taxonomy_table, paste0(output_dir,"/","contaminants.csv"))
 
 ## Prune contaminant taxa from the phyloseq tax_table
 physeq_decontam <- prune_taxa(!contamdf.prev.1$contaminant, physeq)
 
 ## Save file. Note: this must be opened in R using: phyoseq_decontam <- readRDS("physeq_decontam.Rdata")
-saveRDS(physeq_decontam, file="physeq_decontam.Rdata")
+saveRDS(physeq_decontam, file=paste0(output_dir,"/","physeq_decontam.Rdata"))
 
 ## Move the pre-decontaminated phyloseq object into a folder labelled 'pre_decontam'
 # dir.create("pre_decontam")
@@ -124,7 +125,9 @@ p <- p +
   )
 
 plot(p)
-                                     
+pdf(paste0(output_dir,"/","filtered_rarefaction.pdf"))
+
+
 ##### Extract out ECMs from FungalTraits database and phyloseq object. For this step, you need to have downloaded the file "EcM_guild_assignment_13225_2020_466_MOESM4_ESM.csv" from the SPUN 'project_bioinformatics_and_processing' Github repository
 
 fungaltraits<- read.csv("/usr/src/app/13225_2020_466_MOESM4_ESM.csv")
@@ -161,11 +164,12 @@ print(ecm_physeq)
 print(physeq_decontam)
 
 ## Save file. Note: this must be opened in R using: ecm_physeq <- readRDS("ecm_physeq.Rdata")
-saveRDS(ecm_physeq, file="ecm_physeq.Rdata")
+saveRDS(ecm_physeq, file=file=paste0(output_dir,"/","ecm_physeq.Rdata"))
 
 
 ### OPTIONAL: Test and explore
 plot_bar(ecm_physeq, fill="Genus")
+pdf(paste0(output_dir,"/","ecm_physeq_by_genus.pdf"))
 
 sample_variables(ecm_physeq)
 sample_names(ecm_physeq)
