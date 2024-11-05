@@ -78,10 +78,12 @@ def generate_lotus2_report(
         input_dir = "/" + input_dir
         output_path = input_dir + "/lotus2_report/" + region
 
-        if region == "ITS2":
+        if region in ["ITS2", "ITS2"]:
             container = client.containers.get("spun-lotus2")
             sdmopt = "/lotus2_files/sdm_miSeq_ITS.txt"
-            mapping_file = input_dir + "/mapping_files/ITS2_Mapping.txt"
+            mapping_file = (
+                input_dir + "/mapping_files/" + region + "_Mapping.txt"
+            )
 
             logger.info(" - Here we will try the command")
             command = [
