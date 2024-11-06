@@ -35,6 +35,28 @@ services:
     env_file:
       - .env
     networks:
+      - flask      
+
+  r_service:
+    build:
+      context: .
+      dockerfile: Dockerfile-r
+    container_name: spun-r-service
+    volumes:
+      - ./r_scripts:/usr/src/app
+      - ./seq_processed:/seq_processed         
+    networks:
+      - flask
+    command: ["tail", "-f", "/dev/null"]
+
+  lotus2_34:
+    image: quay.io/biocontainers/lotus2:2.34.1--hdfd78af_0
+    container_name: spun-lotus2_34
+    volumes:
+      - ./seq_processed:/seq_processed  #v2 processed files
+      - ./processing:/processing  #v1 processed files
+      - ./lotus2_files:/lotus2_files
+    networks:
       - flask
 
   lotus2:

@@ -40,6 +40,11 @@ from helpers.lotus2 import (
     init_generate_lotus2_report,
     delete_generated_lotus2_report,
 )
+from helpers.r_scripts import (
+    init_generate_rscripts_report,
+    delete_generated_rscripts_report,
+)
+
 
 from pathlib import Path
 
@@ -185,6 +190,7 @@ def metadata_form():
     mapping_files_exist = False
     has_empty_fastqc_report = False
     lotus2_report = []
+    rscripts_report = []
 
     if process_id:
         process_data = SequencingUpload.get(process_id)
@@ -238,6 +244,10 @@ def metadata_form():
         )
 
         lotus2_report = SequencingUpload.check_lotus2_reports_exist(process_id)
+        rscripts_report = SequencingUpload.check_rscripts_reports_exist(
+            process_id
+        )
+        logger.info(rscripts_report)
 
     return render_template(
         "metadata_form.html",
@@ -262,6 +272,7 @@ def metadata_form():
         mapping_files_exist=mapping_files_exist,
         lotus2_report=lotus2_report,
         has_empty_fastqc_report=has_empty_fastqc_report,
+        rscripts_report=rscripts_report,
     )
 
 
@@ -1200,70 +1211,146 @@ def delete_lotus2_report():
 
 
 @metadata_bp.route(
-    "/show_lotus2_outcome", methods=["GET"], endpoint="show_lotus2_outcome"
+    "/generate_rscripts_report",
+    methods=["POST"],
+    endpoint="generate_rscripts_report",
 )
 @login_required
 @approved_required
-def show_lotus2_outcome():
+@admin_required
+def generate_rscripts_report():
+    process_id = request.form.get("process_id")
+    debug = request.form.get("debug")
+
+    process_data = SequencingUpload.get(process_id)
+    region = request.form.get("region")
+    logger.info(process_id)
+    logger.info(region)
+
+    region_nr = 0
+    input_dir = "seq_processed/" + process_data["uploads_folder"]
+    for region_db in process_data["regions"]:
+        region_nr += 1
+        if region == region_db:
+            logger.info(region_nr)
+            init_generate_rscripts_report(
+                region_nr, process_id, input_dir, region, debug
+            )
+
+    return jsonify({"result": 1})
+
+
+@metadata_bp.route(
+    "/delete_rscripts_report",
+    methods=["POST"],
+    endpoint="delete_rscripts_report",
+)
+@login_required
+@approved_required
+@admin_required
+def delete_rscripts_report():
+    process_id = request.form.get("process_id")
+    region = request.form.get("region")
+
+    process_data = SequencingUpload.get(process_id)
+
+    region_nr = 0
+    input_dir = "seq_processed/" + process_data["uploads_folder"]
+    for region_db in process_data["regions"]:
+        region_nr += 1
+        if region == region_db:
+            delete_generated_rscripts_report(
+                region_nr, process_id, input_dir, region
+            )
+    return jsonify({"result": 1})
+
+
+@metadata_bp.route(
+    "/show_report_outcome", methods=["GET"], endpoint="show_report_outcome"
+)
+@login_required
+@approved_required
+def show_report_outcome():
     process_id = request.args.get("process_id")
     region = request.args.get("region")
     file_type = request.args.get("type")  # Renamed 'file' to 'type'
-
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if file_type in [
         "LotuS_progout",
         "demulti",
         "LotuS_run",
-        "command_outcome",
+        "lotus2_command_outcome",
         "phyloseq",
+        "rscripts_command_outcome",
+        "LibrarySize",
+        "control_vs_sample",
+        "filtered_rarefaction",
+        "physeq_decontam",
     ]:
         # Fetch process data from SequencingUpload model
         process_data = SequencingUpload.get(process_id)
 
-        # Check the lotus2 report details
-        lotus2_report = SequencingUpload.check_lotus2_reports_exist(process_id)
+        region_nr = 0
+        if region in process_data["regions"]:
+            region_nr = process_data["regions"].index(region) + 1
 
-        # Find the corresponding region in the lotus2 report
-        region_data = next(
-            (item for item in lotus2_report if item["region"] == region), None
-        )
+        uploads_folder = process_data["uploads_folder"]
 
-        if region_data:
-            # Construct the base path for the log folder
-            uploads_folder = process_data["uploads_folder"]
-            log_folder = os.path.join(
-                "seq_processed",
-                uploads_folder,
-                "lotus2_report",
-                region,
-                "LotuSLogS",
+        if file_type in [
+            "LotuS_progout",
+            "demulti",
+            "LotuS_run",
+            "lotus2_command_outcome",
+            "phyloseq",
+        ]:
+            # Check the lotus2 report details
+            lotus2_report = SequencingUpload.check_lotus2_reports_exist(
+                process_id
             )
 
-            # Handle log files and command_output
-            if file_type == "LotuS_progout":
-                file_path = os.path.join(log_folder, "LotuS_progout.log")
-            elif file_type == "demulti":
-                file_path = os.path.join(log_folder, "demulti.log")
-            elif file_type == "LotuS_run":
-                file_path = os.path.join(log_folder, "LotuS_run.log")
-            elif file_type == "phyloseq":
-                project_root = os.path.dirname(
-                    os.path.dirname(os.path.abspath(__file__))
-                )
-                report_folder = Path(
-                    project_root,
+            # Find the corresponding region in the lotus2 report
+            lotus2_region_data = next(
+                (item for item in lotus2_report if item["region"] == region),
+                None,
+            )
+
+            if lotus2_region_data:
+                log_folder = os.path.join(
                     "seq_processed",
                     uploads_folder,
                     "lotus2_report",
                     region,
+                    "LotuSLogS",
                 )
-                file_path = os.path.join(report_folder, "phyloseq.Rdata")
-                return send_file(file_path, as_attachment=True)
-            elif file_type == "command_outcome":
-                command_output = region_data.get("command_outcome")
-                if command_output:
-                    return command_output, 200, {"Content-Type": "text/plain"}
-                else:
-                    return {"error": "Command output not found"}, 404
+                # Handle log files and command_output
+                if file_type == "LotuS_progout":
+                    file_path = os.path.join(log_folder, "LotuS_progout.log")
+                elif file_type == "demulti":
+                    file_path = os.path.join(log_folder, "demulti.log")
+                elif file_type == "LotuS_run":
+                    file_path = os.path.join(log_folder, "LotuS_run.log")
+                elif file_type == "phyloseq":
+                    report_folder = Path(
+                        project_root,
+                        "seq_processed",
+                        uploads_folder,
+                        "lotus2_report",
+                        region,
+                    )
+                    file_path = os.path.join(report_folder, "phyloseq.Rdata")
+                    return send_file(file_path, as_attachment=True)
+                elif file_type == "lotus2_command_outcome":
+                    command_output = process_data[
+                        f"region_{region_nr}_lotus2_report_result"
+                    ]
+                    if command_output:
+                        return (
+                            command_output,
+                            200,
+                            {"Content-Type": "text/plain"},
+                        )
+                    else:
+                        return {"error": "Command output not found"}, 404
 
             # Check if the file exists
             if os.path.isfile(file_path):
@@ -1273,6 +1360,66 @@ def show_lotus2_outcome():
                 return file_contents, 200, {"Content-Type": "text/plain"}
             else:
                 return {"error": "File not found"}, 404
+
+        if file_type in [
+            "rscripts_command_outcome",
+            "LibrarySize",
+            "control_vs_sample",
+            "filtered_rarefaction",
+            "physeq_decontam",
+        ]:
+
+            # Check the rscripts report details
+            rscripts_report = SequencingUpload.check_rscripts_reports_exist(
+                process_id
+            )
+            # Find the corresponding region in the lotus2 report
+            rscipts_region_data = next(
+                (item for item in rscripts_report if item["region"] == region),
+                None,
+            )
+
+            if rscipts_region_data:
+                # Construct the base path for the log folder
+
+                report_folder = Path(
+                    project_root,
+                    "seq_processed",
+                    uploads_folder,
+                    region + "_r_output",
+                )
+                # Handle log files and command_output
+                if file_type == "LibrarySize":
+                    file_path = os.path.join(report_folder, "LibrarySize.pdf")
+                    return send_file(file_path)
+                elif file_type == "control_vs_sample":
+                    file_path = os.path.join(
+                        report_folder, "control_vs_sample.pdf"
+                    )
+                    return send_file(file_path)
+                elif file_type == "filtered_rarefaction":
+                    file_path = os.path.join(
+                        report_folder, "filtered_rarefaction.pdf"
+                    )
+                    return send_file(file_path)
+                elif file_type == "physeq_decontam":
+                    file_path = os.path.join(
+                        report_folder, "physeq_decontam.Rdata"
+                    )
+                    return send_file(file_path, as_attachment=True)
+                elif file_type == "rscripts_command_outcome":
+                    command_output = process_data[
+                        f"region_{region_nr}_rscripts_report_result"
+                    ]
+
+                    if command_output:
+                        return (
+                            command_output,
+                            200,
+                            {"Content-Type": "text/plain"},
+                        )
+                    else:
+                        return {"error": "Command output not found"}, 404
 
     return {"error": "Invalid request"}, 400
 

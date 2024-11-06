@@ -1,0 +1,46 @@
+# Use the official R base image
+FROM rocker/r-ver:4.1.2
+
+# Install system dependencies for R packages
+RUN apt-get update && apt-get install -y \
+    zlib1g-dev \
+    libxml2-dev \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    libgfortran5 \
+    libglpk40 \
+    libcairo2-dev \ 
+    libpango1.0-dev \ 
+    libharfbuzz-dev \
+    libfribidi-dev \ 
+    libfontconfig1-dev \
+    libpng-dev \ 
+    libtiff5-dev \
+    libfreetype6-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install R packages
+RUN R -e "install.packages(c('ggplot2'), repos='https://cran.rstudio.com/');"
+RUN R -e "install.packages(c('DT'), repos='https://cran.rstudio.com/');"
+
+RUN R -e "install.packages(c('ragg'), repos='https://cran.rstudio.com/');"
+RUN R -e "install.packages(c('tidyverse'), repos='https://cran.rstudio.com/');"
+RUN R -e "install.packages(c('readxl'), repos='https://cran.rstudio.com/');"
+RUN R -e "install.packages(c('dplyr', 'vegan', 'writexl'), repos='https://cran.rstudio.com/');"
+RUN R -e "install.packages(c('doParallel', 'data.table'), repos='https://cran.rstudio.com/');"
+RUN R -e "install.packages(c('reshape2'), repos='https://cran.rstudio.com/');"
+RUN R -e "install.packages(c('ape'), repos='https://cran.rstudio.com/');"
+RUN R -e "install.packages(c('gridExtra'), repos='https://cran.rstudio.com/');"
+RUN R -e "install.packages(c('tableHTML'), repos='https://cran.rstudio.com/');"
+
+# Install BiocManager and additional Bioconductor packages
+RUN R -e "if (!require('BiocManager', quietly = TRUE)) install.packages('BiocManager')"
+RUN R -e "BiocManager::install('phyloseq')"
+RUN R -e "BiocManager::install('decontam')"
+
+# Set working directory
+WORKDIR /usr/src/app
+
+# Keep the container running
+CMD ["tail", "-f", "/dev/null"]
