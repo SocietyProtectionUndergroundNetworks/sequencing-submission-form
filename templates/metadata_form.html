@@ -1396,7 +1396,7 @@
                     {% if region_data.bucket_log_exists %}
                       A LotuS_progout.log file exists on the bucket in the correct directory
                     {% else %}
-                      <a href="upload_lotus2_to_bucket?process_id={{ process_data.id }}&region={{ region_data.region }}" class="btn btn-primary">
+                      <a href="upload_report_to_bucket?process_id={{ process_data.id }}&report=lotus2&region={{ region_data.region }}" class="btn btn-primary">
                         Upload to bucket
                       </a>
                     {% endif %}
@@ -1527,7 +1527,7 @@
                     {% if region_data.bucket_log_exists %}
                       A LotuS_progout.log file exists on the bucket in the correct directory
                     {% else %}
-                      <a href="upload_lotus2_to_bucket?process_id={{ process_data.id }}&region={{ region_data.region }}" class="btn btn-primary">
+                      <a href="upload_report_to_bucket?process_id={{ process_data.id }}&report=rscripts&region={{ region_data.region }}" class="btn btn-primary">
                         Upload to bucket
                       </a>
                     {% endif %}

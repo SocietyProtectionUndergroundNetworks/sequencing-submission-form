@@ -121,17 +121,12 @@ def process_uploaded_file(
         )
 
         if existing_file_id:
-            # logger.info(
-            #    f"File {filename} already exists in the database with ID "
-            #    f"{existing_file_id}. Skipping."
-            # )
             return None  # File already exists, return None to skip processing
 
         # Create a new entry in the database for the file
         new_file_uploaded_id = SequencingFileUploaded.create(
             file_sequencer_id, file_dict
         )
-        logger.info("The new_file_uploaded_id is " + str(new_file_uploaded_id))
 
         # If a new filename is provided, copy the file to the new location
         if new_filename:
@@ -247,7 +242,6 @@ def metadata_form():
         rscripts_report = SequencingUpload.check_rscripts_reports_exist(
             process_id
         )
-        logger.info(rscripts_report)
 
     return render_template(
         "metadata_form.html",
@@ -290,8 +284,7 @@ def metadata_validate_row():
     # Read the data of the form in a df
     process_id = request.form.get("process_id")
     process_data = SequencingUpload.get(process_id)
-    logger.info("The process id is")
-    logger.info(process_id)
+
     # Parse form data from the request
     form_data = request.form.to_dict()
 
@@ -378,7 +371,7 @@ def upload_metadata_file():
 
     # Check metadata using the helper function
     result = check_metadata(df, using_scripps, multiple_sequencing_runs)
-    logger.info(result)
+
     expected_columns_data = get_columns_data()
     expected_columns = list(expected_columns_data.keys())
     if result["status"] == 1:
@@ -434,7 +427,6 @@ def upload_metadata_file():
 def upload_process_common_fields():
     # Parse form data from the request
     form_data = request.form.to_dict()
-    logger.info(form_data)
 
     process_id = SequencingUpload.create(datadict=form_data)
 
@@ -665,8 +657,6 @@ def sequencing_upload_chunk():
     file = request.files.get("file")
     if file:
         process_id = request.args.get("process_id")
-        logger.info("The process is is: ")
-        logger.info(process_id)
 
         if process_id:
             process_data = SequencingUpload.get(process_id)
@@ -681,7 +671,7 @@ def sequencing_upload_chunk():
             chunk_number = (
                 int(resumable_chunk_number) if resumable_chunk_number else 1
             )
-            logger.info("chunk_number: " + str(chunk_number))
+
             # Save or process the chunk
             save_path = (
                 f"seq_uploads/{uploads_folder}/"
@@ -870,8 +860,6 @@ def all_uploads_v2():
 def delete_upload_process_v2():
     process_id = request.args.get("process_id")
     return_to = request.args.get("return_to")
-    logger.info(return_to)
-    logger.info(process_id)
     process_data = SequencingUpload.get(process_id)
     uploads_folder = process_data["uploads_folder"]
     if uploads_folder:
@@ -1089,8 +1077,6 @@ def sequencing_process_server_file():
 
     if process_id:
         process_data = SequencingUpload.get(process_id)
-        logger.info(process_id)
-        logger.info(directory_name)
 
         # Construct the full directory path
         full_directory_path = Path(directory_name)
@@ -1116,7 +1102,6 @@ def sequencing_process_server_file():
 
             # Check if the file ends with '.fastq.gz'
             if file_path.is_file() and file_path.name.endswith(".fastq.gz"):
-                # logger.info(f"Found fastq.gz file: {file_path.name}")
 
                 actual_md5 = calculate_md5(file_path)
 
@@ -1164,10 +1149,6 @@ def generate_lotus2_report():
     process_id = request.form.get("process_id")
     debug = request.form.get("debug")
     clustering = request.form.get("clustering", "vsearch")
-    logger.info("The debug is")
-    logger.info(debug)
-    logger.info("The clustering is")
-    logger.info(clustering)
 
     process_data = SequencingUpload.get(process_id)
     region = request.form.get("region")
@@ -1224,15 +1205,12 @@ def generate_rscripts_report():
 
     process_data = SequencingUpload.get(process_id)
     region = request.form.get("region")
-    logger.info(process_id)
-    logger.info(region)
 
     region_nr = 0
     input_dir = "seq_processed/" + process_data["uploads_folder"]
     for region_db in process_data["regions"]:
         region_nr += 1
         if region == region_db:
-            logger.info(region_nr)
             init_generate_rscripts_report(
                 region_nr, process_id, input_dir, region, debug
             )
@@ -1425,32 +1403,42 @@ def show_report_outcome():
 
 
 @metadata_bp.route(
-    "/upload_lotus2_to_bucket",
+    "/upload_report_to_bucket",
     methods=["GET"],
-    endpoint="upload_lotus2_to_bucket",
+    endpoint="upload_report_to_bucket",
 )
 @login_required
 @approved_required
 @admin_required
-def upload_lotus2_to_bucket():
+def upload_report_to_bucket():
     process_id = request.args.get("process_id")
     region = request.args.get("region")
+    report = request.args.get("report")
     process_data = SequencingUpload.get(process_id)
     bucket = process_data["project_id"]
-    output_path = (
-        "seq_processed/"
-        + process_data["uploads_folder"]
-        + "/lotus2_report/"
-        + region
-    )
+    if report in ["lotus2", "rscripts"]:
+        if report == "lotus2":
+            output_path = (
+                "seq_processed/"
+                + process_data["uploads_folder"]
+                + "/lotus2_report/"
+                + region
+            )
+        elif report == "rscripts":
+            output_path = (
+                "seq_processed/"
+                + process_data["uploads_folder"]
+                + "/"
+                + region
+                + "_r_output/"
+            )
+        from helpers.bucket import init_bucket_upload_folder_v2
 
-    from helpers.bucket import init_bucket_upload_folder_v2
-
-    init_bucket_upload_folder_v2(
-        folder_path=output_path,
-        destination_upload_directory=region + "/lotus2_report",
-        bucket=bucket,
-    )
+        init_bucket_upload_folder_v2(
+            folder_path=output_path,
+            destination_upload_directory="r_output/" + region,
+            bucket=bucket,
+        )
     return redirect(
         url_for("metadata.metadata_form", process_id=process_id) + "#step_9"
     )
