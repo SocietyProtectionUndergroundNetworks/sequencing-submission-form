@@ -1193,7 +1193,7 @@
             </fieldset>
           </form>
         {% endif %}
-
+        <div id="step_10_msg" class="explanation"></div>
       </div>
     {% endif %}
 
@@ -1237,6 +1237,7 @@
             <input type="hidden" name="process_id" value="{{ process_id }}">
           </fieldset>
         </form>
+        <div id="step_11_msg" class="explanation"></div>
       </div>
       <div>
         <a href="reset_primers_count?process_id={{ process_data.id }}" class="btn btn-primary" target="_blank"> Reset primers count </a>
@@ -1335,9 +1336,9 @@
                   {% endif %}
                 </td>
                 <td>
-                  {% if region_data.command_outcome %}
+                  {% if region_data.lotus2_command_outcome %}
                     <span class="text-success">
-                      <a href="show_lotus2_outcome?type=command_outcome&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                      <a href="show_report_outcome?type=lotus2_command_outcome&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
                         Exists
                       </a>
                     </span>
@@ -1349,7 +1350,7 @@
                 <td>
                   {% if region_data.log_files_exist.LotuS_progout %}
                     <span class="text-success">
-                      <a href="show_lotus2_outcome?type=LotuS_progout&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                      <a href="show_report_outcome?type=LotuS_progout&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
                         Exists
                       </a>
                     </span>
@@ -1360,7 +1361,7 @@
                 <td>
                   {% if region_data.log_files_exist.demulti %}
                     <span class="text-success">
-                      <a href="show_lotus2_outcome?type=demulti&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                      <a href="show_report_outcome?type=demulti&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
                         Exists
                       </a>
                     </span>
@@ -1371,7 +1372,7 @@
                 <td>
                   {% if region_data.log_files_exist.LotuS_run %}
                     <span class="text-success">
-                      <a href="show_lotus2_outcome?type=LotuS_run&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                      <a href="show_report_outcome?type=LotuS_run&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
                         Exists
                       </a>
                     </span>
@@ -1382,7 +1383,7 @@
                 <td>
                   {% if region_data.log_files_exist.phyloseq %}
                     <span class="text-success">
-                      <a href="show_lotus2_outcome?type=phyloseq&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                      <a href="show_report_outcome?type=phyloseq&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
                         Exists
                       </a>
                     </span>
@@ -1406,7 +1407,138 @@
           </tbody>
       </table>
     {% endif %}
+      <div id="step_12_msg" class="explanation"></div>
 
+    {% if is_admin %}
+
+      <div id="step_13" class="form-step-item">
+        <h3> Step 13: Admin only. Generate r scripts report</h3>
+      </div>
+    {% endif %}
+
+    {% if process_data and process_data.regions and rscripts_report %}
+
+      <table id="rscripts_reports" class="table-bordered mt-3">
+          <thead>
+            <tr>
+              <th scope="col" class="bg-gray">Region</th>
+              <th scope="col" class="bg-gray">R scripts report status</th>
+              <th scope="col" class="bg-gray">Command outcome</th>
+              <th scope="col" class="bg-gray">LibrarySize.pdf</th>
+              <th scope="col" class="bg-gray">control_vs_sample.pdf</th>
+              <th scope="col" class="bg-gray">filtered_rarefaction.pdf</th>
+              <th scope="col" class="bg-gray">physeq_decontam.Rdata</th>
+              <th scope="col" class="bg-gray">Bucket</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for region_data in rscripts_report %}
+              <tr>
+                <td>{{ region_data.region }}</td>
+                <td>
+                  {{ region_data.report_status }}
+                  {% if is_admin %}
+                    {% if not region_data.report_status %}
+                      <form
+                        method="POST"
+                        action="/generate_rscripts_report"
+                        class="step_13_form_run_report"
+                      >
+                        <fieldset>
+                          Debug: <input type="checkbox" id="debug-checkbox" name="debug"> <br>
+                          <input type="submit" class="btn btn-primary" value="Generate">
+                          <input type="hidden" name="process_id" value="{{ process_id }}">
+                          <input type="hidden" name="region" value="{{ region_data.region }}">
+                        </fieldset>
+                      </form>
+                    {% else %}
+                      <form
+                        method="POST"
+                        action="/delete_rscripts_report"
+                        class="step_13_form_delete_report"
+                      >
+                        <fieldset>
+                          <input type="submit" class="btn btn-primary" value="Delete">
+                          <input type="hidden" name="process_id" value="{{ process_id }}">
+                          <input type="hidden" name="region" value="{{ region_data.region }}">
+                        </fieldset>
+                      </form>
+                    {% endif %}
+                  {% endif %}
+                </td>
+                <td>
+                  {% if region_data.rscripts_command_outcome %}
+                    <span class="text-success">
+                      <a href="show_report_outcome?type=rscripts_command_outcome&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                        Exists
+                      </a>
+                    </span>
+                  {% else %}
+                    <span class="text-danger">Not generated</span>
+                  {% endif %}
+                </td>
+
+                <td>
+                  {% if region_data.files_exist.LibrarySize %}
+                    <span class="text-success">
+                      <a href="show_report_outcome?type=LibrarySize&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                        Exists
+                      </a>
+                    </span>
+                  {% else %}
+                    <span class="text-danger">Not Found</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if region_data.files_exist.control_vs_sample %}
+                    <span class="text-success">
+                      <a href="show_report_outcome?type=control_vs_sample&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                        Exists
+                      </a>
+                    </span>
+                  {% else %}
+                    <span class="text-danger">Not Found</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if region_data.files_exist.filtered_rarefaction %}
+                    <span class="text-success">
+                      <a href="show_report_outcome?type=filtered_rarefaction&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                        Exists
+                      </a>
+                    </span>
+                  {% else %}
+                    <span class="text-danger">Not Found</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if region_data.files_exist.physeq_decontam %}
+                    <span class="text-success">
+                      <a href="show_report_outcome?type=physeq_decontam&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                        Exists
+                      </a>
+                    </span>
+                  {% else %}
+                    <span class="text-danger">Not Found</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if region_data.report_status == "Finished" %}
+                    {% if region_data.bucket_log_exists %}
+                      A LotuS_progout.log file exists on the bucket in the correct directory
+                    {% else %}
+                      <a href="upload_lotus2_to_bucket?process_id={{ process_data.id }}&region={{ region_data.region }}" class="btn btn-primary">
+                        Upload to bucket
+                      </a>
+                    {% endif %}
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+      </table>
+    {% endif %}
+    <div id="step_13_msg" class="explanation"></div>
   </div>
 
   <script type="application/javascript">
@@ -2837,7 +2969,7 @@
           },
           error: function(xhr, status, error) {
               console.error('Error:', error);
-              form.find('.step_12_msg').html("<p>An error occurred while trying to generate the Lotus2 report.</p>").removeClass('text-success').addClass('text-danger');
+              $('#step_12_msg').html("<p>An error occurred while trying to generate the Lotus2 report.</p>").removeClass('text-success').addClass('text-danger');
           }
       });
   });
@@ -2866,7 +2998,7 @@
           },
           error: function(xhr, status, error) {
               console.error('Error:', error);
-              form.find('.step_12_msg').html("<p>An error occurred while trying to generate the Lotus2 report.</p>").removeClass('text-success').addClass('text-danger');
+              $('#step_12_msg').html("<p>An error occurred while trying to delete the Lotus2 report.</p>").removeClass('text-success').addClass('text-danger');
           }
       });
   });
@@ -2875,6 +3007,77 @@
   ////// ############################################# /////////
   ////// ############ STEP 12 ENDS HERE ############## /////////
   ////// ############################################# /////////
+
+  ////// ############################################# /////////
+  ////// ############ STEP 13 STARTS HERE ############ /////////
+  ////// ############################################# /////////
+  function disableForm_step_13_run_report(form) {
+      form.find('fieldset').attr('disabled', 'disabled');
+  }
+  $('.step_13_form_run_report').submit(function(event) {
+      event.preventDefault(); // Prevent default form submission
+      var formData = new FormData();
+      var form = $(this); // Target the current form instance
+      var processId = form.find('input[name="process_id"]').val();
+      var region = form.find('input[name="region"]').val();
+      var debug = form.find('input[name="debug"]').is(':checked') ? '1' : '0';
+
+      formData.append('process_id', processId);
+      formData.append('region', region);
+      formData.append('debug', debug);
+      
+      $.ajax({
+          url: '/generate_rscripts_report',
+          type: 'POST',
+          data: formData,
+          contentType: false,
+          processData: false,
+          success: function(response) {
+              if (response.result == "1") {
+                window.location.reload();
+              }
+          },
+          error: function(xhr, status, error) {
+              console.error('Error:', error);
+              $('#step_13_msg').html("<p>An error occurred while trying to generate the Rscript report.</p>").removeClass('text-success').addClass('text-danger');
+          }
+      });
+  });
+  function disableForm_step_13_delete_report(form) {
+      form.find('fieldset').attr('disabled', 'disabled');
+  }
+  $('.step_13_form_delete_report').submit(function(event) {
+      event.preventDefault(); // Prevent default form submission
+      var formData = new FormData();
+      var form = $(this); // Target the current form instance
+      var processId = form.find('input[name="process_id"]').val();
+      var region = form.find('input[name="region"]').val();
+      formData.append('process_id', processId);
+      formData.append('region', region);
+
+      $.ajax({
+          url: '/delete_rscripts_report',
+          type: 'POST',
+          data: formData,
+          contentType: false,
+          processData: false,
+          success: function(response) {
+              if (response.result == "1") {
+                window.location.reload();
+              }
+          },
+          error: function(xhr, status, error) {
+              console.error('Error:', error);
+              $('#step_13_msg').html("<p>An error occurred while trying to delete the rscripts report.</p>").removeClass('text-success').addClass('text-danger');
+          }
+      });
+  });
+
+
+  ////// ############################################# /////////
+  ////// ############ STEP 13 ENDS HERE ############## /////////
+  ////// ############################################# /////////
+
 
   ////// ############################################# /////////
   ////// ###### MAP HELPER FUNCTIONS START HERE ###### /////////

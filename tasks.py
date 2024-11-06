@@ -14,6 +14,7 @@ from helpers.fastqc import (
     create_multiqc_report,
 )
 from helpers.lotus2 import generate_lotus2_report
+from helpers.r_scripts import generate_rscripts_report
 
 
 @celery_app.task
@@ -22,6 +23,15 @@ def generate_lotus2_report_async(
 ):
     generate_lotus2_report(
         region_nr, process_id, input_dir, amplicon_type, debug, clustering
+    )
+
+
+@celery_app.task
+def generate_rscripts_report_async(
+    region_nr, process_id, input_dir, amplicon_type, debug
+):
+    generate_rscripts_report(
+        region_nr, process_id, input_dir, amplicon_type, debug
     )
 
 

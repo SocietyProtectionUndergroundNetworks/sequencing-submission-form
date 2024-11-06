@@ -9,6 +9,8 @@ library(tidyverse)
 library(data.table)
 library(doParallel)
 library(tidyverse)
+library(tableHTML)
+
 
 # Get positional args and set [1] working directory, and [2] output dir
 args <- commandArgs(trailingOnly = TRUE)
@@ -164,7 +166,7 @@ print(ecm_physeq)
 print(physeq_decontam)
 
 ## Save file. Note: this must be opened in R using: ecm_physeq <- readRDS("ecm_physeq.Rdata")
-saveRDS(ecm_physeq, file=file=paste0(output_dir,"/","ecm_physeq.Rdata"))
+saveRDS(ecm_physeq, file=paste0(output_dir,"/","ecm_physeq.Rdata"))
 
 
 ### OPTIONAL: Test and explore

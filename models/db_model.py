@@ -152,6 +152,14 @@ class SequencingUploadsTable(Base):
     region_2_lotus2_report_started_at = Column(DateTime, nullable=True)
     region_2_lotus2_report_status = Column(String(255), nullable=True)
     region_2_lotus2_report_result = Column(Text, nullable=True)
+    region_1_rscripts_report_task_id = Column(String(255), nullable=True)
+    region_1_rscripts_report_started_at = Column(DateTime, nullable=True)
+    region_1_rscripts_report_status = Column(String(255), nullable=True)
+    region_1_rscripts_report_result = Column(Text, nullable=True)
+    region_2_rscripts_report_task_id = Column(String(255), nullable=True)
+    region_2_rscripts_report_started_at = Column(DateTime, nullable=True)
+    region_2_rscripts_report_status = Column(String(255), nullable=True)
+    region_2_rscripts_report_result = Column(Text, nullable=True)
 
 
 class SequencingSamplesTable(Base):
