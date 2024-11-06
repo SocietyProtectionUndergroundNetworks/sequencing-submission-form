@@ -141,14 +141,13 @@ def generate_lotus2_report(
                 clustering_method = "vsearch"
 
             # The following two is if we want to use
-            # The FULL SILVA database                
+            # The FULL SILVA database
             refDB = (
                 "/lotus2_files/vt_types_fasta_from_05-06-2019.qiime.fasta,SLV"
-            )   
+            )
 
             tax4refDB = "/lotus2_files/vt_types_GF.txt"
 
-                
             # The following two is if we want to use
             # The reduced SILVA database
             refDB = (
@@ -156,9 +155,8 @@ def generate_lotus2_report(
                 "/lotus2_files/SLV_138.1_SSU_NO_AMF.fasta"
             )
 
-            tax4refDB =(
-                "/lotus2_files/vt_types_GF.txt,"
-                "SLV_138.1_SSU_NO_AMF.tax"
+            tax4refDB = (
+                "/lotus2_files/vt_types_GF.txt," "SLV_138.1_SSU_NO_AMF.tax"
             )
 
             sdmopt = (
