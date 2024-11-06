@@ -42,5 +42,17 @@ RUN R -e "BiocManager::install('decontam')"
 # Set working directory
 WORKDIR /usr/src/app
 
+# Define build arguments for user and group IDs
+ARG FLASK_PROCESS_USER_ID
+ARG FLASK_PROCESS_GROUP_ID
+
+# Create a user with the specified user and group IDs
+RUN groupadd -g ${FLASK_PROCESS_GROUP_ID} appgroup && \
+    useradd -m -u ${FLASK_PROCESS_USER_ID} -g appgroup appuser && \
+    chown -R appuser:appgroup /usr/src/app
+
+# Switch to non-root user
+USER appuser
+
 # Keep the container running
 CMD ["tail", "-f", "/dev/null"]
