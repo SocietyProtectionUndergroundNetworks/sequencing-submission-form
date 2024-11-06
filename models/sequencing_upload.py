@@ -1206,7 +1206,7 @@ class SequencingUpload:
             }
 
             # Check if the region is "ITS2" or "SSU"
-            if region in ["ITS2", "SSU"]:
+            if region in ["ITS2", "ITS1", "SSU"]:
                 # Construct the status field based on the index
                 region_status_field = (
                     f"region_{index + 1}_lotus2_report_status"
