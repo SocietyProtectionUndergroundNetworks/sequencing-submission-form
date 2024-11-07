@@ -156,7 +156,8 @@ def generate_lotus2_report(
             )
 
             tax4refDB = (
-                "/lotus2_files/vt_types_GF.txt," "SLV_138.1_SSU_NO_AMF.tax"
+                "/lotus2_files/vt_types_GF.txt,"
+                "/lotus2_files/SLV_138.1_SSU_NO_AMF.tax"
             )
 
             sdmopt = (
