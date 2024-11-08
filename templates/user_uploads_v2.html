@@ -42,9 +42,11 @@
           <th scope="col">Nr of Samples</th>
           <th scope="col">Nr of Regions</th>
           <th scope="col">Region 1</th>
-          <th scope="col">Phyloseq 1 exists</th>
+          <th scope="col">Lotus2 Phyloseq 1 exists</th>
+          <th scope="col">Rscripts Phyloseq 1 exists</th>
           <th scope="col">Region 2</th>
-          <th scope="col">Phyloseq 2 exists</th>
+          <th scope="col">Lotus2 Phyloseq 2 exists</th>
+          <th scope="col">Rscripts Phyloseq 2 exists</th>
           <th scope="col">Nr of Sequencer IDs</th>
           <th scope="col">Nr of files per sequence</th>
           <th scope="col">Nr of files</th>
@@ -88,6 +90,11 @@
                   {{ upload.region_1_plyloseq_exists }}
                 {% endif %}
               </td>
+              <td class="{{ 'text-success' if upload.region_1_rscripts_phyloseq_exists else 'text-danger' }}">
+                {% if upload.regions|length > 0 %}
+                  {{ upload.region_1_rscripts_phyloseq_exists }}
+                {% endif %}
+              </td>              
               <td>
                 {% if upload.regions|length > 1 %}
                   {{ upload.regions[1] }} <br>
@@ -97,7 +104,12 @@
                 {% if upload.regions|length > 1 %}
                   {{ upload.region_2_plyloseq_exists }}
                 {% endif %}
-              </td>              
+              </td>
+              <td class="{{ 'text-success' if upload.region_2_rscripts_phyloseq_exists else 'text-danger' }}">
+                {% if upload.regions|length > 1 %}
+                  {{ upload.region_2_rscripts_phyloseq_exists }}
+                {% endif %}
+              </td>   
               <td class="{% if upload.nr_sequencer_ids < (upload.nr_samples * upload.nr_regions) %}text-danger{% endif %}">
                   {{ upload.nr_sequencer_ids }}
               </td>

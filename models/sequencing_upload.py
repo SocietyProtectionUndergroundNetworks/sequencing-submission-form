@@ -153,14 +153,28 @@ class SequencingUpload:
                         region,
                         "phyloseq.Rdata",
                     )
-                    file_exists = os.path.isfile(phyloseq_file)
-                    if file_exists:
+                    lotus2_file_exists = os.path.isfile(phyloseq_file)
+                    if lotus2_file_exists:
                         setattr(
                             upload,
                             f"region_{index+1}_plyloseq_exists",
-                            file_exists,
+                            lotus2_file_exists,
                         )
 
+                    physeq_decontam_file = os.path.join(
+                        "seq_processed",
+                        uploads_folder,
+                        region + "_r_output",
+                        "physeq_decontam.Rdata",
+                    )
+                    rscripts_file_exists = os.path.isfile(physeq_decontam_file)
+                    if rscripts_file_exists:
+                        setattr(
+                            upload,
+                            f"region_{index+1}_rscripts_phyloseq_exists",
+                            rscripts_file_exists,
+                        )
+                        
             # Count the number of sequencer IDs associated with this upload
             nr_sequencer_ids = (
                 session.query(SequencingSequencerIDsTable)
