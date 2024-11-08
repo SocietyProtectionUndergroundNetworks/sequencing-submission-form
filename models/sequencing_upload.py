@@ -174,7 +174,7 @@ class SequencingUpload:
                             f"region_{index+1}_rscripts_phyloseq_exists",
                             rscripts_file_exists,
                         )
-                        
+
             # Count the number of sequencer IDs associated with this upload
             nr_sequencer_ids = (
                 session.query(SequencingSequencerIDsTable)
