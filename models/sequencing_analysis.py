@@ -48,7 +48,7 @@ class SequencingAnalysis:
 
         if existing_item:
             # If it exists, return the ID of the existing record
-            return existing_item.id
+            return existing_item
 
         # If it doesn't exist, create a new record
         db_engine = connect_db()
