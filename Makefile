@@ -51,7 +51,7 @@ bashredis:
 	docker-compose run --rm redis /bin/sh
 
 bashr:
-	docker-compose run --rm r_service /bin/sh
+	docker-compose run --rm r_service bash
 
 logsflask:
 	docker-compose logs -f --tail=200 flask
