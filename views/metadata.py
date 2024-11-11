@@ -239,9 +239,6 @@ def metadata_form():
         )
 
         lotus2_report = SequencingUpload.check_lotus2_reports_exist(process_id)
-        logger.info("---------")
-        logger.info(lotus2_report)
-        logger.info("---------")
         rscripts_report = SequencingUpload.check_rscripts_reports_exist(
             process_id
         )
