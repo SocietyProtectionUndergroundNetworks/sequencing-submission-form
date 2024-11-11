@@ -96,7 +96,6 @@ def generate_lotus2_report(
                 input_dir + "/mapping_files/" + region + "_Mapping.txt"
             )
 
-            logger.info(" - Here we will try the command")
             command = [
                 "lotus2",
                 debug_command,
@@ -171,7 +170,6 @@ def generate_lotus2_report(
             )
             mapping_file = input_dir + "/mapping_files/SSU_Mapping.txt"
 
-            logger.info(" - Here we will try the command")
             command = [
                 "lotus2",
                 debug_command,
