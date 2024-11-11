@@ -239,6 +239,9 @@ def metadata_form():
         )
 
         lotus2_report = SequencingUpload.check_lotus2_reports_exist(process_id)
+        logger.info("---------")
+        logger.info(lotus2_report)
+        logger.info("---------")
         rscripts_report = SequencingUpload.check_rscripts_reports_exist(
             process_id
         )
@@ -1318,8 +1321,8 @@ def show_report_outcome():
                     file_path = os.path.join(report_folder, "phyloseq.Rdata")
                     return send_file(file_path, as_attachment=True)
                 elif file_type == "lotus2_command_outcome":
-                    command_output = process_data[
-                        f"region_{region_nr}_lotus2_report_result"
+                    command_output = lotus2_region_data[
+                        "lotus2_command_outcome"
                     ]
                     if command_output:
                         return (

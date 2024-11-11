@@ -1,7 +1,7 @@
 import docker
 import logging
 import shutil
-from datetime import datetime
+import os
 
 # PROCESS_DIR =
 logger = logging.getLogger("my_app_logger")
@@ -13,6 +13,19 @@ def init_generate_lotus2_report(
 
     from tasks import generate_lotus2_report_async
 
+    from models.sequencing_analysis import SequencingAnalysis
+
+    analysis_id = 0
+    # TEMP . If region = SSU, then the typeID =1
+    # If the region = ITS2 then the typeID = 3
+    # If the region = ITS1 then the typeID = 4
+    sequencing_analysis_type = get_analysis_type(region)
+
+    if sequencing_analysis_type != 0:
+        analysis_id = SequencingAnalysis.create(
+            process_id, sequencing_analysis_type
+        )
+
     try:
         result = generate_lotus2_report_async.delay(
             region_nr, process_id, input_dir, region, debug, clustering
@@ -21,23 +34,12 @@ def init_generate_lotus2_report(
             f"Celery generate_lotus2_report_async task "
             f"called successfully! Task ID: {result.id}"
         )
-        from models.sequencing_upload import SequencingUpload
 
-        SequencingUpload.update_field(
-            process_id,
-            "region_" + str(region_nr) + "_lotus2_report_task_id",
-            result.id,
-        )
-        SequencingUpload.update_field(
-            process_id,
-            "region_" + str(region_nr) + "_lotus2_report_started_at",
-            datetime.utcnow(),
-        )
-        SequencingUpload.update_field(
-            process_id,
-            "region_" + str(region_nr) + "_lotus2_report_status",
-            "Started",
-        )
+        if analysis_id != 0:
+            SequencingAnalysis.update_field(
+                analysis_id, "celery_task_id", result.id
+            )
+            SequencingAnalysis.update_field(analysis_id, "status", "Started")
 
     except Exception as e:
         logger.error(
@@ -60,7 +62,16 @@ def generate_lotus2_report(
     region_nr, process_id, input_dir, region, debug, clustering
 ):
     client = docker.from_env()
-    from models.sequencing_upload import SequencingUpload
+    from models.sequencing_analysis import SequencingAnalysis
+
+    # TEMP . If region = SSU, then the typeID =1
+    # If the region = ITS2 then the typeID = 3
+    # If the region = ITS1 then the typeID = 4
+    sequencing_analysis_type = get_analysis_type(region)
+
+    analysis_id = SequencingAnalysis.get_by_upload_and_type(
+        process_id, sequencing_analysis_type
+    )
 
     logger.info("Trying for:")
     logger.info(" - region_nr : " + str(region_nr))
@@ -121,15 +132,9 @@ def generate_lotus2_report(
             result = container.exec_run(["bash", "-c", command_str])
             logger.info(result.output)
 
-            SequencingUpload.update_field(
-                process_id,
-                "region_" + str(region_nr) + "_lotus2_report_status",
-                "Finished",
-            )
-            SequencingUpload.update_field(
-                process_id,
-                "region_" + str(region_nr) + "_lotus2_report_result",
-                result.output,
+            SequencingAnalysis.update_field(analysis_id, "status", "Finished")
+            SequencingAnalysis.update_field(
+                analysis_id, "result", result.output
             )
 
         elif region == "SSU":
@@ -204,15 +209,9 @@ def generate_lotus2_report(
             result = container.exec_run(["bash", "-c", command_str])
             logger.info(result.output)
 
-            SequencingUpload.update_field(
-                process_id,
-                "region_" + str(region_nr) + "_lotus2_report_status",
-                "Finished",
-            )
-            SequencingUpload.update_field(
-                process_id,
-                "region_" + str(region_nr) + "_lotus2_report_result",
-                result.output,
+            SequencingAnalysis.update_field(analysis_id, "status", "Finished")
+            SequencingAnalysis.update_field(
+                analysis_id, "result", result.output
             )
 
         else:
@@ -221,51 +220,50 @@ def generate_lotus2_report(
                 + region
                 + " cannot be generated as we don't have the details."
             )
-            SequencingUpload.update_field(
-                process_id,
-                "region_" + str(region_nr) + "_lotus2_report_status",
-                "Abandoned. Unknown region.",
+            SequencingAnalysis.update_field(
+                analysis_id, "status", "Abandoned. Unknown region."
             )
 
     except Exception as e:
         logger.error(f"Error generating Lotus2 report: {str(e)}")
-        SequencingUpload.update_field(
-            process_id,
-            "region_" + str(region_nr) + "_lotus2_report_status",
-            "Error while generating.",
+        SequencingAnalysis.update_field(
+            analysis_id, "status", "Error while generating."
         )
-        SequencingUpload.update_field(
-            process_id,
-            "region_" + str(region_nr) + "_lotus2_report_result",
-            str(e),
-        )
+        SequencingAnalysis.update_field(analysis_id, "result", str(e))
 
 
 def delete_generated_lotus2_report(region_nr, process_id, input_dir, region):
+    sequencing_analysis_type = get_analysis_type(region)
 
-    from models.sequencing_upload import SequencingUpload
+    from models.sequencing_analysis import SequencingAnalysis
 
-    SequencingUpload.update_field(
-        process_id,
-        "region_" + str(region_nr) + "_lotus2_report_task_id",
-        None,
-    )
-    SequencingUpload.update_field(
-        process_id,
-        "region_" + str(region_nr) + "_lotus2_report_started_at",
-        None,
-    )
-    SequencingUpload.update_field(
-        process_id,
-        "region_" + str(region_nr) + "_lotus2_report_status",
-        None,
-    )
-    SequencingUpload.update_field(
-        process_id,
-        "region_" + str(region_nr) + "_lotus2_report_result",
-        None,
-    )
+    if sequencing_analysis_type != 0:
+        analysis_id = SequencingAnalysis.create(
+            process_id, sequencing_analysis_type
+        )
+
+        if analysis_id:
+            SequencingAnalysis.update_field(
+                analysis_id, "celery_task_id", None
+            )
+            SequencingAnalysis.update_field(analysis_id, "updated_at", None)
+            SequencingAnalysis.update_field(analysis_id, "status", None)
+            SequencingAnalysis.update_field(analysis_id, "result", None)
+
+    # TO DO: the path should be from the SequencingAnalysis name
     output_path = input_dir + "/lotus2_report/" + region
-    shutil.rmtree(output_path)
+    if os.path.exists(output_path) and os.path.isdir(output_path):
+        shutil.rmtree(output_path)
 
     return {"msg": "Process initiated"}
+
+
+def get_analysis_type(region):
+    sequencing_analysis_type = 0
+    if region == "SSU":
+        sequencing_analysis_type = 1
+    elif region == "ITS2":
+        sequencing_analysis_type = 3
+    elif region == "ITS1":
+        sequencing_analysis_type = 4
+    return sequencing_analysis_type

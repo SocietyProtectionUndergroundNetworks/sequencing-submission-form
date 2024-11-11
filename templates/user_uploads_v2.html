@@ -80,35 +80,19 @@
               <td>{{ upload.uploads_folder }}</td>
               <td>{{ upload.nr_samples }}</td>
               <td>{{ upload.nr_regions }}</td>
-              <td>
-                {% if upload.regions|length > 0 %}
-                  {{ upload.regions[0] }}
-                {% endif %}
-              </td>
+              <td>{{ upload.region_1 }}</td>
               <td class="{{ 'text-success' if upload.region_1_plyloseq_exists else 'text-danger' }}">
-                {% if upload.regions|length > 0 %}
                   {{ upload.region_1_plyloseq_exists }}
-                {% endif %}
               </td>
               <td class="{{ 'text-success' if upload.region_1_rscripts_phyloseq_exists else 'text-danger' }}">
-                {% if upload.regions|length > 0 %}
-                  {{ upload.region_1_rscripts_phyloseq_exists }}
-                {% endif %}
+                {{ upload.region_1_rscripts_phyloseq_exists }}
               </td>              
-              <td>
-                {% if upload.regions|length > 1 %}
-                  {{ upload.regions[1] }} <br>
-                {% endif %}
-              </td>
+              <td>{{ upload.region_2 }}</td>
               <td class="{{ 'text-success' if upload.region_2_plyloseq_exists else 'text-danger' }}">
-                {% if upload.regions|length > 1 %}
-                  {{ upload.region_2_plyloseq_exists }}
-                {% endif %}
+                {{ upload.region_2_plyloseq_exists }}
               </td>
               <td class="{{ 'text-success' if upload.region_2_rscripts_phyloseq_exists else 'text-danger' }}">
-                {% if upload.regions|length > 1 %}
-                  {{ upload.region_2_rscripts_phyloseq_exists }}
-                {% endif %}
+                {{ upload.region_2_rscripts_phyloseq_exists }}
               </td>   
               <td class="{% if upload.nr_sequencer_ids < (upload.nr_samples * upload.nr_regions) %}text-danger{% endif %}">
                   {{ upload.nr_sequencer_ids }}

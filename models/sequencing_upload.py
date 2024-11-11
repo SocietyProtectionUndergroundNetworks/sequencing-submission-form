@@ -20,6 +20,7 @@ from models.db_model import (
     SequencingFilesUploadedTable,
     UserTable,
 )
+from models.sequencing_analysis import SequencingAnalysis
 from models.sequencing_files_uploaded import SequencingFileUploaded
 from helpers.bucket import init_bucket_chunked_upload_v2
 from pathlib import Path
@@ -69,12 +70,15 @@ class SequencingUpload:
             filtered_dict["Sequencing_platform"]
         )
 
-        upload.regions = cls.get_regions(
-            filtered_dict["region_1_forward_primer"],
-            filtered_dict["region_1_reverse_primer"],
-            filtered_dict["region_2_forward_primer"],
-            filtered_dict["region_2_reverse_primer"],
-        )
+        # Calculate the number of regions
+        upload.nr_regions = 0
+        upload.regions = []
+        if upload.region_1 is not None:
+            upload.nr_regions += 1
+            upload.regions.append(upload.region_1)
+        if upload.region_2 is not None:
+            upload.nr_regions += 1
+            upload.regions.append(upload.region_2)
 
         # Convert the instance to a dictionary including the custom attribute
         upload_dict = upload.__dict__
@@ -112,13 +116,6 @@ class SequencingUpload:
                 filtered_dict["Sequencing_platform"]
             )
 
-            upload.regions = cls.get_regions(
-                filtered_dict["region_1_forward_primer"],
-                filtered_dict["region_1_reverse_primer"],
-                filtered_dict["region_2_forward_primer"],
-                filtered_dict["region_2_reverse_primer"],
-            )
-
             # Calculate the total size of the uploads folder and
             # count the fastq files
             upload.total_uploads_file_size = 0
@@ -132,7 +129,14 @@ class SequencingUpload:
                 upload.nr_fastq_files = fastq_count
 
             # Calculate the number of regions
-            upload.nr_regions = len(upload.regions)
+            upload.nr_regions = 0
+            upload.regions = []
+            if upload.region_1 is not None:
+                upload.nr_regions += 1
+                upload.regions.append(upload.region_1)
+            if upload.region_2 is not None:
+                upload.nr_regions += 1
+                upload.regions.append(upload.region_2)
 
             # Count the number of samples associated with this upload
             nr_samples = (
@@ -456,12 +460,8 @@ class SequencingUpload:
         nr_files_per_sequence = cls.determine_nr_files_per_sequence(
             upload["Sequencing_platform"]
         )
-        regions = cls.get_regions(
-            upload["region_1_forward_primer"],
-            upload["region_1_reverse_primer"],
-            upload["region_2_forward_primer"],
-            upload["region_2_reverse_primer"],
-        )
+
+        regions = [upload["region_1"], upload["region_2"]]
 
         for sample in samples:
             sequencer_ids = (
@@ -1221,74 +1221,77 @@ class SequencingUpload:
 
             # Check if the region is "ITS2" or "SSU"
             if region in ["ITS2", "ITS1", "SSU"]:
-                # Construct the status field based on the index
-                region_status_field = (
-                    f"region_{index + 1}_lotus2_report_status"
+                logger.info("==== here ===")
+                sequencing_analysis_type = 0
+                if region == "SSU":
+                    sequencing_analysis_type = 1
+                elif region == "ITS2":
+                    sequencing_analysis_type = 3
+                elif region == "ITS1":
+                    sequencing_analysis_type = 4
+                analysis_id = SequencingAnalysis.get_by_upload_and_type(
+                    process_id, sequencing_analysis_type
                 )
-                report_status = process_data.get(region_status_field)
+                if analysis_id:
+                    analysis = SequencingAnalysis.get(analysis_id)
+                    region_result["report_status"] = analysis.status
+                    region_result["lotus2_command_outcome"] = analysis.result
 
-                # Update report status in the result dictionary
-                region_result["report_status"] = report_status
+                    # Proceed only if the status is "Finished"
+                    if region_result["report_status"] == "Finished":
 
-                # Check if command outcome exists
-                command_outcome_field = (
-                    f"region_{index + 1}_lotus2_report_result"
-                )
-                command_outcome = process_data.get(command_outcome_field)
+                        # Construct the path to the log
+                        # files inside uploads_folder
+                        report_folder = os.path.join(
+                            "seq_processed",
+                            uploads_folder,
+                            "lotus2_report",
+                            region,
+                        )
 
-                # Set command_outcome to False if empty
-                if command_outcome:
-                    region_result["lotus2_command_outcome"] = command_outcome
+                        log_folder = os.path.join(
+                            report_folder,
+                            "LotuSLogS",
+                        )
 
-                # Proceed only if the status is "Finished"
-                if report_status == "Finished":
-                    # Construct the path to the log files inside uploads_folder
-                    report_folder = os.path.join(
-                        "seq_processed",
-                        uploads_folder,
-                        "lotus2_report",
-                        region,
-                    )
+                        # Check if the required log files exist locally
+                        lotus_progout_file = os.path.join(
+                            log_folder, "LotuS_progout.log"
+                        )
+                        demulti_file = os.path.join(log_folder, "demulti.log")
+                        lotus_run_file = os.path.join(
+                            log_folder, "LotuS_run.log"
+                        )
+                        phyloseq_file = os.path.join(
+                            report_folder, "phyloseq.Rdata"
+                        )
 
-                    log_folder = os.path.join(
-                        report_folder,
-                        "LotuSLogS",
-                    )
+                        # Update the existence status in the result dictionary
+                        region_result["log_files_exist"]["LotuS_progout"] = (
+                            os.path.isfile(lotus_progout_file)
+                        )
+                        region_result["log_files_exist"]["demulti"] = (
+                            os.path.isfile(demulti_file)
+                        )
+                        region_result["log_files_exist"]["LotuS_run"] = (
+                            os.path.isfile(lotus_run_file)
+                        )
+                        region_result["log_files_exist"]["phyloseq"] = (
+                            os.path.isfile(phyloseq_file)
+                        )
 
-                    # Check if the required log files exist locally
-                    lotus_progout_file = os.path.join(
-                        log_folder, "LotuS_progout.log"
-                    )
-                    demulti_file = os.path.join(log_folder, "demulti.log")
-                    lotus_run_file = os.path.join(log_folder, "LotuS_run.log")
-                    phyloseq_file = os.path.join(
-                        report_folder, "phyloseq.Rdata"
-                    )
-
-                    # Update the existence status in the result dictionary
-                    region_result["log_files_exist"]["LotuS_progout"] = (
-                        os.path.isfile(lotus_progout_file)
-                    )
-                    region_result["log_files_exist"]["demulti"] = (
-                        os.path.isfile(demulti_file)
-                    )
-                    region_result["log_files_exist"]["LotuS_run"] = (
-                        os.path.isfile(lotus_run_file)
-                    )
-                    region_result["log_files_exist"]["phyloseq"] = (
-                        os.path.isfile(phyloseq_file)
-                    )
-
-                    # Check if we need to verify files in the bucket
-                    bucket_directory = f"{region}/lotus2_report/LotuSLogS"
-                    # Check if LotuS_progout.log exists in the bucket
-                    bucket_progout_exists = check_file_exists_in_bucket(
-                        local_file_path=lotus_progout_file,
-                        destination_upload_directory=bucket_directory,
-                        destination_blob_name="LotuS_progout.log",
-                        bucket_name=bucket,
-                    )
-                    region_result["bucket_log_exists"] = bucket_progout_exists
+                        # Check if we need to verify files in the bucket
+                        bucket_directory = f"{region}/lotus2_report/LotuSLogS"
+                        # Check if LotuS_progout.log exists in the bucket
+                        bucket_progout_exists = check_file_exists_in_bucket(
+                            local_file_path=lotus_progout_file,
+                            destination_upload_directory=bucket_directory,
+                            destination_blob_name="LotuS_progout.log",
+                            bucket_name=bucket,
+                        )
+                        region_result["bucket_log_exists"] = (
+                            bucket_progout_exists
+                        )
 
             # Append the region result to the results list
             results.append(region_result)
