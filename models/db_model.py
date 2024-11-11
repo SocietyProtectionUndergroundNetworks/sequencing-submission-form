@@ -162,6 +162,32 @@ class SequencingUploadsTable(Base):
     region_2_rscripts_report_result = Column(Text, nullable=True)
 
 
+class SequencingAnalysisTable(Base):
+    __tablename__ = "sequencing_analysis"
+    id = Column(Integer, primary_key=True)
+    sequencingUploadId = Column(
+        Integer, ForeignKey("sequencing_uploads.id", ondelete="CASCADE")
+    )
+    sequencingAnalysisTypeId = Column(
+        Integer, ForeignKey("sequencing_analysis_types.id")
+    )
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(
+        DateTime, default=func.now(), onupdate=func.now(), nullable=True
+    )
+    celery_task_id = Column(String(255), nullable=True)
+    status = Column(String(255), nullable=True)
+    result = Column(Text, nullable=True)
+
+
+class SequencingAnalysisTypesTable(Base):
+    __tablename__ = "sequencing_analysis_types"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=True)
+    region = Column(String(255), nullable=True)
+    parameters = Column(JSON(none_as_null=True))
+
+
 class SequencingSamplesTable(Base):
     __tablename__ = "sequencing_samples"
     id = Column(Integer, primary_key=True)
