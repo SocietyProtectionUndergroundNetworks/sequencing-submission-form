@@ -240,12 +240,18 @@ def delete_generated_lotus2_report(
     process_id, input_dir, region, analysis_type_id
 ):
 
-    from models.sequencing_analysis import SequencingAnalysis
-
     if analysis_type_id != 0:
-        analysis_id = SequencingAnalysis.create(process_id, analysis_type_id)
+        from models.sequencing_analysis import SequencingAnalysis
+        from models.sequencing_analysis_type import SequencingAnalysisType
+
+        analysis_type = SequencingAnalysisType.get(analysis_type_id)
+
+        analysis_id = SequencingAnalysis.get_by_upload_and_type(
+            process_id, analysis_type_id
+        )
 
         if analysis_id:
+
             SequencingAnalysis.update_field(
                 analysis_id, "celery_task_id", None
             )
@@ -253,10 +259,9 @@ def delete_generated_lotus2_report(
             SequencingAnalysis.update_field(analysis_id, "status", None)
             SequencingAnalysis.update_field(analysis_id, "result", None)
 
-    # TO DO: the path should be from the SequencingAnalysis name
-    output_path = input_dir + "/lotus2_report/" + region
-    if os.path.exists(output_path) and os.path.isdir(output_path):
-        shutil.rmtree(output_path)
+            output_path = input_dir + "/lotus2_report/" + analysis_type.name
+            if os.path.exists(output_path) and os.path.isdir(output_path):
+                shutil.rmtree(output_path)
 
     return {"msg": "Process initiated"}
 
