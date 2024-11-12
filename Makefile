@@ -45,7 +45,7 @@ bashdb:
 	docker-compose run --rm db /bin/sh
 
 bashlotus:
-	docker-compose run --rm lotus2 /bin/sh
+	docker-compose run --rm lotus2 bash
 
 bashredis:
 	docker-compose run --rm redis /bin/sh
