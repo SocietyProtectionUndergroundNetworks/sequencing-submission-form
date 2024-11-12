@@ -18,6 +18,7 @@ from models.db_model import (
     SequencingSamplesTable,
     SequencingSequencerIDsTable,
     SequencingFilesUploadedTable,
+    SequencingAnalysisTypesTable,
     UserTable,
 )
 from models.sequencing_analysis import SequencingAnalysis
@@ -332,8 +333,15 @@ class SequencingUpload:
             datadict["region_1_reverse_primer"] = "ITS4"
             datadict["region_2_forward_primer"] = "WANDA"
             datadict["region_2_reverse_primer"] = "AML2"
+            datadict["region_1"] = "ITS2"
+            datadict["region_1"] = "SSU"
             datadict["Sequencing_platform"] = "Element Biosciences AVITI"
             datadict["Sequencing_facility"] = "Scripps Research"
+        else:
+            datadict["region_1"] = cls.get_region(
+                datadict["region_1_forward_primer"],
+                datadict["region_1_reverse_primer"],
+            )
 
         if (
             datadict["region_2_forward_primer"] == "0"
@@ -342,6 +350,10 @@ class SequencingUpload:
             datadict["Sequencing_regions_number"] = 1
         else:
             datadict["Sequencing_regions_number"] = 2
+            datadict["region_2"] = cls.get_region(
+                datadict["region_2_forward_primer"],
+                datadict["region_2_reverse_primer"],
+            )
 
         # Dynamically set attributes from datadict
         for key, value in datadict.items():
@@ -1197,6 +1209,8 @@ class SequencingUpload:
 
     @classmethod
     def check_lotus2_reports_exist(cls, process_id):
+        db_engine = connect_db()
+        session = get_session(db_engine)
         process_data = cls.get(process_id)
 
         # Extract uploads folder and bucket from process data
@@ -1206,31 +1220,34 @@ class SequencingUpload:
 
         # Iterate through each region
         for index, region in enumerate(process_data["regions"]):
-            region_result = {
-                "region": region,
-                "report_status": None,
-                "log_files_exist": {
-                    "LotuS_progout": False,
-                    "demulti": False,
-                    "LotuS_run": False,
-                    "phyloseq": False,
-                },
-                "bucket_log_exists": False,
-                "lotus2_command_outcome": False,  # Default to False
-            }
+            # Query to get all analysis types for the specified region
 
-            # Check if the region is "ITS2" or "SSU"
-            if region in ["ITS2", "ITS1", "SSU"]:
-                logger.info("==== here ===")
-                sequencing_analysis_type = 0
-                if region == "SSU":
-                    sequencing_analysis_type = 1
-                elif region == "ITS2":
-                    sequencing_analysis_type = 3
-                elif region == "ITS1":
-                    sequencing_analysis_type = 4
+            analysis_types = (
+                session.query(SequencingAnalysisTypesTable)
+                .filter(SequencingAnalysisTypesTable.region == region)
+                .all()  # Retrieve all matching rows as a list
+            )
+
+            # Example of iterating over the result
+            for analysis_type in analysis_types:
+                analysis_type_name = analysis_type.name
+                region_result = {
+                    "region": region,
+                    "report_status": None,
+                    "log_files_exist": {
+                        "LotuS_progout": False,
+                        "demulti": False,
+                        "LotuS_run": False,
+                        "phyloseq": False,
+                    },
+                    "bucket_log_exists": False,
+                    "lotus2_command_outcome": False,
+                    "analysis_type": analysis_type_name,
+                    "analysis_type_id": analysis_type.id,
+                }
+
                 analysis_id = SequencingAnalysis.get_by_upload_and_type(
-                    process_id, sequencing_analysis_type
+                    process_id, analysis_type.id
                 )
                 if analysis_id:
                     analysis = SequencingAnalysis.get(analysis_id)
@@ -1246,7 +1263,7 @@ class SequencingUpload:
                             "seq_processed",
                             uploads_folder,
                             "lotus2_report",
-                            region,
+                            analysis_type.name,
                         )
 
                         log_folder = os.path.join(
@@ -1281,7 +1298,10 @@ class SequencingUpload:
                         )
 
                         # Check if we need to verify files in the bucket
-                        bucket_directory = f"{region}/lotus2_report/LotuSLogS"
+                        bucket_directory = (
+                            f"{region}/lotus2_report/"
+                            f"{analysis_type.name}/LotuSLogS"
+                        )
                         # Check if LotuS_progout.log exists in the bucket
                         bucket_progout_exists = check_file_exists_in_bucket(
                             local_file_path=lotus_progout_file,
@@ -1293,9 +1313,9 @@ class SequencingUpload:
                             bucket_progout_exists
                         )
 
-            # Append the region result to the results list
-            results.append(region_result)
-
+                # Append the region result to the results list
+                results.append(region_result)
+        session.close()
         return results
 
     @classmethod
@@ -1356,7 +1376,7 @@ class SequencingUpload:
                     library_size_file = os.path.join(
                         report_folder, "LibrarySize.pdf"
                     )
-                    logger.info(library_size_file)
+
                     control_vs_sample_file = os.path.join(
                         report_folder, "control_vs_sample.pdf"
                     )
@@ -1371,7 +1391,7 @@ class SequencingUpload:
                     region_result["files_exist"]["LibrarySize"] = (
                         os.path.isfile(library_size_file)
                     )
-                    logger.info(region_result["files_exist"]["LibrarySize"])
+
                     region_result["files_exist"]["control_vs_sample"] = (
                         os.path.isfile(control_vs_sample_file)
                     )

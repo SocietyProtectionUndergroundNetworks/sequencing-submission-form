@@ -19,10 +19,10 @@ from helpers.r_scripts import generate_rscripts_report
 
 @celery_app.task
 def generate_lotus2_report_async(
-    region_nr, process_id, input_dir, amplicon_type, debug, clustering
+    process_id, input_dir, amplicon_type, debug, analysis_type_id
 ):
     generate_lotus2_report(
-        region_nr, process_id, input_dir, amplicon_type, debug, clustering
+        process_id, input_dir, amplicon_type, debug, analysis_type_id
     )
 
 

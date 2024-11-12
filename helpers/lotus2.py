@@ -8,75 +8,85 @@ logger = logging.getLogger("my_app_logger")
 
 
 def init_generate_lotus2_report(
-    region_nr, process_id, input_dir, region, debug=False, clustering=""
+    process_id,
+    input_dir,
+    region,
+    debug=False,
+    analysis_type_id="0",
 ):
 
     from tasks import generate_lotus2_report_async
 
     from models.sequencing_analysis import SequencingAnalysis
 
-    analysis_id = 0
-    # TEMP . If region = SSU, then the typeID =1
-    # If the region = ITS2 then the typeID = 3
-    # If the region = ITS1 then the typeID = 4
-    sequencing_analysis_type = get_analysis_type(region)
+    if analysis_type_id != 0:
+        analysis_id = SequencingAnalysis.create(process_id, analysis_type_id)
 
-    if sequencing_analysis_type != 0:
-        analysis_id = SequencingAnalysis.create(
-            process_id, sequencing_analysis_type
-        )
-
-    try:
-        result = generate_lotus2_report_async.delay(
-            region_nr, process_id, input_dir, region, debug, clustering
-        )
-        logger.info(
-            f"Celery generate_lotus2_report_async task "
-            f"called successfully! Task ID: {result.id}"
-        )
-
-        if analysis_id != 0:
-            SequencingAnalysis.update_field(
-                analysis_id, "celery_task_id", result.id
+        try:
+            result = generate_lotus2_report_async.delay(
+                process_id,
+                input_dir,
+                region,
+                debug,
+                analysis_type_id,
             )
-            SequencingAnalysis.update_field(analysis_id, "status", "Started")
+            logger.info(
+                f"Celery generate_lotus2_report_async task "
+                f"called successfully! Task ID: {result.id}"
+            )
 
-    except Exception as e:
-        logger.error(
-            "This is an error message from helpers/bucket.py "
-            " while trying to generate_lotus2_report_async"
-        )
-        logger.error(e)
-        return {
-            "error": (
+            if analysis_id != 0:
+                SequencingAnalysis.update_field(
+                    analysis_id, "celery_task_id", result.id
+                )
+                SequencingAnalysis.update_field(
+                    analysis_id, "status", "Started"
+                )
+
+        except Exception as e:
+            logger.error(
                 "This is an error message from helpers/bucket.py "
                 " while trying to generate_lotus2_report_async"
-            ),
-            "e": (e),
-        }
-
-    return {"msg": "Process initiated"}
+            )
+            logger.error(e)
+            return {
+                "error": (
+                    "This is an error message from helpers/bucket.py "
+                    " while trying to generate_lotus2_report_async"
+                ),
+                "e": (e),
+            }
+        return {"msg": "Process initiated"}
+    else:
+        return {"error": "Wrong analysis type ID"}
 
 
 def generate_lotus2_report(
-    region_nr, process_id, input_dir, region, debug, clustering
+    process_id, input_dir, region, debug, analysis_type_id
 ):
     client = docker.from_env()
     from models.sequencing_analysis import SequencingAnalysis
+    from models.sequencing_analysis_type import SequencingAnalysisType
 
     # TEMP . If region = SSU, then the typeID =1
     # If the region = ITS2 then the typeID = 3
     # If the region = ITS1 then the typeID = 4
-    sequencing_analysis_type = get_analysis_type(region)
+    # sequencing_analysis_type = get_analysis_type(region)
 
     analysis_id = SequencingAnalysis.get_by_upload_and_type(
-        process_id, sequencing_analysis_type
+        process_id, analysis_type_id
     )
 
+    analysis_type = SequencingAnalysisType.get(analysis_type_id)
+    logger.info(analysis_type)
+    input_dir = "/" + input_dir
+    output_path = input_dir + "/lotus2_report/" + analysis_type.name
+
     logger.info("Trying for:")
-    logger.info(" - region_nr : " + str(region_nr))
     logger.info(" - process_id : " + str(process_id))
+    logger.info(" - analysis_type_id : " + str(analysis_type_id))
     logger.info(" - input_dir : " + str(input_dir))
+    logger.info(" - output_path : " + str(output_path))
     logger.info(" - region : " + str(region))
     logger.info(" - debug : " + str(debug))
 
@@ -86,11 +96,9 @@ def generate_lotus2_report(
 
     try:
         # Run Lotus2 inside the 'spun-lotus2' container
-        input_dir = "/" + input_dir
-        output_path = input_dir + "/lotus2_report/" + region
+        container = client.containers.get("spun-lotus2")
 
         if region in ["ITS1", "ITS2"]:
-            container = client.containers.get("spun-lotus2")
             sdmopt = "/lotus2_files/sdm_miSeq_ITS.txt"
             mapping_file = (
                 input_dir + "/mapping_files/" + region + "_Mapping.txt"
@@ -139,10 +147,8 @@ def generate_lotus2_report(
         elif region == "SSU":
             # We used to define the container differently
             # because we had two different versions of lotus2
-            container = client.containers.get("spun-lotus2")
-            clustering_method = "dada2"
-            if clustering == "vsearch":
-                clustering_method = "vsearch"
+            parameters = analysis_type.parameters
+            clustering = parameters["clustering"]
 
             # The following two is if we want to use
             # The FULL SILVA database
@@ -192,7 +198,7 @@ def generate_lotus2_report(
                 "-taxAligner",
                 "blast",
                 "-clustering",
-                clustering_method,
+                clustering,
                 "-LCA_cover",
                 "0.97",
                 "-derepMin",
@@ -230,15 +236,14 @@ def generate_lotus2_report(
         SequencingAnalysis.update_field(analysis_id, "result", str(e))
 
 
-def delete_generated_lotus2_report(region_nr, process_id, input_dir, region):
-    sequencing_analysis_type = get_analysis_type(region)
+def delete_generated_lotus2_report(
+    process_id, input_dir, region, analysis_type_id
+):
 
     from models.sequencing_analysis import SequencingAnalysis
 
-    if sequencing_analysis_type != 0:
-        analysis_id = SequencingAnalysis.create(
-            process_id, sequencing_analysis_type
-        )
+    if analysis_type_id != 0:
+        analysis_id = SequencingAnalysis.create(process_id, analysis_type_id)
 
         if analysis_id:
             SequencingAnalysis.update_field(

@@ -1148,19 +1148,14 @@ def sequencing_process_server_file():
 def generate_lotus2_report():
     process_id = request.form.get("process_id")
     debug = request.form.get("debug")
-    clustering = request.form.get("clustering", "vsearch")
-
+    analysis_type_id = request.form.get("analysis_type_id")
     process_data = SequencingUpload.get(process_id)
     region = request.form.get("region")
 
-    region_nr = 0
     input_dir = "seq_processed/" + process_data["uploads_folder"]
-    for region_db in process_data["regions"]:
-        region_nr += 1
-        if region == region_db:
-            init_generate_lotus2_report(
-                region_nr, process_id, input_dir, region, debug, clustering
-            )
+    init_generate_lotus2_report(
+        process_id, input_dir, region, debug, analysis_type_id
+    )
 
     return jsonify({"result": 1})
 
@@ -1176,17 +1171,13 @@ def generate_lotus2_report():
 def delete_lotus2_report():
     process_id = request.form.get("process_id")
     region = request.form.get("region")
-
+    analysis_type_id = request.form.get("analysis_type_id")
     process_data = SequencingUpload.get(process_id)
 
-    region_nr = 0
     input_dir = "seq_processed/" + process_data["uploads_folder"]
-    for region_db in process_data["regions"]:
-        region_nr += 1
-        if region == region_db:
-            delete_generated_lotus2_report(
-                region_nr, process_id, input_dir, region
-            )
+    delete_generated_lotus2_report(
+        process_id, input_dir, region, analysis_type_id
+    )
 
     return jsonify({"result": 1})
 
@@ -1250,7 +1241,7 @@ def delete_rscripts_report():
 @approved_required
 def show_report_outcome():
     process_id = request.args.get("process_id")
-    region = request.args.get("region")
+    analysis_type_id = request.args.get("analysis_type_id")
     file_type = request.args.get("type")  # Renamed 'file' to 'type'
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if file_type in [
@@ -1268,10 +1259,6 @@ def show_report_outcome():
         # Fetch process data from SequencingUpload model
         process_data = SequencingUpload.get(process_id)
 
-        region_nr = 0
-        if region in process_data["regions"]:
-            region_nr = process_data["regions"].index(region) + 1
-
         uploads_folder = process_data["uploads_folder"]
 
         if file_type in [
@@ -1288,7 +1275,11 @@ def show_report_outcome():
 
             # Find the corresponding region in the lotus2 report
             lotus2_region_data = next(
-                (item for item in lotus2_report if item["region"] == region),
+                (
+                    item
+                    for item in lotus2_report
+                    if str(item["analysis_type_id"]) == str(analysis_type_id)
+                ),
                 None,
             )
 
@@ -1297,7 +1288,7 @@ def show_report_outcome():
                     "seq_processed",
                     uploads_folder,
                     "lotus2_report",
-                    region,
+                    lotus2_region_data["analysis_type"],
                     "LotuSLogS",
                 )
                 # Handle log files and command_output
@@ -1313,11 +1304,12 @@ def show_report_outcome():
                         "seq_processed",
                         uploads_folder,
                         "lotus2_report",
-                        region,
+                        lotus2_region_data["analysis_type"],
                     )
                     file_path = os.path.join(report_folder, "phyloseq.Rdata")
                     return send_file(file_path, as_attachment=True)
                 elif file_type == "lotus2_command_outcome":
+                    logger.info("here we are")
                     command_output = lotus2_region_data[
                         "lotus2_command_outcome"
                     ]
@@ -1353,7 +1345,11 @@ def show_report_outcome():
             )
             # Find the corresponding region in the lotus2 report
             rscipts_region_data = next(
-                (item for item in rscripts_report if item["region"] == region),
+                (
+                    item
+                    for item in rscripts_report
+                    if item["region"] == analysis_type_id
+                ),
                 None,
             )
 
@@ -1364,7 +1360,7 @@ def show_report_outcome():
                     project_root,
                     "seq_processed",
                     uploads_folder,
-                    region + "_r_output",
+                    analysis_type_id + "_r_output",
                 )
                 # Handle log files and command_output
                 if file_type == "LibrarySize":
@@ -1386,8 +1382,9 @@ def show_report_outcome():
                     )
                     return send_file(file_path, as_attachment=True)
                 elif file_type == "rscripts_command_outcome":
+                    # fix this !!!
                     command_output = process_data[
-                        f"region_{region_nr}_rscripts_report_result"
+                        f"region_{analysis_type_id}_rscripts_report_result"
                     ]
 
                     if command_output:
@@ -1412,31 +1409,35 @@ def show_report_outcome():
 @admin_required
 def upload_report_to_bucket():
     process_id = request.args.get("process_id")
-    region = request.args.get("region")
+    analysis_type_id = request.args.get("analysis_type_id")
     report = request.args.get("report")
     process_data = SequencingUpload.get(process_id)
     bucket = process_data["project_id"]
+
     if report in ["lotus2", "rscripts"]:
+        from models.sequencing_analysis_type import SequencingAnalysisType
+
+        analysis_type = SequencingAnalysisType.get(analysis_type_id)
         if report == "lotus2":
             output_path = (
                 "seq_processed/"
                 + process_data["uploads_folder"]
                 + "/lotus2_report/"
-                + region
+                + analysis_type.name
             )
         elif report == "rscripts":
             output_path = (
                 "seq_processed/"
                 + process_data["uploads_folder"]
                 + "/"
-                + region
+                + analysis_type.name
                 + "_r_output/"
             )
         from helpers.bucket import init_bucket_upload_folder_v2
 
         init_bucket_upload_folder_v2(
             folder_path=output_path,
-            destination_upload_directory="r_output/" + region,
+            destination_upload_directory="r_output/" + analysis_type.name,
             bucket=bucket,
         )
     return redirect(
