@@ -1,6 +1,9 @@
 import logging
 from helpers.dbm import connect_db, get_session
-from models.db_model import SequencingAnalysisTable
+from models.db_model import (
+    SequencingAnalysisTable,
+    SequencingAnalysisTypesTable,
+)
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -93,6 +96,54 @@ class SequencingAnalysis:
             return None
 
         return item_db.id
+
+    @classmethod
+    def get_by_upload(cls, sequencingUploadId):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        # Query the database for all items matching the sequencingUploadId,
+        # joining with the SequencingAnalysisTypesTable to
+        # include analysisTypeName
+        items = (
+            session.query(
+                SequencingAnalysisTable,
+                SequencingAnalysisTypesTable.name.label("analysisTypeName"),
+                SequencingAnalysisTypesTable.id.label("analysisTypeId"),
+                SequencingAnalysisTypesTable.region,
+            )
+            .join(
+                SequencingAnalysisTypesTable,
+                SequencingAnalysisTable.sequencingAnalysisTypeId
+                == SequencingAnalysisTypesTable.id,
+            )
+            .filter(
+                SequencingAnalysisTable.sequencingUploadId
+                == sequencingUploadId
+            )
+            .all()
+        )
+
+        session.close()
+
+        # Format the results as a list of dictionaries with desired fields
+        results = [
+            {
+                "id": item.SequencingAnalysisTable.id,
+                "sequencingUploadId": (
+                    item.SequencingAnalysisTable.sequencingUploadId
+                ),
+                "analysisTypeId": item.analysisTypeId,
+                "analysisTypeName": item.analysisTypeName,
+                "region": item.region,
+                "status": item.SequencingAnalysisTable.status,
+                "created_at": item.SequencingAnalysisTable.created_at,
+                "updated_at": item.SequencingAnalysisTable.updated_at,
+            }
+            for item in items
+        ]
+
+        return results
 
     @classmethod
     def update_field(cls, id, fieldname, value):

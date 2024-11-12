@@ -22,6 +22,7 @@ from models.db_model import (
     UserTable,
 )
 from models.sequencing_analysis import SequencingAnalysis
+from models.sequencing_analysis_type import SequencingAnalysisType
 from models.sequencing_files_uploaded import SequencingFileUploaded
 from helpers.bucket import init_bucket_chunked_upload_v2
 from pathlib import Path
@@ -147,38 +148,84 @@ class SequencingUpload:
             )
             upload.nr_samples = nr_samples
 
-            upload.region_1_plyloseq_exists = False
-            upload.region_2_plyloseq_exists = False
-            for index, region in enumerate(upload.regions):
+            analysis_all = SequencingAnalysis.get_by_upload(upload.id)
+
+            # Extract the analysis type IDs from the
+            # existing analyses for easier lookup
+            existing_analysis_type_ids = {
+                analysis["analysisTypeId"] for analysis in analysis_all
+            }
+
+            # Initialize the analysis structure grouped by region
+            upload.analysis = {}
+
+            for region in upload.regions:
                 if uploads_folder:
-                    phyloseq_file = os.path.join(
-                        "seq_processed",
-                        uploads_folder,
-                        "lotus2_report",
-                        region,
-                        "phyloseq.Rdata",
+                    # Get the required analyses for the current region
+                    required_analyses = (
+                        SequencingAnalysisType.get_all_by_region(region)
                     )
-                    lotus2_file_exists = os.path.isfile(phyloseq_file)
-                    if lotus2_file_exists:
-                        setattr(
-                            upload,
-                            f"region_{index+1}_plyloseq_exists",
-                            lotus2_file_exists,
+
+                    # Initialize a list to store analyses
+                    # for the current region
+                    region_analyses = []
+
+                    # Because plural of analysis had to
+                    # be so close as to be confusing!
+                    for required_one_analysis in required_analyses:
+
+                        # Set up the basic structure for the analysis item
+                        upload_required_analysis = {
+                            "analysis_type_id": required_one_analysis["id"],
+                            "analysis_type_name": required_one_analysis[
+                                "name"
+                            ],
+                            "status": None,
+                            "phyloseq_file_exists": False,
+                        }
+
+                        if (
+                            required_one_analysis["id"]
+                            in existing_analysis_type_ids
+                        ):
+                            # Find the corresponding existing
+                            # analysis to get the status
+                            matching_analysis = next(
+                                (
+                                    a
+                                    for a in analysis_all
+                                    if a["analysisTypeId"]
+                                    == required_one_analysis["id"]
+                                ),
+                                None,
+                            )
+
+                            # If a match is found, set the status
+                            if matching_analysis:
+                                upload_required_analysis["status"] = (
+                                    matching_analysis["status"]
+                                )
+
+                        # Construct the phyloseq file path and check
+                        # if it exists
+                        phyloseq_file = os.path.join(
+                            "seq_processed",
+                            uploads_folder,
+                            "lotus2_report",
+                            required_one_analysis["name"],
+                            "phyloseq.Rdata",
+                        )
+                        lotus2_file_exists = os.path.isfile(phyloseq_file)
+                        upload_required_analysis["phyloseq_file_exists"] = (
+                            lotus2_file_exists
                         )
 
-                    physeq_decontam_file = os.path.join(
-                        "seq_processed",
-                        uploads_folder,
-                        region + "_r_output",
-                        "physeq_decontam.Rdata",
-                    )
-                    rscripts_file_exists = os.path.isfile(physeq_decontam_file)
-                    if rscripts_file_exists:
-                        setattr(
-                            upload,
-                            f"region_{index+1}_rscripts_phyloseq_exists",
-                            rscripts_file_exists,
-                        )
+                        # Append this analysis to the current region's list
+                        region_analyses.append(upload_required_analysis)
+
+                    # Store the analyses for this region in
+                    # the main upload analysis structure
+                    upload.analysis[region] = region_analyses
 
             # Count the number of sequencer IDs associated with this upload
             nr_sequencer_ids = (

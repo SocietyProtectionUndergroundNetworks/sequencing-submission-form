@@ -40,3 +40,29 @@ class SequencingAnalysisType:
         upload = SequencingAnalysisTypesTable(**filtered_dict)
 
         return upload
+
+    @classmethod
+    def get_all_by_region(cls, region):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        # Query for all items with the specified region
+        items = (
+            session.query(SequencingAnalysisTypesTable)
+            .filter_by(region=region)
+            .all()
+        )
+
+        session.close()
+
+        # Format results as a list of dictionaries with specific fields
+        results = [
+            {
+                "id": item.id,
+                "name": item.name,
+                "parameters": item.parameters,
+            }
+            for item in items
+        ]
+
+        return results

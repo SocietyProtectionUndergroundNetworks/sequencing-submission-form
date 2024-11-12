@@ -59,6 +59,7 @@
       </thead>
       <tbody id="files_body">
         {% for upload in user_uploads %}
+          
           <tr>
               <td scope="row">
                 <a href="/metadata_form?process_id={{ upload.id }}">
@@ -81,10 +82,20 @@
               <td>{{ upload.nr_samples }}</td>
               <td>{{ upload.nr_regions }}</td>
               <td>{{ upload.region_1 }}</td>
-              <td class="{{ 'text-success' if upload.region_1_plyloseq_exists else 'text-danger' }}">
-                {% if upload.region_1 %}
-                  {{ upload.region_1_plyloseq_exists }}
-                {% endif %}
+              <td>
+                {% for analysis in upload.analysis[upload.region_1] %}
+                    <div>
+                        <strong>{{ analysis.analysis_type_name }}</strong><br>
+                        <span class="{{ 'text-success' if analysis.status == 'Finished' else 'text-danger' }}">
+                          {{ analysis.status if analysis.status else 'Not Started' }}
+                        </span>
+                        <br>
+                        File Exists: 
+                        <span class="{{ 'text-success' if analysis.phyloseq_file_exists else 'text-danger' }}">
+                            {{ 'Yes' if analysis.phyloseq_file_exists else 'No' }}
+                        </span>
+                    </div>
+                {% endfor %}
               </td>
               <td class="{{ 'text-success' if upload.region_1_rscripts_phyloseq_exists else 'text-danger' }}">
                 {% if upload.region_1 %}
@@ -92,10 +103,20 @@
                 {% endif %}
               </td>              
               <td>{{ upload.region_2 }}</td>
-              <td class="{{ 'text-success' if upload.region_2_plyloseq_exists else 'text-danger' }}">
-                {% if upload.region_2 %}
-                  {{ upload.region_2_plyloseq_exists }}
-                {% endif %}
+              <td>
+                {% for analysis in upload.analysis[upload.region_2] %}
+                    <div>
+                        <strong>{{ analysis.analysis_type_name }}</strong><br>
+                        <span class="{{ 'text-success' if analysis.status == 'Finished' else 'text-danger' }}">
+                          {{ analysis.status if analysis.status else 'Not Started' }}
+                        </span>
+                        <br>
+                        File Exists: 
+                        <span class="{{ 'text-success' if analysis.phyloseq_file_exists else 'text-danger' }}">
+                            {{ 'Yes' if analysis.phyloseq_file_exists else 'No' }}
+                        </span>
+                    </div>
+                {% endfor %}
               </td>
               <td class="{{ 'text-success' if upload.region_2_rscripts_phyloseq_exists else 'text-danger' }}">
                 {% if upload.region_2 %}
