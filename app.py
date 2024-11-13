@@ -31,6 +31,8 @@ app.config.update(
     task_serializer="json",
     task_acks_late=True,
     worker_prefetch_multiplier=1,
+    task_time_limit=86400,
+    broker_transport_options={"visibility_timeout": 86400},
 )
 
 # Secret key generation
