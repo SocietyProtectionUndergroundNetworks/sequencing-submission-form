@@ -21,42 +21,48 @@ def init_generate_lotus2_report(
 
     if analysis_type_id != 0:
         analysis_id = SequencingAnalysis.create(process_id, analysis_type_id)
-
-        try:
-            result = generate_lotus2_report_async.delay(
-                process_id,
-                input_dir,
-                region,
-                debug,
-                analysis_type_id,
-            )
-            logger.info(
-                f"Celery generate_lotus2_report_async task "
-                f"called successfully! Task ID: {result.id}"
-            )
-
-            if analysis_id != 0:
-                SequencingAnalysis.update_field(
-                    analysis_id, "celery_task_id", result.id
+        analysis = SequencingAnalysis.get(analysis_id)
+        status = analysis["status"]
+        if status is None:
+            try:
+                result = generate_lotus2_report_async.delay(
+                    process_id,
+                    input_dir,
+                    region,
+                    debug,
+                    analysis_type_id,
                 )
-                SequencingAnalysis.update_field(
-                    analysis_id, "status", "Started"
+                logger.info(
+                    f"Celery generate_lotus2_report_async task "
+                    f"called successfully! Task ID: {result.id}"
                 )
 
-        except Exception as e:
-            logger.error(
-                "This is an error message from helpers/bucket.py "
-                " while trying to generate_lotus2_report_async"
-            )
-            logger.error(e)
-            return {
-                "error": (
+                if analysis_id != 0:
+                    SequencingAnalysis.update_field(
+                        analysis_id, "celery_task_id", result.id
+                    )
+                    SequencingAnalysis.update_field(
+                        analysis_id, "status", "Started"
+                    )
+
+            except Exception as e:
+                logger.error(
                     "This is an error message from helpers/bucket.py "
                     " while trying to generate_lotus2_report_async"
-                ),
-                "e": (e),
+                )
+                logger.error(e)
+                return {
+                    "error": (
+                        "This is an error message from helpers/bucket.py "
+                        " while trying to generate_lotus2_report_async"
+                    ),
+                    "e": (e),
+                }
+            return {"msg": "Process initiated"}
+        else:
+            return {
+                "msg": "Cannot initiate the process as there is already one"
             }
-        return {"msg": "Process initiated"}
     else:
         return {"error": "Wrong analysis type ID"}
 
