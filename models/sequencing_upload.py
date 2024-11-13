@@ -202,8 +202,8 @@ class SequencingUpload:
 
                             # If a match is found, set the status
                             if matching_analysis:
-                                upload_required_analysis["status"] = (
-                                    matching_analysis["status"]
+                                upload_required_analysis["lotus2_status"] = (
+                                    matching_analysis["lotus2_status"]
                                 )
 
                         # Construct the phyloseq file path and check
@@ -1293,17 +1293,16 @@ class SequencingUpload:
                     "analysis_type": analysis_type_name,
                     "analysis_type_id": analysis_type.id,
                 }
-
                 analysis_id = SequencingAnalysis.get_by_upload_and_type(
                     process_id, analysis_type.id
                 )
                 if analysis_id:
                     analysis = SequencingAnalysis.get(analysis_id)
-                    region_result["report_status"] = analysis.status
-                    region_result["lotus2_command_outcome"] = analysis.result
+                    region_result["lotus2_status"] = analysis.lotus2_status
+                    region_result["lotus2_command_outcome"] = analysis.lotus2_result
 
                     # Proceed only if the status is "Finished"
-                    if region_result["report_status"] == "Finished":
+                    if region_result["lotus2_status"] == "Finished":
 
                         # Construct the path to the log
                         # files inside uploads_folder
@@ -1330,7 +1329,6 @@ class SequencingUpload:
                         phyloseq_file = os.path.join(
                             report_folder, "phyloseq.Rdata"
                         )
-
                         # Update the existence status in the result dictionary
                         region_result["log_files_exist"]["LotuS_progout"] = (
                             os.path.isfile(lotus_progout_file)
@@ -1366,8 +1364,124 @@ class SequencingUpload:
         session.close()
         return results
 
+
+
+
     @classmethod
     def check_rscripts_reports_exist(cls, process_id):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+        process_data = cls.get(process_id)
+
+        # Extract uploads folder and bucket from process data
+        uploads_folder = process_data["uploads_folder"]
+        bucket = process_data["project_id"]
+        results = []  # To store the results for each region
+
+        # Iterate through each region
+        for index, region in enumerate(process_data["regions"]):
+            # Query to get all analysis types for the specified region
+
+            analysis_types = (
+                session.query(SequencingAnalysisTypesTable)
+                .filter(SequencingAnalysisTypesTable.region == region)
+                .all()  # Retrieve all matching rows as a list
+            )
+
+            # Example of iterating over the result
+            for analysis_type in analysis_types:
+                analysis_type_name = analysis_type.name
+                region_result = {
+                    "region": region,
+                    "report_status": None,
+                    "files_exist": {
+                        "LibrarySize": False,
+                        "control_vs_sample": False,
+                        "filtered_rarefaction": False,
+                        "physeq_decontam": False,
+                    },
+                    "bucket_log_exists": False,
+                    "rscripts_command_outcome": False,
+                    "analysis_type": analysis_type_name,
+                    "analysis_type_id": analysis_type.id,
+                }
+                analysis_id = SequencingAnalysis.get_by_upload_and_type(
+                    process_id, analysis_type.id
+                )
+                if analysis_id:
+                    analysis = SequencingAnalysis.get(analysis_id)
+                    region_result["rscripts_status"] = analysis.rscripts_status
+                    region_result["rscripts_command_outcome"] = analysis.rscripts_result
+
+                    # Proceed only if the status is "Finished"
+                    if region_result["rscripts_status"] == "Finished":
+
+                        # Construct the path to the log files inside uploads_folder
+                        report_folder = os.path.join(
+                            "seq_processed",
+                            uploads_folder,
+                            "r_output",
+                            analysis_type.name,
+                        )
+
+                        # Check if the required log files exist locally
+                        library_size_file = os.path.join(
+                            report_folder, "LibrarySize.pdf"
+                        )
+
+                        control_vs_sample_file = os.path.join(
+                            report_folder, "control_vs_sample.pdf"
+                        )
+                        filtered_rarefaction_file = os.path.join(
+                            report_folder, "filtered_rarefaction.pdf"
+                        )
+                        physeq_decontam_file = os.path.join(
+                            report_folder, "physeq_decontam.Rdata"
+                        )
+
+                        # Update the existence status in the result dictionary
+                        region_result["files_exist"]["LibrarySize"] = (
+                            os.path.isfile(library_size_file)
+                        )
+
+                        region_result["files_exist"]["control_vs_sample"] = (
+                            os.path.isfile(control_vs_sample_file)
+                        )
+                        region_result["files_exist"]["filtered_rarefaction"] = (
+                            os.path.isfile(filtered_rarefaction_file)
+                        )
+                        region_result["files_exist"]["physeq_decontam"] = (
+                            os.path.isfile(physeq_decontam_file)
+                        )
+
+                        # Check if we need to verify files in the bucket
+                        bucket_directory = (
+                            f"{region}/lotus2_report/"
+                            f"{analysis_type.name}/r_scripts"
+                        )
+                        # Check if LotuS_progout.log exists in the bucket
+                        bucket_physeq_decontam_exists = (
+                            check_file_exists_in_bucket(
+                                local_file_path=physeq_decontam_file,
+                                destination_upload_directory=bucket_directory,
+                                destination_blob_name="physeq_decontam.Rdata",
+                                bucket_name=bucket,
+                            )
+                        )
+                        region_result["bucket_log_exists"] = (
+                            bucket_physeq_decontam_exists
+                        )
+
+                # Append the region result to the results list
+                results.append(region_result)
+        session.close()
+        return results
+
+
+
+
+    @classmethod
+    def check_rscripts_reports_exist_old(cls, process_id):
         process_data = cls.get(process_id)
 
         # Extract uploads folder and bucket from process data

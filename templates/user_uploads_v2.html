@@ -32,7 +32,7 @@
           <th scope="col">#</th>
           {% if not user_id %}
             <th scope="col">Username</th>
-            <th scope="col">Email</th>          
+            <th scope="col">Email</th>
           {% endif %}
           <th scope="col">Project</th>
           <th scope="col">Created At</th>
@@ -59,7 +59,7 @@
       </thead>
       <tbody id="files_body">
         {% for upload in user_uploads %}
-          
+
           <tr>
               <td scope="row">
                 <a href="/metadata_form?process_id={{ upload.id }}">
@@ -74,7 +74,7 @@
                   <a href="/metadata_form?process_id={{ upload.id }}">
                     {{ upload.project_id }}
                   </a>
-              </td>            
+              </td>
               <td>{{ upload.created_at }}</td>
               <td>{{ upload.updated_at }}</td>
               <td>{{ upload.using_scripps }}</td>
@@ -86,11 +86,11 @@
                 {% for analysis in upload.analysis[upload.region_1] %}
                     <div>
                         <strong>{{ analysis.analysis_type_name }}</strong><br>
-                        <span class="{{ 'text-success' if analysis.status == 'Finished' else 'text-danger' }}">
-                          {{ analysis.status if analysis.status else 'Not Started' }}
+                        <span class="{{ 'text-success' if analysis.lotus2_status == 'Finished' else 'text-danger' }}">
+                          {{ analysis.lotus2_status if analysis.lotus2_status else 'Not Started' }}
                         </span>
                         <br>
-                        File Exists: 
+                        File Exists:
                         <span class="{{ 'text-success' if analysis.phyloseq_file_exists else 'text-danger' }}">
                             {{ 'Yes' if analysis.phyloseq_file_exists else 'No' }}
                         </span>
@@ -101,17 +101,17 @@
                 {% if upload.region_1 %}
                   {{ upload.region_1_rscripts_phyloseq_exists }}
                 {% endif %}
-              </td>              
+              </td>
               <td>{{ upload.region_2 }}</td>
               <td>
                 {% for analysis in upload.analysis[upload.region_2] %}
                     <div>
                         <strong>{{ analysis.analysis_type_name }}</strong><br>
-                        <span class="{{ 'text-success' if analysis.status == 'Finished' else 'text-danger' }}">
-                          {{ analysis.status if analysis.status else 'Not Started' }}
+                        <span class="{{ 'text-success' if analysis.lotus2_status == 'Finished' else 'text-danger' }}">
+                          {{ analysis.lotus2_status if analysis.lotus2_status else 'Not Started' }}
                         </span>
                         <br>
-                        File Exists: 
+                        File Exists:
                         <span class="{{ 'text-success' if analysis.phyloseq_file_exists else 'text-danger' }}">
                             {{ 'Yes' if analysis.phyloseq_file_exists else 'No' }}
                         </span>
@@ -122,7 +122,7 @@
                 {% if upload.region_2 %}
                   {{ upload.region_2_rscripts_phyloseq_exists }}
                 {% endif %}
-              </td>   
+              </td>
               <td class="{% if upload.nr_sequencer_ids < (upload.nr_samples * upload.nr_regions) %}text-danger{% endif %}">
                   {{ upload.nr_sequencer_ids }}
               </td>
@@ -154,7 +154,7 @@
                     X
                   </a>
                 </td>
-              {% endif %}              
+              {% endif %}
           </tr>
         {% endfor %}
       </tbody>

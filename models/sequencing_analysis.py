@@ -136,9 +136,8 @@ class SequencingAnalysis:
                 "analysisTypeId": item.analysisTypeId,
                 "analysisTypeName": item.analysisTypeName,
                 "region": item.region,
-                "status": item.SequencingAnalysisTable.status,
-                "created_at": item.SequencingAnalysisTable.created_at,
-                "updated_at": item.SequencingAnalysisTable.updated_at,
+                "lotus2_status": item.SequencingAnalysisTable.lotus2_status,
+                "rscripts_status": item.SequencingAnalysisTable.rscripts_status,
             }
             for item in items
         ]

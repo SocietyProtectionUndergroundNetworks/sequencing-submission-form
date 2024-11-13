@@ -1,3 +1,4 @@
+import logging
 from celery import current_app as celery_app
 from redis import Redis
 from contextlib import contextmanager
@@ -18,6 +19,8 @@ from helpers.fastqc import (
 from helpers.lotus2 import generate_lotus2_report
 from helpers.r_scripts import generate_rscripts_report
 
+logger = logging.getLogger("my_app_logger")
+
 # Initialize Redis connection
 redis_client = Redis(host="redis", port=6379, db=0)
 
@@ -33,37 +36,47 @@ def redis_lock(lock_name, expire_time=86400):
         # Set an expiration to prevent deadlock if something goes wrong
         redis_client.expire(lock_name, expire_time)
         try:
-            yield  # Run the task within the lock
+            yield  # This is where the task will run
         finally:
             # Release the lock after task completion
             redis_client.delete(lock_name)
     else:
         # Log or handle that the lock is already acquired
-        print(f"Task with lock {lock_name} is already running.")
+        logger.info(f"Task with lock {lock_name} is already running.")
 
 
 @celery_app.task
 def generate_lotus2_report_async(
     process_id, input_dir, amplicon_type, debug, analysis_type_id
 ):
-    # Create a lock key combining process_id and
-    # analysis_type_id for uniqueness
     lock_key = (
         f"celery-lock:generate_lotus2_report:{process_id}:{analysis_type_id}"
     )
-    with redis_lock(lock_key):
-        # This code only executes if the lock is acquired
-        generate_lotus2_report(
-            process_id, input_dir, amplicon_type, debug, analysis_type_id
+
+    try:
+        # Try to acquire the lock
+        with redis_lock(lock_key):
+            # If lock is acquired, proceed with the task
+            generate_lotus2_report(
+                process_id, input_dir, amplicon_type, debug, analysis_type_id
+            )
+
+    except:
+        # If the task is already locked (running), log a
+        # message instead of raising an error
+        logger.info(
+            f"Task generate_lotus2_report_async for process_id:{process_id} "
+            f"and analysis_type_id:{analysis_type_id} is already running. "
+            "Skipping execution."
         )
 
 
 @celery_app.task
 def generate_rscripts_report_async(
-    region_nr, process_id, input_dir, amplicon_type, debug
+    process_id, input_dir, amplicon_type, analysis_type_id
 ):
     generate_rscripts_report(
-        region_nr, process_id, input_dir, amplicon_type, debug
+        process_id, input_dir, amplicon_type, analysis_type_id
     )
 
 

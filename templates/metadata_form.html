@@ -1299,9 +1299,9 @@
                 <td>{{ region_data.region }}</td>
                 <td>{{ region_data.analysis_type }}</td>
                 <td>
-                  {{ region_data.report_status }}
+                  {{ region_data.lotus2_status }}
                   {% if is_admin %}
-                    {% if not region_data.report_status %}
+                    {% if not region_data.lotus2_status %}
                       <form
                         method="POST"
                         action="/generate_lotus2_report"
@@ -1312,8 +1312,8 @@
                           <input type="submit" class="btn btn-primary" value="Generate">
                           {% if region_data.analysis_type=='SSU_dada2' %}
                             <div>Clustering DADA2</div>
-                          {% elif region_data.analysis_type=='SSU_vsearch' %} 
-                            <div>Clustering VSEARCH</div>                        
+                          {% elif region_data.analysis_type=='SSU_vsearch' %}
+                            <div>Clustering VSEARCH</div>
                           {% endif %}
                           <input type="hidden" name="analysis_type_id" value="{{ region_data.analysis_type_id }}">
                           <input type="hidden" name="process_id" value="{{ process_id }}">
@@ -1425,6 +1425,7 @@
           <thead>
             <tr>
               <th scope="col" class="bg-gray">Region</th>
+              <th scope="col" class="bg-gray">Analysis Type</th>
               <th scope="col" class="bg-gray">R scripts report status</th>
               <th scope="col" class="bg-gray">Command outcome</th>
               <th scope="col" class="bg-gray">LibrarySize.pdf</th>
@@ -1438,6 +1439,7 @@
             {% for region_data in rscripts_report %}
               <tr>
                 <td>{{ region_data.region }}</td>
+                <td>{{ region_data.analysis_type }}</td>
                 <td>
                   {{ region_data.report_status }}
                   {% if is_admin %}
@@ -1450,6 +1452,7 @@
                         <fieldset>
                           Debug: <input type="checkbox" id="debug-checkbox" name="debug"> <br>
                           <input type="submit" class="btn btn-primary" value="Generate">
+                          <input type="hidden" name="analysis_type_id" value="{{ region_data.analysis_type_id }}">
                           <input type="hidden" name="process_id" value="{{ process_id }}">
                           <input type="hidden" name="region" value="{{ region_data.region }}">
                         </fieldset>
@@ -1463,6 +1466,7 @@
                         <fieldset>
                           <input type="submit" class="btn btn-primary" value="Delete">
                           <input type="hidden" name="process_id" value="{{ process_id }}">
+                          <input type="hidden" name="analysis_type_id" value="{{ region_data.analysis_type_id }}">
                           <input type="hidden" name="region" value="{{ region_data.region }}">
                         </fieldset>
                       </form>
@@ -1472,7 +1476,7 @@
                 <td>
                   {% if region_data.rscripts_command_outcome %}
                     <span class="text-success">
-                      <a href="show_report_outcome?type=rscripts_command_outcome&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                      <a href="show_report_outcome?type=rscripts_command_outcome&process_id={{ process_data.id }}&analysis_type_id={{ region_data.analysis_type_id }}" target="_blank" class="link">
                         Exists
                       </a>
                     </span>
@@ -2949,7 +2953,7 @@
       var region = form.find('input[name="region"]').val();
       var debug = form.find('input[name="debug"]').is(':checked') ? '1' : '0';
       var analysis_type_id = form.find('input[name="analysis_type_id"]').val();
-      
+
       formData.append('process_id', processId);
       formData.append('region', region);
       formData.append('debug', debug);
@@ -2983,7 +2987,7 @@
       var processId = form.find('input[name="process_id"]').val();
       var region = form.find('input[name="region"]').val();
       var analysis_type_id = form.find('input[name="analysis_type_id"]').val();
-      
+
       formData.append('process_id', processId);
       formData.append('region', region);
       formData.append('analysis_type_id', analysis_type_id);
@@ -3028,7 +3032,7 @@
       formData.append('process_id', processId);
       formData.append('region', region);
       formData.append('debug', debug);
-      
+
       $.ajax({
           url: '/generate_rscripts_report',
           type: 'POST',

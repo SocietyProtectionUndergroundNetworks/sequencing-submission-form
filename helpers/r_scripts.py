@@ -9,74 +9,81 @@ logger = logging.getLogger("my_app_logger")
 
 
 def init_generate_rscripts_report(
-    region_nr, process_id, input_dir, region, debug=False, clustering=""
+    process_id,
+    input_dir,
+    region,
+    analysis_type_id="0",
 ):
 
     from tasks import generate_rscripts_report_async
+    from models.sequencing_analysis import SequencingAnalysis
 
-    try:
-        result = generate_rscripts_report_async.delay(
-            region_nr, process_id, input_dir, region, debug
-        )
-        logger.info(
-            f"Celery generate_rscripts_report_async task "
-            f"called successfully! Task ID: {result.id}"
-        )
-        from models.sequencing_upload import SequencingUpload
+    if analysis_type_id != 0:
+        analysis_id = SequencingAnalysis.get(process_id, analysis_type_id)
 
-        SequencingUpload.update_field(
-            process_id,
-            "region_" + str(region_nr) + "_rscripts_report_task_id",
-            result.id,
-        )
-        SequencingUpload.update_field(
-            process_id,
-            "region_" + str(region_nr) + "_rscripts_report_started_at",
-            datetime.utcnow(),
-        )
-        SequencingUpload.update_field(
-            process_id,
-            "region_" + str(region_nr) + "_rscripts_report_status",
-            "Started",
-        )
+        if analysis_id:
+            try:
+                result = generate_rscripts_report_async.delay(
+                    process_id, input_dir, region, analysis_type_id
+                )
+                logger.info(
+                    f"Celery generate_rscripts_report_async task "
+                    f"called successfully! Task ID: {result.id}"
+                )
 
-    except Exception as e:
-        logger.error(
-            "This is an error message from helpers/bucket.py "
-            " while trying to generate_rscripts_report_async"
-        )
-        logger.error(e)
-        return {
-            "error": (
-                "This is an error message from helpers/bucket.py "
-                " while trying to generate_rscripts_report_async"
-            ),
-            "e": (e),
-        }
+                SequencingAnalysis.update_field(
+                    analysis_id, "rscripts_celery_task_id", result.id
+                )
+                SequencingAnalysis.update_field(
+                    analysis_id, "rscripts_started_at", datetime.utcnow()
+                )
+                SequencingAnalysis.update_field(
+                    analysis_id, "rscripts_status", "Started"
+                )
 
-    return {"msg": "Process initiated"}
+            except Exception as e:
+                logger.error(
+                    "This is an error message from helpers/bucket.py "
+                    " while trying to generate_rscripts_report_async"
+                )
+                logger.error(e)
+                return {
+                    "error": (
+                        "This is an error message from helpers/bucket.py "
+                        " while trying to generate_rscripts_report_async"
+                    ),
+                    "e": (e),
+                }
+
+            return {"msg": "Process initiated"}
+        else:
+            return {"error": "No relevant analysis found"}
+    else:
+        return {"error": "Wrong analysis type ID"}
 
 
-def generate_rscripts_report(region_nr, process_id, input_dir, region, debug):
+def generate_rscripts_report(process_id, input_dir, region, analysis_type_id):
     client = docker.from_env()
-    from models.sequencing_upload import SequencingUpload
+    from models.sequencing_analysis import SequencingAnalysis
+    from models.sequencing_analysis_type import SequencingAnalysisType
+
+    analysis_id = SequencingAnalysis.get_by_upload_and_type(
+        process_id, analysis_type_id
+    )
+
+    analysis_type = SequencingAnalysisType.get(analysis_type_id)
+
+    lotus_2_dir = "/" + input_dir + "/lotus2_report/" + analysis_type.name
+    output_dir = "/" + input_dir + "/r_output/" + analysis_type.name
 
     logger.info("Trying for:")
-    logger.info(" - region_nr : " + str(region_nr))
+    logger.info(" - analysis_type_id : " + str(analysis_type_id))
     logger.info(" - process_id : " + str(process_id))
     logger.info(" - input_dir : " + str(input_dir))
     logger.info(" - region : " + str(region))
-    logger.info(" - debug : " + str(debug))
-
-    debug_command = ""
-    if debug == 1:
-        debug_command = " -v --debug "
-        logger.info(debug_command)
 
     try:
         # Run rscripts inside the 'spun-r_service' container
-        lotus_2_dir = "/" + input_dir + "/lotus2_report/" + region
-        output_dir = "/" + input_dir + "/" + region + "_r_output"
         container = client.containers.get("spun-r-service")
 
         if region in ["ITS1", "ITS2"]:
@@ -86,7 +93,9 @@ def generate_rscripts_report(region_nr, process_id, input_dir, region, debug):
             r_script = "AMF_decontam_taxonomic_filtering.R"
 
         if region in ["ITS1", "ITS2", "SSU"]:
-            os.makedirs(input_dir + "/" + region + "_r_output", exist_ok=True)
+            os.makedirs(
+                input_dir + "/r_output/" + analysis_type.name, exist_ok=True
+            )
 
             command = ["Rscript", r_script, lotus_2_dir, output_dir]
             command_str = " ".join(command)
@@ -96,15 +105,11 @@ def generate_rscripts_report(region_nr, process_id, input_dir, region, debug):
             result = container.exec_run(["bash", "-c", command_str])
             logger.info(result.output)
 
-            SequencingUpload.update_field(
-                process_id,
-                "region_" + str(region_nr) + "_rscripts_report_status",
-                "Finished",
+            SequencingAnalysis.update_field(
+                analysis_id, "rscripts_status", "Finished"
             )
-            SequencingUpload.update_field(
-                process_id,
-                "region_" + str(region_nr) + "_rscripts_report_result",
-                result.output,
+            SequencingAnalysis.update_field(
+                analysis_id, "rscripts_result", result.output
             )
 
         else:
@@ -114,52 +119,52 @@ def generate_rscripts_report(region_nr, process_id, input_dir, region, debug):
                 + " cannot be generated as it is not "
                 + " one of the regions we have programmed "
             )
-            SequencingUpload.update_field(
-                process_id,
-                "region_" + str(region_nr) + "_rscripts_report_status",
-                "Abandoned. Unknown region.",
+            SequencingAnalysis.update_field(
+                analysis_id, "rscripts_status", "Abandoned. Unknown region."
             )
 
     except Exception as e:
         logger.error(f"Error running r scripts: {str(e)}")
-        SequencingUpload.update_field(
-            process_id,
-            "region_" + str(region_nr) + "_rscripts_report_status",
-            "Error while generating.",
+
+        SequencingAnalysis.update_field(
+            analysis_id, "rscripts_status", "Error while generating."
         )
-        SequencingUpload.update_field(
-            process_id,
-            "region_" + str(region_nr) + "_rscripts_report_result",
-            str(e),
+        SequencingAnalysis.update_field(analysis_id, "rscripts_result", str(e))
+
+
+def delete_generated_rscripts_report(
+    process_id, input_dir, region, analysis_type_id
+):
+
+    if analysis_type_id != 0:
+        from models.sequencing_analysis import SequencingAnalysis
+        from models.sequencing_analysis_type import SequencingAnalysisType
+
+        analysis_type = SequencingAnalysisType.get(analysis_type_id)
+
+        analysis_id = SequencingAnalysis.get_by_upload_and_type(
+            process_id, analysis_type_id
         )
 
+        if analysis_id:
+            SequencingAnalysis.update_field(
+                analysis_id, "rscripts_celery_task_id", None
+            )
+            SequencingAnalysis.update_field(
+                analysis_id, "rscripts_started_at", None
+            )
+            SequencingAnalysis.update_field(
+                analysis_id, "rscripts_finished_at", None
+            )
+            SequencingAnalysis.update_field(
+                analysis_id, "rscripts_status", None
+            )
+            SequencingAnalysis.update_field(
+                analysis_id, "rscripts_result", None
+            )
 
-def delete_generated_rscripts_report(region_nr, process_id, input_dir, region):
-
-    from models.sequencing_upload import SequencingUpload
-
-    SequencingUpload.update_field(
-        process_id,
-        "region_" + str(region_nr) + "_rscripts_report_task_id",
-        None,
-    )
-    SequencingUpload.update_field(
-        process_id,
-        "region_" + str(region_nr) + "_rscripts_report_started_at",
-        None,
-    )
-    SequencingUpload.update_field(
-        process_id,
-        "region_" + str(region_nr) + "_rscripts_report_status",
-        None,
-    )
-    SequencingUpload.update_field(
-        process_id,
-        "region_" + str(region_nr) + "_rscripts_report_result",
-        None,
-    )
-    output_path = input_dir + "/" + region + "_r_output"
-    if os.path.exists(output_path):
-        shutil.rmtree(output_path)
+            output_path = input_dir + "/r_output/" + analysis_type.name
+            if os.path.exists(output_path):
+                shutil.rmtree(output_path)
 
     return {"msg": "Process initiated"}

@@ -169,9 +169,16 @@ class SequencingAnalysisTable(Base):
     updated_at = Column(
         DateTime, default=func.now(), onupdate=func.now(), nullable=True
     )
-    celery_task_id = Column(String(255), nullable=True)
-    status = Column(String(255), nullable=True)
-    result = Column(Text, nullable=True)
+    lotus2_started_at = Column(DateTime)
+    lotus2_finished_at = Column(DateTime)
+    lotus2_celery_task_id = Column(String(255), nullable=True)
+    lotus2_status = Column(String(255), nullable=True)
+    lotus2_result = Column(Text, nullable=True)
+    rscripts_started_at = Column(DateTime)
+    rscripts_finished_at = Column(DateTime)
+    rscripts_celery_task_id = Column(String(255), nullable=True)
+    rscripts_status = Column(String(255), nullable=True)
+    rscripts_result = Column(Text, nullable=True)
 
 
 class SequencingAnalysisTypesTable(Base):
