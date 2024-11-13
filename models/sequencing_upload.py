@@ -1299,7 +1299,9 @@ class SequencingUpload:
                 if analysis_id:
                     analysis = SequencingAnalysis.get(analysis_id)
                     region_result["lotus2_status"] = analysis.lotus2_status
-                    region_result["lotus2_command_outcome"] = analysis.lotus2_result
+                    region_result["lotus2_command_outcome"] = (
+                        analysis.lotus2_result
+                    )
 
                     # Proceed only if the status is "Finished"
                     if region_result["lotus2_status"] == "Finished":
@@ -1364,9 +1366,6 @@ class SequencingUpload:
         session.close()
         return results
 
-
-
-
     @classmethod
     def check_rscripts_reports_exist(cls, process_id):
         db_engine = connect_db()
@@ -1411,12 +1410,15 @@ class SequencingUpload:
                 if analysis_id:
                     analysis = SequencingAnalysis.get(analysis_id)
                     region_result["rscripts_status"] = analysis.rscripts_status
-                    region_result["rscripts_command_outcome"] = analysis.rscripts_result
+                    region_result["rscripts_command_outcome"] = (
+                        analysis.rscripts_result
+                    )
 
                     # Proceed only if the status is "Finished"
                     if region_result["rscripts_status"] == "Finished":
 
-                        # Construct the path to the log files inside uploads_folder
+                        # Construct the path to the log files
+                        # inside uploads_folder
                         report_folder = os.path.join(
                             "seq_processed",
                             uploads_folder,
@@ -1447,9 +1449,9 @@ class SequencingUpload:
                         region_result["files_exist"]["control_vs_sample"] = (
                             os.path.isfile(control_vs_sample_file)
                         )
-                        region_result["files_exist"]["filtered_rarefaction"] = (
-                            os.path.isfile(filtered_rarefaction_file)
-                        )
+                        region_result["files_exist"][
+                            "filtered_rarefaction"
+                        ] = os.path.isfile(filtered_rarefaction_file)
                         region_result["files_exist"]["physeq_decontam"] = (
                             os.path.isfile(physeq_decontam_file)
                         )
@@ -1476,9 +1478,6 @@ class SequencingUpload:
                 results.append(region_result)
         session.close()
         return results
-
-
-
 
     @classmethod
     def check_rscripts_reports_exist_old(cls, process_id):

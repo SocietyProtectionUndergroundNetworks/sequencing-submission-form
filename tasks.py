@@ -61,7 +61,7 @@ def generate_lotus2_report_async(
                 process_id, input_dir, amplicon_type, debug, analysis_type_id
             )
 
-    except:
+    except Exception:
         # If the task is already locked (running), log a
         # message instead of raising an error
         logger.info(
