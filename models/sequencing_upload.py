@@ -381,7 +381,7 @@ class SequencingUpload:
             datadict["region_2_forward_primer"] = "WANDA"
             datadict["region_2_reverse_primer"] = "AML2"
             datadict["region_1"] = "ITS2"
-            datadict["region_1"] = "SSU"
+            datadict["region_2"] = "SSU"
             datadict["Sequencing_platform"] = "Element Biosciences AVITI"
             datadict["Sequencing_facility"] = "Scripps Research"
         else:
@@ -1153,12 +1153,13 @@ class SequencingUpload:
                     forward_primer = region_dict[region]["Forward Primer"]
                     reverse_primer = region_dict[region]["Reverse Primer"]
 
+                    sample_country = country
                     # If Sample_or_Control is "Control"
                     # set the relevant fields to empty strings
                     if sample_or_control == "Control":
                         latitude = ""
                         longitude = ""
-                        country = ""
+                        sample_country = ""
                         vegetation = ""
                         land_use = ""
                         ecosystem = ""
@@ -1173,7 +1174,7 @@ class SequencingUpload:
                             site_name,
                             latitude,
                             longitude,
-                            sanitize_mapping_string(country),
+                            sanitize_mapping_string(sample_country),
                             sanitize_mapping_string(vegetation),
                             sanitize_mapping_string(land_use),
                             sanitize_mapping_string(ecosystem),
