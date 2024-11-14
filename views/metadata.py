@@ -1192,19 +1192,14 @@ def delete_lotus2_report():
 @admin_required
 def generate_rscripts_report():
     process_id = request.form.get("process_id")
-    debug = request.form.get("debug")
-
+    analysis_type_id = request.form.get("analysis_type_id")
     process_data = SequencingUpload.get(process_id)
     region = request.form.get("region")
 
-    region_nr = 0
     input_dir = "seq_processed/" + process_data["uploads_folder"]
-    for region_db in process_data["regions"]:
-        region_nr += 1
-        if region == region_db:
-            init_generate_rscripts_report(
-                region_nr, process_id, input_dir, region, debug
-            )
+    init_generate_rscripts_report(
+        process_id, input_dir, region, analysis_type_id
+    )
 
     return jsonify({"result": 1})
 
