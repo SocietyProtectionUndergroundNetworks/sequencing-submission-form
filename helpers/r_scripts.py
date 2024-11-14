@@ -17,10 +17,10 @@ def init_generate_rscripts_report(
 
     from tasks import generate_rscripts_report_async
     from models.sequencing_analysis import SequencingAnalysis
-
     if analysis_type_id != 0:
-        analysis_id = SequencingAnalysis.get(process_id, analysis_type_id)
-
+        analysis_id = SequencingAnalysis.get_by_upload_and_type(
+            process_id, analysis_type_id
+        )
         if analysis_id:
             try:
                 result = generate_rscripts_report_async.delay(
