@@ -1347,8 +1347,7 @@ class SequencingUpload:
 
                         # Check if we need to verify files in the bucket
                         bucket_directory = (
-                            f"{region}/lotus2_report/"
-                            f"{analysis_type.name}/LotuSLogS"
+                            f"lotus2_report/" f"{analysis_type.name}/LotuSLogS"
                         )
                         # Check if LotuS_progout.log exists in the bucket
                         bucket_progout_exists = check_file_exists_in_bucket(
@@ -1458,8 +1457,8 @@ class SequencingUpload:
 
                         # Check if we need to verify files in the bucket
                         bucket_directory = (
-                            f"{region}/lotus2_report/"
-                            f"{analysis_type.name}/r_scripts"
+                            f"lotus2_report/"
+                            f"{analysis_type.name}/r_scripts_output"
                         )
                         # Check if LotuS_progout.log exists in the bucket
                         bucket_physeq_decontam_exists = (

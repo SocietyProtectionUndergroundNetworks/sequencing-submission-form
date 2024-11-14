@@ -23,7 +23,7 @@ def init_generate_lotus2_report(
     if analysis_type_id != 0:
         analysis_id = SequencingAnalysis.create(process_id, analysis_type_id)
         analysis = SequencingAnalysis.get(analysis_id)
-        status = analysis.status
+        status = analysis.lotus_status
         if status is None:
             try:
                 result = generate_lotus2_report_async.delay(

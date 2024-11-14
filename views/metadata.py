@@ -1418,6 +1418,7 @@ def upload_report_to_bucket():
         from models.sequencing_analysis_type import SequencingAnalysisType
 
         analysis_type = SequencingAnalysisType.get(analysis_type_id)
+        bucket_directory = "report/" + analysis_type.name
         if report == "lotus2":
             output_path = (
                 "seq_processed/"
@@ -1425,6 +1426,7 @@ def upload_report_to_bucket():
                 + "/lotus2_report/"
                 + analysis_type.name
             )
+            bucket_directory = f"lotus2_report/" f"{analysis_type.name}"
         elif report == "rscripts":
             output_path = (
                 "seq_processed/"
@@ -1433,11 +1435,14 @@ def upload_report_to_bucket():
                 + analysis_type.name
                 + "_r_output/"
             )
+            bucket_directory = (
+                f"lotus2_report/" f"{analysis_type.name}/r_scripts_output"
+            )
         from helpers.bucket import init_bucket_upload_folder_v2
 
         init_bucket_upload_folder_v2(
             folder_path=output_path,
-            destination_upload_directory="r_output/" + analysis_type.name,
+            destination_upload_directory=bucket_directory,
             bucket=bucket,
         )
     return redirect(
