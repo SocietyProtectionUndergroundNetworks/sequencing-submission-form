@@ -320,6 +320,7 @@ class SequencingSequencerId:
                 sequencer_id
             ):  # Match against the full name without the extension
                 # Generate the new filename
+                region = region.replace(" ", "_")
                 new_filename = filename.replace(
                     sequencer_id, f"{sample_id}_{region}_"
                 )
