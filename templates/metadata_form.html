@@ -1441,9 +1441,9 @@
                 <td>{{ region_data.region }}</td>
                 <td>{{ region_data.analysis_type }}</td>
                 <td>
-                  {{ region_data.report_status }}
+                  {{ region_data.rscripts_status }}
                   {% if is_admin %}
-                    {% if not region_data.report_status %}
+                    {% if not region_data.rscripts_status %}
                       <form
                         method="POST"
                         action="/generate_rscripts_report"
@@ -1530,7 +1530,7 @@
                   {% endif %}
                 </td>
                 <td>
-                  {% if region_data.report_status == "Finished" %}
+                  {% if region_data.rscripts_status == "Finished" %}
                     {% if region_data.bucket_log_exists %}
                       A LotuS_progout.log file exists on the bucket in the correct directory
                     {% else %}
