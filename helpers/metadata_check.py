@@ -215,8 +215,9 @@ def check_field_values_lookup(df, valid_values, field_name, allow_empty=True):
         {"row": idx, "value": value}
         for idx, value in df[field_name].dropna().items()
         if (
-            (value.strip() == "" and not allow_empty)
-            or (value.strip().lower() not in [v.lower() for v in valid_values])
+            (isinstance(value, str) and value.strip() == "" and not allow_empty)
+            or (isinstance(value, str) and value.strip().lower() not in [v.lower() for v in valid_values])
+            or (not isinstance(value, str) and not allow_empty and pd.isna(value))
         )
     ]
 
