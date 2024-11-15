@@ -1285,6 +1285,7 @@
               <th scope="col" class="bg-gray">Region</th>
               <th scope="col" class="bg-gray">Analysis Type</th>
               <th scope="col" class="bg-gray">Lotus 2 report status</th>
+              <th scope="col" class="bg-gray">Duration</th>
               <th scope="col" class="bg-gray">Command outcome</th>
               <th scope="col" class="bg-gray">LotuS_progout.log</th>
               <th scope="col" class="bg-gray">demulti.log</th>
@@ -1335,6 +1336,17 @@
                       </form>
                     {% endif %}
                   {% endif %}
+                </td>
+                <td>
+                  {% if region_data.started_at and region_data.finished_at %}
+                      {% set duration = region_data.finished_at - region_data.started_at %}
+                      {% set hours = duration.seconds // 3600 %}
+                      {% set minutes = (duration.seconds % 3600) // 60 %}
+                      {% set seconds = duration.seconds % 60 %}
+                      {{ '%02d:%02d:%02d' | format(hours, minutes, seconds) }}
+                  {% else %}
+                      Duration not available
+                  {% endif %}                  
                 </td>
                 <td>
                   {% if region_data.lotus2_command_outcome %}

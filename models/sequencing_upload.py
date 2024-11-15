@@ -1292,6 +1292,8 @@ class SequencingUpload:
                     "lotus2_command_outcome": False,
                     "analysis_type": analysis_type_name,
                     "analysis_type_id": analysis_type.id,
+                    "started_at": None,
+                    "finished_at": None,
                 }
                 analysis_id = SequencingAnalysis.get_by_upload_and_type(
                     process_id, analysis_type.id
@@ -1302,6 +1304,8 @@ class SequencingUpload:
                     region_result["lotus2_command_outcome"] = (
                         analysis.lotus2_result
                     )
+                    region_result["started_at"] = analysis.lotus2_started_at
+                    region_result["finished_at"] = analysis.lotus2_finished_at
 
                     # Proceed only if the status is "Finished"
                     if region_result["lotus2_status"] == "Finished":
@@ -1402,6 +1406,8 @@ class SequencingUpload:
                     "rscripts_command_outcome": False,
                     "analysis_type": analysis_type_name,
                     "analysis_type_id": analysis_type.id,
+                    "started_at": None,
+                    "finished_at": None,
                 }
                 analysis_id = SequencingAnalysis.get_by_upload_and_type(
                     process_id, analysis_type.id
@@ -1409,6 +1415,10 @@ class SequencingUpload:
                 if analysis_id:
                     analysis = SequencingAnalysis.get(analysis_id)
                     region_result["rscripts_status"] = analysis.rscripts_status
+                    region_result["started_at"] = analysis.rscripts_started_at
+                    region_result["finished_at"] = (
+                        analysis.rscripts_finished_at
+                    )
                     region_result["rscripts_command_outcome"] = (
                         analysis.rscripts_result
                     )
