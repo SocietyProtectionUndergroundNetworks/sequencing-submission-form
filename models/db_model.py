@@ -10,9 +10,10 @@ from sqlalchemy import (
     func,
     ForeignKey,
 )
-from sqlalchemy.dialects.mysql import JSON
+from sqlalchemy.dialects.mysql import JSON, MEDIUMTEXT
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+from sqlalchemy import types
 import uuid
 
 Base = declarative_base()
@@ -173,12 +174,12 @@ class SequencingAnalysisTable(Base):
     lotus2_finished_at = Column(DateTime)
     lotus2_celery_task_id = Column(String(255), nullable=True)
     lotus2_status = Column(String(255), nullable=True)
-    lotus2_result = Column(Text, nullable=True)
+    lotus2_result = Column(MEDIUMTEXT(charset='utf8mb4', collation='utf8mb4_unicode_ci'), nullable=True)
     rscripts_started_at = Column(DateTime)
     rscripts_finished_at = Column(DateTime)
     rscripts_celery_task_id = Column(String(255), nullable=True)
     rscripts_status = Column(String(255), nullable=True)
-    rscripts_result = Column(Text, nullable=True)
+    rscripts_result = Column(MEDIUMTEXT(charset='utf8mb4', collation='utf8mb4_unicode_ci'), nullable=True)
 
 
 class SequencingAnalysisTypesTable(Base):
