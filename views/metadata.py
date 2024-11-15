@@ -1424,9 +1424,8 @@ def upload_report_to_bucket():
             output_path = (
                 "seq_processed/"
                 + process_data["uploads_folder"]
-                + "/"
+                + "/r_output/"
                 + analysis_type.name
-                + "_r_output/"
             )
             bucket_directory = (
                 f"lotus2_report/" f"{analysis_type.name}/r_scripts_output"
