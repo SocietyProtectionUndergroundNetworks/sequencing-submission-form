@@ -1346,7 +1346,7 @@
                       {{ '%02d:%02d:%02d' | format(hours, minutes, seconds) }}
                   {% else %}
                       Duration not available
-                  {% endif %}                  
+                  {% endif %}
                 </td>
                 <td>
                   {% if region_data.lotus2_command_outcome %}
@@ -1500,7 +1500,7 @@
                 <td>
                   {% if region_data.files_exist.LibrarySize %}
                     <span class="text-success">
-                      <a href="show_report_outcome?type=LibrarySize&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                      <a href="show_report_outcome?type=LibrarySize&process_id={{ process_data.id }}&analysis_type_id={{ region_data.analysis_type_id }}" target="_blank" class="link">
                         Exists
                       </a>
                     </span>
@@ -1511,7 +1511,7 @@
                 <td>
                   {% if region_data.files_exist.control_vs_sample %}
                     <span class="text-success">
-                      <a href="show_report_outcome?type=control_vs_sample&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                      <a href="show_report_outcome?type=control_vs_sample&process_id={{ process_data.id }}&analysis_type_id={{ region_data.analysis_type_id }}" target="_blank" class="link">
                         Exists
                       </a>
                     </span>
@@ -1522,7 +1522,7 @@
                 <td>
                   {% if region_data.files_exist.filtered_rarefaction %}
                     <span class="text-success">
-                      <a href="show_report_outcome?type=filtered_rarefaction&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                      <a href="show_report_outcome?type=filtered_rarefaction&process_id={{ process_data.id }}&analysis_type_id={{ region_data.analysis_type_id }}" target="_blank" class="link">
                         Exists
                       </a>
                     </span>
@@ -1533,7 +1533,7 @@
                 <td>
                   {% if region_data.files_exist.physeq_decontam %}
                     <span class="text-success">
-                      <a href="show_report_outcome?type=physeq_decontam&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                      <a href="show_report_outcome?type=physeq_decontam&process_id={{ process_data.id }}&analysis_type_id={{ region_data.analysis_type_id }}" target="_blank" class="link">
                         Exists
                       </a>
                     </span>

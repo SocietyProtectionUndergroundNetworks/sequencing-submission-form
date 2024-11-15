@@ -1340,7 +1340,7 @@ def show_report_outcome():
                 (
                     item
                     for item in rscripts_report
-                    if item["region"] == analysis_type_id
+                    if str(item["analysis_type_id"]) == str(analysis_type_id)
                 ),
                 None,
             )
@@ -1352,7 +1352,8 @@ def show_report_outcome():
                     project_root,
                     "seq_processed",
                     uploads_folder,
-                    analysis_type_id + "_r_output",
+                    "r_output",
+                    rscipts_region_data["analysis_type"],
                 )
                 # Handle log files and command_output
                 if file_type == "LibrarySize":
