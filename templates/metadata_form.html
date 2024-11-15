@@ -3059,8 +3059,10 @@
       var form = $(this); // Target the current form instance
       var processId = form.find('input[name="process_id"]').val();
       var region = form.find('input[name="region"]').val();
+      var analysis_type_id = form.find('input[name="analysis_type_id"]').val();
       formData.append('process_id', processId);
       formData.append('region', region);
+      formData.append('analysis_type_id', analysis_type_id);
 
       $.ajax({
           url: '/delete_rscripts_report',
