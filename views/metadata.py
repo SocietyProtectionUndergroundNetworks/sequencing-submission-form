@@ -1376,8 +1376,8 @@ def show_report_outcome():
                     return send_file(file_path, as_attachment=True)
                 elif file_type == "rscripts_command_outcome":
                     # fix this !!!
-                    command_output = process_data[
-                        f"region_{analysis_type_id}_rscripts_report_result"
+                    command_output = rscipts_region_data[
+                        "rscripts_command_outcome"
                     ]
 
                     if command_output:
