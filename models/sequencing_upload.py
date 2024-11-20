@@ -180,8 +180,10 @@ class SequencingUpload:
                             "analysis_type_name": required_one_analysis[
                                 "name"
                             ],
-                            "status": None,
-                            "phyloseq_file_exists": False,
+                            "lotus2_status": None,
+                            "lotus2_phyloseq_file_exists": False,
+                            "rscripts_status": None,
+                            "rscripts_phyloseq_file_exists": False,
                         }
 
                         if (
@@ -205,20 +207,34 @@ class SequencingUpload:
                                 upload_required_analysis["lotus2_status"] = (
                                     matching_analysis["lotus2_status"]
                                 )
-
-                        # Construct the phyloseq file path and check
+                                upload_required_analysis["rscripts_status"] = (
+                                    matching_analysis["rscripts_status"]
+                                )
+                        # Construct the phyloseq file path for lotus2 and check
                         # if it exists
-                        phyloseq_file = os.path.join(
+                        lotus2_phyloseq_file = os.path.join(
                             "seq_processed",
                             uploads_folder,
                             "lotus2_report",
                             required_one_analysis["name"],
                             "phyloseq.Rdata",
                         )
-                        lotus2_file_exists = os.path.isfile(phyloseq_file)
-                        upload_required_analysis["phyloseq_file_exists"] = (
-                            lotus2_file_exists
+                        upload_required_analysis[
+                            "lotus2_phyloseq_file_exists"
+                        ] = os.path.isfile(lotus2_phyloseq_file)
+
+                        # Construct the phyloseq file path
+                        # for rscripts and check if it exists
+                        rscripts_phyloseq_file = os.path.join(
+                            "seq_processed",
+                            uploads_folder,
+                            "r_output",
+                            required_one_analysis["name"],
+                            "physeq_decontam.Rdata",
                         )
+                        upload_required_analysis[
+                            "rscripts_phyloseq_file_exists"
+                        ] = os.path.isfile(rscripts_phyloseq_file)
 
                         # Append this analysis to the current region's list
                         region_analyses.append(upload_required_analysis)
