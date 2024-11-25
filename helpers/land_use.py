@@ -57,7 +57,7 @@ def get_land_use(longitude, latitude):
         return f"Error retrieving land cover data: {e}"
 
 
-def get_ecosystem(longitude, latitude):
+def get_resolve_ecoregion(longitude, latitude):
     # Load the WWF Terrestrial Ecoregions dataset
     ecoregions = ee.FeatureCollection("RESOLVE/ECOREGIONS/2017")
 
@@ -67,9 +67,26 @@ def get_ecosystem(longitude, latitude):
     # Filter the dataset to find the ecoregion at the given point
     ecoregion_info = ecoregions.filterBounds(point).first()
 
-    # Retrieve the biome name
+    # Retrieve the ecoregion name (finest classification)
     try:
-        biome_name = ecoregion_info.get("BIOME_NAME").getInfo()
+        biome_name = ecoregion_info.get("ECO_NAME").getInfo()
+        return biome_name
+    except Exception as e:
+        return f"Error retrieving biome data: {e}"
+
+def get_baileys_ecoregion(longitude, latitude):
+    # Load the UNEP-WCMC Baileys Ecoregions of the World dataset
+    ecoregions = ee.FeatureCollection("projects/spun-geospatial/assets/baileysEcoregions")
+
+    # Define the point geometry for the specified coordinates
+    point = ee.Geometry.Point([longitude, latitude])
+
+    # Filter the dataset to find the ecoregion at the given point
+    ecoregion_info = ecoregions.filterBounds(point).first()
+
+    # Retrieve the province description (finest classification)
+    try:
+        biome_name = ecoregion_info.get("pro_desc").getInfo()
         return biome_name
     except Exception as e:
         return f"Error retrieving biome data: {e}"

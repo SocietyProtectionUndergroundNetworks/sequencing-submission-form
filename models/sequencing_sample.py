@@ -1,6 +1,6 @@
 import logging
 from helpers.dbm import connect_db, get_session
-from helpers.land_use import get_land_use, get_ecosystem, get_elevation
+from helpers.land_use import get_land_use, get_resolve_ecoregion, get_baileys_ecoregion, get_elevation
 from models.db_model import SequencingSamplesTable
 from sqlalchemy import or_
 
@@ -122,8 +122,10 @@ class SequencingSample:
                     SequencingSamplesTable.Elevation == "",
                     SequencingSamplesTable.Land_use.is_(None),
                     SequencingSamplesTable.Land_use == "",
-                    SequencingSamplesTable.Ecosystem.is_(None),
-                    SequencingSamplesTable.Ecosystem == "",
+                    SequencingSamplesTable.ResolveEcoregion.is_(None),
+                    SequencingSamplesTable.ResolveEcoregion == "",
+                    SequencingSamplesTable.BaileysEcoregion.is_(None),
+                    SequencingSamplesTable.BaileysEcoregion == "",
                 ),
                 # Ensuring Latitude and Longitude are valid
                 # and not empty or 'nan'
@@ -162,7 +164,7 @@ class SequencingSample:
                         continue
 
                     # Proceed with getting the missing fields
-                    # (Land_use, Ecosystem, Elevation)
+                    # (Land_use, ResolveEcoregion, BaileysEcoregion, Elevation)
                     if not sample.Land_use:
                         land_use = get_land_use(longitude, latitude)
                         if land_use:
@@ -172,13 +174,22 @@ class SequencingSample:
                                 f" {sample.SampleID} with {land_use}"
                             )
 
-                    if not sample.Ecosystem:
-                        ecosystem = get_ecosystem(longitude, latitude)
-                        if ecosystem:
-                            sample.Ecosystem = ecosystem
+                    if not sample.ResolveEcoregion:
+                        ecoregion = get_resolve_ecoregion(longitude, latitude)
+                        if ecoregion:
+                            sample.ResolveEcoregion = ecoregion
                             logger.info(
-                                f"Updated Ecosystem for SampleID"
-                                f" {sample.SampleID} with {ecosystem}"
+                                f"Updated Resolve Ecoregion for SampleID"
+                                f" {sample.SampleID} with {ecoregion}"
+                            )
+
+                    if not sample.BaileysEcoregion:
+                        ecoregion = get_baileys_ecoregion(longitude, latitude)
+                        if ecoregion:
+                            sample.BaileysEcoregion = ecoregion
+                            logger.info(
+                                f"Updated Resolve Ecoregion for SampleID"
+                                f" {sample.SampleID} with {ecoregion}"
                             )
 
                     if not sample.Elevation:

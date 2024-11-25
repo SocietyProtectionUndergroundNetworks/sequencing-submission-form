@@ -1473,7 +1473,8 @@ def update_missing_geo_data():
 
     SequencingSample.update_missing_fields()
     # land_use = get_land_use(-122.4194, 37.7749)
-    # ecosystem = get_ecosystem(-122.4194, 37.7749)
+    # resolve_ecoregion = get_resolve_ecoregion(-122.4194, 37.7749)
+    # baileys_ecoregion = get_baileys_ecoregion(-122.4194, 37.7749)
     # elevation = get_elevation(-122.4194, 37.7749)
     return jsonify({"done": 1}), 200
 
