@@ -32,7 +32,7 @@ The solution was adopted by the following article: https://qmacro.org/blog/posts
 #### Setup your .env
 - Copy your `.env.example` file to `.env`
 - Fill in the variables in the `.env` file. 
-- The variable GOOGLE_APPLICATION_CREDENTIALS_PATH is only used on the development environment. Point it to the json file you downloaded above with the credentials of the service account. This happens so that your application has access to the buckets. Note: This is not needed on the production environment. 
+- The variable GOOGLE_APPLICATION_CREDENTIALS_PATH is only used on the development environment. Point it to the json file you downloaded above with the credentials of the service account. This happens so that your application has access to the buckets. Note: This is not needed on the production environment. On the production environment it is set from the docker-compose file to /google_auth_file/key_file.json always
 - Set GOOGLE_CLIENT_CALLBACK_URL=http://127.0.0.1/login/callback
 - The GOOGLE_VM_PROPERTY is not needed for the application, only to create a shortcut for sshing to the virtual machine. You can safely ignore it.
 
