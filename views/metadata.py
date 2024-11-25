@@ -1460,6 +1460,7 @@ def exclude_from_mapping():
     )
     return jsonify({"success": True, "file_id": file_id, "exclude": exclude})
 
+
 @metadata_bp.route(
     "/update_missing_geo_data",
     methods=["GET"],
@@ -1475,6 +1476,7 @@ def update_missing_geo_data():
     # ecosystem = get_ecosystem(-122.4194, 37.7749)
     # elevation = get_elevation(-122.4194, 37.7749)
     return jsonify({"done": 1}), 200
+
 
 @metadata_bp.route(
     "/upload_sequencer_ids_migration_file",
