@@ -35,3 +35,5 @@ openpyxl
 debugpy # Required for debugging.
 
 docker
+
+earthengine-api==1.4.0
