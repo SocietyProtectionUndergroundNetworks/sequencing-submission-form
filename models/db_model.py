@@ -209,6 +209,8 @@ class SequencingSamplesTable(Base):
     Land_use = Column(String(255), nullable=True)
     Agricultural_land = Column(String(255), nullable=True)
     Ecosystem = Column(String(255), nullable=True)
+    ResolveEcoregion = Column(String(255), nullable=True)
+    BaileysEcoregion = Column(String(255), nullable=True)
     Grid_Size = Column(String(255), nullable=True)
     Soil_depth = Column(String(255), nullable=True)
     Transport_refrigeration = Column(String(255), nullable=True)
