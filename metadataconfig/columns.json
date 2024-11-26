@@ -33,6 +33,14 @@
     "required": "True",
     "allowAdminNA": "True"
   },
+  "ResolveEcoregion": {
+    "help_tip": "Automatically added by application. Ecoregion based on the RESOLVE/ECOREGIONS/2017 dataset",
+    "excludeFromTemplate": "True"
+  },
+  "BaileysEcoregion": {
+    "help_tip": "Automatically added by application. Ecoregion based on the Bailey's Ecoregions of the World (1989)",
+    "excludeFromTemplate": "True"
+  },
   "Agricultural_land": {
     "lookup_file": "agricultural_land.json",
     "help_tip": "Required. Was the land where the sample taken agricultural?",

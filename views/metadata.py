@@ -168,7 +168,7 @@ def metadata_form():
     google_sheets_template_url = os.environ.get("GOOGLE_SPREADSHEET_TEMPLATE")
     for my_bucket in current_user.buckets:
         my_buckets[my_bucket] = Bucket.get(my_bucket)
-    expected_columns = get_columns_data()
+    expected_columns = get_columns_data(exclude=False)
     project_common_data = get_project_common_data()
     process_data = None
     process_id = request.args.get("process_id", "")
@@ -372,7 +372,7 @@ def upload_metadata_file():
     # Check metadata using the helper function
     result = check_metadata(df, using_scripps, multiple_sequencing_runs)
 
-    expected_columns_data = get_columns_data()
+    expected_columns_data = get_columns_data(exclude=True)
     expected_columns = list(expected_columns_data.keys())
     if result["status"] == 1:
 
@@ -530,7 +530,7 @@ def sequencing_confirm_metadata():
     endpoint="metadata_instructions",
 )
 def metadata_instructions():
-    expected_columns = get_columns_data()
+    expected_columns = get_columns_data(exclude=True)
     google_sheets_template_url = os.environ.get("GOOGLE_SPREADSHEET_TEMPLATE")
 
     return render_template(
