@@ -45,13 +45,13 @@ bashdb:
 	docker-compose run --rm db /bin/sh
 
 bashlotus:
-	docker-compose run --rm lotus2 /bin/sh
+	docker-compose run --rm lotus2 bash
 
 bashredis:
 	docker-compose run --rm redis /bin/sh
 
 bashr:
-	docker-compose run --rm r_service /bin/sh
+	docker-compose run --rm r_service bash
 
 logsflask:
 	docker-compose logs -f --tail=200 flask
@@ -81,11 +81,11 @@ migrate:
 	docker-compose exec flask alembic upgrade head
 
 lint:
-	docker-compose run flake8
+	docker-compose run --rm flake8
 
 black:
-	docker-compose run black
-	docker-compose run flake8
+	docker-compose run --rm black
+	docker-compose run --rm flake8
 
 runmysql:
 	docker-compose run --rm db mysql -h${MYSQL_HOST} -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE}
@@ -104,6 +104,9 @@ dbexportbackup:
 	docker-compose run --rm db mysqldump -h${MYSQL_HOST} -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} > backup/backup.sql
 	ls -l backup/backup.sql
 	gsutil cp backup/backup.sql gs://${GOOGLE_STORAGE_BUCKET_NAME}/backup/
+
+dbfetch:
+	scp ${SSH_KEY} ubuntu@${SERVER_IP}:${REMOTE_SERVER_APP_PATH}/backup/backup.sql backup/backup.sql
 
 sshvm:
 	gcloud compute ssh ${GOOGLE_VM_PROPERTY}

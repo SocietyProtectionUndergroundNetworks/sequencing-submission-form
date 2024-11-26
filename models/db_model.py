@@ -10,7 +10,7 @@ from sqlalchemy import (
     func,
     ForeignKey,
 )
-from sqlalchemy.dialects.mysql import JSON
+from sqlalchemy.dialects.mysql import JSON, MEDIUMTEXT
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 import uuid
@@ -133,8 +133,10 @@ class SequencingUploadsTable(Base):
     Sequencing_facility = Column(String(255), nullable=True)
     Expedition_lead = Column(String(255), nullable=True)
     Collaborators = Column(String(255), nullable=True)
+    region_1 = Column(String(255), nullable=True)
     region_1_forward_primer = Column(String(255), nullable=True)
     region_1_reverse_primer = Column(String(255), nullable=True)
+    region_2 = Column(String(255), nullable=True)
     region_2_forward_primer = Column(String(255), nullable=True)
     region_2_reverse_primer = Column(String(255), nullable=True)
     Extraction_method = Column(String(255), nullable=True)
@@ -144,14 +146,6 @@ class SequencingUploadsTable(Base):
     DNA_conc_instrument = Column(String(255), nullable=True)
     reviewed_by_admin = Column(Boolean, default=False)
     files_uploading_confirmed = Column(Boolean, default=False)
-    region_1_lotus2_report_task_id = Column(String(255), nullable=True)
-    region_1_lotus2_report_started_at = Column(DateTime, nullable=True)
-    region_1_lotus2_report_status = Column(String(255), nullable=True)
-    region_1_lotus2_report_result = Column(Text, nullable=True)
-    region_2_lotus2_report_task_id = Column(String(255), nullable=True)
-    region_2_lotus2_report_started_at = Column(DateTime, nullable=True)
-    region_2_lotus2_report_status = Column(String(255), nullable=True)
-    region_2_lotus2_report_result = Column(Text, nullable=True)
     region_1_rscripts_report_task_id = Column(String(255), nullable=True)
     region_1_rscripts_report_started_at = Column(DateTime, nullable=True)
     region_1_rscripts_report_status = Column(String(255), nullable=True)
@@ -160,6 +154,45 @@ class SequencingUploadsTable(Base):
     region_2_rscripts_report_started_at = Column(DateTime, nullable=True)
     region_2_rscripts_report_status = Column(String(255), nullable=True)
     region_2_rscripts_report_result = Column(Text, nullable=True)
+
+
+class SequencingAnalysisTable(Base):
+    __tablename__ = "sequencing_analysis"
+    id = Column(Integer, primary_key=True)
+    sequencingUploadId = Column(
+        Integer, ForeignKey("sequencing_uploads.id", ondelete="CASCADE")
+    )
+    sequencingAnalysisTypeId = Column(
+        Integer, ForeignKey("sequencing_analysis_types.id")
+    )
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(
+        DateTime, default=func.now(), onupdate=func.now(), nullable=True
+    )
+    lotus2_started_at = Column(DateTime)
+    lotus2_finished_at = Column(DateTime)
+    lotus2_celery_task_id = Column(String(255), nullable=True)
+    lotus2_status = Column(String(255), nullable=True)
+    lotus2_result = Column(
+        MEDIUMTEXT(charset="utf8mb4", collation="utf8mb4_unicode_ci"),
+        nullable=True,
+    )
+    rscripts_started_at = Column(DateTime)
+    rscripts_finished_at = Column(DateTime)
+    rscripts_celery_task_id = Column(String(255), nullable=True)
+    rscripts_status = Column(String(255), nullable=True)
+    rscripts_result = Column(
+        MEDIUMTEXT(charset="utf8mb4", collation="utf8mb4_unicode_ci"),
+        nullable=True,
+    )
+
+
+class SequencingAnalysisTypesTable(Base):
+    __tablename__ = "sequencing_analysis_types"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=True)
+    region = Column(String(255), nullable=True)
+    parameters = Column(JSON(none_as_null=True))
 
 
 class SequencingSamplesTable(Base):
@@ -176,6 +209,8 @@ class SequencingSamplesTable(Base):
     Land_use = Column(String(255), nullable=True)
     Agricultural_land = Column(String(255), nullable=True)
     Ecosystem = Column(String(255), nullable=True)
+    ResolveEcoregion = Column(String(255), nullable=True)
+    BaileysEcoregion = Column(String(255), nullable=True)
     Grid_Size = Column(String(255), nullable=True)
     Soil_depth = Column(String(255), nullable=True)
     Transport_refrigeration = Column(String(255), nullable=True)

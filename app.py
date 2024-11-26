@@ -4,6 +4,7 @@ import logging
 
 from views import create_app
 from extensions import login_manager
+from helpers.land_use import initialize_earth_engine
 from celery_config import make_celery
 from flask_session import Session
 from flask_sqlalchemy import SQLAlchemy
@@ -31,11 +32,16 @@ app.config.update(
     task_serializer="json",
     task_acks_late=True,
     worker_prefetch_multiplier=1,
+    task_time_limit=86400,
+    broker_transport_options={"visibility_timeout": 86400},
 )
 
 # Secret key generation
 foo = secrets.token_urlsafe(16)
 app.secret_key = foo
+
+# Initialize Earth Engine
+initialize_earth_engine()
 
 # Initialize extensions
 login_manager.init_app(app)

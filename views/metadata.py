@@ -121,17 +121,12 @@ def process_uploaded_file(
         )
 
         if existing_file_id:
-            # logger.info(
-            #    f"File {filename} already exists in the database with ID "
-            #    f"{existing_file_id}. Skipping."
-            # )
             return None  # File already exists, return None to skip processing
 
         # Create a new entry in the database for the file
         new_file_uploaded_id = SequencingFileUploaded.create(
             file_sequencer_id, file_dict
         )
-        logger.info("The new_file_uploaded_id is " + str(new_file_uploaded_id))
 
         # If a new filename is provided, copy the file to the new location
         if new_filename:
@@ -173,7 +168,7 @@ def metadata_form():
     google_sheets_template_url = os.environ.get("GOOGLE_SPREADSHEET_TEMPLATE")
     for my_bucket in current_user.buckets:
         my_buckets[my_bucket] = Bucket.get(my_bucket)
-    expected_columns = get_columns_data()
+    expected_columns = get_columns_data(exclude=False)
     project_common_data = get_project_common_data()
     process_data = None
     process_id = request.args.get("process_id", "")
@@ -247,7 +242,6 @@ def metadata_form():
         rscripts_report = SequencingUpload.check_rscripts_reports_exist(
             process_id
         )
-        logger.info(rscripts_report)
 
     return render_template(
         "metadata_form.html",
@@ -290,8 +284,7 @@ def metadata_validate_row():
     # Read the data of the form in a df
     process_id = request.form.get("process_id")
     process_data = SequencingUpload.get(process_id)
-    logger.info("The process id is")
-    logger.info(process_id)
+
     # Parse form data from the request
     form_data = request.form.to_dict()
 
@@ -378,8 +371,8 @@ def upload_metadata_file():
 
     # Check metadata using the helper function
     result = check_metadata(df, using_scripps, multiple_sequencing_runs)
-    logger.info(result)
-    expected_columns_data = get_columns_data()
+
+    expected_columns_data = get_columns_data(exclude=True)
     expected_columns = list(expected_columns_data.keys())
     if result["status"] == 1:
 
@@ -434,7 +427,6 @@ def upload_metadata_file():
 def upload_process_common_fields():
     # Parse form data from the request
     form_data = request.form.to_dict()
-    logger.info(form_data)
 
     process_id = SequencingUpload.create(datadict=form_data)
 
@@ -538,7 +530,7 @@ def sequencing_confirm_metadata():
     endpoint="metadata_instructions",
 )
 def metadata_instructions():
-    expected_columns = get_columns_data()
+    expected_columns = get_columns_data(exclude=True)
     google_sheets_template_url = os.environ.get("GOOGLE_SPREADSHEET_TEMPLATE")
 
     return render_template(
@@ -665,8 +657,6 @@ def sequencing_upload_chunk():
     file = request.files.get("file")
     if file:
         process_id = request.args.get("process_id")
-        logger.info("The process is is: ")
-        logger.info(process_id)
 
         if process_id:
             process_data = SequencingUpload.get(process_id)
@@ -681,7 +671,7 @@ def sequencing_upload_chunk():
             chunk_number = (
                 int(resumable_chunk_number) if resumable_chunk_number else 1
             )
-            logger.info("chunk_number: " + str(chunk_number))
+
             # Save or process the chunk
             save_path = (
                 f"seq_uploads/{uploads_folder}/"
@@ -870,8 +860,6 @@ def all_uploads_v2():
 def delete_upload_process_v2():
     process_id = request.args.get("process_id")
     return_to = request.args.get("return_to")
-    logger.info(return_to)
-    logger.info(process_id)
     process_data = SequencingUpload.get(process_id)
     uploads_folder = process_data["uploads_folder"]
     if uploads_folder:
@@ -1089,8 +1077,6 @@ def sequencing_process_server_file():
 
     if process_id:
         process_data = SequencingUpload.get(process_id)
-        logger.info(process_id)
-        logger.info(directory_name)
 
         # Construct the full directory path
         full_directory_path = Path(directory_name)
@@ -1116,7 +1102,6 @@ def sequencing_process_server_file():
 
             # Check if the file ends with '.fastq.gz'
             if file_path.is_file() and file_path.name.endswith(".fastq.gz"):
-                # logger.info(f"Found fastq.gz file: {file_path.name}")
 
                 actual_md5 = calculate_md5(file_path)
 
@@ -1163,23 +1148,14 @@ def sequencing_process_server_file():
 def generate_lotus2_report():
     process_id = request.form.get("process_id")
     debug = request.form.get("debug")
-    clustering = request.form.get("clustering", "vsearch")
-    logger.info("The debug is")
-    logger.info(debug)
-    logger.info("The clustering is")
-    logger.info(clustering)
-
+    analysis_type_id = request.form.get("analysis_type_id")
     process_data = SequencingUpload.get(process_id)
     region = request.form.get("region")
 
-    region_nr = 0
     input_dir = "seq_processed/" + process_data["uploads_folder"]
-    for region_db in process_data["regions"]:
-        region_nr += 1
-        if region == region_db:
-            init_generate_lotus2_report(
-                region_nr, process_id, input_dir, region, debug, clustering
-            )
+    init_generate_lotus2_report(
+        process_id, input_dir, region, debug, analysis_type_id
+    )
 
     return jsonify({"result": 1})
 
@@ -1195,17 +1171,13 @@ def generate_lotus2_report():
 def delete_lotus2_report():
     process_id = request.form.get("process_id")
     region = request.form.get("region")
-
+    analysis_type_id = request.form.get("analysis_type_id")
     process_data = SequencingUpload.get(process_id)
 
-    region_nr = 0
     input_dir = "seq_processed/" + process_data["uploads_folder"]
-    for region_db in process_data["regions"]:
-        region_nr += 1
-        if region == region_db:
-            delete_generated_lotus2_report(
-                region_nr, process_id, input_dir, region
-            )
+    delete_generated_lotus2_report(
+        process_id, input_dir, region, analysis_type_id
+    )
 
     return jsonify({"result": 1})
 
@@ -1220,22 +1192,14 @@ def delete_lotus2_report():
 @admin_required
 def generate_rscripts_report():
     process_id = request.form.get("process_id")
-    debug = request.form.get("debug")
-
+    analysis_type_id = request.form.get("analysis_type_id")
     process_data = SequencingUpload.get(process_id)
     region = request.form.get("region")
-    logger.info(process_id)
-    logger.info(region)
 
-    region_nr = 0
     input_dir = "seq_processed/" + process_data["uploads_folder"]
-    for region_db in process_data["regions"]:
-        region_nr += 1
-        if region == region_db:
-            logger.info(region_nr)
-            init_generate_rscripts_report(
-                region_nr, process_id, input_dir, region, debug
-            )
+    init_generate_rscripts_report(
+        process_id, input_dir, region, analysis_type_id
+    )
 
     return jsonify({"result": 1})
 
@@ -1251,17 +1215,14 @@ def generate_rscripts_report():
 def delete_rscripts_report():
     process_id = request.form.get("process_id")
     region = request.form.get("region")
+    analysis_type_id = request.form.get("analysis_type_id")
 
     process_data = SequencingUpload.get(process_id)
 
-    region_nr = 0
     input_dir = "seq_processed/" + process_data["uploads_folder"]
-    for region_db in process_data["regions"]:
-        region_nr += 1
-        if region == region_db:
-            delete_generated_rscripts_report(
-                region_nr, process_id, input_dir, region
-            )
+    delete_generated_rscripts_report(
+        process_id, input_dir, region, analysis_type_id
+    )
     return jsonify({"result": 1})
 
 
@@ -1272,7 +1233,7 @@ def delete_rscripts_report():
 @approved_required
 def show_report_outcome():
     process_id = request.args.get("process_id")
-    region = request.args.get("region")
+    analysis_type_id = request.args.get("analysis_type_id")
     file_type = request.args.get("type")  # Renamed 'file' to 'type'
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if file_type in [
@@ -1290,10 +1251,6 @@ def show_report_outcome():
         # Fetch process data from SequencingUpload model
         process_data = SequencingUpload.get(process_id)
 
-        region_nr = 0
-        if region in process_data["regions"]:
-            region_nr = process_data["regions"].index(region) + 1
-
         uploads_folder = process_data["uploads_folder"]
 
         if file_type in [
@@ -1310,7 +1267,11 @@ def show_report_outcome():
 
             # Find the corresponding region in the lotus2 report
             lotus2_region_data = next(
-                (item for item in lotus2_report if item["region"] == region),
+                (
+                    item
+                    for item in lotus2_report
+                    if str(item["analysis_type_id"]) == str(analysis_type_id)
+                ),
                 None,
             )
 
@@ -1319,7 +1280,7 @@ def show_report_outcome():
                     "seq_processed",
                     uploads_folder,
                     "lotus2_report",
-                    region,
+                    lotus2_region_data["analysis_type"],
                     "LotuSLogS",
                 )
                 # Handle log files and command_output
@@ -1335,13 +1296,14 @@ def show_report_outcome():
                         "seq_processed",
                         uploads_folder,
                         "lotus2_report",
-                        region,
+                        lotus2_region_data["analysis_type"],
                     )
                     file_path = os.path.join(report_folder, "phyloseq.Rdata")
                     return send_file(file_path, as_attachment=True)
                 elif file_type == "lotus2_command_outcome":
-                    command_output = process_data[
-                        f"region_{region_nr}_lotus2_report_result"
+                    logger.info("here we are")
+                    command_output = lotus2_region_data[
+                        "lotus2_command_outcome"
                     ]
                     if command_output:
                         return (
@@ -1375,7 +1337,11 @@ def show_report_outcome():
             )
             # Find the corresponding region in the lotus2 report
             rscipts_region_data = next(
-                (item for item in rscripts_report if item["region"] == region),
+                (
+                    item
+                    for item in rscripts_report
+                    if str(item["analysis_type_id"]) == str(analysis_type_id)
+                ),
                 None,
             )
 
@@ -1386,7 +1352,8 @@ def show_report_outcome():
                     project_root,
                     "seq_processed",
                     uploads_folder,
-                    region + "_r_output",
+                    "r_output",
+                    rscipts_region_data["analysis_type"],
                 )
                 # Handle log files and command_output
                 if file_type == "LibrarySize":
@@ -1408,8 +1375,9 @@ def show_report_outcome():
                     )
                     return send_file(file_path, as_attachment=True)
                 elif file_type == "rscripts_command_outcome":
-                    command_output = process_data[
-                        f"region_{region_nr}_rscripts_report_result"
+                    # fix this !!!
+                    command_output = rscipts_region_data[
+                        "rscripts_command_outcome"
                     ]
 
                     if command_output:
@@ -1425,32 +1393,50 @@ def show_report_outcome():
 
 
 @metadata_bp.route(
-    "/upload_lotus2_to_bucket",
+    "/upload_report_to_bucket",
     methods=["GET"],
-    endpoint="upload_lotus2_to_bucket",
+    endpoint="upload_report_to_bucket",
 )
 @login_required
 @approved_required
 @admin_required
-def upload_lotus2_to_bucket():
+def upload_report_to_bucket():
     process_id = request.args.get("process_id")
-    region = request.args.get("region")
+    analysis_type_id = request.args.get("analysis_type_id")
+    report = request.args.get("report")
     process_data = SequencingUpload.get(process_id)
     bucket = process_data["project_id"]
-    output_path = (
-        "seq_processed/"
-        + process_data["uploads_folder"]
-        + "/lotus2_report/"
-        + region
-    )
 
-    from helpers.bucket import init_bucket_upload_folder_v2
+    if report in ["lotus2", "rscripts"]:
+        from models.sequencing_analysis_type import SequencingAnalysisType
 
-    init_bucket_upload_folder_v2(
-        folder_path=output_path,
-        destination_upload_directory=region + "/lotus2_report",
-        bucket=bucket,
-    )
+        analysis_type = SequencingAnalysisType.get(analysis_type_id)
+        bucket_directory = "report/" + analysis_type.name
+        if report == "lotus2":
+            output_path = (
+                "seq_processed/"
+                + process_data["uploads_folder"]
+                + "/lotus2_report/"
+                + analysis_type.name
+            )
+            bucket_directory = f"lotus2_report/" f"{analysis_type.name}"
+        elif report == "rscripts":
+            output_path = (
+                "seq_processed/"
+                + process_data["uploads_folder"]
+                + "/r_output/"
+                + analysis_type.name
+            )
+            bucket_directory = (
+                f"lotus2_report/" f"{analysis_type.name}/r_scripts_output"
+            )
+        from helpers.bucket import init_bucket_upload_folder_v2
+
+        init_bucket_upload_folder_v2(
+            folder_path=output_path,
+            destination_upload_directory=bucket_directory,
+            bucket=bucket,
+        )
     return redirect(
         url_for("metadata.metadata_form", process_id=process_id) + "#step_9"
     )
@@ -1473,6 +1459,24 @@ def exclude_from_mapping():
         file_id, "exclude_from_mapping", exclude
     )
     return jsonify({"success": True, "file_id": file_id, "exclude": exclude})
+
+
+@metadata_bp.route(
+    "/update_missing_geo_data",
+    methods=["GET"],
+    endpoint="update_missing_geo_data",
+)
+@login_required
+@admin_required
+@approved_required
+def update_missing_geo_data():
+
+    SequencingSample.update_missing_fields()
+    # land_use = get_land_use(-122.4194, 37.7749)
+    # resolve_ecoregion = get_resolve_ecoregion(-122.4194, 37.7749)
+    # baileys_ecoregion = get_baileys_ecoregion(-122.4194, 37.7749)
+    # elevation = get_elevation(-122.4194, 37.7749)
+    return jsonify({"done": 1}), 200
 
 
 @metadata_bp.route(

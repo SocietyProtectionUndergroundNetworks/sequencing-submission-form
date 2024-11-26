@@ -153,7 +153,6 @@ def index():
 
         if upload is None:
             # Handle the case where no data is returned
-            print("No data found.")
             gz_filedata = []
         else:
             if upload.csv_uploaded:
@@ -333,7 +332,6 @@ def upload_form_resume():
 
     if upload is None:
         # Handle the case where no data is returned
-        print("No data found.")
         return render_template(
             "form.html",
             msg="We could not find an unfinished process to resume",

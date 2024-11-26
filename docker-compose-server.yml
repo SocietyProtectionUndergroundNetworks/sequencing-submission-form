@@ -41,6 +41,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile-r
+      args:
+        FLASK_PROCESS_USER: ${FLASK_PROCESS_USER}
+        FLASK_PROCESS_USER_ID: ${FLASK_PROCESS_USER_ID}
+        FLASK_PROCESS_GROUP_ID: ${FLASK_PROCESS_GROUP_ID}
     container_name: spun-r-service
     volumes:
       - ./r_scripts:/usr/src/app
@@ -48,16 +52,6 @@ services:
     networks:
       - flask
     command: ["tail", "-f", "/dev/null"]
-
-  lotus2_34:
-    image: quay.io/biocontainers/lotus2:2.34.1--hdfd78af_0
-    container_name: spun-lotus2_34
-    volumes:
-      - ./seq_processed:/seq_processed  #v2 processed files
-      - ./processing:/processing  #v1 processed files
-      - ./lotus2_files:/lotus2_files
-    networks:
-      - flask
 
   lotus2:
     build:

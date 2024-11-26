@@ -1243,7 +1243,6 @@
         <a href="reset_primers_count?process_id={{ process_data.id }}" class="btn btn-primary" target="_blank"> Reset primers count </a>
       </div>
     {% endif %}
-
     {% if mapping_files_exist %}
       {% if process_data and process_data.regions %}
 
@@ -1284,7 +1283,9 @@
           <thead>
             <tr>
               <th scope="col" class="bg-gray">Region</th>
+              <th scope="col" class="bg-gray">Analysis Type</th>
               <th scope="col" class="bg-gray">Lotus 2 report status</th>
+              <th scope="col" class="bg-gray">Duration</th>
               <th scope="col" class="bg-gray">Command outcome</th>
               <th scope="col" class="bg-gray">LotuS_progout.log</th>
               <th scope="col" class="bg-gray">demulti.log</th>
@@ -1297,10 +1298,11 @@
             {% for region_data in lotus2_report %}
               <tr>
                 <td>{{ region_data.region }}</td>
+                <td>{{ region_data.analysis_type }}</td>
                 <td>
-                  {{ region_data.report_status }}
+                  {{ region_data.lotus2_status }}
                   {% if is_admin %}
-                    {% if not region_data.report_status %}
+                    {% if not region_data.lotus2_status %}
                       <form
                         method="POST"
                         action="/generate_lotus2_report"
@@ -1309,13 +1311,12 @@
                         <fieldset>
                           Debug: <input type="checkbox" id="debug-checkbox" name="debug"> <br>
                           <input type="submit" class="btn btn-primary" value="Generate">
-                          {% if region_data.region=='SSU' %}
-                            <label for="clustering">Clustering Method:</label>
-                            <select name="clustering" id="clustering">
-                                <option value="dada2">DADA2</option>
-                                <option value="vsearch">VSEARCH</option>
-                            </select>
+                          {% if region_data.analysis_type=='SSU_dada2' %}
+                            <div>Clustering DADA2</div>
+                          {% elif region_data.analysis_type=='SSU_vsearch' %}
+                            <div>Clustering VSEARCH</div>
                           {% endif %}
+                          <input type="hidden" name="analysis_type_id" value="{{ region_data.analysis_type_id }}">
                           <input type="hidden" name="process_id" value="{{ process_id }}">
                           <input type="hidden" name="region" value="{{ region_data.region }}">
                         </fieldset>
@@ -1328,6 +1329,7 @@
                       >
                         <fieldset>
                           <input type="submit" class="btn btn-primary" value="Delete">
+                          <input type="hidden" name="analysis_type_id" value="{{ region_data.analysis_type_id }}">
                           <input type="hidden" name="process_id" value="{{ process_id }}">
                           <input type="hidden" name="region" value="{{ region_data.region }}">
                         </fieldset>
@@ -1336,9 +1338,20 @@
                   {% endif %}
                 </td>
                 <td>
+                  {% if region_data.started_at and region_data.finished_at %}
+                      {% set duration = region_data.finished_at - region_data.started_at %}
+                      {% set hours = duration.seconds // 3600 %}
+                      {% set minutes = (duration.seconds % 3600) // 60 %}
+                      {% set seconds = duration.seconds % 60 %}
+                      {{ '%02d:%02d:%02d' | format(hours, minutes, seconds) }}
+                  {% else %}
+                      Duration not available
+                  {% endif %}
+                </td>
+                <td>
                   {% if region_data.lotus2_command_outcome %}
                     <span class="text-success">
-                      <a href="show_report_outcome?type=lotus2_command_outcome&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                      <a href="show_report_outcome?type=lotus2_command_outcome&process_id={{ process_data.id }}&analysis_type_id={{ region_data.analysis_type_id }}" target="_blank" class="link">
                         Exists
                       </a>
                     </span>
@@ -1350,7 +1363,7 @@
                 <td>
                   {% if region_data.log_files_exist.LotuS_progout %}
                     <span class="text-success">
-                      <a href="show_report_outcome?type=LotuS_progout&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                      <a href="show_report_outcome?type=LotuS_progout&process_id={{ process_data.id }}&analysis_type_id={{ region_data.analysis_type_id }}" target="_blank" class="link">
                         Exists
                       </a>
                     </span>
@@ -1361,7 +1374,7 @@
                 <td>
                   {% if region_data.log_files_exist.demulti %}
                     <span class="text-success">
-                      <a href="show_report_outcome?type=demulti&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                      <a href="show_report_outcome?type=demulti&process_id={{ process_data.id }}&analysis_type_id={{ region_data.analysis_type_id }}" target="_blank" class="link">
                         Exists
                       </a>
                     </span>
@@ -1372,7 +1385,7 @@
                 <td>
                   {% if region_data.log_files_exist.LotuS_run %}
                     <span class="text-success">
-                      <a href="show_report_outcome?type=LotuS_run&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                      <a href="show_report_outcome?type=LotuS_run&process_id={{ process_data.id }}&analysis_type_id={{ region_data.analysis_type_id }}" target="_blank" class="link">
                         Exists
                       </a>
                     </span>
@@ -1383,7 +1396,7 @@
                 <td>
                   {% if region_data.log_files_exist.phyloseq %}
                     <span class="text-success">
-                      <a href="show_report_outcome?type=phyloseq&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                      <a href="show_report_outcome?type=phyloseq&process_id={{ process_data.id }}&analysis_type_id={{ region_data.analysis_type_id }}" target="_blank" class="link">
                         Exists
                       </a>
                     </span>
@@ -1392,13 +1405,15 @@
                   {% endif %}
                 </td>
                 <td>
-                  {% if region_data.report_status == "Finished" %}
+                  {% if region_data.lotus2_status == "Finished" %}
                     {% if region_data.bucket_log_exists %}
                       A LotuS_progout.log file exists on the bucket in the correct directory
                     {% else %}
-                      <a href="upload_lotus2_to_bucket?process_id={{ process_data.id }}&region={{ region_data.region }}" class="btn btn-primary">
-                        Upload to bucket
-                      </a>
+                      {% if region_data.log_files_exist.phyloseq %}
+                        <a href="upload_report_to_bucket?process_id={{ process_data.id }}&report=lotus2&analysis_type_id={{ region_data.analysis_type_id }}" class="btn btn-primary">
+                          Upload to bucket
+                        </a>
+                      {% endif %}
                     {% endif %}
                   {% endif %}
                 </td>
@@ -1422,6 +1437,7 @@
           <thead>
             <tr>
               <th scope="col" class="bg-gray">Region</th>
+              <th scope="col" class="bg-gray">Analysis Type</th>
               <th scope="col" class="bg-gray">R scripts report status</th>
               <th scope="col" class="bg-gray">Command outcome</th>
               <th scope="col" class="bg-gray">LibrarySize.pdf</th>
@@ -1435,10 +1451,11 @@
             {% for region_data in rscripts_report %}
               <tr>
                 <td>{{ region_data.region }}</td>
+                <td>{{ region_data.analysis_type }}</td>
                 <td>
-                  {{ region_data.report_status }}
+                  {{ region_data.rscripts_status }}
                   {% if is_admin %}
-                    {% if not region_data.report_status %}
+                    {% if not region_data.rscripts_status %}
                       <form
                         method="POST"
                         action="/generate_rscripts_report"
@@ -1447,6 +1464,7 @@
                         <fieldset>
                           Debug: <input type="checkbox" id="debug-checkbox" name="debug"> <br>
                           <input type="submit" class="btn btn-primary" value="Generate">
+                          <input type="hidden" name="analysis_type_id" value="{{ region_data.analysis_type_id }}">
                           <input type="hidden" name="process_id" value="{{ process_id }}">
                           <input type="hidden" name="region" value="{{ region_data.region }}">
                         </fieldset>
@@ -1460,6 +1478,7 @@
                         <fieldset>
                           <input type="submit" class="btn btn-primary" value="Delete">
                           <input type="hidden" name="process_id" value="{{ process_id }}">
+                          <input type="hidden" name="analysis_type_id" value="{{ region_data.analysis_type_id }}">
                           <input type="hidden" name="region" value="{{ region_data.region }}">
                         </fieldset>
                       </form>
@@ -1469,7 +1488,7 @@
                 <td>
                   {% if region_data.rscripts_command_outcome %}
                     <span class="text-success">
-                      <a href="show_report_outcome?type=rscripts_command_outcome&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                      <a href="show_report_outcome?type=rscripts_command_outcome&process_id={{ process_data.id }}&analysis_type_id={{ region_data.analysis_type_id }}" target="_blank" class="link">
                         Exists
                       </a>
                     </span>
@@ -1481,7 +1500,7 @@
                 <td>
                   {% if region_data.files_exist.LibrarySize %}
                     <span class="text-success">
-                      <a href="show_report_outcome?type=LibrarySize&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                      <a href="show_report_outcome?type=LibrarySize&process_id={{ process_data.id }}&analysis_type_id={{ region_data.analysis_type_id }}" target="_blank" class="link">
                         Exists
                       </a>
                     </span>
@@ -1492,7 +1511,7 @@
                 <td>
                   {% if region_data.files_exist.control_vs_sample %}
                     <span class="text-success">
-                      <a href="show_report_outcome?type=control_vs_sample&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                      <a href="show_report_outcome?type=control_vs_sample&process_id={{ process_data.id }}&analysis_type_id={{ region_data.analysis_type_id }}" target="_blank" class="link">
                         Exists
                       </a>
                     </span>
@@ -1503,7 +1522,7 @@
                 <td>
                   {% if region_data.files_exist.filtered_rarefaction %}
                     <span class="text-success">
-                      <a href="show_report_outcome?type=filtered_rarefaction&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                      <a href="show_report_outcome?type=filtered_rarefaction&process_id={{ process_data.id }}&analysis_type_id={{ region_data.analysis_type_id }}" target="_blank" class="link">
                         Exists
                       </a>
                     </span>
@@ -1514,7 +1533,7 @@
                 <td>
                   {% if region_data.files_exist.physeq_decontam %}
                     <span class="text-success">
-                      <a href="show_report_outcome?type=physeq_decontam&process_id={{ process_data.id }}&region={{ region_data.region }}" target="_blank" class="link">
+                      <a href="show_report_outcome?type=physeq_decontam&process_id={{ process_data.id }}&analysis_type_id={{ region_data.analysis_type_id }}" target="_blank" class="link">
                         Exists
                       </a>
                     </span>
@@ -1523,11 +1542,11 @@
                   {% endif %}
                 </td>
                 <td>
-                  {% if region_data.report_status == "Finished" %}
+                  {% if region_data.rscripts_status == "Finished" %}
                     {% if region_data.bucket_log_exists %}
                       A LotuS_progout.log file exists on the bucket in the correct directory
                     {% else %}
-                      <a href="upload_lotus2_to_bucket?process_id={{ process_data.id }}&region={{ region_data.region }}" class="btn btn-primary">
+                      <a href="upload_report_to_bucket?process_id={{ process_data.id }}&report=rscripts&analysis_type_id={{ region_data.analysis_type_id }}" class="btn btn-primary">
                         Upload to bucket
                       </a>
                     {% endif %}
@@ -2945,16 +2964,13 @@
       var processId = form.find('input[name="process_id"]').val();
       var region = form.find('input[name="region"]').val();
       var debug = form.find('input[name="debug"]').is(':checked') ? '1' : '0';
+      var analysis_type_id = form.find('input[name="analysis_type_id"]').val();
 
       formData.append('process_id', processId);
       formData.append('region', region);
       formData.append('debug', debug);
+      formData.append('analysis_type_id', analysis_type_id);
 
-      // Check if the clustering field exists and add it if present
-      var clustering = form.find('select[name="clustering"]').val();
-      if (clustering) {
-          formData.append('clustering', clustering);
-      }
 
       $.ajax({
           url: '/generate_lotus2_report',
@@ -2982,8 +2998,11 @@
       var form = $(this); // Target the current form instance
       var processId = form.find('input[name="process_id"]').val();
       var region = form.find('input[name="region"]').val();
+      var analysis_type_id = form.find('input[name="analysis_type_id"]').val();
+
       formData.append('process_id', processId);
       formData.append('region', region);
+      formData.append('analysis_type_id', analysis_type_id);
 
       $.ajax({
           url: '/delete_lotus2_report',
@@ -3020,12 +3039,12 @@
       var form = $(this); // Target the current form instance
       var processId = form.find('input[name="process_id"]').val();
       var region = form.find('input[name="region"]').val();
-      var debug = form.find('input[name="debug"]').is(':checked') ? '1' : '0';
+      var analysis_type_id = form.find('input[name="analysis_type_id"]').val();
 
       formData.append('process_id', processId);
       formData.append('region', region);
-      formData.append('debug', debug);
-      
+      formData.append('analysis_type_id', analysis_type_id);
+
       $.ajax({
           url: '/generate_rscripts_report',
           type: 'POST',
@@ -3052,8 +3071,10 @@
       var form = $(this); // Target the current form instance
       var processId = form.find('input[name="process_id"]').val();
       var region = form.find('input[name="region"]').val();
+      var analysis_type_id = form.find('input[name="analysis_type_id"]').val();
       formData.append('process_id', processId);
       formData.append('region', region);
+      formData.append('analysis_type_id', analysis_type_id);
 
       $.ajax({
           url: '/delete_rscripts_report',

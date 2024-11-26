@@ -9,19 +9,26 @@ from flask_login import current_user
 logger = logging.getLogger("my_app_logger")
 
 
-def get_columns_data():
+def get_columns_data(exclude=True):
     current_dir = os.path.dirname(__file__)
     base_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
     columns_file_path = os.path.join(
         base_dir, "metadataconfig", "columns.json"
     )
+    logger.info("The exclude is ")
+    logger.info(exclude)
 
     # Load the main configuration JSON
     with open(columns_file_path, "r") as columns_file:
         data = json.load(columns_file)
 
     # Process each item in the data
-    for key, value in data.items():
+    for key, value in list(data.items()):
+        # Exclude fields with "excludeFromTemplate": "True" if exclude is True
+        if exclude and value.get("excludeFromTemplate") == "True":
+            del data[key]  # Remove the key from the data
+            continue
+
         lookup_file = value.get("lookup_file")
         if (
             lookup_file and lookup_file.strip()
@@ -215,8 +222,21 @@ def check_field_values_lookup(df, valid_values, field_name, allow_empty=True):
         {"row": idx, "value": value}
         for idx, value in df[field_name].dropna().items()
         if (
-            (value.strip() == "" and not allow_empty)
-            or (value.strip().lower() not in [v.lower() for v in valid_values])
+            (
+                isinstance(value, str)
+                and value.strip() == ""
+                and not allow_empty
+            )
+            or (
+                isinstance(value, str)
+                and value.strip().lower()
+                not in [v.lower() for v in valid_values]
+            )
+            or (
+                not isinstance(value, str)
+                and not allow_empty
+                and pd.isna(value)
+            )
         )
     ]
 
@@ -374,7 +394,7 @@ def check_metadata(df, using_scripps, multiple_sequencing_runs=False):
     """
     Check metadata including columns, and validity of fields.
     """
-    expected_columns_data = get_columns_data()
+    expected_columns_data = get_columns_data(exclude=True)
     overall_status = 1
     issues = {}
     messages = []

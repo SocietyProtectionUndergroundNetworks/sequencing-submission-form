@@ -10,7 +10,7 @@ logger = logging.getLogger("my_app_logger")
 
 def create_template_one_drive_and_excel():
 
-    metadata = get_columns_data()
+    metadata = get_columns_data(exclude=True)
     logger.debug(f"Metadata: {metadata}")
 
     # Create a DataFrame with columns based on the metadata keys
