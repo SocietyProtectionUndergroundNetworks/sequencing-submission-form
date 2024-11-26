@@ -169,7 +169,7 @@ def fastqc_multiqc_files(process_id):
     for bucket, folders in output_folders.items():
         for folder in folders:
             multiqc_folder = os.path.join(output_folder, bucket, folder)
-            multiqc.run(multiqc_folder, outdir=multiqc_folder)
+            multiqc.run(multiqc_folder, outdir=multiqc_folder, export_plots=True) #only works in multiqc version 1.19, not in 1.25.2
             fastq_files_to_delete = [
                 f
                 for f in os.listdir(multiqc_folder)
@@ -286,7 +286,7 @@ def create_multiqc_report(process_id):
             multiqc_folder = os.path.join(
                 "seq_processed", uploads_folder, "fastqc", bucket, region
             )
-            multiqc.run(multiqc_folder, outdir=multiqc_folder)
+            multiqc.run(multiqc_folder, outdir=multiqc_folder, export_plots=True) #only works in multiqc version 1.19, not in 1.25.2
             bucket_upload_directory = (
                 region + "/MultiQC_report/" + uploads_folder
             )
