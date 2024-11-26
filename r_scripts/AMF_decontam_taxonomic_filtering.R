@@ -41,6 +41,7 @@ ggsave(paste0(output_dir,"/","LibrarySize.pdf"),ggplot(data=df, aes(x=Index, y=L
 
 #### WARNING: If no negative control sample labelled 'Control' was included, skip to line 96 ####
 ## Identify contaminants - prevalence - https://bioconductor.org/packages/devel/bioc/vignettes/decontam/inst/doc/decontam_intro.html#identifying-contaminants-in-marker-gene-and-metagenomics-datasample_data(physeq)$is.neg <- sample_data(physeq)$Sample_or_Control == "Control"
+sample_data(physeq)$is.neg <- sample_data(physeq)$Sample_or_Control == "Control"
 contamdf.prev.1 <- isContaminant(physeq, method="prevalence", neg="is.neg", threshold=0.1)
 table(contamdf.prev.1$contaminant)
 
