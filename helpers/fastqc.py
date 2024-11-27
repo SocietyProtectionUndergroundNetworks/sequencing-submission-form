@@ -344,7 +344,6 @@ def check_multiqc_report(process_id):
 
     # Extract uploads folder and project id from process data
     uploads_folder = process_data["uploads_folder"]
-    bucket = process_data["project_id"]
 
     # Check if regions are specified
     if process_data["regions"]:
