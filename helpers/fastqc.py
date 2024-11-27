@@ -290,7 +290,11 @@ def create_multiqc_report(process_id):
             multiqc_folder = os.path.join(
                 "seq_processed", uploads_folder, "fastqc", bucket, region
             )
-            multiqc.run(multiqc_folder, outdir=multiqc_folder)
+            # The 'export_plots=True' only works in
+            # multiqc version 1.19, not in 1.25.2
+            multiqc.run(
+                multiqc_folder, outdir=multiqc_folder, export_plots=True
+            )
             bucket_upload_directory = (
                 region + "/MultiQC_report/" + uploads_folder
             )
