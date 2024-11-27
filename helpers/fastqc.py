@@ -288,7 +288,7 @@ def create_multiqc_report(process_id):
     if process_data["regions"]:
         for region in process_data["regions"]:
             multiqc_folder = os.path.join(
-                "seq_processed", uploads_folder, "fastqc", bucket, region
+                "seq_processed", uploads_folder, "fastqc", region
             )
             # The 'export_plots=True' only works in
             # multiqc version 1.19, not in 1.25.2
@@ -352,7 +352,7 @@ def check_multiqc_report(process_id):
         for region in process_data["regions"]:
             # Construct the path to the multiqc folder
             multiqc_folder = os.path.join(
-                "seq_processed", uploads_folder, "fastqc", bucket, region
+                "seq_processed", uploads_folder, "fastqc", region
             )
 
             # Construct the path to the potential multiqc report file

@@ -1211,7 +1211,12 @@
               <tbody>
                 <tr>
                   <td>{{ region }}</th>
-                  <td><a href="show_multiqc_report?process_id={{ process_data.id }}&region={{ region }}" target="_blank" class="link">Link</a></th>
+                  <td>
+                    <a href="show_multiqc_report?process_id={{ process_data.id }}&region={{ region }}" target="_blank" class="link">Link</a>
+                    {% if is_admin %}
+                      <a href="delete_multiqc_report?process_id={{ process_data.id }}&region={{ region }}" class="link text-danger">X</a>
+                    {% endif %}                    
+                  </th>
                 </tr>
               </tbody>
             {% endfor %}
