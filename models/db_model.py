@@ -185,6 +185,7 @@ class SequencingAnalysisTable(Base):
         MEDIUMTEXT(charset="utf8mb4", collation="utf8mb4_unicode_ci"),
         nullable=True,
     )
+    parameters = Column(JSON(none_as_null=True))
 
 
 class SequencingAnalysisTypesTable(Base):

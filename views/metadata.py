@@ -1152,9 +1152,13 @@ def generate_lotus2_report():
     process_data = SequencingUpload.get(process_id)
     region = request.form.get("region")
 
+    sdmopt = request.form.get("sdmopt")
+    parameters = {}
+    if sdmopt in ["sdm_miSeq_ITS", "sdm_miSeq_170"]:
+        parameters["sdmopt"] = sdmopt
     input_dir = "seq_processed/" + process_data["uploads_folder"]
     init_generate_lotus2_report(
-        process_id, input_dir, region, debug, analysis_type_id
+        process_id, input_dir, region, debug, analysis_type_id, parameters
     )
 
     return jsonify({"result": 1})

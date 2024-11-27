@@ -14,8 +14,8 @@ def init_generate_lotus2_report(
     region,
     debug=False,
     analysis_type_id="0",
+    parameters={},
 ):
-
     from tasks import generate_lotus2_report_async
 
     from models.sequencing_analysis import SequencingAnalysis
@@ -32,6 +32,7 @@ def init_generate_lotus2_report(
                     region,
                     debug,
                     analysis_type_id,
+                    parameters,
                 )
                 logger.info(
                     f"Celery generate_lotus2_report_async task "
@@ -47,6 +48,9 @@ def init_generate_lotus2_report(
                     )
                     SequencingAnalysis.update_field(
                         analysis_id, "lotus2_status", "Started"
+                    )
+                    SequencingAnalysis.update_field(
+                        analysis_id, "parameters", parameters
                     )
 
             except Exception as e:
@@ -72,7 +76,7 @@ def init_generate_lotus2_report(
 
 
 def generate_lotus2_report(
-    process_id, input_dir, region, debug, analysis_type_id
+    process_id, input_dir, region, debug, analysis_type_id, parameters
 ):
     client = docker.from_env()
     from models.sequencing_analysis import SequencingAnalysis
@@ -98,6 +102,8 @@ def generate_lotus2_report(
     logger.info(" - output_path : " + str(output_path))
     logger.info(" - region : " + str(region))
     logger.info(" - debug : " + str(debug))
+    logger.info(" - parameters : ")
+    logger.info(parameters)
 
     debug_command = ""
     if debug == 1:
@@ -108,7 +114,12 @@ def generate_lotus2_report(
         container = client.containers.get("spun-lotus2")
 
         if region in ["ITS1", "ITS2"]:
+
             sdmopt = "/lotus2_files/sdm_miSeq_ITS.txt"
+            if "sdmopt" in parameters:
+                if parameters["sdmopt"] == "sdm_miSeq_170":
+                    sdmopt = "/lotus2_files/sdm_miSeq_170.txt"
+
             mapping_file = (
                 input_dir + "/mapping_files/" + region + "_Mapping.txt"
             )

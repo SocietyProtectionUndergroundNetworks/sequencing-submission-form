@@ -1310,18 +1310,32 @@
                       >
                         <fieldset>
                           Debug: <input type="checkbox" id="debug-checkbox" name="debug"> <br>
-                          <input type="submit" class="btn btn-primary" value="Generate">
+                          
                           {% if region_data.analysis_type=='SSU_dada2' %}
                             <div>Clustering DADA2</div>
                           {% elif region_data.analysis_type=='SSU_vsearch' %}
                             <div>Clustering VSEARCH</div>
+                          {% elif (region_data.analysis_type=='ITS1' or region_data.analysis_type=='ITS2')%}
+                            <h4> Sdmopt:</h4>
+                            <div>
+                              <select name="sdmopt">
+                                <option value="sdm_miSeq_ITS" selected>sdm_miSeq_ITS.txt</option>
+                                <option value="sdm_miSeq_170">sdm_miSeq_170.txt</option>
+                              </select>
+                            </div>
                           {% endif %}
+                          <input type="submit" class="btn btn-primary" value="Generate">
                           <input type="hidden" name="analysis_type_id" value="{{ region_data.analysis_type_id }}">
                           <input type="hidden" name="process_id" value="{{ process_id }}">
                           <input type="hidden" name="region" value="{{ region_data.region }}">
                         </fieldset>
                       </form>
                     {% else %}
+                      {% if region_data.parameters %}
+                        {% for key, value in region_data.parameters.items() %}
+                          <div>{{ key }}: {{ value }}</div>
+                        {% endfor %}
+                      {% endif %}
                       <form
                         method="POST"
                         action="/delete_lotus2_report"
@@ -2970,7 +2984,12 @@
       formData.append('region', region);
       formData.append('debug', debug);
       formData.append('analysis_type_id', analysis_type_id);
-
+      // Check if sdmopt exists and append it if present
+      var sdmoptElement = form.find('select[name="sdmopt"]');
+      if (sdmoptElement.length > 0) {
+          var sdmoptValue = sdmoptElement.val();
+          formData.append('sdmopt', sdmoptValue);
+      }
 
       $.ajax({
           url: '/generate_lotus2_report',

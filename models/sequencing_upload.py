@@ -1308,6 +1308,7 @@ class SequencingUpload:
                     "lotus2_command_outcome": False,
                     "analysis_type": analysis_type_name,
                     "analysis_type_id": analysis_type.id,
+                    "parameters": {},
                     "started_at": None,
                     "finished_at": None,
                 }
@@ -1317,6 +1318,7 @@ class SequencingUpload:
                 if analysis_id:
                     analysis = SequencingAnalysis.get(analysis_id)
                     region_result["lotus2_status"] = analysis.lotus2_status
+                    region_result["parameters"] = analysis.parameters
                     region_result["lotus2_command_outcome"] = (
                         analysis.lotus2_result
                     )

@@ -47,7 +47,7 @@ def redis_lock(lock_name, expire_time=86400):
 
 @celery_app.task
 def generate_lotus2_report_async(
-    process_id, input_dir, amplicon_type, debug, analysis_type_id
+    process_id, input_dir, amplicon_type, debug, analysis_type_id, parameters
 ):
     lock_key = (
         f"celery-lock:generate_lotus2_report:{process_id}:{analysis_type_id}"
@@ -58,7 +58,12 @@ def generate_lotus2_report_async(
         with redis_lock(lock_key):
             # If lock is acquired, proceed with the task
             generate_lotus2_report(
-                process_id, input_dir, amplicon_type, debug, analysis_type_id
+                process_id,
+                input_dir,
+                amplicon_type,
+                debug,
+                analysis_type_id,
+                parameters,
             )
 
     except Exception:
