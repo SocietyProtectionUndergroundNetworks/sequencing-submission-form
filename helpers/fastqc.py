@@ -237,9 +237,7 @@ def init_create_fastqc_report(fastq_file, input_folder, bucket, region):
         logger.error(e)
 
 
-def check_fastqc_report(
-    filename, bucket, region, upload_folder, return_format="html"
-):
+def check_fastqc_report(filename, region, upload_folder, return_format="html"):
     logger = logging.getLogger(__name__)
 
     if filename:
@@ -254,11 +252,11 @@ def check_fastqc_report(
 
         # Define the paths for the FastQC report files
         html_file = (
-            f"seq_processed/{upload_folder}/fastqc/{bucket}/{region}/"
+            f"seq_processed/{upload_folder}/fastqc/{region}/"
             f"{base_filename}.html"
         )
         zip_file = (
-            f"seq_processed/{upload_folder}/fastqc/{bucket}/{region}/"
+            f"seq_processed/{upload_folder}/fastqc/{region}/"
             f"{base_filename}.zip"
         )
 

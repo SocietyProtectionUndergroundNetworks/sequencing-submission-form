@@ -573,7 +573,6 @@ class SequencingUpload:
             return []
 
         # Access the 'bucket' and 'uploads_folder' fields
-        bucket = upload_instance.project_id
         uploads_folder = upload_instance.uploads_folder
 
         # Query to get all SequencingFilesUploadedTable entries
@@ -617,7 +616,7 @@ class SequencingUpload:
                 "sample_id": sample_id,  # Include the sample_id
                 "region": region,
                 "fastqc_report": check_fastqc_report(
-                    file.new_name, bucket, region, uploads_folder
+                    file.new_name, region, uploads_folder
                 ),  # Include the fastqc_report
             }
             for file, sample_id, region in uploaded_files
@@ -782,7 +781,6 @@ class SequencingUpload:
             return []
 
         # Access the 'project' field
-        bucket = upload_instance.project_id
         uploads_folder = upload_instance.uploads_folder
 
         # Fetch related samples
@@ -848,7 +846,7 @@ class SequencingUpload:
 
             # Check if the FastQC report exists
             fastqc_report = check_fastqc_report(
-                file.new_name, bucket, region, uploads_folder
+                file.new_name, region, uploads_folder
             )
             if fastqc_report:
                 # Check if the total_sequences_number is updated
@@ -934,7 +932,7 @@ class SequencingUpload:
         for file, sample_id, region in uploaded_files:
             # Check if the FastQC report exists
             fastqc_report = check_fastqc_report(
-                file.new_name, bucket, region, uploads_folder
+                file.new_name, region, uploads_folder
             )
 
             # If the report is missing, create it
