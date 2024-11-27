@@ -209,7 +209,7 @@ def create_fastqc_report(fastq_file, input_folder, bucket, region):
     output_folder = os.path.join(input_folder, "fastqc")
     os.makedirs(output_folder, exist_ok=True)
     input_file = os.path.join(input_folder, fastq_file)
-    output_folder_of_file = os.path.join(output_folder, bucket, region)
+    output_folder_of_file = os.path.join(output_folder, region)
     Path(output_folder_of_file).mkdir(parents=True, exist_ok=True)
     input_file = os.path.join(input_folder, fastq_file)
     fastqc_cmd = (
