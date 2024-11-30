@@ -1133,9 +1133,12 @@ class SequencingUpload:
                             if not exclude_from_mapping:
                                 paired_files.append(fastq_file)
 
+                        # Sort filenames alphabetically
+                        paired_files = sorted(paired_files)
+
                         # Process files based on the mode
                         if mode == "only_forward":
-                            # Include only the first file of the pair
+                            # Always select the first file after sorting
                             if paired_files:
                                 sample_info[sample_id]["files"][region].append(
                                     paired_files[0]
