@@ -1215,7 +1215,7 @@
                     <a href="show_multiqc_report?process_id={{ process_data.id }}&region={{ region }}" target="_blank" class="link">Link</a>
                     {% if is_admin %}
                       <a href="delete_multiqc_report?process_id={{ process_data.id }}&region={{ region }}" class="link text-danger">X</a>
-                    {% endif %}                    
+                    {% endif %}
                   </th>
                 </tr>
               </tbody>
@@ -1238,6 +1238,13 @@
              disabled="disabled"
             {% endif %}
           >
+            <h4> Sdmopt:</h4>
+            <div>
+              <select name="mode">
+                <option value="all" selected>Forward and reverse</option>
+                <option value="only_forward">Only Forward</option>
+              </select>
+            </div>
             <input type="submit" class="btn btn-primary" id="step_11_button">
             <input type="hidden" name="process_id" value="{{ process_id }}">
           </fieldset>
@@ -1315,7 +1322,7 @@
                       >
                         <fieldset>
                           Debug: <input type="checkbox" id="debug-checkbox" name="debug"> <br>
-                          
+
                           {% if region_data.analysis_type=='SSU_dada2' %}
                             <div>Clustering DADA2</div>
                           {% elif region_data.analysis_type=='SSU_vsearch' %}
@@ -1326,6 +1333,7 @@
                               <select name="sdmopt">
                                 <option value="sdm_miSeq_ITS" selected>sdm_miSeq_ITS.txt</option>
                                 <option value="sdm_miSeq_170">sdm_miSeq_170.txt</option>
+                                <option value="sdm_miSeq_ITS_forward">sdm_miSeq_ITS_forward.txt</option>
                               </select>
                             </div>
                           {% endif %}
@@ -2944,7 +2952,14 @@
       var form = $('#step_11_form');
       var processId = form.find('input[name="process_id"]').val();
       formData.append('process_id', processId);
-      // Ask the user for confirmation
+
+      // Check if mode exists and append it if present
+      var modeElement = form.find('select[name="mode"]');
+      if (modeElement.length > 0) {
+          var modeValue = modeElement.val();
+          formData.append('mode', modeValue);
+      }
+
       $.ajax({
           url: '/generate_mapping_files',
           type: 'POST',

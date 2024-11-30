@@ -902,14 +902,12 @@ def show_multiqc_report():
 
     # Extract uploads folder and project id from process data
     uploads_folder = process_data["uploads_folder"]
-    bucket = process_data["project_id"]
 
     if region in process_data["regions"]:
         multiqc_file = os.path.join(
             "seq_processed",
             uploads_folder,
             "fastqc",
-            bucket,
             region,
             "multiqc_report.html",
         )
@@ -1047,7 +1045,8 @@ def ensure_bucket_uploads():
 @approved_required
 def generate_mapping_files():
     process_id = request.form.get("process_id")
-    SequencingUpload.generate_mapping_files_for_process(process_id)
+    mode = request.form.get("mode")
+    SequencingUpload.generate_mapping_files_for_process(process_id, mode)
     return (
         jsonify({"result": 1}),
         200,
@@ -1210,7 +1209,7 @@ def generate_lotus2_report():
 
     sdmopt = request.form.get("sdmopt")
     parameters = {}
-    if sdmopt in ["sdm_miSeq_ITS", "sdm_miSeq_170"]:
+    if sdmopt in ["sdm_miSeq_ITS", "sdm_miSeq_170", "sdm_miSeq_ITS_forward"]:
         parameters["sdmopt"] = sdmopt
     input_dir = "seq_processed/" + process_data["uploads_folder"]
     init_generate_lotus2_report(

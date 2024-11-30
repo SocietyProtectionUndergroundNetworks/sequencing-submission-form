@@ -1043,7 +1043,7 @@ class SequencingUpload:
         return True
 
     @classmethod
-    def generate_mapping_files_for_process(self, process_id):
+    def generate_mapping_files_for_process(self, process_id, mode):
 
         def sanitize_mapping_string(value):
             if value is None:
@@ -1133,11 +1133,20 @@ class SequencingUpload:
                             if not exclude_from_mapping:
                                 paired_files.append(fastq_file)
 
-                        # Ensure files are in pairs (forward and reverse)
-                        if len(paired_files) == 2:
-                            sample_info[sample_id]["files"][region].extend(
-                                paired_files
-                            )
+                        # Process files based on the mode
+                        if mode == "only_forward":
+                            # Include only the first file of the pair
+                            if paired_files:
+                                sample_info[sample_id]["files"][region].append(
+                                    paired_files[0]
+                                )
+                        else:
+                            # Ensure files are in pairs (forward and reverse)
+                            if len(paired_files) == 2:
+                                sample_info[sample_id]["files"][region].extend(
+                                    paired_files
+                                )
+
 
         # Create directory for output files if it doesn't exist
         output_dir = f"seq_processed/{uploads_folder}/mapping_files/"
