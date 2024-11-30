@@ -1168,42 +1168,40 @@ class SequencingUpload:
                 # Sort filenames alphabetically and join with commas
                 sorted_files = sorted(files)
 
-                # Ensure we have exactly two files (paired)
-                if len(sorted_files) == 2:
-                    fastq_files_combined = ",".join(sorted_files)
+                fastq_files_combined = ",".join(sorted_files)
 
-                    forward_primer = region_dict[region]["Forward Primer"]
-                    reverse_primer = region_dict[region]["Reverse Primer"]
+                forward_primer = region_dict[region]["Forward Primer"]
+                reverse_primer = region_dict[region]["Reverse Primer"]
 
-                    sample_country = country
-                    # If Sample_or_Control is "Control"
-                    # set the relevant fields to empty strings
-                    if sample_or_control == "Control":
-                        latitude = ""
-                        longitude = ""
-                        sample_country = ""
-                        vegetation = ""
-                        land_use = ""
-                        ecosystem = ""
+                sample_country = country
+                # If Sample_or_Control is "Control"
+                # set the relevant fields to empty strings
+                if sample_or_control == "Control":
+                    latitude = ""
+                    longitude = ""
+                    sample_country = ""
+                    vegetation = ""
+                    land_use = ""
+                    ecosystem = ""
 
-                    # Add row to region data
-                    region_data[region].append(
-                        [
-                            sample_id,
-                            fastq_files_combined,
-                            forward_primer,
-                            reverse_primer,
-                            site_name,
-                            latitude,
-                            longitude,
-                            sanitize_mapping_string(sample_country),
-                            sanitize_mapping_string(vegetation),
-                            sanitize_mapping_string(land_use),
-                            sanitize_mapping_string(ecosystem),
-                            sample_or_control,
-                            sequencing_run,
-                        ]
-                    )
+                # Add row to region data
+                region_data[region].append(
+                    [
+                        sample_id,
+                        fastq_files_combined,
+                        forward_primer,
+                        reverse_primer,
+                        site_name,
+                        latitude,
+                        longitude,
+                        sanitize_mapping_string(sample_country),
+                        sanitize_mapping_string(vegetation),
+                        sanitize_mapping_string(land_use),
+                        sanitize_mapping_string(ecosystem),
+                        sample_or_control,
+                        sequencing_run,
+                    ]
+                )
 
         # Write each region's data to a TSV file
         for region, rows in region_data.items():
