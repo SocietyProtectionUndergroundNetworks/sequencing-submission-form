@@ -1147,7 +1147,6 @@ class SequencingUpload:
                                     paired_files
                                 )
 
-
         # Create directory for output files if it doesn't exist
         output_dir = f"seq_processed/{uploads_folder}/mapping_files/"
         os.makedirs(output_dir, exist_ok=True)
