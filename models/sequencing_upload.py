@@ -181,8 +181,10 @@ class SequencingUpload:
                             "analysis_type_name": required_one_analysis[
                                 "name"
                             ],
-                            "status": None,
-                            "phyloseq_file_exists": False,
+                            "lotus2_status": None,
+                            "lotus2_phyloseq_file_exists": False,
+                            "rscripts_status": None,
+                            "rscripts_phyloseq_file_exists": False,
                         }
 
                         if (
@@ -206,20 +208,34 @@ class SequencingUpload:
                                 upload_required_analysis["lotus2_status"] = (
                                     matching_analysis["lotus2_status"]
                                 )
-
-                        # Construct the phyloseq file path and check
+                                upload_required_analysis["rscripts_status"] = (
+                                    matching_analysis["rscripts_status"]
+                                )
+                        # Construct the phyloseq file path for lotus2 and check
                         # if it exists
-                        phyloseq_file = os.path.join(
+                        lotus2_phyloseq_file = os.path.join(
                             "seq_processed",
                             uploads_folder,
                             "lotus2_report",
                             required_one_analysis["name"],
                             "phyloseq.Rdata",
                         )
-                        lotus2_file_exists = os.path.isfile(phyloseq_file)
-                        upload_required_analysis["phyloseq_file_exists"] = (
-                            lotus2_file_exists
+                        upload_required_analysis[
+                            "lotus2_phyloseq_file_exists"
+                        ] = os.path.isfile(lotus2_phyloseq_file)
+
+                        # Construct the phyloseq file path
+                        # for rscripts and check if it exists
+                        rscripts_phyloseq_file = os.path.join(
+                            "seq_processed",
+                            uploads_folder,
+                            "r_output",
+                            required_one_analysis["name"],
+                            "physeq_decontam.Rdata",
                         )
+                        upload_required_analysis[
+                            "rscripts_phyloseq_file_exists"
+                        ] = os.path.isfile(rscripts_phyloseq_file)
 
                         # Append this analysis to the current region's list
                         region_analyses.append(upload_required_analysis)
@@ -598,7 +614,6 @@ class SequencingUpload:
             return []
 
         # Access the 'bucket' and 'uploads_folder' fields
-        bucket = upload_instance.project_id
         uploads_folder = upload_instance.uploads_folder
 
         # Query to get all SequencingFilesUploadedTable entries
@@ -642,7 +657,7 @@ class SequencingUpload:
                 "sample_id": sample_id,  # Include the sample_id
                 "region": region,
                 "fastqc_report": check_fastqc_report(
-                    file.new_name, bucket, region, uploads_folder
+                    file.new_name, region, uploads_folder
                 ),  # Include the fastqc_report
             }
             for file, sample_id, region in uploaded_files
@@ -807,7 +822,6 @@ class SequencingUpload:
             return []
 
         # Access the 'project' field
-        bucket = upload_instance.project_id
         uploads_folder = upload_instance.uploads_folder
 
         # Fetch related samples
@@ -873,7 +887,7 @@ class SequencingUpload:
 
             # Check if the FastQC report exists
             fastqc_report = check_fastqc_report(
-                file.new_name, bucket, region, uploads_folder
+                file.new_name, region, uploads_folder
             )
             if fastqc_report:
                 # Check if the total_sequences_number is updated
@@ -959,7 +973,7 @@ class SequencingUpload:
         for file, sample_id, region in uploaded_files:
             # Check if the FastQC report exists
             fastqc_report = check_fastqc_report(
-                file.new_name, bucket, region, uploads_folder
+                file.new_name, region, uploads_folder
             )
 
             # If the report is missing, create it
@@ -1070,7 +1084,7 @@ class SequencingUpload:
         return True
 
     @classmethod
-    def generate_mapping_files_for_process(self, process_id):
+    def generate_mapping_files_for_process(self, process_id, mode):
 
         def sanitize_mapping_string(value):
             if value is None:
@@ -1160,11 +1174,22 @@ class SequencingUpload:
                             if not exclude_from_mapping:
                                 paired_files.append(fastq_file)
 
-                        # Ensure files are in pairs (forward and reverse)
-                        if len(paired_files) == 2:
-                            sample_info[sample_id]["files"][region].extend(
-                                paired_files
-                            )
+                        # Sort filenames alphabetically
+                        paired_files = sorted(paired_files)
+
+                        # Process files based on the mode
+                        if mode == "only_forward":
+                            # Always select the first file after sorting
+                            if paired_files:
+                                sample_info[sample_id]["files"][region].append(
+                                    paired_files[0]
+                                )
+                        else:
+                            # Ensure files are in pairs (forward and reverse)
+                            if len(paired_files) == 2:
+                                sample_info[sample_id]["files"][region].extend(
+                                    paired_files
+                                )
 
         # Create directory for output files if it doesn't exist
         output_dir = f"seq_processed/{uploads_folder}/mapping_files/"
@@ -1187,42 +1212,40 @@ class SequencingUpload:
                 # Sort filenames alphabetically and join with commas
                 sorted_files = sorted(files)
 
-                # Ensure we have exactly two files (paired)
-                if len(sorted_files) == 2:
-                    fastq_files_combined = ",".join(sorted_files)
+                fastq_files_combined = ",".join(sorted_files)
 
-                    forward_primer = region_dict[region]["Forward Primer"]
-                    reverse_primer = region_dict[region]["Reverse Primer"]
+                forward_primer = region_dict[region]["Forward Primer"]
+                reverse_primer = region_dict[region]["Reverse Primer"]
 
-                    sample_country = country
-                    # If Sample_or_Control is "Control"
-                    # set the relevant fields to empty strings
-                    if sample_or_control == "Control":
-                        latitude = ""
-                        longitude = ""
-                        sample_country = ""
-                        vegetation = ""
-                        land_use = ""
-                        ecosystem = ""
+                sample_country = country
+                # If Sample_or_Control is "Control"
+                # set the relevant fields to empty strings
+                if sample_or_control == "Control":
+                    latitude = ""
+                    longitude = ""
+                    sample_country = ""
+                    vegetation = ""
+                    land_use = ""
+                    ecosystem = ""
 
-                    # Add row to region data
-                    region_data[region].append(
-                        [
-                            sample_id,
-                            fastq_files_combined,
-                            forward_primer,
-                            reverse_primer,
-                            site_name,
-                            latitude,
-                            longitude,
-                            sanitize_mapping_string(sample_country),
-                            sanitize_mapping_string(vegetation),
-                            sanitize_mapping_string(land_use),
-                            sanitize_mapping_string(ecosystem),
-                            sample_or_control,
-                            sequencing_run,
-                        ]
-                    )
+                # Add row to region data
+                region_data[region].append(
+                    [
+                        sample_id,
+                        fastq_files_combined,
+                        forward_primer,
+                        reverse_primer,
+                        site_name,
+                        latitude,
+                        longitude,
+                        sanitize_mapping_string(sample_country),
+                        sanitize_mapping_string(vegetation),
+                        sanitize_mapping_string(land_use),
+                        sanitize_mapping_string(ecosystem),
+                        sample_or_control,
+                        sequencing_run,
+                    ]
+                )
 
         # Write each region's data to a TSV file
         for region, rows in region_data.items():
@@ -1333,6 +1356,7 @@ class SequencingUpload:
                     "lotus2_command_outcome": False,
                     "analysis_type": analysis_type_name,
                     "analysis_type_id": analysis_type.id,
+                    "parameters": {},
                     "started_at": None,
                     "finished_at": None,
                 }
@@ -1342,6 +1366,7 @@ class SequencingUpload:
                 if analysis_id:
                     analysis = SequencingAnalysis.get(analysis_id)
                     region_result["lotus2_status"] = analysis.lotus2_status
+                    region_result["parameters"] = analysis.parameters
                     region_result["lotus2_command_outcome"] = (
                         analysis.lotus2_result
                     )

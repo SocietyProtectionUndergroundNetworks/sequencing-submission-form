@@ -185,6 +185,7 @@ class SequencingAnalysisTable(Base):
         MEDIUMTEXT(charset="utf8mb4", collation="utf8mb4_unicode_ci"),
         nullable=True,
     )
+    parameters = Column(JSON(none_as_null=True))
 
 
 class SequencingAnalysisTypesTable(Base):
@@ -210,6 +211,8 @@ class SequencingSamplesTable(Base):
     Land_use = Column(String(255), nullable=True)
     Agricultural_land = Column(String(255), nullable=True)
     Ecosystem = Column(String(255), nullable=True)
+    ResolveEcoregion = Column(String(255), nullable=True)
+    BaileysEcoregion = Column(String(255), nullable=True)
     Grid_Size = Column(String(255), nullable=True)
     Soil_depth = Column(String(255), nullable=True)
     Transport_refrigeration = Column(String(255), nullable=True)
@@ -219,6 +222,7 @@ class SequencingSamplesTable(Base):
     Elevation = Column(String(255), nullable=True)
     Sample_or_Control = Column(String(255), nullable=True)
     SequencingRun = Column(String(255), nullable=True)
+    IndigenousPartnership = Column(Boolean, default=False)
     Notes = Column(String(255), nullable=True)
     sequencer_ids = relationship(
         "SequencingSequencerIDsTable", backref="sample"

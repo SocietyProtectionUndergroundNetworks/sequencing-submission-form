@@ -1,9 +1,16 @@
 import logging
 from helpers.dbm import connect_db, get_session
+from helpers.land_use import (
+    get_land_use,
+    get_resolve_ecoregion,
+    get_baileys_ecoregion,
+    get_elevation,
+)
 from models.db_model import SequencingSamplesTable
+from sqlalchemy import or_
 
 # Get the logger instance from app.py
-logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
+logger = logging.getLogger("my_app_logger")
 
 
 class SequencingSample:
@@ -106,3 +113,143 @@ class SequencingSample:
         session.close()
 
         return new_sample_id
+
+    @classmethod
+    def update_missing_fields(self):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        samples_to_update_query = (
+            session.query(SequencingSamplesTable)
+            .filter(
+                or_(
+                    SequencingSamplesTable.Elevation.is_(None),
+                    SequencingSamplesTable.Elevation == "",
+                    SequencingSamplesTable.Land_use.is_(None),
+                    SequencingSamplesTable.Land_use == "",
+                    SequencingSamplesTable.ResolveEcoregion.is_(None),
+                    SequencingSamplesTable.ResolveEcoregion == "",
+                    SequencingSamplesTable.BaileysEcoregion.is_(None),
+                    SequencingSamplesTable.BaileysEcoregion == "",
+                ),
+                # Ensuring Latitude and Longitude are valid
+                # and not empty or 'nan'
+                SequencingSamplesTable.Latitude.isnot(None),
+                SequencingSamplesTable.Latitude != "",
+                SequencingSamplesTable.Longitude.isnot(None),
+                SequencingSamplesTable.Longitude != "",
+                SequencingSamplesTable.Latitude != "nan",
+                SequencingSamplesTable.Longitude != "nan",
+                # Additional conditions to exclude '-' values or NULL
+                # for ResolveEcoregion and BaileysEcoregion
+                or_(
+                    SequencingSamplesTable.ResolveEcoregion != "-",
+                    SequencingSamplesTable.ResolveEcoregion.is_(None),
+                ),
+                or_(
+                    SequencingSamplesTable.BaileysEcoregion != "-",
+                    SequencingSamplesTable.BaileysEcoregion.is_(None),
+                ),
+            )
+            .limit(100)
+        )
+
+        # Fetch the results after logging the query
+        samples_to_update = samples_to_update_query.all()
+
+        for sample in samples_to_update:
+            logger.info(sample.SampleID)
+            latitude_str = sample.Latitude
+            longitude_str = sample.Longitude
+
+            # Check if Latitude and Longitude are
+            # valid float-convertible strings
+            if latitude_str and longitude_str:
+                try:
+                    latitude = float(latitude_str)
+                    longitude = float(longitude_str)
+
+                    # Skip if Latitude or Longitude are still invalid or 'nan'
+                    if (
+                        latitude == 0 or longitude == 0
+                    ):  # Skip if Latitude or Longitude are (0,0)
+                        logger.error(
+                            f"Invalid Latitude or Longitude for SampleID "
+                            f" {sample.SampleID}: "
+                            f" Latitude={latitude}, Longitude={longitude}"
+                        )
+                        continue
+
+                    # Proceed with getting the missing fields
+                    # (Land_use, ResolveEcoregion, BaileysEcoregion, Elevation)
+                    if not sample.Land_use:
+                        land_use = get_land_use(longitude, latitude)
+                        if land_use:
+                            sample.Land_use = land_use
+                            logger.info(
+                                f"Updated Land_use for SampleID"
+                                f" {sample.SampleID} with {land_use}"
+                            )
+
+                    if not sample.ResolveEcoregion:
+                        ecoregion = get_resolve_ecoregion(longitude, latitude)
+                        if ecoregion:
+                            sample.ResolveEcoregion = ecoregion
+                            logger.info(
+                                f"Updated Resolve Ecoregion for SampleID"
+                                f" {sample.SampleID} with {ecoregion}"
+                            )
+                        else:
+                            sample.ResolveEcoregion = "-"
+                            logger.info(
+                                f"Updated Resolve Ecoregion for SampleID"
+                                f" {sample.SampleID} with '-'"
+                            )
+
+                    if not sample.BaileysEcoregion:
+                        ecoregion = get_baileys_ecoregion(longitude, latitude)
+                        if ecoregion:
+                            sample.BaileysEcoregion = ecoregion
+                            logger.info(
+                                f"Updated Baileys Ecoregion for SampleID"
+                                f" {sample.SampleID} with {ecoregion}"
+                            )
+                        else:
+                            sample.BaileysEcoregion = "-"
+                            logger.info(
+                                f"Updated Baileys Ecoregion for SampleID"
+                                f" {sample.SampleID} with '-'"
+                            )
+
+                    if not sample.Elevation:
+                        elevation = get_elevation(longitude, latitude)
+                        if elevation:
+                            sample.Elevation = elevation
+                            logger.info(
+                                f"Updated Elevation for SampleID"
+                                f" {sample.SampleID} with {elevation}"
+                            )
+
+                    # Commit the changes
+                    session.commit()
+                    logger.info(
+                        f"Successfully updated SampleID {sample.SampleID}"
+                    )
+
+                except ValueError:
+                    # Latitude or Longitude is not a valid float
+                    logger.error(
+                        f"Invalid Latitude or Longitude for SampleID"
+                        f"{sample.SampleID}: Latitude={latitude_str},"
+                        f" Longitude={longitude_str}"
+                    )
+                    continue
+            else:
+                # Skip if Latitude or Longitude are empty or None
+                logger.error(
+                    f"Missing Latitude or Longitude "
+                    f" for SampleID {sample.SampleID}"
+                )
+                continue
+
+        session.close()

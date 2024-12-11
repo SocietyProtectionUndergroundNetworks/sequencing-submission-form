@@ -168,7 +168,7 @@ def metadata_form():
     google_sheets_template_url = os.environ.get("GOOGLE_SPREADSHEET_TEMPLATE")
     for my_bucket in current_user.buckets:
         my_buckets[my_bucket] = Bucket.get(my_bucket)
-    expected_columns = get_columns_data()
+    expected_columns = get_columns_data(exclude=False)
     project_common_data = get_project_common_data()
     process_data = None
     process_id = request.args.get("process_id", "")
@@ -372,7 +372,7 @@ def upload_metadata_file():
     # Check metadata using the helper function
     result = check_metadata(df, using_scripps, multiple_sequencing_runs)
 
-    expected_columns_data = get_columns_data()
+    expected_columns_data = get_columns_data(exclude=True)
     expected_columns = list(expected_columns_data.keys())
     if result["status"] == 1:
 
@@ -530,7 +530,7 @@ def sequencing_confirm_metadata():
     endpoint="metadata_instructions",
 )
 def metadata_instructions():
-    expected_columns = get_columns_data()
+    expected_columns = get_columns_data(exclude=True)
     google_sheets_template_url = os.environ.get("GOOGLE_SPREADSHEET_TEMPLATE")
 
     return render_template(
@@ -902,14 +902,12 @@ def show_multiqc_report():
 
     # Extract uploads folder and project id from process data
     uploads_folder = process_data["uploads_folder"]
-    bucket = process_data["project_id"]
 
     if region in process_data["regions"]:
         multiqc_file = os.path.join(
             "seq_processed",
             uploads_folder,
             "fastqc",
-            bucket,
             region,
             "multiqc_report.html",
         )
@@ -919,6 +917,62 @@ def show_multiqc_report():
             return send_file(abs_html_file)
 
     return []
+
+
+@metadata_bp.route(
+    "/delete_multiqc_report", methods=["GET"], endpoint="delete_multiqc_report"
+)
+@login_required
+@admin_required
+@approved_required
+def delete_multiqc_report():
+    process_id = request.args.get("process_id")
+    region = request.args.get("region")
+
+    # Fetch process data from SequencingUpload model
+    process_data = SequencingUpload.get(process_id)
+
+    # Extract uploads folder and project id from process data
+    uploads_folder = process_data["uploads_folder"]
+    bucket = process_data["project_id"]
+
+    if region in process_data["regions"]:
+        multiqc_folder = os.path.join(
+            "seq_processed", uploads_folder, "fastqc", bucket, region
+        )
+
+        # Remove the html file
+        multiqc_file = os.path.join(
+            multiqc_folder,
+            "multiqc_report.html",
+        )
+        abs_html_file = os.path.abspath(multiqc_file)
+        if os.path.isfile(abs_html_file):
+            os.remove(abs_html_file)
+
+        # Remove the data folder
+        multiqc_data_folder = os.path.join(
+            multiqc_folder,
+            "multiqc_data",
+        )
+        abs_multiqc_data_folder = os.path.abspath(multiqc_data_folder)
+
+        if os.path.isdir(abs_multiqc_data_folder):
+            shutil.rmtree(abs_multiqc_data_folder)
+
+        # Remove the plots folder
+        multiqc_plots_folder = os.path.join(
+            multiqc_folder,
+            "multiqc_plots",
+        )
+        abs_multiqc_plots_folder = os.path.abspath(multiqc_plots_folder)
+
+        if os.path.isdir(abs_multiqc_plots_folder):
+            shutil.rmtree(abs_multiqc_plots_folder)
+
+    return redirect(
+        url_for("metadata.metadata_form", process_id=process_id) + "#step_10"
+    )
 
 
 @metadata_bp.route(
@@ -991,7 +1045,8 @@ def ensure_bucket_uploads():
 @approved_required
 def generate_mapping_files():
     process_id = request.form.get("process_id")
-    SequencingUpload.generate_mapping_files_for_process(process_id)
+    mode = request.form.get("mode")
+    SequencingUpload.generate_mapping_files_for_process(process_id, mode)
     return (
         jsonify({"result": 1}),
         200,
@@ -1152,9 +1207,13 @@ def generate_lotus2_report():
     process_data = SequencingUpload.get(process_id)
     region = request.form.get("region")
 
+    sdmopt = request.form.get("sdmopt")
+    parameters = {}
+    if sdmopt in ["sdm_miSeq_ITS", "sdm_miSeq_170", "sdm_miSeq_ITS_forward"]:
+        parameters["sdmopt"] = sdmopt
     input_dir = "seq_processed/" + process_data["uploads_folder"]
     init_generate_lotus2_report(
-        process_id, input_dir, region, debug, analysis_type_id
+        process_id, input_dir, region, debug, analysis_type_id, parameters
     )
 
     return jsonify({"result": 1})
@@ -1459,6 +1518,24 @@ def exclude_from_mapping():
         file_id, "exclude_from_mapping", exclude
     )
     return jsonify({"success": True, "file_id": file_id, "exclude": exclude})
+
+
+@metadata_bp.route(
+    "/update_missing_geo_data",
+    methods=["GET"],
+    endpoint="update_missing_geo_data",
+)
+@login_required
+@admin_required
+@approved_required
+def update_missing_geo_data():
+
+    SequencingSample.update_missing_fields()
+    # land_use = get_land_use(-122.4194, 37.7749)
+    # resolve_ecoregion = get_resolve_ecoregion(-122.4194, 37.7749)
+    # baileys_ecoregion = get_baileys_ecoregion(-122.4194, 37.7749)
+    # elevation = get_elevation(-122.4194, 37.7749)
+    return jsonify({"done": 1}), 200
 
 
 @metadata_bp.route(

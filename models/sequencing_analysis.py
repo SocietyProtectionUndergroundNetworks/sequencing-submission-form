@@ -125,7 +125,6 @@ class SequencingAnalysis:
         )
 
         session.close()
-
         # Format the results as a list of dictionaries with desired fields
         results = [
             {
@@ -138,7 +137,7 @@ class SequencingAnalysis:
                 "region": item.region,
                 "lotus2_status": item.SequencingAnalysisTable.lotus2_status,
                 "rscripts_status": (
-                    item.SequencingAnalysisTable.rscripts_status,
+                    item.SequencingAnalysisTable.rscripts_status
                 ),
             }
             for item in items
