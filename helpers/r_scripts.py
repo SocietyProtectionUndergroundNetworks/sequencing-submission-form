@@ -98,7 +98,14 @@ def generate_rscripts_report(process_id, input_dir, region, analysis_type_id):
                 input_dir + "/r_output/" + analysis_type.name, exist_ok=True
             )
 
-            command = ["Rscript", r_script, lotus_2_dir, output_dir]
+            command = [
+                "Rscript",
+                r_script,
+                "-l",
+                lotus_2_dir,
+                "-o",
+                output_dir,
+            ]
             command_str = " ".join(command)
             logger.info(" - Here we will try the command")
             logger.info(command_str)
