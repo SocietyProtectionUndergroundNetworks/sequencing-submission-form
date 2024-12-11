@@ -1,124 +1,138 @@
-
-library(phyloseq); packageVersion("phyloseq")
-library(ggplot2); packageVersion("ggplot2")
-library(decontam); packageVersion("decontam")
-library(DT)
-library(vegan)
-library(writexl)
+# Load necessary packages only
+library(phyloseq)
 library(tidyverse)
-library(data.table)
-library(doParallel)
-library(tidyverse)
-library(tableHTML)
+library(optparse)
+library(decontam)
 
+# Define options
+option_list <- list(
+  make_option(
+    c("-l", "--lotus2 "),
+    type = "character",
+    default = "/mnt/seq_processed/00051_20241208YWHTXA/lotus2_report/ITS2/",
+    help = "Path to lotus2 output folder"
+  ),
+  make_option(
+    c("-o", "--output"),
+    type = "character",
+    default = "~/test2",
+    help = "Path to output folder"
+  ),
+  make_option(
+    c("-t", "--threshold"),
+    type = "double",
+    default = 0.1,
+    help = "Threshold for detecting contamination (proportion between 0 and 1)"
+  ),
+  make_option(
+    c("-m", "--multiqc"),
+    type = "character",
+    default = "",
+    help = "Path to multiqc parent folder containing multiqc_plots"
+  ),
+  make_option(
+    c("-r", "--readmin"),
+    type = "integer",
+    default = 10,
+    help = "Minimum number of reads for a sample to be included in rarefaction curves"
+  )
+)
 
-# Get positional args and set [1] working directory, and [2] output dir
-args <- commandArgs(trailingOnly = TRUE)
-setwd(args[1])
-output_dir <- args[2]
+# Parse options
+parser <- OptionParser(option_list = option_list)
+args <- parse_args(parser)
 
-## Create a function for loading a phyloseq object
-loadRData <- function(fileName){
-  #loads an RData file, and returns it
-  load(fileName)
-  get(ls()[ls() != "fileName"])
-}
-
-### Load phyloseq object
-physeq <- loadRData("phyloseq.Rdata")
-
-## Add Read_depth as a variable
-sample_data(physeq)$Read_depth <- sample_sums(physeq)
-
-#List read depth
-get_variable(physeq, "Read_depth")
-
-
-###### UNTIL LINE 97, ONLY FOR SAMPLES WITH A NEGATIVE CONTROL ######
+# Load phyloseq object
+load(str_c(args$lotus2,"/","phyloseq.Rdata"))
 
 ## Inspect library sizes
-
-df <- as.data.frame(sample_data(physeq)) # Put sample_data into a ggplot-friendly data.frame
+df <- sample_data(physeq)
 df$LibrarySize <- sample_sums(physeq)
 df <- df[order(df$LibrarySize),]
 df$Index <- seq(nrow(df))
-ggsave(paste0(output_dir,"/","LibrarySize.pdf"),ggplot(data=df, aes(x=Index, y=LibrarySize, color=Sample_or_Control)) + geom_point())
+ggplot(data=df, aes(x=Index, y=LibrarySize, color=Sample_or_Control)) +
+  geom_point()
 
-#### WARNING: If no negative control sample labelled 'Control' was included, skip to line 96 ####
-## Identify contaminants - prevalence - https://bioconductor.org/packages/devel/bioc/vignettes/decontam/inst/doc/decontam_intro.html#identifying-contaminants-in-marker-gene-and-metagenomics-data
-sample_data(physeq)$is.neg <- sample_data(physeq)$Sample_or_Control == "Control"
-contamdf.prev.1 <- isContaminant(physeq, method="prevalence", neg="is.neg", threshold=0.1)
-table(contamdf.prev.1$contaminant)
-
+ggsave(str_c(args$output,"/","LibrarySize.pdf"),
+       width = 7, height = 7, units = "in")
+       
 ## Import required files to assess taxonomy of removed OTUs - for the whole process, we need the 'hiera_BLAST.txt' file and the phyloseq object
-classification <- c("kingdom", "phylum", "class", "order", "family", "genus", "species")
-otu_taxonomy <- read_delim("hiera_BLAST.txt")
-otu_taxonomy_samp <- as.data.frame(otu_taxonomy)
-otu_taxonomy <- otu_taxonomy_samp[,-1]
-rownames(otu_taxonomy) <- otu_taxonomy_samp[,1]
-colnames(otu_taxonomy) <- classification
+otu_taxonomy <- read_tsv(str_c(args$lotus2,"/","hiera_BLAST.txt")) %>%
+  set_names("OTU", "kingdom", "phylum", "class", "order", "family", "genus", "species")
 
+# If there are no controls, or if the read depth of any control species is in the 75th percentils, store in a variable and print warning
+num_of_controls <- df %>% as_tibble %>% filter(Sample_or_Control == "Control") %>% nrow()
 
-# Make phyloseq object of presence-absence in negative controls and true samples
-physeq.pa <- transform_sample_counts(physeq, function(abund) 1*(abund>0))
-physeq.pa.neg <- prune_samples(sample_data(physeq.pa)$Sample_or_Control == "Control", physeq.pa)
-physeq.pa.pos <- prune_samples(sample_data(physeq.pa)$Sample_or_Control == "True sample", physeq.pa)
-# Make data.frame of prevalence in positive and negative samples
-df.pa <- data.frame(pa.pos=taxa_sums(physeq.pa.pos), pa.neg=taxa_sums(physeq.pa.neg),
-                    contaminant=contamdf.prev.1$contaminant)
-ggsave(paste0(output_dir,"/","control_vs_sample.pdf"),ggplot(data=df.pa, aes(x=pa.neg, y=pa.pos, color=contaminant)) + geom_point() +
-  xlab("Prevalence (Negative Controls)") + ylab("Prevalence (True Samples)"))
+if (num_of_controls > 0) {
+  # Make phyloseq object of presence-absence in negative controls and true samples
+  physeq.pa <- transform_sample_counts(physeq, function(abund) 1*(abund>0))
+  physeq.pa.neg <- prune_samples(sample_data(physeq.pa)$Sample_or_Control == "Control", physeq.pa)
+  physeq.pa.pos <- prune_samples(sample_data(physeq.pa)$Sample_or_Control == "True sample", physeq.pa)
 
+  ## Extract the taxonomic classifications of the identified contaminants
+  sample_data(physeq)$is.neg <- sample_data(physeq)$Sample_or_Control == "Control"
+  contamdf.prev.1 <- isContaminant(physeq, method="prevalence", neg="is.neg", threshold=args$threshold)
+  contaminant_otus <- contamdf.prev.1 %>% filter(contaminant== TRUE) %>% rownames()
+  contaminants <- otu_taxonomy %>%
+    filter(OTU %in% contaminant_otus)
+  write_csv(contaminants, str_c(args$output,"/","contaminants.csv"))
+  
+  # Make data.frame of prevalence in positive and negative samples
+  df.pa <- data.frame(
+    pa.pos=taxa_sums(physeq.pa.pos),
+    pa.neg=taxa_sums(physeq.pa.neg),
+    contaminant=contamdf.prev.1$contaminant)
+  
+  ggplot(data=df.pa, aes(x = pa.neg, y = pa.pos, color = contaminant)) +
+    geom_point() +
+    xlab("Prevalence (Negative Controls)") +
+    ylab("Prevalence (True Samples)")
 
+  ggsave(str_c(args$output, "/", "control_vs_sample.pdf"),
+         width = 7, height = 7, units = "in")
 
-## Extract the taxonomic classifications of the identified contaminants
+  # Prune contaminant taxa from the phyloseq tax_table
+  physeq_decontam <- prune_taxa(!contamdf.prev.1$contaminant, physeq)
 
-row_indices <- which(contamdf.prev.1$contaminant) #grab the row indices that correspond with identified contaminants to locate taxonomic information in the corresponding OTU file
+  # Save file. To open in R use:
+  # physeq_decontam <- readRDS("physeq_decontam.Rdata")
 
-taxonomy_table <- tibble()
+  saveRDS(physeq_decontam, file=str_c(args$output,"/","physeq_decontam.Rdata"))
 
-for (i in row_indices){
-  loc <-  contamdf.prev.1[i, 0]
-  tax_key <- row.names(loc)
-  tax_value <- otu_taxonomy[tax_key, ]
-  taxonomy_table <- rbind(taxonomy_table, tax_value)
+  percentile_of_control <- df %>%
+    as_tibble %>%
+    mutate(percentile = percent_rank(LibrarySize) * 100) %>%
+    filter(Sample_or_Control == "Control") %>%
+    pull(percentile) %>%
+    last()
+
+} else {
+  physeq_decontam <- physeq
 }
 
-names(taxonomy_table) <- classification
-datatable(taxonomy_table)
-write_tableHTML(tableHTML(taxonomy_table), file = paste0(output_dir,"/","contaminants.html"))
-write_csv(taxonomy_table, paste0(output_dir,"/","contaminants.csv"))
-
-## Prune contaminant taxa from the phyloseq tax_table
-physeq_decontam <- prune_taxa(!contamdf.prev.1$contaminant, physeq)
-
-## Save file. Note: this must be opened in R using: phyoseq_decontam <- readRDS("physeq_decontam.Rdata")
-saveRDS(physeq_decontam, file=paste0(output_dir,"/","physeq_decontam.Rdata"))
-
-## Move the pre-decontaminated phyloseq object into a folder labelled 'pre_decontam'
-# dir.create("pre_decontam")
-# file.rename(from="phyloseq.Rdata",to="pre_decontam/phyloseq.Rdata")
-
-                                     
 ####  Create rarefaction curves for the samples #### 
 
 # Remove samples with fewer than a certain number of reads
-physeq_filtered <- prune_samples(sample_sums(physeq_decontam) >= 10, physeq_decontam)
+physeq_filtered <- prune_samples(
+  sample_sums(physeq_decontam) >= args$readmin,
+  physeq_decontam
+)
 
 # Check the new sample sizes
 sample_sums(physeq_filtered)
 
 source("https://raw.githubusercontent.com/mahendra-mariadassou/phyloseq-extended/master/load-extra-functions.R")
 
-p <- ggrare(physeq_filtered,
-            step = 500,
-            color = "Sample",
-            plot = T,
-            parallel = T,
-            se = F)
+p <- ggrare(
+  physeq_filtered,
+  step = 500,
+  color = "Sample",
+  plot = TRUE,
+  parallel = TRUE,
+  se = FALSE
+)
 
-
-p <- p + 
+p <- p +
   theme_minimal() +  # Remove grid background
   labs(
     title = "Rarefaction Curves",
@@ -127,51 +141,32 @@ p <- p +
   )
 
 plot(p)
-pdf(paste0(output_dir,"/","filtered_rarefaction.pdf"))
-
+ggsave(
+  str_c(args$output, "/", "filtered_rarefaction.pdf"),
+  width = 7, height = 7, units = "in"
+)
 
 ##### Extract out ECMs from FungalTraits database and phyloseq object. For this step, you need to have downloaded the file "EcM_guild_assignment_13225_2020_466_MOESM4_ESM.csv" from the SPUN 'project_bioinformatics_and_processing' Github repository
 
-fungaltraits<- read.csv("/usr/src/app/13225_2020_466_MOESM4_ESM.csv")
+fungaltraits <- read.csv("/usr/src/app/13225_2020_466_MOESM4_ESM.csv")
 
-# Using dplyr and stringr to extract the Genus label to match with phyloseq object's taxa table. Also filter to string match and ectomycorrhizal fungi. The final df is just the fungal traits database subset to ectomycorrhizal fungi and an altered string for genus. 
-fungal_traits_ecm<- fungaltraits %>%
-  dplyr::select(Genus, primary_lifestyle) %>% 
-  filter(primary_lifestyle== "ectomycorrhizal")
+fungal_traits_ecm <- fungaltraits %>%
+  select(Genus, primary_lifestyle) %>% 
+  filter(primary_lifestyle == "ectomycorrhizal")
 
-# Sanity check some non-ectos - should be absent
-fungal_traits_ecm %>% filter(Genus == "Penicillium" |
-                               Genus == "Pycnocarpon"|
-                               Genus =="Bellamyces" |
-                               Genus == "Fusarium")
+# add sanity checks? No need as this only needs to be done the first time
 
-# Sanity check confirmed, known ectos
-fungal_traits_ecm %>% filter(Genus == "Russula" |Genus == "Suillus" |Genus =="Rhizopogon" | Genus == "Gomphidius") 
+# Filter physeq_decontam object by this list of EcM Genus
+ecm_physeq = subset_taxa(physeq_decontam, Genus %in% fungal_traits_ecm$Genus)
 
+# Save file. To open in R use: ecm_physeq <- readRDS("ecm_physeq.Rdata")
+saveRDS(ecm_physeq, file=str_c(args$output, "/", "ecm_physeq.Rdata"))
 
-# Extract out taxonomy for phyloseq object
-taxa_all<-data.frame(physeq_decontam@tax_table)
-print(unique(taxa_all$Genus))
-
-# Identify matches between phyloseq object and FungalTraits
-matches <- inner_join(taxa_all, fungal_traits_ecm, by = "Genus")
-unique(matches$Genus) #see list of unique matches
-length(unique(matches$Genus)) #number of ECMs
-
-# Filter ps-object by this list of matches
-ecm_physeq = subset_taxa(physeq_decontam, Genus %in% matches$Genus)
-
-#Print objects to confirm filtering
-print(ecm_physeq)
-print(physeq_decontam)
-
-## Save file. Note: this must be opened in R using: ecm_physeq <- readRDS("ecm_physeq.Rdata")
-saveRDS(ecm_physeq, file=paste0(output_dir,"/","ecm_physeq.Rdata"))
-
-
-### OPTIONAL: Test and explore
-plot_bar(ecm_physeq, fill="Genus")
-pdf(paste0(output_dir,"/","ecm_physeq_by_genus.pdf"))
+plot_bar(ecm_physeq, fill = "Genus")
+ggsave(
+  str_c(args$output, "/", "ecm_physeq_by_genus.pdf"),
+  width = 14, height = 14, units = "in"
+)
 
 sample_variables(ecm_physeq)
 sample_names(ecm_physeq)
