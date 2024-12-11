@@ -143,17 +143,17 @@ p <- p +
 plot(p)
 ggsave(
   str_c(args$output, "/", "filtered_rarefaction.pdf"),
-  width = 7, height = 7, units = "in"
+  width = 14, height = 14, units = "in"
 )
 
 ## Subset filtered phloseq object to include only the three classes of Mucoromycota that are AMF: "Glomeromycetes", "Archaeosporomycetes" and "Paraglomeromycetes" 
 
 amf_physeq <- physeq_filtered %>% subset_taxa(Class =="Glomeromycetes" | Class ==  "Archaeosporomycetes" | Class ==  "Paraglomeromycetes" )
 
-# Save file. To open in R use: ecm_physeq <- readRDS("amf_physeq.Rdata")
+# Save file. To open in R use: amf_physeq <- readRDS("amf_physeq.Rdata")
 saveRDS(amf_physeq, file=str_c(args$output, "/", "amf_physeq.Rdata"))
 
-plot_bar(ecm_physeq, fill = "Genus")
+plot_bar(amf_physeq, fill = "Genus")
 ggsave(
   str_c(args$output, "/", "amf_physeq_by_genus.pdf"),
   width = 14, height = 14, units = "in"
