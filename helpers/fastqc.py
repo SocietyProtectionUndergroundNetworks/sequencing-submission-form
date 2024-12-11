@@ -4,6 +4,7 @@ import subprocess
 import json
 import zipfile
 import gzip
+import re
 from pathlib import Path
 from models.upload import Upload
 from helpers.bucket import bucket_upload_folder, bucket_chunked_upload
@@ -425,8 +426,9 @@ def extract_total_sequences_from_fastqc_zip(abs_zip_path):
 
 def count_primer_occurrences(filepath, sequence):
     """
-    Count the occurrences of a specific primer
-    sequence in a gzipped FASTQ file.
+    Count the occurrences of a specific primer sequence
+    in a gzipped FASTQ file, treating non-GATC letters
+    as wildcards.
 
     Parameters:
     filepath (str): The path to the gzipped FASTQ file.
@@ -435,12 +437,17 @@ def count_primer_occurrences(filepath, sequence):
     Returns:
     int: The number of occurrences of the primer sequence in the file.
     """
+    # Create a regex pattern where non-GATC
+    # characters are treated as wildcards (.)
+    regex_pattern = "".join(
+        "." if char not in "GATC" else char for char in sequence
+    )
     count = 0
 
     try:
         with gzip.open(filepath, "rt") as f:  # Open gzipped file in text mode
             for line in f:
-                if sequence in line:
+                if re.search(regex_pattern, line):
                     count += 1
     except Exception as e:
         logger.info(f"An error occurred: {e}")
