@@ -33,6 +33,7 @@ RUN R -e "install.packages(c('reshape2'), repos='https://cran.rstudio.com/');"
 RUN R -e "install.packages(c('ape'), repos='https://cran.rstudio.com/');"
 RUN R -e "install.packages(c('gridExtra'), repos='https://cran.rstudio.com/');"
 RUN R -e "install.packages(c('tableHTML'), repos='https://cran.rstudio.com/');"
+RUN R -e "install.packages('optparse', repos='https://cran.rstudio.com/');"
 
 # Install BiocManager and additional Bioconductor packages
 RUN R -e "if (!require('BiocManager', quietly = TRUE)) install.packages('BiocManager')"
@@ -50,6 +51,7 @@ ARG FLASK_PROCESS_GROUP_ID
 RUN groupadd -g ${FLASK_PROCESS_GROUP_ID} appgroup && \
     useradd -m -u ${FLASK_PROCESS_USER_ID} -g appgroup appuser && \
     chown -R appuser:appgroup /usr/src/app
+RUN id appuser
 
 # Switch to non-root user
 USER appuser
