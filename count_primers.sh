@@ -12,9 +12,12 @@ FASTQ_FILE="$2"
 
 # Loop through each line in the primers file
 while IFS= read -r sequence; do
-  # Count occurrences of the sequence in the .fastq.gz file
-  count=$(zgrep -o "$sequence" "$FASTQ_FILE" | wc -l)
+  # Count total occurrences of the sequence in the .fastq.gz file
+  total_count=$(zgrep -o "$sequence" "$FASTQ_FILE" | wc -l)
   
-  # Print the result in the format: sequence: count
-  echo "$sequence: $count"
+  # Count occurrences of the sequence at the beginning of lines
+  beginning_count=$(zgrep -o "^$sequence" "$FASTQ_FILE" | wc -l)
+  
+  # Print the results in the format: sequence: total_count (beginning_count)
+  echo "$sequence: $total_count ($beginning_count)"
 done < "$PRIMERS_FILE"

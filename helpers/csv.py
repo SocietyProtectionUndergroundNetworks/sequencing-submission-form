@@ -2,6 +2,7 @@ import csv
 import re
 import os
 import json
+from unidecode import unidecode
 from helpers.bucket import list_buckets
 import logging
 
@@ -223,17 +224,18 @@ def get_sequences_based_on_primers(forward_primer, reverse_primer):
 
 
 def sanitize_string(s):
-    """Escape quotes and other special characters in a string."""
+    # Escape quotes, special characters,
+    # and transliterate non-Latin characters.
     if isinstance(s, str):
+        # Transliterate non-Latin characters to Latin equivalents
+        s = unidecode(s)
         # Escape double quotes
         s = s.replace('"', '\\"')
         # Escape newline characters
         s = s.replace("\n", "\\n")
-        # Optionally escape backslashes if needed
-        s = s.replace("\\", "\\\\")  # Escape backslashes
-        # Escape any other characters as necessary
-        # Add more replacements as needed for your use case
-    return s  # Return as is if not a string
+        # Escape backslashes
+        s = s.replace("\\", "\\\\")
+    return s
 
 
 def sanitize_data(data):

@@ -4,6 +4,7 @@ import subprocess
 import json
 import zipfile
 import gzip
+import re
 from pathlib import Path
 from models.upload import Upload
 from helpers.bucket import bucket_upload_folder, bucket_chunked_upload
@@ -169,7 +170,11 @@ def fastqc_multiqc_files(process_id):
     for bucket, folders in output_folders.items():
         for folder in folders:
             multiqc_folder = os.path.join(output_folder, bucket, folder)
-            multiqc.run(multiqc_folder, outdir=multiqc_folder)
+            # The 'export_plots=True' only works in
+            # multiqc version 1.19, not in 1.25.2
+            multiqc.run(
+                multiqc_folder, outdir=multiqc_folder, export_plots=True
+            )
             fastq_files_to_delete = [
                 f
                 for f in os.listdir(multiqc_folder)
@@ -205,7 +210,7 @@ def create_fastqc_report(fastq_file, input_folder, bucket, region):
     output_folder = os.path.join(input_folder, "fastqc")
     os.makedirs(output_folder, exist_ok=True)
     input_file = os.path.join(input_folder, fastq_file)
-    output_folder_of_file = os.path.join(output_folder, bucket, region)
+    output_folder_of_file = os.path.join(output_folder, region)
     Path(output_folder_of_file).mkdir(parents=True, exist_ok=True)
     input_file = os.path.join(input_folder, fastq_file)
     fastqc_cmd = (
@@ -233,9 +238,7 @@ def init_create_fastqc_report(fastq_file, input_folder, bucket, region):
         logger.error(e)
 
 
-def check_fastqc_report(
-    filename, bucket, region, upload_folder, return_format="html"
-):
+def check_fastqc_report(filename, region, upload_folder, return_format="html"):
     logger = logging.getLogger(__name__)
 
     if filename:
@@ -250,11 +253,11 @@ def check_fastqc_report(
 
         # Define the paths for the FastQC report files
         html_file = (
-            f"seq_processed/{upload_folder}/fastqc/{bucket}/{region}/"
+            f"seq_processed/{upload_folder}/fastqc/{region}/"
             f"{base_filename}.html"
         )
         zip_file = (
-            f"seq_processed/{upload_folder}/fastqc/{bucket}/{region}/"
+            f"seq_processed/{upload_folder}/fastqc/{region}/"
             f"{base_filename}.zip"
         )
 
@@ -284,9 +287,13 @@ def create_multiqc_report(process_id):
     if process_data["regions"]:
         for region in process_data["regions"]:
             multiqc_folder = os.path.join(
-                "seq_processed", uploads_folder, "fastqc", bucket, region
+                "seq_processed", uploads_folder, "fastqc", region
             )
-            multiqc.run(multiqc_folder, outdir=multiqc_folder)
+            # The 'export_plots=True' only works in
+            # multiqc version 1.19, not in 1.25.2
+            multiqc.run(
+                multiqc_folder, outdir=multiqc_folder, export_plots=True
+            )
             bucket_upload_directory = (
                 region + "/MultiQC_report/" + uploads_folder
             )
@@ -336,7 +343,6 @@ def check_multiqc_report(process_id):
 
     # Extract uploads folder and project id from process data
     uploads_folder = process_data["uploads_folder"]
-    bucket = process_data["project_id"]
 
     # Check if regions are specified
     if process_data["regions"]:
@@ -344,7 +350,7 @@ def check_multiqc_report(process_id):
         for region in process_data["regions"]:
             # Construct the path to the multiqc folder
             multiqc_folder = os.path.join(
-                "seq_processed", uploads_folder, "fastqc", bucket, region
+                "seq_processed", uploads_folder, "fastqc", region
             )
 
             # Construct the path to the potential multiqc report file
@@ -420,8 +426,9 @@ def extract_total_sequences_from_fastqc_zip(abs_zip_path):
 
 def count_primer_occurrences(filepath, sequence):
     """
-    Count the occurrences of a specific primer
-    sequence in a gzipped FASTQ file.
+    Count the occurrences of a specific primer sequence
+    in a gzipped FASTQ file, treating non-GATC letters
+    as wildcards.
 
     Parameters:
     filepath (str): The path to the gzipped FASTQ file.
@@ -430,12 +437,17 @@ def count_primer_occurrences(filepath, sequence):
     Returns:
     int: The number of occurrences of the primer sequence in the file.
     """
+    # Create a regex pattern where non-GATC
+    # characters are treated as wildcards (.)
+    regex_pattern = "".join(
+        "." if char not in "GATC" else char for char in sequence
+    )
     count = 0
 
     try:
         with gzip.open(filepath, "rt") as f:  # Open gzipped file in text mode
             for line in f:
-                if sequence in line:
+                if re.search(regex_pattern, line):
                     count += 1
     except Exception as e:
         logger.info(f"An error occurred: {e}")

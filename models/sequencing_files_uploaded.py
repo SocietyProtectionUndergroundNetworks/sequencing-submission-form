@@ -188,7 +188,7 @@ class SequencingFileUploaded:
 
         # Call the check_fastqc_report function
         fastqc_report = check_fastqc_report(
-            filename, bucket, region, upload_folder, return_format
+            filename, region, upload_folder, return_format
         )
 
         return fastqc_report

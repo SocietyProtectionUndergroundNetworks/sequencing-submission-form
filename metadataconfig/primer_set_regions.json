@@ -18,6 +18,11 @@
     "Region": "ITS2",
     "Forward Primer": "TTTCAACAAYGGATTCTTGG",
     "Reverse Primer": "TCCTCCGCTTATTGATATGC"
+  },
+  "ITS4/fITS7": {
+    "Region": "ITS2",
+    "Forward Primer": "TCCTCCGCTTATTGATATGC",
+    "Reverse Primer": "GTGARTCATCGAATCTTTG"
   },  
   "ITS9/ITS4": {
     "Region": "Full ITS",
