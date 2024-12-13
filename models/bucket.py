@@ -69,10 +69,10 @@ class Bucket:
 
         all_buckets_db = session.query(BucketTable).all()
 
+        # Transform the results into a list of dictionaries
         buckets = []
         for bucket_db in all_buckets_db:
-            bucket = Bucket(id_=bucket_db.id)
-            buckets.append(bucket)
+            buckets.append({"id": bucket_db.id, "cohort": bucket_db.cohort})
 
         session.close()
         return buckets
@@ -101,6 +101,22 @@ class Bucket:
 
         if bucket:
             bucket.archive_file = filename
+
+            session.commit()
+            session.close()
+            return True
+        else:
+            session.close()
+            return False
+
+    @classmethod
+    def update_cohort(cls, id, cohort):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+        bucket = session.query(BucketTable).filter_by(id=id).first()
+
+        if bucket:
+            bucket.cohort = cohort
 
             session.commit()
             session.close()

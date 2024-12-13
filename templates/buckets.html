@@ -1,0 +1,71 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnSuA4Ss2PkkikSOLtYs8BlYIeeIK1h99ty4YfvRPAlzr377vr3CXDb7sb7eEEBYjDtcYj+AjBH3FLv5uSJuXg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js" integrity="sha512-7Pi/otdlbbCR+LnW+F7PwFcSDJOuUJB3OxtEHbg4vSMvzvJjde4Po1v4BR9Gdc9aXNUNFVUY+SK51wWT8WF0Gg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <title>User Groups</title>
+</head>
+<body>
+  <div class="app-navbar">
+    <a href="https://spun.earth" class="logo"></a>
+    <div class="menu">
+      <ul>
+        <li><a href="https://spun.earth">Spun Website</a></li>
+        <li><a href="/">App homepage</a></li>
+      </ul>
+    </div>
+  </div>
+  <h1>Buckets/Projects List</h1>
+  <div> 
+    Note: The list is created automatically from what buckets can be
+    found in the relevant bucket project. The user here has only the
+    ability to assign a cohort for reporting purposes.
+  </div>
+  <div>
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col">Bucket name</th>
+          <th scope="col">Cohort</th>
+        </tr>
+      </thead>
+      <tbody id="buckets_body">
+        {% for bucket in all_buckets %}
+          <tr>
+              <td>{{ bucket['id'] }}</td>
+              <td>
+                <input type="text" 
+                       class="cohort-input" 
+                       value="{{ bucket['cohort'] }}" 
+                       data-id="{{ bucket['id'] }}" />
+              </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</body>
+<script>
+  $(document).on('change', '.cohort-input', function() {
+    const cohortInput = $(this);
+    const bucketId = cohortInput.data('id'); // Get the bucket id
+    const newCohort = cohortInput.val();    // Get the new cohort value
+
+    // Send the updated cohort via AJAX
+    $.ajax({
+      url: '/set_bucket_cohort',
+      type: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify({ id: bucketId, cohort: newCohort }),
+      success: function(response) {
+        alert('Cohort updated successfully!');
+      },
+      error: function(xhr, status, error) {
+        alert('Error updating cohort: ' + error);
+      }
+    });
+  });
+</script>
+</html>

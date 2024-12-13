@@ -82,6 +82,7 @@ class BucketTable(Base):
     archive_file = Column(String(255), nullable=True)
     archive_file_created_at = Column(DateTime, nullable=True)
     archive_file_creation_progress = Column(Integer, nullable=True)
+    cohort = Column(String(255), nullable=True)
 
 
 class UploadTable(Base):
