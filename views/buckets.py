@@ -52,11 +52,11 @@ def approved_required(view_func):
 @admin_required
 @login_required
 def buckets():
-    all_buckets = Bucket.get_all()
+    order_by = request.args.get("order_by", "name")
+    all_buckets = Bucket.get_all(order_by)
 
     return render_template(
-        "buckets.html",
-        all_buckets=all_buckets,
+        "buckets.html", all_buckets=all_buckets, order_by=order_by
     )
 
 

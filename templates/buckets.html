@@ -27,8 +27,20 @@
     <table class="table">
       <thead>
         <tr>
-          <th scope="col">Bucket name</th>
-          <th scope="col">Cohort</th>
+          <th scope="col">
+            {% if order_by != "name" %}
+              <a href="?order_by=name">Bucket name</a>
+            {% else %}
+              Bucket name
+            {% endif %}
+          </th>
+          <th scope="col">
+            {% if order_by != "cohort" %}
+              <a href="?order_by=cohort">Cohort</a>
+            {% else %}
+              Cohort
+            {% endif %}
+          </th>
         </tr>
       </thead>
       <tbody id="buckets_body">

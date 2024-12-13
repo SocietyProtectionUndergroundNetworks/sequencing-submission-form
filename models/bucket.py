@@ -63,16 +63,26 @@ class Bucket:
         return new_bucket_id
 
     @classmethod
-    def get_all(cls):
+    def get_all(cls, order_by="name"):
         db_engine = connect_db()
         session = get_session(db_engine)
 
-        all_buckets_db = session.query(BucketTable).all()
+        # Dynamically set the ordering column
+        if order_by == "cohort":
+            order_column = BucketTable.cohort
+        else:  # Default to ordering by name if not "cohort"
+            order_column = BucketTable.id
+
+        # Query with dynamic ordering
+        all_buckets_db = (
+            session.query(BucketTable).order_by(order_column).all()
+        )
 
         # Transform the results into a list of dictionaries
-        buckets = []
-        for bucket_db in all_buckets_db:
-            buckets.append({"id": bucket_db.id, "cohort": bucket_db.cohort})
+        buckets = [
+            {"id": bucket_db.id, "cohort": bucket_db.cohort}
+            for bucket_db in all_buckets_db
+        ]
 
         session.close()
         return buckets
