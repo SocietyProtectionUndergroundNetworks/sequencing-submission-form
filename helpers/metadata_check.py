@@ -15,8 +15,6 @@ def get_columns_data(exclude=True):
     columns_file_path = os.path.join(
         base_dir, "metadataconfig", "columns.json"
     )
-    logger.info("The exclude is ")
-    logger.info(exclude)
 
     # Load the main configuration JSON
     with open(columns_file_path, "r") as columns_file:
