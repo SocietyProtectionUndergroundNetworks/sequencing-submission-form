@@ -1047,6 +1047,7 @@ def generate_mapping_files():
     process_id = request.form.get("process_id")
     mode = request.form.get("mode")
     SequencingUpload.generate_mapping_files_for_process(process_id, mode)
+    SequencingUpload.export_sample_locations(process_id)
     return (
         jsonify({"result": 1}),
         200,
@@ -1657,6 +1658,25 @@ def upload_sequencer_ids_migration_file():
             )
 
     return jsonify({"result": 1, "messages": result}), 200
+
+
+@metadata_bp.route(
+    "/export_sample_locations",
+    methods=["GET"],
+    endpoint="export_sample_locations",
+)
+@login_required
+@admin_required
+@approved_required
+def export_sample_locations():
+    process_id = request.args.get("process_id")
+
+    if process_id:
+        SequencingUpload.export_sample_locations(process_id)
+        return redirect(
+            url_for("metadata.metadata_form", process_id=process_id)
+            + "#step_9"
+        )
 
 
 @metadata_bp.route(

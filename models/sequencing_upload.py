@@ -1243,6 +1243,46 @@ class SequencingUpload:
         return []
 
     @classmethod
+    def export_sample_locations(cls, process_id):
+        # Fetch sample data for the process ID
+        samples_data_complete = cls.get_samples_with_sequencers_and_files(
+            process_id
+        )
+
+        # Extract only the required fields: sample_id, latitude, longitude
+        sample_locations = [
+            {
+                "sample_id": sample_data["SampleID"],
+                "latitude": sample_data.get("Latitude", "NA"),
+                "longitude": sample_data.get("Longitude", "NA"),
+            }
+            for sample_data in samples_data_complete
+        ]
+
+        # Create output directory if it doesn't exist
+        process_data = cls.get(process_id)
+        uploads_folder = process_data["uploads_folder"]
+        output_dir = f"seq_processed/{uploads_folder}/metadata/"
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Define the output CSV file path
+        output_file_path = os.path.join(output_dir, "sample_locations.csv")
+
+        # Write the data to the CSV file
+        with open(output_file_path, "w", newline="") as csvfile:
+            fieldnames = ["sample_id", "latitude", "longitude"]
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+            # Write the header row
+            writer.writeheader()
+
+            # Write the sample location data
+            writer.writerows(sample_locations)
+
+        # Return the path of the generated file
+        return output_file_path
+
+    @classmethod
     def check_mapping_files_exist(self, process_id):
         process_data = self.get(process_id)
 
