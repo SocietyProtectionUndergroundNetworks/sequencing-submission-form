@@ -3,6 +3,10 @@ library(phyloseq)
 library(tidyverse)
 library(optparse)
 library(decontam)
+library(doParallel)
+library(iNEXT)
+library(janitor)
+library(data.table)
 
 # Define options
 option_list <- list(
@@ -50,10 +54,11 @@ df <- sample_data(physeq)
 df$LibrarySize <- sample_sums(physeq)
 df <- df[order(df$LibrarySize),]
 df$Index <- seq(nrow(df))
-ggplot(data=df, aes(x=Index, y=LibrarySize, color=Sample_or_Control)) +
+
+p <- ggplot(data=df, aes(x=Index, y=LibrarySize, color=Sample_or_Control)) +
   geom_point()
 
-ggsave(str_c(args$output,"/","LibrarySize.pdf"),
+ggsave(str_c(args$output,"/","LibrarySize.pdf"), p,
        width = 7, height = 7, units = "in")
        
 ## Import required files to assess taxonomy of removed OTUs - for the whole process, we need the 'hiera_BLAST.txt' file and the phyloseq object
@@ -83,12 +88,12 @@ if (num_of_controls > 0) {
     pa.neg=taxa_sums(physeq.pa.neg),
     contaminant=contamdf.prev.1$contaminant)
   
-  ggplot(data=df.pa, aes(x = pa.neg, y = pa.pos, color = contaminant)) +
+  p <- ggplot(data=df.pa, aes(x = pa.neg, y = pa.pos, color = contaminant)) +
     geom_point() +
     xlab("Prevalence (Negative Controls)") +
     ylab("Prevalence (True Samples)")
 
-  ggsave(str_c(args$output, "/", "control_vs_sample.pdf"),
+  ggsave(str_c(args$output, "/", "control_vs_sample.pdf"), p,
          width = 7, height = 7, units = "in")
 
   # Prune contaminant taxa from the phyloseq tax_table
@@ -142,7 +147,7 @@ p <- p +
 
 plot(p)
 ggsave(
-  str_c(args$output, "/", "filtered_rarefaction.pdf"),
+  str_c(args$output, "/", "filtered_rarefaction.pdf"), p,
   width = 7, height = 7, units = "in"
 )
 
@@ -162,12 +167,54 @@ ecm_physeq = subset_taxa(physeq_decontam, Genus %in% fungal_traits_ecm$Genus)
 # Save file. To open in R use: ecm_physeq <- readRDS("ecm_physeq.Rdata")
 saveRDS(ecm_physeq, file=str_c(args$output, "/", "ecm_physeq.Rdata"))
 
-plot_bar(ecm_physeq, fill = "Genus")
+p <- plot_bar(ecm_physeq, fill = "Genus")
 ggsave(
-  str_c(args$output, "/", "ecm_physeq_by_genus.pdf"),
+  str_c(args$output, "/", "ecm_physeq_by_genus.pdf"), p,
   width = 14, height = 14, units = "in"
 )
 
 sample_variables(ecm_physeq)
 sample_names(ecm_physeq)
 sort(sample_sums(ecm_physeq))
+
+## ChaoRichness
+
+otu_long <- read_delim(str_c(args$lotus2, "OTU.txt")) %>%
+  pivot_longer(!OTU,names_to = "sample_id", values_to = "abundance") %>%
+  filter(abundance != 0)
+
+sample_data(ecm_physeq)$LibrarySize <-sample_sums(ecm_physeq)
+
+div.output <- foreach(i = unique(otu_long$sample_id), .final = function(i) setNames(i, unique(otu_long$sample_id))) %do% {
+  freq_list <- otu_long %>%
+    filter(sample_id == i) %>%
+    select(-sample_id) %>%
+    pull(abundance)
+
+  if (length(freq_list) > 0) {
+    seq_depth <- sample_data(ecm_physeq)[i]$LibrarySize
+
+    if (sum(freq_list) > 1) {
+      # Calculate diversity metrics
+      calc <- ChaoRichness(x = freq_list, datatype = "abundance", conf = 0.95)
+      div <- c(calc, seq_depth = seq_depth)
+
+    } else {
+      if (freq_list == 1) {
+        div <- c(Observed = 1, Estimator = 1, Est_s.e. = 0,
+                 "95% Lower" = 1, "95% Upper" = 1, seq_depth = seq_depth)
+      } else {
+        div <- c(Observed = 0, Estimator = 0, Est_s.e. = 0,
+                 "95% Lower" = 0, "95% Upper" = 0, seq_depth = seq_depth)
+      }
+    }
+  } else {
+    div <- c(Observed = NA, Estimator = 0, Est_s.e. = 0,
+             "95% Lower" = 0, "95% Upper" = 0, seq_depth = NA)
+  }
+}
+
+as.data.frame(do.call(rbind, div.output)) %>%
+  rownames_to_column("sample_id") %>%
+  clean_names() %>%
+  fwrite(str_c(args$output, "/metadata_chaorichness.csv"))
