@@ -117,8 +117,8 @@ def generate_lotus2_report(
 
             sdmopt = "/lotus2_files/sdm_miSeq_ITS.txt"
             if "sdmopt" in parameters:
-                if parameters["sdmopt"] == "sdm_miSeq_170":
-                    sdmopt = "/lotus2_files/sdm_miSeq_170.txt"
+                if parameters["sdmopt"] == "sdm_miSeq_200":
+                    sdmopt = "/lotus2_files/sdm_miSeq_200.txt"
                 if parameters["sdmopt"] == "sdm_miSeq_ITS_forward":
                     sdmopt = "/lotus2_files/sdm_miSeq_ITS_forward.txt"
 
@@ -174,7 +174,7 @@ def generate_lotus2_report(
         elif region == "SSU":
             # We used to define the container differently
             # because we had two different versions of lotus2
-            parameters = analysis_type.parameters
+            parameters = parameters | analysis_type.parameters
             clustering = parameters["clustering"]
 
             # The following two is if we want to use
@@ -201,6 +201,9 @@ def generate_lotus2_report(
                 "/home/condauser/miniconda/envs/lotus2_env/share/"
                 "lotus2-2.34.1-0/configs/sdm_miSeq2.txt"
             )
+            if "sdmopt" in parameters:
+                if parameters["sdmopt"] == "sdm_miSeq2_250":
+                    sdmopt = "/lotus2_files/sdm_miSeq2_250.txt"
             mapping_file = input_dir + "/mapping_files/SSU_Mapping.txt"
 
             command = [
