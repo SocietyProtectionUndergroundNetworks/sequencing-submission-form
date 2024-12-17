@@ -179,7 +179,7 @@ sort(sample_sums(ecm_physeq))
 
 ## ChaoRichness
 
-otu_long <- read_delim(str_c(args$lotus2, "OTU.txt")) %>%
+otu_long <- read_delim(str_c(args$lotus2, "/OTU.txt")) %>%
   pivot_longer(!OTU,names_to = "sample_id", values_to = "abundance") %>%
   filter(abundance != 0)
 
