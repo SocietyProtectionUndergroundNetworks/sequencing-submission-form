@@ -220,6 +220,7 @@ class SequencingSamplesTable(Base):
     Date_collected = Column(String(255), nullable=True)
     DNA_concentration_ng_ul = Column(String(255), nullable=True)
     Elevation = Column(String(255), nullable=True)
+    Sample_type = Column(String(255), nullable=True)
     Sample_or_Control = Column(String(255), nullable=True)
     SequencingRun = Column(String(255), nullable=True)
     IndigenousPartnership = Column(Boolean, default=False)
