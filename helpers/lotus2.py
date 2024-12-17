@@ -174,7 +174,7 @@ def generate_lotus2_report(
         elif region == "SSU":
             # We used to define the container differently
             # because we had two different versions of lotus2
-            parameters = analysis_type.parameters
+            parameters = parameters | analysis_type.parameters
             clustering = parameters["clustering"]
 
             # The following two is if we want to use
