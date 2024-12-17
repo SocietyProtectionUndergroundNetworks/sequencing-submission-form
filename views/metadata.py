@@ -1210,7 +1210,13 @@ def generate_lotus2_report():
 
     sdmopt = request.form.get("sdmopt")
     parameters = {}
-    if sdmopt in ["sdm_miSeq_ITS", "sdm_miSeq_200", "sdm_miSeq_ITS_forward"]:
+    if sdmopt in [
+        "sdm_miSeq_ITS",
+        "sdm_miSeq_200",
+        "sdm_miSeq_ITS_forward",
+        "sdm_miSeq2",
+        "sdm_miSeq2_250",
+    ]:
         parameters["sdmopt"] = sdmopt
     input_dir = "seq_processed/" + process_data["uploads_folder"]
     init_generate_lotus2_report(
