@@ -117,8 +117,8 @@ def generate_lotus2_report(
 
             sdmopt = "/lotus2_files/sdm_miSeq_ITS.txt"
             if "sdmopt" in parameters:
-                if parameters["sdmopt"] == "sdm_miSeq_170":
-                    sdmopt = "/lotus2_files/sdm_miSeq_170.txt"
+                if parameters["sdmopt"] == "sdm_miSeq_200":
+                    sdmopt = "/lotus2_files/sdm_miSeq_200.txt"
                 if parameters["sdmopt"] == "sdm_miSeq_ITS_forward":
                     sdmopt = "/lotus2_files/sdm_miSeq_ITS_forward.txt"
 
