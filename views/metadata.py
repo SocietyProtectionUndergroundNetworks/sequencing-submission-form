@@ -1212,7 +1212,7 @@ def generate_lotus2_report():
     parameters = {}
     if sdmopt in [
         "sdm_miSeq_ITS",
-        "sdm_miSeq_200",
+        "sdm_miSeq_ITS_200",
         "sdm_miSeq_ITS_forward",
     ]:
         parameters["sdmopt"] = sdmopt
