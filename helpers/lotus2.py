@@ -201,9 +201,6 @@ def generate_lotus2_report(
                 "/home/condauser/miniconda/envs/lotus2_env/share/"
                 "lotus2-2.34.1-0/configs/sdm_miSeq2.txt"
             )
-            if "sdmopt" in parameters:
-                if parameters["sdmopt"] == "sdm_miSeq2_250":
-                    sdmopt = "/lotus2_files/sdm_miSeq2_250.txt"
             mapping_file = input_dir + "/mapping_files/SSU_Mapping.txt"
 
             command = [

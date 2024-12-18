@@ -1324,21 +1324,9 @@
                           Debug: <input type="checkbox" id="debug-checkbox" name="debug"> <br>
 
                           {% if region_data.analysis_type=='SSU_dada2' %}
-                            <div>Clustering DADA2</div>
-                            <div>
-                              <select name="sdmopt">
-                                <option value="sdm_miSeq2" selected>sdm_miSeq2.txt</option>
-                                <option value="sdm_miSeq2_250">sdm_miSeq2_250.txt</option>
-                              </select>
-                            </div>                            
+                            <div>Clustering DADA2</div>                         
                           {% elif region_data.analysis_type=='SSU_vsearch' %}
-                            <div>Clustering VSEARCH</div>
-                            <div>
-                              <select name="sdmopt">
-                                <option value="sdm_miSeq2" selected>sdm_miSeq2.txt</option>
-                                <option value="sdm_miSeq2_250">sdm_miSeq2_250.txt</option>
-                              </select>
-                            </div>                             
+                            <div>Clustering VSEARCH</div>                          
                           {% elif (region_data.analysis_type=='ITS1' or region_data.analysis_type=='ITS2')%}
                             <h4> Sdmopt:</h4>
                             <div>
