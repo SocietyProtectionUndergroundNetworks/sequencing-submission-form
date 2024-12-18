@@ -1478,6 +1478,7 @@ class SequencingUpload:
                         "control_vs_sample": False,
                         "filtered_rarefaction": False,
                         "physeq_decontam": False,
+                        "metadata_chaorichness": False,
                     },
                     "bucket_log_exists": False,
                     "rscripts_command_outcome": False,
@@ -1526,6 +1527,9 @@ class SequencingUpload:
                         physeq_decontam_file = os.path.join(
                             report_folder, "physeq_decontam.Rdata"
                         )
+                        metadata_chaorichness_file = os.path.join(
+                            report_folder, "metadata_chaorichness.csv"
+                        )
 
                         # Update the existence status in the result dictionary
                         region_result["files_exist"]["LibrarySize"] = (
@@ -1541,7 +1545,9 @@ class SequencingUpload:
                         region_result["files_exist"]["physeq_decontam"] = (
                             os.path.isfile(physeq_decontam_file)
                         )
-
+                        region_result["files_exist"][
+                            "metadata_chaorichness"
+                        ] = os.path.isfile(metadata_chaorichness_file)
                         # Check if we need to verify files in the bucket
                         bucket_directory = (
                             f"lotus2_report/"
@@ -1563,110 +1569,6 @@ class SequencingUpload:
                 # Append the region result to the results list
                 results.append(region_result)
         session.close()
-        return results
-
-    @classmethod
-    def check_rscripts_reports_exist_old(cls, process_id):
-        process_data = cls.get(process_id)
-
-        # Extract uploads folder and bucket from process data
-        uploads_folder = process_data["uploads_folder"]
-        bucket = process_data["project_id"]
-        results = []  # To store the results for each region
-
-        # Iterate through each region
-        for index, region in enumerate(process_data["regions"]):
-            region_result = {
-                "region": region,
-                "report_status": None,
-                "files_exist": {
-                    "LibrarySize": False,
-                    "control_vs_sample": False,
-                    "filtered_rarefaction": False,
-                    "physeq_decontam": False,
-                },
-                "bucket_log_exists": False,
-                "rscripts_command_outcome": False,
-            }
-
-            # Check if the region is "ITS2" or "SSU"
-            if region in ["ITS2", "ITS1", "SSU"]:
-                # Construct the status field based on the index
-                region_status_field = (
-                    f"region_{index + 1}_rscripts_report_status"
-                )
-                report_status = process_data.get(region_status_field)
-
-                # Update report status in the result dictionary
-                region_result["report_status"] = report_status
-
-                # Check if command outcome exists
-                command_outcome_field = (
-                    f"region_{index + 1}_rscripts_report_result"
-                )
-                command_outcome = process_data.get(command_outcome_field)
-
-                # Set command_outcome to False if empty
-                if command_outcome:
-                    region_result["rscripts_command_outcome"] = True
-
-                # Proceed only if the status is "Finished"
-                if report_status == "Finished":
-                    # Construct the path to the log files inside uploads_folder
-                    report_folder = os.path.join(
-                        "seq_processed",
-                        uploads_folder,
-                        region + "_r_output",
-                    )
-
-                    # Check if the required log files exist locally
-                    library_size_file = os.path.join(
-                        report_folder, "LibrarySize.pdf"
-                    )
-
-                    control_vs_sample_file = os.path.join(
-                        report_folder, "control_vs_sample.pdf"
-                    )
-                    filtered_rarefaction_file = os.path.join(
-                        report_folder, "filtered_rarefaction.pdf"
-                    )
-                    physeq_decontam_file = os.path.join(
-                        report_folder, "physeq_decontam.Rdata"
-                    )
-
-                    # Update the existence status in the result dictionary
-                    region_result["files_exist"]["LibrarySize"] = (
-                        os.path.isfile(library_size_file)
-                    )
-
-                    region_result["files_exist"]["control_vs_sample"] = (
-                        os.path.isfile(control_vs_sample_file)
-                    )
-                    region_result["files_exist"]["filtered_rarefaction"] = (
-                        os.path.isfile(filtered_rarefaction_file)
-                    )
-                    region_result["files_exist"]["physeq_decontam"] = (
-                        os.path.isfile(physeq_decontam_file)
-                    )
-
-                    # Check if we need to verify files in the bucket
-                    bucket_directory = f"{region}/lotus2_report/LotuSLogS"
-                    # Check if LotuS_progout.log exists in the bucket
-                    bucket_physeq_decontam_exists = (
-                        check_file_exists_in_bucket(
-                            local_file_path=physeq_decontam_file,
-                            destination_upload_directory=bucket_directory,
-                            destination_blob_name="physeq_decontam.Rdata",
-                            bucket_name=bucket,
-                        )
-                    )
-                    region_result["bucket_log_exists"] = (
-                        bucket_physeq_decontam_exists
-                    )
-
-            # Append the region result to the results list
-            results.append(region_result)
-
         return results
 
     @classmethod
