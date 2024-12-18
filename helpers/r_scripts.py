@@ -176,3 +176,32 @@ def delete_generated_rscripts_report(
                 shutil.rmtree(output_path)
 
     return {"msg": "Process initiated"}
+
+
+def init_generate_all_rscripts_reports(region, analysis_type_id):
+    from tasks import generate_all_rscripts_reports_async
+
+    generate_all_rscripts_reports_async.delay(region, analysis_type_id)
+
+
+def generate_all_rscripts_reports(region, analysis_type_id):
+    from models.sequencing_upload import SequencingUpload
+
+    processes_data = SequencingUpload.get_all()
+
+    for process_data in processes_data:
+        for region_type, analysis_list in process_data["analysis"].items():
+            for analysis in analysis_list:
+                if (
+                    analysis["analysis_id"] is not None
+                    and str(analysis_type_id)
+                    == str(analysis["analysis_type_id"])
+                    and analysis["rscripts_status"] is None
+                ):
+                    input_dir = (
+                        "seq_processed/" + process_data["uploads_folder"]
+                    )
+                    logger.info(input_dir)
+                    generate_rscripts_report(
+                        process_data["id"], input_dir, region, analysis_type_id
+                    )

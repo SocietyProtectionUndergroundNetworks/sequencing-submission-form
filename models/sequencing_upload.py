@@ -177,6 +177,7 @@ class SequencingUpload:
                         # Set up the basic structure for the analysis item
                         upload_required_analysis = {
                             "analysis_type_id": required_one_analysis["id"],
+                            "analysis_id": None,
                             "analysis_type_name": required_one_analysis[
                                 "name"
                             ],
@@ -211,6 +212,10 @@ class SequencingUpload:
                                 upload_required_analysis["rscripts_status"] = (
                                     matching_analysis["rscripts_status"]
                                 )
+                                upload_required_analysis["analysis_id"] = (
+                                    matching_analysis["id"]
+                                )
+
                         # Construct the phyloseq file path for lotus2 and check
                         # if it exists
                         lotus2_phyloseq_file = os.path.join(
