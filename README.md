@@ -71,6 +71,7 @@ To create the templates, visit /create_xls_template  (aka in a dev environment :
 Currently there are two admin actions that are too dangerous to put into normal buttons in the administration.
 They can be run if someone calls the url with very specific parameters. 
 They are additionaly protected by a url argument called "anti_nuke", which expects the value of an enviromental parameter existing in .env on the server. 
+Additionally they can only be run by a user with "Admin" status inside the application.
 
 - Delete all r_script reports for a specific analysis type: 
 Takes as parameters: region , analysis_type_id  and anti_nuke. Example:
