@@ -197,6 +197,7 @@ def generate_all_rscripts_reports(region, analysis_type_id):
                     and str(analysis_type_id)
                     == str(analysis["analysis_type_id"])
                     and analysis["rscripts_status"] is None
+                    and analysis["lotus2_status"] == "Finished"
                 ):
                     input_dir = (
                         "seq_processed/" + process_data["uploads_folder"]
