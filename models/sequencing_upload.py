@@ -184,6 +184,7 @@ class SequencingUpload:
                             "lotus2_phyloseq_file_exists": False,
                             "rscripts_status": None,
                             "rscripts_phyloseq_file_exists": False,
+                            "richness_file_exists": False,
                         }
 
                         if (
@@ -235,6 +236,17 @@ class SequencingUpload:
                         upload_required_analysis[
                             "rscripts_phyloseq_file_exists"
                         ] = os.path.isfile(rscripts_phyloseq_file)
+
+                        richness_file = os.path.join(
+                            "seq_processed",
+                            uploads_folder,
+                            "r_output",
+                            required_one_analysis["name"],
+                            "metadata_chaorichness.csv",
+                        )
+                        upload_required_analysis["richness_file_exists"] = (
+                            os.path.isfile(richness_file)
+                        )
 
                         # Append this analysis to the current region's list
                         region_analyses.append(upload_required_analysis)
