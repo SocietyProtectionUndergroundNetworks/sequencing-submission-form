@@ -13,7 +13,7 @@ option_list <- list(
   make_option(
     c("-l", "--lotus2 "),
     type = "character",
-    default = "/mnt/seq_processed/00051_20241208YWHTXA/lotus2_report/ITS2/",
+    default = "/mnt/seq_processed/00057_20241216JXLN0L/lotus2_report/ITS2/",
     help = "Path to lotus2 output folder"
   ),
   make_option(
@@ -55,12 +55,14 @@ df$LibrarySize <- sample_sums(physeq)
 df <- df[order(df$LibrarySize),]
 df$Index <- seq(nrow(df))
 
+sample_data(physeq)$LibrarySize <-sample_sums(physeq)
+
 p <- ggplot(data=df, aes(x=Index, y=LibrarySize, color=Sample_or_Control)) +
   geom_point()
 
 ggsave(str_c(args$output,"/","LibrarySize.pdf"), p,
        width = 7, height = 7, units = "in")
-       
+
 ## Import required files to assess taxonomy of removed OTUs - for the whole process, we need the 'hiera_BLAST.txt' file and the phyloseq object
 otu_taxonomy <- read_tsv(str_c(args$lotus2,"/","hiera_BLAST.txt")) %>%
   set_names("OTU", "kingdom", "phylum", "class", "order", "family", "genus", "species")
@@ -81,13 +83,13 @@ if (num_of_controls > 0) {
   contaminants <- otu_taxonomy %>%
     filter(OTU %in% contaminant_otus)
   write_csv(contaminants, str_c(args$output,"/","contaminants.csv"))
-  
+
   # Make data.frame of prevalence in positive and negative samples
   df.pa <- data.frame(
     pa.pos=taxa_sums(physeq.pa.pos),
     pa.neg=taxa_sums(physeq.pa.neg),
     contaminant=contamdf.prev.1$contaminant)
-  
+
   p <- ggplot(data=df.pa, aes(x = pa.neg, y = pa.pos, color = contaminant)) +
     geom_point() +
     xlab("Prevalence (Negative Controls)") +
@@ -117,9 +119,9 @@ if (num_of_controls > 0) {
 
 ####  Create rarefaction curves for the samples #### 
 
-# Remove samples with fewer than a certain number of reads
+# Keep only true samples, and samples with more than a certain minimum number of reads
 physeq_filtered <- prune_samples(
-  sample_sums(physeq_decontam) >= args$readmin,
+  !sample_data(physeq_decontam)$is.neg & sample_sums(physeq_decontam) >= args$readmin,
   physeq_decontam
 )
 
@@ -159,62 +161,66 @@ fungal_traits_ecm <- fungaltraits %>%
   select(Genus, primary_lifestyle) %>% 
   filter(primary_lifestyle == "ectomycorrhizal")
 
-# add sanity checks? No need as this only needs to be done the first time
+# Check how many Genuses are ecm:
 
-# Filter physeq_decontam object by this list of EcM Genus
-ecm_physeq = subset_taxa(physeq_decontam, Genus %in% fungal_traits_ecm$Genus)
+num_ecm_genera <- length(which(get_taxa_unique(physeq_filtered, taxonomic.rank = "Genus") %in% fungal_traits_ecm$Genus))
 
-# Save file. To open in R use: ecm_physeq <- readRDS("ecm_physeq.Rdata")
-saveRDS(ecm_physeq, file=str_c(args$output, "/", "ecm_physeq.Rdata"))
+if (num_ecm_genera > 0) {
+  # Filter physeq_decontam object by this list of EcM Genus
+  ecm_physeq <- subset_taxa(physeq_filtered, Genus %in% fungal_traits_ecm$Genus)
 
-p <- plot_bar(ecm_physeq, fill = "Genus")
-ggsave(
-  str_c(args$output, "/", "ecm_physeq_by_genus.pdf"), p,
-  width = 14, height = 14, units = "in"
-)
+  # Save file. To open in R use: ecm_physeq <- readRDS("ecm_physeq.Rdata")
+  saveRDS(ecm_physeq, file=str_c(args$output, "/", "ecm_physeq.Rdata"))
 
-sample_variables(ecm_physeq)
-sample_names(ecm_physeq)
-sort(sample_sums(ecm_physeq))
+  p <- plot_bar(ecm_physeq, fill = "Genus")
+  ggsave(
+    str_c(args$output, "/", "ecm_physeq_by_genus.pdf"), p,
+    width = 14, height = 14, units = "in"
+  )
 
-## ChaoRichness
+  sample_variables(ecm_physeq)
+  sample_names(ecm_physeq)
+  sort(sample_sums(ecm_physeq))
 
-otu_long <- read_delim(str_c(args$lotus2, "/OTU.txt")) %>%
-  pivot_longer(!OTU,names_to = "sample_id", values_to = "abundance") %>%
-  filter(abundance != 0)
+  ## ChaoRichness
 
-sample_data(ecm_physeq)$LibrarySize <-sample_sums(ecm_physeq)
+  otu_long <- otu_table(ecm_physeq) %>%
+    as.data.frame() %>%
+    rownames_to_column("OTU") %>%
+    pivot_longer(!OTU,names_to = "sample_id", values_to = "abundance") %>%
+    filter(abundance != 0)
 
-div.output <- foreach(i = unique(otu_long$sample_id), .final = function(i) setNames(i, unique(otu_long$sample_id))) %do% {
-  freq_list <- otu_long %>%
-    filter(sample_id == i) %>%
-    select(-sample_id) %>%
-    pull(abundance)
+  div.output <- foreach(i = unique(otu_long$sample_id), .final = function(i) setNames(i, unique(otu_long$sample_id))) %do% {
+    freq_list <- otu_long %>%
+      filter(sample_id == i) %>%
+      select(-sample_id) %>%
+      pull(abundance)
 
-  if (length(freq_list) > 0) {
-    seq_depth <- sample_data(ecm_physeq)[i]$LibrarySize
+    if (length(freq_list) > 0) {
+      seq_depth <- sample_data(physeq)[i]$LibrarySize
 
-    if (sum(freq_list) > 1) {
-      # Calculate diversity metrics
-      calc <- ChaoRichness(x = freq_list, datatype = "abundance", conf = 0.95)
-      div <- c(calc, seq_depth = seq_depth)
+      if (sum(freq_list) > 1) {
+        # Calculate diversity metrics
+        calc <- ChaoRichness(x = freq_list, datatype = "abundance", conf = 0.95)
+        div <- c(calc, seq_depth = seq_depth)
 
-    } else {
-      if (freq_list == 1) {
-        div <- c(Observed = 1, Estimator = 1, Est_s.e. = 0,
-                 "95% Lower" = 1, "95% Upper" = 1, seq_depth = seq_depth)
       } else {
-        div <- c(Observed = 0, Estimator = 0, Est_s.e. = 0,
-                 "95% Lower" = 0, "95% Upper" = 0, seq_depth = seq_depth)
+        if (freq_list == 1) {
+          div <- c(Observed = 1, Estimator = 1, Est_s.e. = 0,
+                   "95% Lower" = 1, "95% Upper" = 1, seq_depth = seq_depth)
+        } else {
+          div <- c(Observed = 0, Estimator = 0, Est_s.e. = 0,
+                   "95% Lower" = 0, "95% Upper" = 0, seq_depth = seq_depth)
+        }
       }
+    } else {
+      div <- c(Observed = NA, Estimator = 0, Est_s.e. = 0,
+               "95% Lower" = 0, "95% Upper" = 0, seq_depth = NA)
     }
-  } else {
-    div <- c(Observed = NA, Estimator = 0, Est_s.e. = 0,
-             "95% Lower" = 0, "95% Upper" = 0, seq_depth = NA)
   }
-}
 
-as.data.frame(do.call(rbind, div.output)) %>%
-  rownames_to_column("sample_id") %>%
-  clean_names() %>%
-  fwrite(str_c(args$output, "/metadata_chaorichness.csv"))
+  as.data.frame(do.call(rbind, div.output)) %>%
+    rownames_to_column("sample_id") %>%
+    clean_names() %>%
+    fwrite(str_c(args$output, "/metadata_chaorichness.csv"))
+}
