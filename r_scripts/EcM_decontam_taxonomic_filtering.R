@@ -70,6 +70,8 @@ otu_taxonomy <- read_tsv(str_c(args$lotus2,"/","hiera_BLAST.txt")) %>%
 # If there are no controls, or if the read depth of any control species is in the 75th percentils, store in a variable and print warning
 num_of_controls <- df %>% as_tibble %>% filter(Sample_or_Control == "Control") %>% nrow()
 
+sample_data(physeq)$is.neg <- (sample_data(physeq)$Sample_or_Control == "Control")
+
 if (num_of_controls > 0) {
   # Make phyloseq object of presence-absence in negative controls and true samples
   physeq.pa <- transform_sample_counts(physeq, function(abund) 1*(abund>0))
