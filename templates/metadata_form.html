@@ -1324,27 +1324,15 @@
                           Debug: <input type="checkbox" id="debug-checkbox" name="debug"> <br>
 
                           {% if region_data.analysis_type=='SSU_dada2' %}
-                            <div>Clustering DADA2</div>
-                            <div>
-                              <select name="sdmopt">
-                                <option value="sdm_miSeq2" selected>sdm_miSeq2.txt</option>
-                                <option value="sdm_miSeq2_250">sdm_miSeq2_250.txt</option>
-                              </select>
-                            </div>                            
+                            <div>Clustering DADA2</div>                         
                           {% elif region_data.analysis_type=='SSU_vsearch' %}
-                            <div>Clustering VSEARCH</div>
-                            <div>
-                              <select name="sdmopt">
-                                <option value="sdm_miSeq2" selected>sdm_miSeq2.txt</option>
-                                <option value="sdm_miSeq2_250">sdm_miSeq2_250.txt</option>
-                              </select>
-                            </div>                             
+                            <div>Clustering VSEARCH</div>                          
                           {% elif (region_data.analysis_type=='ITS1' or region_data.analysis_type=='ITS2')%}
                             <h4> Sdmopt:</h4>
                             <div>
                               <select name="sdmopt">
                                 <option value="sdm_miSeq_ITS" selected>sdm_miSeq_ITS.txt</option>
-                                <option value="sdm_miSeq_200">sdm_miSeq_200.txt</option>
+                                <option value="sdm_miSeq_ITS_200">sdm_miSeq_ITS_200.txt</option>
                                 <option value="sdm_miSeq_ITS_forward">sdm_miSeq_ITS_forward.txt</option>
                               </select>
                             </div>
@@ -1483,6 +1471,7 @@
               <th scope="col" class="bg-gray">control_vs_sample.pdf</th>
               <th scope="col" class="bg-gray">filtered_rarefaction.pdf</th>
               <th scope="col" class="bg-gray">physeq_decontam.Rdata</th>
+              <th scope="col" class="bg-gray">metadata_chaorichness.csv</th>
               <th scope="col" class="bg-gray">Bucket</th>
             </tr>
           </thead>
@@ -1580,6 +1569,17 @@
                     <span class="text-danger">Not Found</span>
                   {% endif %}
                 </td>
+                <td>
+                  {% if region_data.files_exist.metadata_chaorichness %}
+                    <span class="text-success">
+                      <a href="show_report_outcome?type=metadata_chaorichness&process_id={{ process_data.id }}&analysis_type_id={{ region_data.analysis_type_id }}" target="_blank" class="link">
+                        Exists
+                      </a>
+                    </span>
+                  {% else %}
+                    <span class="text-danger">Not Found</span>
+                  {% endif %}
+                </td>                
                 <td>
                   {% if region_data.rscripts_status == "Finished" %}
                     {% if region_data.bucket_log_exists %}

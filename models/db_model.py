@@ -9,6 +9,7 @@ from sqlalchemy import (
     DateTime,
     func,
     ForeignKey,
+    Float,
 )
 from sqlalchemy.dialects.mysql import JSON, MEDIUMTEXT
 from sqlalchemy.ext.declarative import declarative_base
@@ -187,6 +188,30 @@ class SequencingAnalysisTable(Base):
         nullable=True,
     )
     parameters = Column(JSON(none_as_null=True))
+
+
+class SequencingAnalysisSampleRichnessTable(Base):
+    __tablename__ = "sequencing_analysis_sample_richness"
+    id = Column(Integer, primary_key=True)
+    analysis_id = Column(
+        Integer,
+        ForeignKey("sequencing_analysis.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    sample_id = Column(
+        Integer,
+        ForeignKey("sequencing_samples.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    observed = Column(Float, nullable=True)
+    estimator = Column(Float, nullable=True)
+    est_s_e = Column(Float, nullable=True)
+    x95_percent_lower = Column(Float, nullable=True)
+    x95_percent_upper = Column(Float, nullable=True)
+    seq_depth = Column(Float, nullable=True)
+
+    # Optional: Add timestamps for auditing purposes
+    created_at = Column(DateTime, default=func.now())
 
 
 class SequencingAnalysisTypesTable(Base):

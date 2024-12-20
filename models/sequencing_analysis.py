@@ -1,9 +1,15 @@
+import os
+import pandas as pd
 import logging
-from helpers.dbm import connect_db, get_session
+import csv
 from models.db_model import (
     SequencingAnalysisTable,
+    SequencingSamplesTable,
     SequencingAnalysisTypesTable,
+    SequencingUploadsTable,
+    SequencingAnalysisSampleRichnessTable,
 )
+from helpers.dbm import connect_db, get_session
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -167,3 +173,246 @@ class SequencingAnalysis:
         session.close()
 
         return True
+
+    @classmethod
+    def import_richness(cls, analysis_id):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        # Step 1: Query necessary data
+        data = (
+            session.query(
+                SequencingAnalysisTable.id.label("analysis_id"),
+                SequencingUploadsTable.id.label("upload_id"),
+                SequencingAnalysisTypesTable.id.label("type_id"),
+                SequencingAnalysisTypesTable.name.label("type_name"),
+                SequencingUploadsTable.uploads_folder,
+                SequencingAnalysisTable.rscripts_status,
+            )
+            .join(
+                SequencingUploadsTable,
+                SequencingAnalysisTable.sequencingUploadId
+                == SequencingUploadsTable.id,
+            )
+            .join(
+                SequencingAnalysisTypesTable,
+                SequencingAnalysisTable.sequencingAnalysisTypeId
+                == SequencingAnalysisTypesTable.id,
+            )
+            .filter(SequencingAnalysisTable.id == analysis_id)
+            .first()
+        )
+
+        if not data:
+            session.close()
+
+        # Step 2: Construct the path to the file
+        folder_path = os.path.join(
+            "seq_processed", data.uploads_folder, "r_output", data.type_name
+        )
+        csv_path = os.path.join(folder_path, "metadata_chaorichness.csv")
+
+        if not os.path.exists(csv_path):
+            session.close()
+
+        # Step 3: Read and process the CSV
+        richness_data = pd.read_csv(csv_path)
+
+        # Step 4: Map `sample_id` to the `id` in SequencingSamplesTable
+        sample_ids = richness_data["sample_id"].tolist()
+        samples = (
+            session.query(
+                SequencingSamplesTable.id, SequencingSamplesTable.SampleID
+            )
+            .filter(SequencingSamplesTable.SampleID.in_(sample_ids))
+            .all()
+        )
+        sample_map = {sample.SampleID: sample.id for sample in samples}
+
+        # Step 5: Prepare data for insertion
+        records_to_insert = []
+        for _, row in richness_data.iterrows():
+            sample_db_id = sample_map.get(row["sample_id"])
+            if not sample_db_id:
+                logger.warning(
+                    f"SampleID {row['sample_id']} not found in the database"
+                )
+                continue
+
+            records_to_insert.append(
+                SequencingAnalysisSampleRichnessTable(
+                    analysis_id=data.analysis_id,
+                    sample_id=sample_db_id,
+                    observed=row["observed"],
+                    estimator=row["estimator"],
+                    est_s_e=row["est_s_e"],
+                    x95_percent_lower=row["x95_percent_lower"],
+                    x95_percent_upper=row["x95_percent_upper"],
+                    seq_depth=row["seq_depth"],
+                )
+            )
+
+        # Step 6: Insert records into the database
+        if records_to_insert:
+            session.bulk_save_objects(records_to_insert)
+            session.commit()
+            logger.info(f"Imported {len(records_to_insert)} richness records.")
+        else:
+            logger.warning("No records to import.")
+
+        session.close()
+
+    @classmethod
+    def delete_richness_data(cls, analysis_id):
+        """
+        Deletes all richness data associated with the given analysis_id.
+
+        Args:
+            analysis_id (int): The ID of the analysis for
+                                which to delete richness data.
+
+        Returns:
+            bool: True if records were deleted, False if no records were found.
+        """
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        try:
+            # Query for all richness records associated with the analysis_id
+            records_to_delete = (
+                session.query(SequencingAnalysisSampleRichnessTable)
+                .filter_by(analysis_id=analysis_id)
+                .all()
+            )
+
+            if not records_to_delete:
+                logger.info(
+                    f"No richness data found for analysis_id {analysis_id}."
+                )
+                return False
+
+            # Delete the records
+            for record in records_to_delete:
+                session.delete(record)
+
+            # Commit the changes
+            session.commit()
+            logger.info(
+                f"Deleted {len(records_to_delete)} richness "
+                f"records for analysis_id {analysis_id}."
+            )
+            return True
+
+        except Exception as e:
+            logger.error(
+                f"Error deleting richness "
+                f"data for analysis_id {analysis_id}: {str(e)}"
+            )
+            session.rollback()
+            raise
+
+        finally:
+            session.close()
+
+    @classmethod
+    def export_richness_data(cls, analysis_type_id, output_file):
+        """
+        Exports richness data for a specific analysis_type_id,
+        including only specific samples.
+
+        Args:
+            analysis_type_id (int): The ID of the analysis
+                                    type to export data for.
+            output_file (str): Path to the CSV file where
+                                the data will be saved.
+
+        Returns:
+            int: Number of rows exported.
+        """
+
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        try:
+            # Query the data based on the conditions
+            query = (
+                session.query(
+                    SequencingUploadsTable.project_id,
+                    SequencingSamplesTable.SampleID,
+                    SequencingSamplesTable.Latitude,
+                    SequencingSamplesTable.Longitude,
+                    SequencingAnalysisSampleRichnessTable.observed,
+                    SequencingAnalysisSampleRichnessTable.estimator,
+                    SequencingAnalysisSampleRichnessTable.est_s_e,
+                    SequencingAnalysisSampleRichnessTable.x95_percent_lower,
+                    SequencingAnalysisSampleRichnessTable.x95_percent_upper,
+                    SequencingAnalysisSampleRichnessTable.seq_depth,
+                )
+                .join(
+                    SequencingAnalysisTable,
+                    SequencingUploadsTable.id
+                    == SequencingAnalysisTable.sequencingUploadId,
+                )
+                .join(
+                    SequencingAnalysisTypesTable,
+                    SequencingAnalysisTable.sequencingAnalysisTypeId
+                    == SequencingAnalysisTypesTable.id,
+                )
+                .join(
+                    SequencingAnalysisSampleRichnessTable,
+                    SequencingAnalysisSampleRichnessTable.analysis_id
+                    == SequencingAnalysisTable.id,
+                )
+                .join(
+                    SequencingSamplesTable,
+                    SequencingSamplesTable.id
+                    == SequencingAnalysisSampleRichnessTable.sample_id,
+                )
+                .filter(
+                    SequencingSamplesTable.Sample_or_Control == "True Sample",
+                    SequencingSamplesTable.Sample_type == "soil",
+                    SequencingAnalysisTable.sequencingAnalysisTypeId
+                    == analysis_type_id,
+                )
+            )
+
+            # Execute the query and fetch results
+            results = query.all()
+
+            # Write to the output file
+            with open(output_file, mode="w", newline="") as csv_file:
+                writer = csv.writer(csv_file)
+                # Write the header
+                writer.writerow(
+                    [
+                        "project_id",
+                        "SampleID",
+                        "Latitude",
+                        "Longitude",
+                        "observed",
+                        "estimator",
+                        "est_s_e",
+                        "x95_percent_lower",
+                        "x95_percent_upper",
+                        "seq_depth",
+                    ]
+                )
+                # Write the rows
+                for row in results:
+                    writer.writerow(row)
+
+            logger.info(
+                f"Exported {len(results)} rows of richness "
+                f"data for analysis_type_id {analysis_type_id}."
+            )
+            return len(results)
+
+        except Exception as e:
+            logger.error(
+                f"Error exporting richness data for "
+                f"analysis_type_id {analysis_type_id}: {str(e)}"
+            )
+            raise
+
+        finally:
+            session.close()

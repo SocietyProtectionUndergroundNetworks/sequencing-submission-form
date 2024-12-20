@@ -34,6 +34,8 @@ RUN R -e "install.packages(c('ape'), repos='https://cran.rstudio.com/');"
 RUN R -e "install.packages(c('gridExtra'), repos='https://cran.rstudio.com/');"
 RUN R -e "install.packages(c('tableHTML'), repos='https://cran.rstudio.com/');"
 RUN R -e "install.packages('optparse', repos='https://cran.rstudio.com/');"
+RUN R -e "install.packages(c('iNEXT'), repos='https://cran.rstudio.com/');"
+RUN R -e "install.packages(c('janitor'), repos='https://cran.rstudio.com/');"
 
 # Install BiocManager and additional Bioconductor packages
 RUN R -e "if (!require('BiocManager', quietly = TRUE)) install.packages('BiocManager')"

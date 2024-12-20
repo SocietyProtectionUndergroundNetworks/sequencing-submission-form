@@ -17,7 +17,10 @@ from helpers.fastqc import (
     create_multiqc_report,
 )
 from helpers.lotus2 import generate_lotus2_report
-from helpers.r_scripts import generate_rscripts_report
+from helpers.r_scripts import (
+    generate_rscripts_report,
+    generate_all_rscripts_reports,
+)
 
 logger = logging.getLogger("my_app_logger")
 
@@ -83,6 +86,11 @@ def generate_rscripts_report_async(
     generate_rscripts_report(
         process_id, input_dir, amplicon_type, analysis_type_id
     )
+
+
+@celery_app.task
+def generate_all_rscripts_reports_async(amplicon_type, analysis_type_id):
+    generate_all_rscripts_reports(amplicon_type, analysis_type_id)
 
 
 @celery_app.task

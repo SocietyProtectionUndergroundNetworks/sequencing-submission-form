@@ -18,6 +18,7 @@ from models.sequencing_upload import SequencingUpload
 from models.sequencing_sample import SequencingSample
 from models.sequencing_sequencer_ids import SequencingSequencerId
 from models.sequencing_files_uploaded import SequencingFileUploaded
+from models.sequencing_analysis import SequencingAnalysis
 from models.user import User
 from helpers.metadata_check import (
     check_metadata,
@@ -1212,10 +1213,8 @@ def generate_lotus2_report():
     parameters = {}
     if sdmopt in [
         "sdm_miSeq_ITS",
-        "sdm_miSeq_200",
+        "sdm_miSeq_ITS_200",
         "sdm_miSeq_ITS_forward",
-        "sdm_miSeq2",
-        "sdm_miSeq2_250",
     ]:
         parameters["sdmopt"] = sdmopt
     input_dir = "seq_processed/" + process_data["uploads_folder"]
@@ -1293,6 +1292,85 @@ def delete_rscripts_report():
 
 
 @metadata_bp.route(
+    "/delete_all_region_rscripts_reports",
+    methods=["GET"],
+    endpoint="delete_all_region_rscripts_reports",
+)
+@login_required
+@approved_required
+@admin_required
+def delete_all_region_rscripts_reports():
+    anti_nuke_env = os.environ.get("ANTI_NUKE_STRING")
+    # process_id = request.form.get("process_id")
+    region = request.args.get("region")
+    analysis_type_id = request.args.get("analysis_type_id")
+    anti_nuke = request.args.get("anti_nuke")
+
+    if (
+        anti_nuke_env is not None
+        and anti_nuke_env != ""
+        and anti_nuke_env == anti_nuke
+    ):
+        if region is not None and analysis_type_id is not None:
+
+            processes_data = SequencingUpload.get_all()
+
+            for process_data in processes_data:
+                for region_type, analysis_list in process_data[
+                    "analysis"
+                ].items():
+                    for analysis in analysis_list:
+                        if (
+                            analysis["analysis_id"] is not None
+                            and str(analysis_type_id)
+                            == str(analysis["analysis_type_id"])
+                            and analysis["rscripts_status"] == "Finished"
+                        ):
+                            input_dir = (
+                                "seq_processed/"
+                                + process_data["uploads_folder"]
+                            )
+                            delete_generated_rscripts_report(
+                                process_data["id"],
+                                input_dir,
+                                region,
+                                analysis_type_id,
+                            )
+    else:
+        return jsonify({"result": "Not passing antinuke"})
+    return jsonify({"result": 1})
+
+
+@metadata_bp.route(
+    "/generate_all_region_rscripts_reports",
+    methods=["GET"],
+    endpoint="generate_all_region_rscripts_reports",
+)
+@login_required
+@approved_required
+@admin_required
+def generate_all_region_rscripts_reports():
+    anti_nuke_env = os.environ.get("ANTI_NUKE_STRING")
+    # process_id = request.form.get("process_id")
+    region = request.args.get("region")
+    analysis_type_id = request.args.get("analysis_type_id")
+    anti_nuke = request.args.get("anti_nuke")
+
+    if (
+        anti_nuke_env is not None
+        and anti_nuke_env != ""
+        and anti_nuke_env == anti_nuke
+    ):
+        if region is not None and analysis_type_id is not None:
+            from helpers.r_scripts import init_generate_all_rscripts_reports
+
+            init_generate_all_rscripts_reports(region, analysis_type_id)
+    else:
+        return jsonify({"result": "Not passing antinuke"})
+    return jsonify({"result": 1})
+
+
+@metadata_bp.route(
     "/show_report_outcome", methods=["GET"], endpoint="show_report_outcome"
 )
 @login_required
@@ -1313,6 +1391,7 @@ def show_report_outcome():
         "control_vs_sample",
         "filtered_rarefaction",
         "physeq_decontam",
+        "metadata_chaorichness",
     ]:
         # Fetch process data from SequencingUpload model
         process_data = SequencingUpload.get(process_id)
@@ -1395,6 +1474,7 @@ def show_report_outcome():
             "control_vs_sample",
             "filtered_rarefaction",
             "physeq_decontam",
+            "metadata_chaorichness",
         ]:
 
             # Check the rscripts report details
@@ -1438,6 +1518,11 @@ def show_report_outcome():
                 elif file_type == "physeq_decontam":
                     file_path = os.path.join(
                         report_folder, "physeq_decontam.Rdata"
+                    )
+                    return send_file(file_path, as_attachment=True)
+                elif file_type == "metadata_chaorichness":
+                    file_path = os.path.join(
+                        report_folder, "metadata_chaorichness.csv"
                     )
                     return send_file(file_path, as_attachment=True)
                 elif file_type == "rscripts_command_outcome":
@@ -1702,3 +1787,30 @@ def reset_primers_count():
             url_for("metadata.metadata_form", process_id=process_id)
             + "#step_9"
         )
+
+
+@metadata_bp.route(
+    "/export_all_richness_data",
+    methods=["GET"],
+    endpoint="export_all_richness_data",
+)
+@login_required
+@admin_required
+@approved_required
+def export_all_richness_data():
+
+    export_path = "richness_exports"
+    os.makedirs(export_path, exist_ok=True)
+    SequencingAnalysis.export_richness_data(
+        1, export_path + "/richness_SSU_dada2.csv"
+    )
+    SequencingAnalysis.export_richness_data(
+        2, export_path + "/richness_SSU_vsearch.csv"
+    )
+    SequencingAnalysis.export_richness_data(
+        3, export_path + "/richness_ITS2.csv"
+    )
+    SequencingAnalysis.export_richness_data(
+        4, export_path + "/richness_ITS1.csv"
+    )
+    return jsonify({"done": 1}), 200
