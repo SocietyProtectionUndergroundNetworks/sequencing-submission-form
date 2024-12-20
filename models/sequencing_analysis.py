@@ -205,9 +205,6 @@ class SequencingAnalysis:
 
         if not data:
             session.close()
-            raise ValueError(
-                f"No analysis found for analysis_id {analysis_id}"
-            )
 
         # Step 2: Construct the path to the file
         folder_path = os.path.join(
@@ -217,7 +214,6 @@ class SequencingAnalysis:
 
         if not os.path.exists(csv_path):
             session.close()
-            raise FileNotFoundError(f"File not found: {csv_path}")
 
         # Step 3: Read and process the CSV
         richness_data = pd.read_csv(csv_path)
