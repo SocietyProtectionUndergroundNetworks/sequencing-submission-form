@@ -13,7 +13,7 @@ option_list <- list(
   make_option(
     c("-l", "--lotus2 "),
     type = "character",
-    default = "/mnt/seq_processed/00057_20241216JXLN0L/lotus2_report/SSU_vsearch/",
+    default = "/mnt/seq_processed/00035_20241126HNS0O7/lotus2_report/SSU_vsearch/",
     help = "Path to lotus2 output folder"
   ),
   make_option(
@@ -47,24 +47,26 @@ parser <- OptionParser(option_list = option_list)
 args <- parse_args(parser)
 
 # Load phyloseq object
-load(str_c(args$lotus2,"/","phyloseq.Rdata"))
+load(str_c(args$lotus2, "/", "phyloseq.Rdata"))
 
 ## Inspect library sizes
 df <- sample_data(physeq)
 df$LibrarySize <- sample_sums(physeq)
-df <- df[order(df$LibrarySize),]
-df$Index <- seq(nrow(df))
+df <- df[order(df$LibrarySize), ]
+df$Index <- seq_len(nrow(df))
 
-sample_data(physeq)$LibrarySize <-sample_sums(physeq)
+# Add Library size / seq_depth to physeq object
+sample_data(physeq)$LibrarySize <- sample_sums(physeq)
 
-p <- ggplot(data=df, aes(x=Index, y=LibrarySize, color=Sample_or_Control)) +
+# Plot library size in increasing order
+p <- ggplot(data = df, aes(x = Index, y = LibrarySize, color = Sample_or_Control)) +
   geom_point()
 
-ggsave(str_c(args$output,"/","LibrarySize.pdf"), p,
+ggsave(str_c(args$output, "/", "LibrarySize.pdf"), p,
        width = 7, height = 7, units = "in")
 
 ## Import required files to assess taxonomy of removed OTUs - for the whole process, we need the 'hiera_BLAST.txt' file and the phyloseq object
-otu_taxonomy <- read_tsv(str_c(args$lotus2,"/","hiera_BLAST.txt")) %>%
+otu_taxonomy <- read_tsv(str_c(args$lotus2, "/", "hiera_BLAST.txt")) %>%
   set_names("OTU", "kingdom", "phylum", "class", "order", "family", "genus", "species")
 
 # If there are no controls, or if the read depth of any control species is in the 75th percentils, store in a variable and print warning
@@ -75,25 +77,24 @@ sample_data(physeq)$is.neg <- (sample_data(physeq)$Sample_or_Control == "Control
 
 if (num_of_controls > 0) {
   # Make phyloseq object of presence-absence in negative controls and true samples
-  physeq.pa <- transform_sample_counts(physeq, function(abund) 1*(abund>0))
+  physeq.pa <- transform_sample_counts(physeq, function(abund) 1 * (abund > 0))
   physeq.pa.neg <- prune_samples(sample_data(physeq.pa)$Sample_or_Control == "Control", physeq.pa)
   physeq.pa.pos <- prune_samples(sample_data(physeq.pa)$Sample_or_Control == "True sample", physeq.pa)
 
   ## Extract the taxonomic classifications of the identified contaminants
-  sample_data(physeq)$is.neg <- sample_data(physeq)$Sample_or_Control == "Control"
-  contamdf.prev.1 <- isContaminant(physeq, method="prevalence", neg="is.neg", threshold=args$threshold)
-  contaminant_otus <- contamdf.prev.1 %>% filter(contaminant== TRUE) %>% rownames()
+  contamdf <- isContaminant(physeq, method = "prevalence", neg = "is.neg", threshold = args$threshold)
+  contaminant_otus <- contamdf %>% filter(contaminant == TRUE) %>% rownames()
   contaminants <- otu_taxonomy %>%
     filter(OTU %in% contaminant_otus)
-  write_csv(contaminants, str_c(args$output,"/","contaminants.csv"))
+  write_csv(contaminants, str_c(args$output, "/", "contaminants.csv"))
 
   # Make data.frame of prevalence in positive and negative samples
   df.pa <- data.frame(
-    pa.pos=taxa_sums(physeq.pa.pos),
-    pa.neg=taxa_sums(physeq.pa.neg),
-    contaminant=contamdf.prev.1$contaminant)
+    pa.pos = taxa_sums(physeq.pa.pos),
+    pa.neg = taxa_sums(physeq.pa.neg),
+    contaminant = contamdf$contaminant)
 
-  p <- ggplot(data=df.pa, aes(x = pa.neg, y = pa.pos, color = contaminant)) +
+  p <- ggplot(data = df.pa, aes(x = pa.neg, y = pa.pos, color = contaminant)) +
     geom_point() +
     xlab("Prevalence (Negative Controls)") +
     ylab("Prevalence (True Samples)")
@@ -102,12 +103,12 @@ if (num_of_controls > 0) {
          width = 7, height = 7, units = "in")
 
   # Prune contaminant taxa from the phyloseq tax_table
-  physeq_decontam <- prune_taxa(!contamdf.prev.1$contaminant, physeq)
+  physeq_decontam <- prune_taxa(!contamdf$contaminant, physeq)
 
   # Save file. To open in R use:
   # physeq_decontam <- readRDS("physeq_decontam.Rdata")
 
-  saveRDS(physeq_decontam, file=str_c(args$output,"/","physeq_decontam.Rdata"))
+  saveRDS(physeq_decontam, file = str_c(args$output, "/", "physeq_decontam.Rdata"))
 
   percentile_of_control <- df %>%
     as_tibble %>%
@@ -120,11 +121,11 @@ if (num_of_controls > 0) {
   physeq_decontam <- physeq
 }
 
-####  Create rarefaction curves for the samples #### 
+####  Create rarefaction curves for the samples ####
 
 # Keep only true samples, and samples with more than a certain minimum number of reads
 physeq_filtered <- prune_samples(
-  !sample_data(physeq_decontam)$is.neg & sample_sums(physeq_decontam) >= args$readmin,
+  sample_sums(physeq_decontam) >= args$readmin,
   physeq_decontam
 )
 
@@ -156,12 +157,12 @@ ggsave(
   width = 7, height = 7, units = "in"
 )
 
-## Subset filtered phloseq object to include only the three classes of Mucoromycota that are AMF: "Glomeromycetes", "Archaeosporomycetes" and "Paraglomeromycetes" 
+## Subset decontam phloseq object to include only the three classes of Mucoromycota that are AMF: "Glomeromycetes", "Archaeosporomycetes" and "Paraglomeromycetes" 
 
-amf_physeq <- physeq_filtered %>% subset_taxa(Class =="Glomeromycetes" | Class ==  "Archaeosporomycetes" | Class ==  "Paraglomeromycetes" )
+amf_physeq <- physeq_decontam %>% subset_taxa(Class == "Glomeromycetes" | Class ==  "Archaeosporomycetes" | Class ==  "Paraglomeromycetes")
 
 # Save file. To open in R use: amf_physeq <- readRDS("amf_physeq.Rdata")
-saveRDS(amf_physeq, file=str_c(args$output, "/", "amf_physeq.Rdata"))
+saveRDS(amf_physeq, file = str_c(args$output, "/", "amf_physeq.Rdata"))
 
 p <- plot_bar(amf_physeq, fill = "Genus")
 plot(p)
@@ -170,16 +171,17 @@ ggsave(
   width = 14, height = 14, units = "in"
 )
 
-sample_variables(amf_physeq)
-sample_names(amf_physeq)
-sort(sample_sums(amf_physeq))
-
 ## ChaoRichness
 
-otu_long <- otu_table(amf_physeq) %>%
+amf_physeq_truesamples <- prune_samples(
+  !sample_data(amf_physeq)$is.neg,
+  amf_physeq
+)
+
+otu_long <- otu_table(amf_physeq_truesamples) %>%
   as.data.frame() %>%
   rownames_to_column("OTU") %>%
-  pivot_longer(!OTU,names_to = "sample_id", values_to = "abundance") %>%
+  pivot_longer(!OTU, names_to = "sample_id", values_to = "abundance") %>%
   filter(abundance != 0)
 
 div.output <- foreach(i = unique(otu_long$sample_id), .final = function(i) setNames(i, unique(otu_long$sample_id))) %do% {
