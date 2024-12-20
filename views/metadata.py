@@ -18,6 +18,7 @@ from models.sequencing_upload import SequencingUpload
 from models.sequencing_sample import SequencingSample
 from models.sequencing_sequencer_ids import SequencingSequencerId
 from models.sequencing_files_uploaded import SequencingFileUploaded
+from models.sequencing_analysis import SequencingAnalysis
 from models.user import User
 from helpers.metadata_check import (
     check_metadata,
@@ -1786,3 +1787,17 @@ def reset_primers_count():
             url_for("metadata.metadata_form", process_id=process_id)
             + "#step_9"
         )
+
+
+@metadata_bp.route(
+    "/temp_import_richness",
+    methods=["GET"],
+    endpoint="temp_import_richness",
+)
+@login_required
+@admin_required
+@approved_required
+def temp_import_richness():
+    analysis_id = 189
+
+    SequencingAnalysis.import_richness(analysis_id)

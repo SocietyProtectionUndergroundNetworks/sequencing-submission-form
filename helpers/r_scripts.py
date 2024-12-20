@@ -119,6 +119,7 @@ def generate_rscripts_report(process_id, input_dir, region, analysis_type_id):
             SequencingAnalysis.update_field(
                 analysis_id, "rscripts_result", result.output
             )
+            SequencingAnalysis.import_richness(analysis_id)
 
         else:
             logger.info(
@@ -170,6 +171,7 @@ def delete_generated_rscripts_report(
             SequencingAnalysis.update_field(
                 analysis_id, "rscripts_result", None
             )
+            SequencingAnalysis.delete_richness_data(analysis_id)
 
             output_path = input_dir + "/r_output/" + analysis_type.name
             if os.path.exists(output_path):
