@@ -339,6 +339,8 @@ class SequencingAnalysis:
                 session.query(
                     SequencingUploadsTable.project_id,
                     SequencingSamplesTable.SampleID,
+                    SequencingSamplesTable.Latitude,
+                    SequencingSamplesTable.Longitude,
                     SequencingAnalysisSampleRichnessTable.observed,
                     SequencingAnalysisSampleRichnessTable.estimator,
                     SequencingAnalysisSampleRichnessTable.est_s_e,
@@ -385,6 +387,8 @@ class SequencingAnalysis:
                     [
                         "project_id",
                         "SampleID",
+                        "Latitude",
+                        "Longitude",
                         "observed",
                         "estimator",
                         "est_s_e",
