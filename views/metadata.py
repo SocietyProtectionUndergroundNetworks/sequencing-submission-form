@@ -1790,14 +1790,27 @@ def reset_primers_count():
 
 
 @metadata_bp.route(
-    "/temp_import_richness",
+    "/export_all_richness_data",
     methods=["GET"],
-    endpoint="temp_import_richness",
+    endpoint="export_all_richness_data",
 )
 @login_required
 @admin_required
 @approved_required
-def temp_import_richness():
-    analysis_id = 189
+def export_all_richness_data():
 
-    SequencingAnalysis.import_richness(analysis_id)
+    export_path = "richness_exports"
+    os.makedirs(export_path, exist_ok=True)
+    SequencingAnalysis.export_richness_data(
+        1, export_path + "/richness_SSU_dada2.csv"
+    )
+    SequencingAnalysis.export_richness_data(
+        2, export_path + "/richness_SSU_vsearch.csv"
+    )
+    SequencingAnalysis.export_richness_data(
+        3, export_path + "/richness_ITS2.csv"
+    )
+    SequencingAnalysis.export_richness_data(
+        4, export_path + "/richness_ITS1.csv"
+    )
+    return jsonify({"done": 1}), 200
