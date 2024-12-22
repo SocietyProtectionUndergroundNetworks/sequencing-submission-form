@@ -11,7 +11,7 @@ library(data.table)
 # Define options
 option_list <- list(
   make_option(
-    c("-l", "--lotus2 "),
+    c("-l", "--lotus2"),
     type = "character",
     default = "/mnt/seq_processed/00035_20241126HNS0O7/lotus2_report/SSU_vsearch/",
     help = "Path to lotus2 output folder"
@@ -157,32 +157,120 @@ ggsave(
   width = 7, height = 7, units = "in"
 )
 
-## Subset decontam phloseq object to include only the three classes of Mucoromycota that are AMF: "Glomeromycetes", "Archaeosporomycetes" and "Paraglomeromycetes" 
 
-amf_physeq <- physeq_decontam %>% subset_taxa(Class == "Glomeromycetes" | Class ==  "Archaeosporomycetes" | Class ==  "Paraglomeromycetes")
+## if SSU_dada2 then
+## Subset decontam phloseq object to include only
+## the three classes of Mucoromycota that are AMF
+## "Glomeromycetes", "Archaeosporomycetes" and "Paraglomeromycetes"
 
-# Save file. To open in R use: amf_physeq <- readRDS("amf_physeq.Rdata")
-saveRDS(amf_physeq, file = str_c(args$output, "/", "amf_physeq.Rdata"))
+if (str_detect(args$lotus2, "SSU_dada2")) {
 
-p <- plot_bar(amf_physeq, fill = "Genus")
-plot(p)
-ggsave(
-  str_c(args$output, "/", "amf_physeq_by_genus.pdf"), p,
-  width = 14, height = 14, units = "in"
-)
+  amf_physeq <- physeq_decontam %>%
+    subset_taxa(
+      Class == "Glomeromycetes" |
+      Class ==  "Archaeosporomycetes" |
+      Class ==  "Paraglomeromycetes"
+    )
 
-## ChaoRichness
+  # Save file. To open in R use: amf_physeq <- readRDS("amf_physeq.Rdata")
+  saveRDS(amf_physeq, file = str_c(args$output, "/", "amf_physeq.Rdata"))
 
-amf_physeq_truesamples <- prune_samples(
-  !sample_data(amf_physeq)$is.neg,
-  amf_physeq
-)
+  p <- plot_bar(amf_physeq, fill = "Genus")
+  plot(p)
+  ggsave(
+    str_c(args$output, "/", "amf_physeq_by_genus.pdf"), p,
+    width = 14, height = 14, units = "in"
+  )
 
-otu_long <- otu_table(amf_physeq_truesamples) %>%
-  as.data.frame() %>%
-  rownames_to_column("OTU") %>%
-  pivot_longer(!OTU, names_to = "sample_id", values_to = "abundance") %>%
-  filter(abundance != 0)
+  ## ChaoRichness
+
+  amf_physeq_truesamples <- prune_samples(
+    !sample_data(amf_physeq)$is.neg,
+    amf_physeq
+  )
+
+  otu_long <- otu_table(amf_physeq_truesamples) %>%
+    as.data.frame() %>%
+    rownames_to_column("OTU") %>%
+    pivot_longer(!OTU, names_to = "sample_id", values_to = "abundance") %>%
+    filter(abundance != 0)
+}
+
+## if SSU_vsearch then
+## 1. Take OTU sequences from SSU_VSEARCH output
+## 2. use lotus2 BLAST to SILVA (our custom SILVA with AMF removed)
+## 3. remove any seqs that hit SILVA_minus_AMF (id 97%, cov 98%)
+## 4. Take remaining seqs, use lotus2 BLAST to MaarjAM at id 97% cov 98%
+## 5. Take results as number of VTs per sample forward with the richness code
+
+# NOTE: this assumes lotus2 is run with refDB maarjam first, SILVA second
+# i.e. tax.0.blast = maarjam, tax.1.blast = silva
+
+if (str_detect(args$lotus2, "SSU_vsearch")) {
+
+  # read lotus2 tax.1.blast to SILVA without AMF
+  lotus2_blast_columns = c("qaccver","saccver","pident",
+    "length","mismatch","gapopen","qstart","qend","sstart","send","qlen")
+
+  otu_blast_silva <- read_tsv(str_c(args$lotus2, "/ExtraFiles/tax.1.blast"),
+    col_names = lotus2_blast_columns)
+
+  # filter SILVA blast id 97 cov 98 - these OTUs are to be removed
+  otu_to_remove <- otu_blast_silva %>%
+    filter(pident >= 97, length*100/qlen >= 98) %>%
+    distinct(qaccver) %>%
+    pull(qaccver)
+
+  # get maarjAM blast - tax.0.blast
+  # if lotus2 is run with 
+  otu_blast_maarjam <- read_tsv(str_c(args$lotus2, "/ExtraFiles/tax.0.blast"),
+    col_names = lotus2_blast_columns)
+
+  # remove the SILVA OTUs from maarjam
+  otu_amf_matches <- otu_blast_maarjam %>%
+    filter(!qaccver %in% otu_to_remove) %>%
+    filter(pident >= 97, length*100/qlen >= 98)
+
+  otu_vt_map <- otu_amf_matches %>%
+    arrange(qaccver, desc(pident * length)) %>%
+    distinct(qaccver, .keep_all = TRUE) %>%
+    select(otu = qaccver, vt = saccver)
+
+  # keep only those taxa that match the above criteria
+  amf_physeq <- prune_taxa(otu_vt_map$otu, physeq_decontam)
+
+  # Save file. To open in R use: amf_physeq <- readRDS("amf_physeq.Rdata")
+  saveRDS(amf_physeq, file = str_c(args$output, "/", "amf_physeq.Rdata"))
+
+  p <- plot_bar(amf_physeq, fill = "Genus")
+  plot(p)
+  ggsave(
+    str_c(args$output, "/", "amf_physeq_by_genus.pdf"), p,
+    width = 14, height = 14, units = "in"
+  )
+
+  # ChaoRichness
+  amf_physeq_truesamples <- prune_samples(
+    !sample_data(amf_physeq)$is.neg,
+    amf_physeq
+  )
+
+  amf_physeq_as_vt_table <- otu_table(amf_physeq_truesamples) %>%
+    as.data.frame() %>%
+    rownames_to_column("otu") %>%
+    left_join(otu_vt_map) %>%
+    group_by(vt) %>%
+    select(-otu) %>%
+    summarize(across(where(is.numeric), ~ sum(.x, na.rm = TRUE)),
+      .groups = "drop")
+
+  write_csv(amf_physeq_as_vt_table,
+    str_c(args$output, "/SSU_vsearch_vt_abundance.csv"))
+
+  otu_long <- amf_physeq_as_vt_table %>%
+    pivot_longer(!vt, names_to = "sample_id", values_to = "abundance") %>%
+    filter(abundance != 0)
+}
 
 div.output <- foreach(i = unique(otu_long$sample_id), .final = function(i) setNames(i, unique(otu_long$sample_id))) %do% {
   freq_list <- otu_long %>%
