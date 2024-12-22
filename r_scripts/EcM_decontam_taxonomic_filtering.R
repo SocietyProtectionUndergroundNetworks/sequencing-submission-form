@@ -11,7 +11,7 @@ library(data.table)
 # Define options
 option_list <- list(
   make_option(
-    c("-l", "--lotus2 "),
+    c("-l", "--lotus2"),
     type = "character",
     default = "/mnt/seq_processed/00057_20241216JXLN0L/lotus2_report/ITS2/",
     help = "Path to lotus2 output folder"
