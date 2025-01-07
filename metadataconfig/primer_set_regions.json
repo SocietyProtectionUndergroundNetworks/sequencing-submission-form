@@ -73,7 +73,12 @@
     "Region": "ITS2",
     "Forward Primer": "TCGATGAAGAACGCAGCG",
     "Reverse Primer": "TCCTCCGCTTATTGATATGC"
-  },  
+  },
+  "gITS7ngs/ITS4ngs": {
+    "Region": "ITS2",
+    "Forward Primer": "GTGARTCATCRARTYTTTG",
+    "Reverse Primer": "TCCTSCGCTTATTGATATGC"
+  },    
   "Other": {
     "Region": "Other",
     "Forward Primer": "",
