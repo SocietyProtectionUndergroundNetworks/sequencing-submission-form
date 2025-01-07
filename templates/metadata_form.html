@@ -216,24 +216,28 @@
       <form id="metadataForm" style="display:none">
         <input type="hidden" name="process_id" value="{{ process_id }}">
         {% for column_key, column_values in expected_columns.items() %}
-            <div class="form-group row mb-3">
-                <label for="{{ column_key }}" class="col-sm-3 col-form-label">{{ column_key }}</label>
-                <div class="col-sm-9">
-                    <small id="{{ column_key }}Help" class="form-text">{{ column_values['help_tip'] }}</small>
-                    {% if 'options' in column_values %}
-                        <select class="form-control" id="{{ column_key }}" name="{{ column_key }}">
-                            <option value="0">------</option>
-                            {% for option in column_values['options'] %}
-                                <option value="{{ option }}">{{ option }}</option>
-                            {% endfor %}
-                        </select>
-                    {% elif column_values.get('field_type') == 'date' %}
-                        <input type="date" class="form-control" id="{{ column_key }}" name="{{ column_key }}">
-                    {% else %}
-                        <input type="text" class="form-control" id="{{ column_key }}" name="{{ column_key }}" placeholder="{{ column_key }}">
-                    {% endif %}
-                </div>
-            </div>
+          {% if 'excludeFromTemplate' not in column_values or column_values['excludeFromTemplate'] != 'True' %}
+
+              <div class="form-group row mb-3">
+                  <label for="{{ column_key }}" class="col-sm-3 col-form-label">{{ column_key }}</label>
+                  <div class="col-sm-9">
+                      <small id="{{ column_key }}Help" class="form-text">{{ column_values['help_tip'] }}</small>
+                      {% if 'options' in column_values %}
+                          <select class="form-control" id="{{ column_key }}" name="{{ column_key }}">
+                              <option value="0">------</option>
+                              {% for option in column_values['options'] %}
+                                  <option value="{{ option }}">{{ option }}</option>
+                              {% endfor %}
+                          </select>
+                      {% elif column_values.get('field_type') == 'date' %}
+                          <input type="date" class="form-control" id="{{ column_key }}" name="{{ column_key }}">
+                      {% else %}
+                          <input type="text" class="form-control" id="{{ column_key }}" name="{{ column_key }}" placeholder="{{ column_key }}">
+                      {% endif %}
+                  </div>
+              </div>
+          {% endif %}
+
         {% endfor %}
 
         <button type="submit" class="btn btn-primary">Submit</button>
@@ -1763,6 +1767,16 @@
   }
 
   $(document).ready(function() {
+    // Parse the current URL
+    const urlParams = new URLSearchParams(window.location.search);
+
+    // Check if 'openform' is set to 'true'
+    if (urlParams.get('openform') === 'true') {
+        $('#step_4_msg').html("<p>Sample submited. Please submit the next one.</p>").removeClass('text-danger').addClass('text-success');
+        // Show the metadata form
+        $('#metadataForm').show();
+    }    
+    
     ////// Choose upload method (form or file) ///////
     $('input[name="upload_method"]').change(function() {
       if (this.value == '1') {
@@ -2125,19 +2139,11 @@
                       }
                   });
               } else {
-                  // Extract latitude and longitude values if valid
-                  var latitudeValue = '';
-                  var longitudeValue = '';
-                  formData.forEach(field => {
-                      if (field.name === 'Latitude') latitudeValue = field.value;
-                      if (field.name === 'Longitude') longitudeValue = field.value;
-                  });
-
-                  // Add marker if latitude and longitude are valid
-                  if (latitudeValue && longitudeValue) {
-                      addMarker(latitudeValue, longitudeValue);
-                  }
                   console.log('Form submitted successfully');
+                  const url = new URL(window.location.href);
+                  url.searchParams.set('openform', 'true');
+                  url.hash = 'step_4';
+                  window.location.href = url.toString();
               }
             },
             error: function(xhr, status, error) {
@@ -2734,7 +2740,6 @@
         console.log('We will try to process the directory:')
         console.log(directoryName)
         // Send the form data via AJAX
-        // HERE HERE HERE
         $.ajax({
           url: '/sequencing_process_server_file',
           type: 'POST',
