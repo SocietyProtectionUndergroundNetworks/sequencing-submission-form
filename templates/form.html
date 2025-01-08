@@ -35,7 +35,15 @@
         {% endfor %}
       {% endif %}
     </div>
-
+    <h2> LEGACY MODE</h2>
+    <div>
+      This is the v1 of the upload process. 
+      This is now on legacy mode and no new data can be uploaded on this. <br>
+      If you need to upload data 
+      <a href="/metadata_form" class="text-decoration-underline"> go to the new upload form</a>. <br>
+      
+      <a href="/metadata_instructions" class="text-decoration-underline">Full instructions for version 2</a>.<br>
+    </div>
     <div id="step_1" class="form-step-item">
       <h3> Step 1: upload your metadata file</h3>
       <div class="text-danger">
@@ -45,15 +53,6 @@
       {% if metadata_uploaded %}
         <div id="step_1_msg" class="text-success">Metadata file already uploaded : <a href="/download_metadata?process_id={{ process_id }}">{{ metadata_filename }}</a></div>
       {% else %}
-
-        <form
-            method="POST"
-            action="/uploadmetadata"
-            enctype="multipart/form-data"
-            id="step_1_form"
-        >
-        <input type="file" id="step_1_button" accept=".csv">
-        </form>
         <div id="step_1_msg"></div>
       {% endif %}
     </div>
@@ -75,30 +74,32 @@
         </div>
       {% else %}
         <form id="step_2_form">
-          <div class="form-check">
-            <input class="form-check-input" type="radio" name="sequencing_method" id="sequencing_method_1" value="1">
-            <label class="form-check-label" for="sequencing_method_1">
-              Illumina
-            </label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input" type="radio" name="sequencing_method" id="sequencing_method_2" value="2">
-            <label class="form-check-label" for="sequencing_method_2">
-              Nanopore
-            </label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input" type="radio" name="sequencing_method" id="sequencing_method_3" value="3">
-            <label class="form-check-label" for="sequencing_method_3">
-              Pacific Biosciences
-            </label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input" type="radio" name="sequencing_method" id="sequencing_method_4" value="4">
-            <label class="form-check-label" for="sequencing_method_4">
-              Other (ION Torrent)
-            </label>
-          </div>
+          <fieldset disabled="disabled">
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="sequencing_method" id="sequencing_method_1" value="1">
+              <label class="form-check-label" for="sequencing_method_1">
+                Illumina
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="sequencing_method" id="sequencing_method_2" value="2">
+              <label class="form-check-label" for="sequencing_method_2">
+                Nanopore
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="sequencing_method" id="sequencing_method_3" value="3">
+              <label class="form-check-label" for="sequencing_method_3">
+                Pacific Biosciences
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="sequencing_method" id="sequencing_method_4" value="4">
+              <label class="form-check-label" for="sequencing_method_4">
+                Other (ION Torrent)
+              </label>
+            </div>
+          </fieldset>
         </form>
         <div id="step_2_msg"></div>
       {% endif %}
@@ -775,70 +776,10 @@
         }
 
         $(document).ready(function () {
-            $('#step_1_button').on('change', function () {
-                uploadMetadataFile();
-            });
-        });
-
-        $(document).ready(function () {
             $('#step_3_button').on('change', function () {
                 uploadCsvFile();
             });
         });
-
-        function uploadMetadataFile() {
-          var fileInput = $('#step_1_button')[0];
-          var file = fileInput.files[0];
-
-          if (!file) {
-              alert("Please select a file.");
-              return;
-          }
-
-          var formData = new FormData();
-          formData.append('file', file);
-
-          $.ajax({
-              url: '/uploadmetadata',
-              type: 'POST',
-              data: formData,
-              contentType: false,
-              processData: false,
-              success: function (response) {
-                  // Access and use the process ID
-                  process_id = response.process_id;
-                  upload_folder = response.upload_folder;
-
-                  // Update the hidden input field within the specific forms
-                  var form3 = $("#step_3_form");
-                  form3.find('input[name="process_id"]').val(process_id);
-                  var form4 = $("#step_4_form");
-                  form4.find('input[name="process_id"]').val(process_id);
-                  var form7 = $("#step_7_form");
-                  form7.find('input[name="process_id"]').val(process_id);
-                  var form8 = $("#step_8_form");
-                  form8.find('input[name="process_id"]').val(process_id);
-                  var form10 = $("#step_10_form");
-                  form10.find('input[name="process_id"]').val(process_id);
-                  $('#process_id_info').html('Process ID: ' + process_id);
-                  $('#upload_folder_info').html('Folder: ' + upload_folder)
-
-                  $('#step_1_msg').html(response.msg).removeClass('text-danger').addClass('text-success');
-                  $('#step_1_button').prop('disabled', true);
-
-                  $('#step_2').css('opacity', '1');
-                  $('#step_2_form').show();
-              },
-              error: function (xhr) {
-                if (xhr && xhr.responseText) {
-                    var response = JSON.parse(xhr.responseText);
-                    $("#step_1_msg").html(response.error + ' ' + response.results).addClass('text-danger').removeClass('text-info').removeClass('text-success');
-                } else {
-                    $("#step_1_msg").html(errorMessage).addClass('text-danger').removeClass('text-info').removeClass('text-success');
-                }
-              }
-          });
-        }
 
         function uploadCsvFile() {
           var fileInput = $('#step_3_button')[0];
