@@ -426,10 +426,21 @@ def upload_metadata_file():
 @login_required
 @approved_required
 def upload_process_common_fields():
+    from helpers.slack import send_message_to_slack
+
     # Parse form data from the request
     form_data = request.form.to_dict()
 
     process_id = SequencingUpload.create(datadict=form_data)
+    send_message_to_slack(
+        "STARTING: A v2 upload was initiated by filling "
+        + "in project common data by the user "
+        + current_user.name
+        + ". The project is: "
+        + str(form_data["project_id"])
+        + ". The id of the upload is: "
+        + str(process_id)
+    )
 
     # Return the result as JSON
     return (
