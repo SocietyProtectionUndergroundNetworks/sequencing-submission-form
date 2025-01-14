@@ -229,6 +229,23 @@ class SequencingAnalysis:
         )
         sample_map = {sample.SampleID: sample.id for sample in samples}
 
+        # Fallback: Handle sample IDs starting with `S_`
+        for sample_id in sample_ids:
+            if sample_id not in sample_map and sample_id.startswith("S_"):
+                adjusted_sample_id = sample_id[2:]  # Remove "S_" prefix
+                fallback_sample = (
+                    session.query(
+                        SequencingSamplesTable.id,
+                        SequencingSamplesTable.SampleID,
+                    )
+                    .filter(
+                        SequencingSamplesTable.SampleID == adjusted_sample_id
+                    )
+                    .first()
+                )
+                if fallback_sample:
+                    sample_map[sample_id] = fallback_sample.id
+
         # Step 5: Prepare data for insertion
         records_to_insert = []
         for _, row in richness_data.iterrows():
