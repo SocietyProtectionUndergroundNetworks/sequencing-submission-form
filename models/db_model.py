@@ -10,10 +10,11 @@ from sqlalchemy import (
     func,
     ForeignKey,
     Float,
+    JSON,
 )
-from sqlalchemy.dialects.mysql import JSON, MEDIUMTEXT
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+
+from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy.dialects.mysql import MEDIUMTEXT
 import uuid
 
 Base = declarative_base()
@@ -254,6 +255,9 @@ class SequencingSamplesTable(Base):
         "SequencingSequencerIDsTable", backref="sample"
     )
     extracolumns_json = Column(JSON(none_as_null=True))
+    otus = relationship(
+        "OTU", back_populates="sample", cascade="all, delete-orphan"
+    )
 
 
 class SequencingSequencerIDsTable(Base):
@@ -308,3 +312,138 @@ class SequencingCompanyInputTable(Base):
     region = Column(String(50), nullable=True)
     index_1 = Column(String(50), nullable=True)
     barcode_2 = Column(String(50), nullable=True)
+
+
+# Domain Table
+class Domain(Base):
+    __tablename__ = "taxonomy_domain"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), unique=True, nullable=False)  # Max length 255
+
+    phyla = relationship(
+        "Phylum", back_populates="domain", cascade="all, delete-orphan"
+    )
+
+
+# Phylum Table
+class Phylum(Base):
+    __tablename__ = "taxonomy_phylum"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    domain_id = Column(
+        Integer, ForeignKey("taxonomy_domain.id"), nullable=False
+    )
+
+    domain = relationship("Domain", back_populates="phyla")
+    classes = relationship(
+        "Class", back_populates="phylum", cascade="all, delete-orphan"
+    )
+
+
+# Class Table
+class Class(Base):
+    __tablename__ = "taxonomy_class"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    phylum_id = Column(
+        Integer, ForeignKey("taxonomy_phylum.id"), nullable=False
+    )
+
+    phylum = relationship("Phylum", back_populates="classes")
+    orders = relationship(
+        "Order", back_populates="class_", cascade="all, delete-orphan"
+    )
+
+
+# Order Table
+class Order(Base):
+    __tablename__ = "taxonomy_order"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    class_id = Column(Integer, ForeignKey("taxonomy_class.id"), nullable=False)
+
+    class_ = relationship("Class", back_populates="orders")
+    families = relationship(
+        "Family", back_populates="order", cascade="all, delete-orphan"
+    )
+
+
+# Family Table
+class Family(Base):
+    __tablename__ = "taxonomy_family"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    order_id = Column(Integer, ForeignKey("taxonomy_order.id"), nullable=False)
+
+    order = relationship("Order", back_populates="families")
+    genera = relationship(
+        "Genus", back_populates="family", cascade="all, delete-orphan"
+    )
+
+
+# Genus Table
+class Genus(Base):
+    __tablename__ = "taxonomy_genus"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    family_id = Column(
+        Integer, ForeignKey("taxonomy_family.id"), nullable=False
+    )
+
+    family = relationship("Family", back_populates="genera")
+    species = relationship(
+        "Species", back_populates="genus", cascade="all, delete-orphan"
+    )
+
+
+# Species Table
+class Species(Base):
+    __tablename__ = "taxonomy_species"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    genus_id = Column(Integer, ForeignKey("taxonomy_genus.id"), nullable=False)
+
+    genus = relationship("Genus", back_populates="species")
+
+
+# Taxonomy Table
+class Taxonomy(Base):
+    __tablename__ = "taxonomy"
+    id = Column(Integer, primary_key=True)
+    domain_id = Column(
+        Integer, ForeignKey("taxonomy_domain.id"), nullable=False
+    )
+    phylum_id = Column(
+        Integer, ForeignKey("taxonomy_phylum.id"), nullable=True
+    )
+    class_id = Column(Integer, ForeignKey("taxonomy_class.id"), nullable=True)
+    order_id = Column(Integer, ForeignKey("taxonomy_order.id"), nullable=True)
+    family_id = Column(
+        Integer, ForeignKey("taxonomy_family.id"), nullable=True
+    )
+    genus_id = Column(Integer, ForeignKey("taxonomy_genus.id"), nullable=True)
+    species_id = Column(
+        Integer, ForeignKey("taxonomy_species.id"), nullable=True
+    )
+
+    domain = relationship("Domain")
+    phylum = relationship("Phylum")
+    class_ = relationship("Class")
+    order = relationship("Order")
+    family = relationship("Family")
+    genus = relationship("Genus")
+    species = relationship("Species")
+
+
+# OTU Table
+class OTU(Base):
+    __tablename__ = "otu"
+    id = Column(Integer, primary_key=True)
+    sample_id = Column(
+        Integer, ForeignKey("sequencing_samples.id"), nullable=False
+    )
+    taxonomy_id = Column(Integer, ForeignKey("taxonomy.id"), nullable=False)
+    abundance = Column(Float, nullable=True)
+
+    sample = relationship("SequencingSamplesTable", back_populates="otus")
+    taxonomy = relationship("Taxonomy")

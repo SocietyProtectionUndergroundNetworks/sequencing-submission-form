@@ -6,7 +6,7 @@ from helpers.land_use import (
     get_baileys_ecoregion,
     get_elevation,
 )
-from models.db_model import SequencingSamplesTable
+from models.db_model import SequencingSamplesTable, OTU
 from sqlalchemy import or_
 
 # Get the logger instance from app.py
@@ -251,5 +251,41 @@ class SequencingSample:
                     f" for SampleID {sample.SampleID}"
                 )
                 continue
+
+        session.close()
+
+    @classmethod
+    def assign_taxonomy(cls, sample_id, taxonomy_id, abundance):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        # Check if the OTU combination already exists
+        existing_otu = (
+            session.query(OTU)
+            .filter(OTU.sample_id == sample_id, OTU.taxonomy_id == taxonomy_id)
+            .first()
+        )
+
+        if existing_otu:
+            # If it exists, update the abundance
+            existing_otu.abundance = abundance
+            session.commit()
+            logger.info(
+                f"Updated abundance for sample {sample_id} "
+                f"and taxonomy {taxonomy_id}."
+            )
+        else:
+            # If not, create a new OTU record
+            new_otu = OTU(
+                sample_id=sample_id,
+                taxonomy_id=taxonomy_id,
+                abundance=abundance,
+            )
+            session.add(new_otu)
+            session.commit()
+            logger.info(
+                f"Assigned new taxonomy {taxonomy_id} to "
+                f"sample {sample_id} with abundance {abundance}."
+            )
 
         session.close()

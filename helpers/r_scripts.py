@@ -65,6 +65,7 @@ def init_generate_rscripts_report(
 
 def generate_rscripts_report(process_id, input_dir, region, analysis_type_id):
     client = docker.from_env()
+    from models.sequencing_upload import SequencingUpload
     from models.sequencing_analysis import SequencingAnalysis
     from models.sequencing_analysis_type import SequencingAnalysisType
 
@@ -120,6 +121,16 @@ def generate_rscripts_report(process_id, input_dir, region, analysis_type_id):
                 analysis_id, "rscripts_result", result.output
             )
             SequencingAnalysis.import_richness(analysis_id)
+
+            if region in ["ITS1", "ITS2"]:
+                logger.info("And now we should import the OTUs")
+                otu_full_data = (
+                    input_dir
+                    + "/r_output/"
+                    + analysis_type.name
+                    + "/otu_full_data.csv"
+                )
+                SequencingUpload.process_otu_data(otu_full_data, process_id)
 
         else:
             logger.info(
