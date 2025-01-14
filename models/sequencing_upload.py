@@ -1602,7 +1602,7 @@ class SequencingUpload:
                 abundance = row["abundance"]
 
                 # Step 2: Find the corresponding sequencing_sample
-                # by sample_id and sequencing_upload_id
+                # Try finding the sample with the original sample_id
                 sequencing_sample = (
                     session.query(SequencingSamplesTable)
                     .filter_by(
@@ -1611,6 +1611,18 @@ class SequencingUpload:
                     )
                     .first()
                 )
+
+                # If not found, check for a sample_id without the "S_" prefix
+                if not sequencing_sample and sample_id.startswith("S_"):
+                    adjusted_sample_id = sample_id[2:]  # Remove "S_" prefix
+                    sequencing_sample = (
+                        session.query(SequencingSamplesTable)
+                        .filter_by(
+                            sequencingUploadId=sequencing_upload_id,
+                            SampleID=adjusted_sample_id,
+                        )
+                        .first()
+                    )
 
                 if not sequencing_sample:
                     # Log or handle the case where no matching sample is found
