@@ -87,7 +87,7 @@ COPY config/docker/lotus2/autoInstall.pl /home/condauser/miniconda/envs/lotus2_e
 # RUN chmod +x /home/condauser/miniconda/envs/lotus2_env/share/lotus2-2.34.1-0/autoInstall2.pl
 
 # Run the autoInstall.pl script directly
-RUN /home/condauser/miniconda/envs/lotus2_env/share/lotus2-2.34.1-0/autoInstall2.pl > /home/condauser/autoInstall.log 2>&1
+RUN /home/condauser/miniconda/envs/lotus2_env/share/lotus2-2.34.1-1/autoInstall3.pl --overidePrevious=2 --install_ITS=1 --accept_silva --get_UTAX=1 --refDBinstall=2 > /home/condauser/autoInstall.log 2>&1
 
 # Clean up conda packages to reduce image size
 RUN conda clean -afy
