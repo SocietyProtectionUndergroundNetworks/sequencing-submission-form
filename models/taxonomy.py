@@ -158,9 +158,13 @@ class TaxonomyManager:
     @staticmethod
     def get_or_create(model, name, **kwargs):
         """
-        Get the ID of an existing entry in the lookup table
-        or create a new one if it doesn't exist.
+        Get the ID of an existing entry in the lookup
+        table or create a new one if it doesn't exist.
         """
+        # Skip creation if the name is "?" or None
+        if name in ["?", None]:
+            return None
+
         db_engine = connect_db()
         session = get_session(db_engine)
 
