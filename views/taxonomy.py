@@ -32,6 +32,38 @@ def admin_required(view_func):
     return decorated_view
 
 
+# Custom admin_required decorator
+def admin_required(view_func):
+    def decorated_view(*args, **kwargs):
+        if not current_user.is_authenticated:
+            # Redirect unauthenticated users to the login page
+            return redirect(
+                url_for("user.login")
+            )  # Adjust 'login' to your actual login route
+        elif not current_user.admin:
+            # Redirect non-admin users to some unauthorized page
+            return redirect(url_for("user.only_admins"))
+        return view_func(*args, **kwargs)
+
+    return decorated_view
+
+
+# Custom staff_required decorator
+def staff_required(view_func):
+    def decorated_view(*args, **kwargs):
+        if not current_user.is_authenticated:
+            # Redirect unauthenticated users to the login page
+            return redirect(
+                url_for("user.login")
+            )  # Adjust 'login' to your actual login route
+        elif not (current_user.spun_staff or current_user.admin):
+            # Redirect users who are neither staff nor admin
+            return redirect(url_for("user.only_staff"))
+        return view_func(*args, **kwargs)
+
+    return decorated_view
+
+
 # Custom approved_required decorator
 def approved_required(view_func):
     def decorated_approved_view(*args, **kwargs):
@@ -51,7 +83,7 @@ def approved_required(view_func):
 @taxonomy_bp.route(
     "/taxonomy/search", methods=["GET"], endpoint="taxonomy_search"
 )
-@admin_required
+@staff_required
 @login_required
 def taxonomy_search():
 
@@ -63,7 +95,7 @@ def taxonomy_search():
     methods=["GET"],
     endpoint="taxonomy_search_results",
 )
-@admin_required
+@staff_required
 @login_required
 def taxonomy_search_results():
     # Extract search parameters

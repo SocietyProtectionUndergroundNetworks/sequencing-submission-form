@@ -101,6 +101,7 @@
 
             if (response.data && response.data.length > 0) {
               const totalResults = response.total_results;
+              clearMarkers()
               
               // Display the number of results
               $("#results-count").html(
@@ -121,6 +122,7 @@
                       <th>Family</th>
                       <th>Genus</th>
                       <th>Species</th>
+                      <th>Count</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -144,6 +146,7 @@
                     <td>${row.family || ''}</td>
                     <td>${row.genus || ''}</td>
                     <td>${row.species || ''}</td>
+                    <td>${row.abundance || ''}</td>
                   </tr>
                 `;
               });
@@ -167,6 +170,9 @@
     ////// ###### MAP HELPER FUNCTIONS START HERE ###### /////////
     ////// ############################################# /////////
     var markersArray = [];
+    let map;
+    let bounds = new google.maps.LatLngBounds();
+    
     function addMarker(lat, lng) {
         var location = { lat: parseFloat(lat), lng: parseFloat(lng) };
         if (!isNaN(location.lat) && !isNaN(location.lng)) {
@@ -188,13 +194,18 @@
             console.error("Invalid latitude or longitude values.");
         }
     }
+    
+    function clearMarkers() {
+        // Iterate through the markers array and remove each marker from the map
+        markersArray.forEach(marker => marker.map = null);
+        markersArray = []; // Reset the markers array
+        bounds = new google.maps.LatLngBounds(); // Reset the bounds
+        console.log("All markers cleared.");
+    }    
 
     $(document).ready(function() {
       // addMarker(22.5581008950154324, 88.35288699669385);
     });
-
-    let map;
-    let bounds = new google.maps.LatLngBounds();;
 
     async function initMap() {
       const { Map } = await google.maps.importLibrary("maps");

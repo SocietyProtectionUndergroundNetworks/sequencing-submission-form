@@ -88,6 +88,17 @@
         </a>
       {% endif %}
       {% if current_user.is_authenticated and current_user.admin %}
+        <h3> SPUN Staff </h3>
+
+        <a href="/taxonomy/search">
+          <div class="page-menu-item">
+            <h3>Search for samples based on taxonomy</h3>
+          </div>
+        </a>   
+                
+      {% endif %}      
+      
+      {% if current_user.is_authenticated and current_user.admin %}
         <h3> Admin </h3>
         <a href="{{ url_for('user.user_groups') }}">
           <div class="page-menu-item">

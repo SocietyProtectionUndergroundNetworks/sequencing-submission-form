@@ -28,6 +28,7 @@ class User(UserMixin):
         goodgrands_slug=None,
         buckets=None,
         groups=None,
+        spun_staff=False,
     ):
         self.id = id_
         self.name = name
@@ -38,6 +39,7 @@ class User(UserMixin):
         self.goodgrands_slug = goodgrands_slug
         self.buckets = buckets or []
         self.groups = groups
+        self.spun_staff = spun_staff
 
     @classmethod
     def get(cls, user_id):
@@ -50,6 +52,9 @@ class User(UserMixin):
 
         user_buckets = user_db.buckets
         buckets = [bucket.id for bucket in user_buckets]
+
+        # Check if the user belongs to the group with id=4
+        spun_staff = any(group.id == 4 for group in user_db.groups)
         session.close()
 
         user = User(
@@ -61,6 +66,7 @@ class User(UserMixin):
             goodgrands_slug=user_db.goodgrands_slug,
             approved=user_db.approved,
             buckets=buckets,
+            spun_staff=spun_staff,
         )
 
         return user

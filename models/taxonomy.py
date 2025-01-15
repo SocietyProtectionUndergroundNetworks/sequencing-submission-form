@@ -247,6 +247,7 @@ class TaxonomyManager:
                 SequencingUploadsTable.id.label("upload_id"),
                 SequencingUploadsTable.project_id,
                 Taxonomy,
+                OTU.abundance
             )
             .join(OTU, OTU.sample_id == SequencingSamplesTable.id)
             .join(Taxonomy, OTU.taxonomy_id == Taxonomy.id)
@@ -283,6 +284,7 @@ class TaxonomyManager:
                 "project_id": row.project_id,
                 "Latitude": row.Latitude,
                 "Longitude": row.Longitude,
+                "abundance": row.abundance,
                 "domain": (
                     row.Taxonomy.domain.name if row.Taxonomy.domain else None
                 ),
