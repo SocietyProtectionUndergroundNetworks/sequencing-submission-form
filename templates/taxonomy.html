@@ -132,7 +132,7 @@
                 const lat = row.Latitude;
                 const lon = row.Longitude;
                 if (lat && lon) {
-                  addMarker(lat, lon); // Add marker to the map
+                  addMarker(lat, lon, "Sample: " + row.sample_id + " <br> Project:  " + row.project_id, "/metadata_form?process_id=" + row.upload_id); // Add marker to the map
                 }                
                 table += `
                   <tr>
@@ -173,19 +173,39 @@
     let map;
     let bounds = new google.maps.LatLngBounds();
     
-    function addMarker(lat, lng) {
+    function addMarker(lat, lng, text = "", link = "") {
         var location = { lat: parseFloat(lat), lng: parseFloat(lng) };
         if (!isNaN(location.lat) && !isNaN(location.lng)) {
             var marker = new google.maps.marker.AdvancedMarkerElement({
                 position: location,
-                map: map
+                map: map,
             });
-            //var bounds = new google.maps.LatLngBounds();
-            markersArray.push(marker);
-            bounds.extend(location);
-            map.fitBounds(bounds);
 
-            var maxZoom = 14;
+            // Create the content for the info window
+            let infoContent = `<div style="max-width: 200px;">
+                                  <p>${text}</p>
+                                  ${link ? `<a href="${link}" target="_blank">View More</a>` : ""}
+                               </div>`;
+
+            // Create an info window
+            var infoWindow = new google.maps.InfoWindow({
+                content: infoContent,
+            });
+
+            // Add a click listener to open the info window when the marker is clicked
+            marker.addListener("click", function () {
+                infoWindow.open({
+                    anchor: marker,
+                    map,
+                    shouldFocus: false,
+                });
+            });
+
+            markersArray.push(marker); // Add marker to the array
+            bounds.extend(location); // Extend bounds to include this marker
+            map.fitBounds(bounds); // Adjust map to fit all markers
+
+            var maxZoom = 14; // Set maximum zoom level
             var listener = google.maps.event.addListener(map, "idle", function () {
                 if (map.getZoom() > maxZoom) map.setZoom(maxZoom);
                 google.maps.event.removeListener(listener);
@@ -204,7 +224,7 @@
     }    
 
     $(document).ready(function() {
-      // addMarker(22.5581008950154324, 88.35288699669385);
+      addMarker(22.5581008950154324, 88.35288699669385, "My text", "https://bbc.co.uk/");
     });
 
     async function initMap() {

@@ -247,7 +247,7 @@ class TaxonomyManager:
                 SequencingUploadsTable.id.label("upload_id"),
                 SequencingUploadsTable.project_id,
                 Taxonomy,
-                OTU.abundance
+                OTU.abundance,
             )
             .join(OTU, OTU.sample_id == SequencingSamplesTable.id)
             .join(Taxonomy, OTU.taxonomy_id == Taxonomy.id)

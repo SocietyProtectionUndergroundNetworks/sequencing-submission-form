@@ -32,22 +32,6 @@ def admin_required(view_func):
     return decorated_view
 
 
-# Custom admin_required decorator
-def admin_required(view_func):
-    def decorated_view(*args, **kwargs):
-        if not current_user.is_authenticated:
-            # Redirect unauthenticated users to the login page
-            return redirect(
-                url_for("user.login")
-            )  # Adjust 'login' to your actual login route
-        elif not current_user.admin:
-            # Redirect non-admin users to some unauthorized page
-            return redirect(url_for("user.only_admins"))
-        return view_func(*args, **kwargs)
-
-    return decorated_view
-
-
 # Custom staff_required decorator
 def staff_required(view_func):
     def decorated_view(*args, **kwargs):
@@ -119,6 +103,6 @@ def taxonomy_search_results():
     )
 
     total_results = len(all_results)  # Get total number of results
-    limited_results = all_results[:300]  # Return only the first 300 results
+    limited_results = all_results[:500]  # Return only the first 500 results
 
     return jsonify({"data": limited_results, "total_results": total_results})
