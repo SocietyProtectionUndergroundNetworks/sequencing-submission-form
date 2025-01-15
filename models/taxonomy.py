@@ -119,20 +119,49 @@ class TaxonomyManager:
             else None
         )
 
-        # Now check if this exact taxonomy combination exists
-        existing_taxonomy = (
-            session.query(Taxonomy)
-            .filter(
-                Taxonomy.domain_id == domain_id if domain_id else None,
-                Taxonomy.phylum_id == phylum_id if phylum_id else None,
-                Taxonomy.class_id == class_id if class_id else None,
-                Taxonomy.order_id == order_id if order_id else None,
-                Taxonomy.family_id == family_id if family_id else None,
-                Taxonomy.genus_id == genus_id if genus_id else None,
-                Taxonomy.species_id == species_id if species_id else None,
-            )
-            .first()
+        # Build the query
+        filters = []
+        filters.append(
+            Taxonomy.domain_id == domain_id
+            if domain_id is not None
+            else Taxonomy.domain_id.is_(None)
         )
+        filters.append(
+            Taxonomy.phylum_id == phylum_id
+            if phylum_id is not None
+            else Taxonomy.phylum_id.is_(None)
+        )
+        filters.append(
+            Taxonomy.class_id == class_id
+            if class_id is not None
+            else Taxonomy.class_id.is_(None)
+        )
+        filters.append(
+            Taxonomy.order_id == order_id
+            if order_id is not None
+            else Taxonomy.order_id.is_(None)
+        )
+        filters.append(
+            Taxonomy.family_id == family_id
+            if family_id is not None
+            else Taxonomy.family_id.is_(None)
+        )
+        filters.append(
+            Taxonomy.genus_id == genus_id
+            if genus_id is not None
+            else Taxonomy.genus_id.is_(None)
+        )
+        filters.append(
+            Taxonomy.species_id == species_id
+            if species_id is not None
+            else Taxonomy.species_id.is_(None)
+        )
+
+        # Build and execute the query
+        query = session.query(Taxonomy).filter(*filters)
+
+        # Execute the query
+        existing_taxonomy = query.first()
 
         if existing_taxonomy:
             # If it exists, return the ID
