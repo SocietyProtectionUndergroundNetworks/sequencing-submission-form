@@ -281,6 +281,8 @@ class TaxonomyManager:
                 "sample_id": row.SampleID,
                 "upload_id": row.upload_id,
                 "project_id": row.project_id,
+                "Latitude": row.Latitude,
+                "Longitude": row.Longitude,
                 "domain": (
                     row.Taxonomy.domain.name if row.Taxonomy.domain else None
                 ),

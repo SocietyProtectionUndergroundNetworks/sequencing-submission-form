@@ -76,7 +76,7 @@ def taxonomy_search_results():
     species = request.args.get("species")
 
     # Use TaxonomyManager to perform the search
-    results = TaxonomyManager.search(
+    all_results = TaxonomyManager.search(
         domain=domain,
         phylum=phylum,
         class_=class_,
@@ -86,4 +86,7 @@ def taxonomy_search_results():
         species=species,
     )
 
-    return jsonify({"data": results})
+    total_results = len(all_results)  # Get total number of results
+    limited_results = all_results[:300]  # Return only the first 300 results
+
+    return jsonify({"data": limited_results, "total_results": total_results})

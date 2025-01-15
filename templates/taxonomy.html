@@ -22,6 +22,12 @@
     Taxonomies search
   </h1>
   <div class="container mt-4">
+
+    <div id="mapWrapper">
+      <div id="map"></div>
+    </div>
+    <div id="mapCheckMessage"></div>    
+    
     <!-- Search Form -->
     <form id="taxonomy-search-form" method="GET" action="/search-taxonomies">
       <div class="row mb-3">
@@ -61,11 +67,6 @@
       <button type="submit" class="btn btn-primary">Search</button>
     </form>
 
-    <div id="mapWrapper">
-      <div id="map"></div>
-    </div>
-    <div id="mapCheckMessage"></div>
-
     <!-- Results Section -->
     <div id="search-results" class="mt-4">
       <h3>Search Results</h3>
@@ -99,9 +100,12 @@
             $("#results-count").empty();
 
             if (response.data && response.data.length > 0) {
-
-              $("#results-count").html(`<p><strong>${response.data.length}</strong> results found.</p>`);
+              const totalResults = response.total_results;
               
+              // Display the number of results
+              $("#results-count").html(
+                `<p><strong>${response.data.length}</strong> results displayed out of <strong>${totalResults}</strong>.</p>`
+              );              
               // Build and populate the results table
               let table = `
                 <table class="table table-bordered table-striped">
@@ -125,7 +129,6 @@
                 // Add markers if Latitude and Longitude are available
                 const lat = row.Latitude;
                 const lon = row.Longitude;
-
                 if (lat && lon) {
                   addMarker(lat, lon); // Add marker to the map
                 }                
