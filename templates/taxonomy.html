@@ -1,0 +1,227 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnSuA4Ss2PkkikSOLtYs8BlYIeeIK1h99ty4YfvRPAlzr377vr3CXDb7sb7eEEBYjDtcYj+AjBH3FLv5uSJuXg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js" integrity="sha512-7Pi/otdlbbCR+LnW+F7PwFcSDJOuUJB3OxtEHbg4vSMvzvJjde4Po1v4BR9Gdc9aXNUNFVUY+SK51wWT8WF0Gg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAw6r8DeUDlEO8iZdnMmPSkzWUmIYbbOPY&libraries=marker"></script>
+    <title>Users</title>
+</head>
+<body>
+  <div class="app-navbar">
+    <a href="https://spun.earth" class="logo"></a>
+    <div class="menu">
+      <ul>
+        <li><a href="https://spun.earth">Spun Website</a></li>
+        <li><a href="/">App homepage</a></li>
+      </ul>
+    </div>
+  </div>
+  <h1>
+    Taxonomies search
+  </h1>
+  <div class="container mt-4">
+    <!-- Search Form -->
+    <form id="taxonomy-search-form" method="GET" action="/search-taxonomies">
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="domain" class="form-label">Domain</label>
+          <input type="text" class="form-control" id="domain" name="domain" placeholder="Enter domain">
+        </div>
+        <div class="col-md-6">
+          <label for="phylum" class="form-label">Phylum</label>
+          <input type="text" class="form-control" id="phylum" name="phylum" placeholder="Enter phylum">
+        </div>
+      </div>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="class" class="form-label">Class</label>
+          <input type="text" class="form-control" id="class" name="class" placeholder="Enter class">
+        </div>
+        <div class="col-md-6">
+          <label for="order" class="form-label">Order</label>
+          <input type="text" class="form-control" id="order" name="order" placeholder="Enter order">
+        </div>
+      </div>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="family" class="form-label">Family</label>
+          <input type="text" class="form-control" id="family" name="family" placeholder="Enter family">
+        </div>
+        <div class="col-md-6">
+          <label for="genus" class="form-label">Genus</label>
+          <input type="text" class="form-control" id="genus" name="genus" placeholder="Enter genus">
+        </div>
+      </div>
+      <div class="mb-3">
+        <label for="species" class="form-label">Species</label>
+        <input type="text" class="form-control" id="species" name="species" placeholder="Enter species">
+      </div>
+      <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+
+    <div id="mapWrapper">
+      <div id="map"></div>
+    </div>
+    <div id="mapCheckMessage"></div>
+
+    <!-- Results Section -->
+    <div id="search-results" class="mt-4">
+      <h3>Search Results</h3>
+
+      <!-- Results Count -->
+      <div id="results-count" class="mb-3">
+        <!-- The result count will be dynamically inserted here -->
+      </div>
+
+      <div id="results-container" class="table-responsive">
+        <!-- Results Table will be dynamically inserted here -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    $(document).ready(function () {
+      $("#taxonomy-search-form").on("submit", function (event) {
+        event.preventDefault(); // Prevent default form submission
+
+        const formData = $(this).serialize(); // Serialize form data
+
+        // Make AJAX request to search endpoint
+        $.ajax({
+          url: "/taxonomy/search-results",
+          method: "GET",
+          data: formData,
+          success: function (response) {
+            // Clear previous results
+            $("#results-container").empty();
+            $("#results-count").empty();
+
+            if (response.data && response.data.length > 0) {
+
+              $("#results-count").html(`<p><strong>${response.data.length}</strong> results found.</p>`);
+              
+              // Build and populate the results table
+              let table = `
+                <table class="table table-bordered table-striped">
+                  <thead>
+                    <tr>
+                      <th>Upload ID</th>
+                      <th>Project</th>
+                      <th>Sample ID</th>
+                      <th>Domain</th>
+                      <th>Phylum</th>
+                      <th>Class</th>
+                      <th>Order</th>
+                      <th>Family</th>
+                      <th>Genus</th>
+                      <th>Species</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+              `;
+              response.data.forEach(row => {
+                // Add markers if Latitude and Longitude are available
+                const lat = row.Latitude;
+                const lon = row.Longitude;
+
+                if (lat && lon) {
+                  addMarker(lat, lon); // Add marker to the map
+                }                
+                table += `
+                  <tr>
+                    <td>${row.upload_id}</td>
+                    <td><a href="/metadata_form?process_id=${row.upload_id}" target="_blank">${row.project_id}</a></td>
+                    <td>${row.sample_id}</td>
+                    <td>${row.domain || ''}</td>
+                    <td>${row.phylum || ''}</td>
+                    <td>${row.class || ''}</td>
+                    <td>${row.order || ''}</td>
+                    <td>${row.family || ''}</td>
+                    <td>${row.genus || ''}</td>
+                    <td>${row.species || ''}</td>
+                  </tr>
+                `;
+              });
+              table += `</tbody></table>`;
+              $("#results-container").append(table);
+            } else {
+              $("#results-container").html("<p>No results found.</p>");
+            }
+          },
+          error: function (xhr, status, error) {
+            console.error("Search failed:", error);
+            $("#results-container").html("<p>An error occurred while performing the search.</p>");
+          }
+        });
+      });
+    });
+    
+    
+
+    ////// ############################################# /////////
+    ////// ###### MAP HELPER FUNCTIONS START HERE ###### /////////
+    ////// ############################################# /////////
+    var markersArray = [];
+    function addMarker(lat, lng) {
+        var location = { lat: parseFloat(lat), lng: parseFloat(lng) };
+        if (!isNaN(location.lat) && !isNaN(location.lng)) {
+            var marker = new google.maps.marker.AdvancedMarkerElement({
+                position: location,
+                map: map
+            });
+            //var bounds = new google.maps.LatLngBounds();
+            markersArray.push(marker);
+            bounds.extend(location);
+            map.fitBounds(bounds);
+
+            var maxZoom = 14;
+            var listener = google.maps.event.addListener(map, "idle", function () {
+                if (map.getZoom() > maxZoom) map.setZoom(maxZoom);
+                google.maps.event.removeListener(listener);
+            });
+        } else {
+            console.error("Invalid latitude or longitude values.");
+        }
+    }
+
+    $(document).ready(function() {
+      // addMarker(22.5581008950154324, 88.35288699669385);
+    });
+
+    let map;
+    let bounds = new google.maps.LatLngBounds();;
+
+    async function initMap() {
+      const { Map } = await google.maps.importLibrary("maps");
+      const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker");
+
+      map = new Map(document.getElementById("map"), {
+        center: { lat: 22.5581008950154324, lng: 88.35288699669385 },
+        zoom: 21,
+        mapId: "SEQ_SAMPLE_POSITION",
+      });
+    }
+
+    initMap();
+    ////// ############################################# /////////
+    ////// ###### MAP HELPER FUNCTIONS END HERE ######## /////////
+    ////// ############################################# /////////
+    
+  </script>
+  <style>
+    #map {
+      height: 100%;
+    }
+    #mapWrapper {
+      padding-top: 2rem;
+    }
+    #mapWrapper {
+      height: 350px;
+      width: 700px;
+    }
+
+  </style>
+</body>
+</html>
