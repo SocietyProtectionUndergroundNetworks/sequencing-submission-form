@@ -19,6 +19,7 @@ from models.db_model import (
     SequencingFilesUploadedTable,
 )
 from helpers.dbm import connect_db, get_session
+from google.api_core.exceptions import Forbidden, NotFound
 
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
@@ -957,17 +958,21 @@ def check_file_exists_in_bucket(
 
     bucket_name = bucket_name.lower()
 
-    # Initialize the storage client and get the bucket
-    storage_client = storage.Client()
-    bucket = storage_client.bucket(bucket_name)
+    try:
+        # Initialize the storage client and get the bucket
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(bucket_name)
 
-    # Construct the full blob name
-    blob_name = os.path.join(
-        destination_upload_directory, destination_blob_name
-    )
+        # Construct the full blob name
+        blob_name = os.path.join(
+            destination_upload_directory, destination_blob_name
+        )
 
-    # Check if the blob exists in the bucket
-    blob = bucket.blob(blob_name)
-    exists = blob.exists()
+        # Check if the blob exists in the bucket
+        blob = bucket.blob(blob_name)
+        return blob.exists()
 
-    return exists
+    except (Forbidden, NotFound):
+        # Return False if access is denied or
+        # if the bucket/object does not exist
+        return False
