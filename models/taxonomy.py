@@ -240,10 +240,10 @@ class TaxonomyManager:
         # and SequencingUploadsTable
         query = (
             session.query(
+                OTU.sample_id,
                 SequencingSamplesTable.SampleID,
                 SequencingSamplesTable.Longitude,
                 SequencingSamplesTable.Latitude,
-                SequencingSamplesTable.SampleID,
                 SequencingUploadsTable.id.label("upload_id"),
                 SequencingUploadsTable.project_id,
                 Taxonomy,
@@ -279,12 +279,62 @@ class TaxonomyManager:
         # Format the results
         formatted_results = [
             {
-                "sample_id": row.SampleID,
+                "sample_id": row.sample_id,
+                "SampleID": row.SampleID,
                 "upload_id": row.upload_id,
                 "project_id": row.project_id,
                 "Latitude": row.Latitude,
                 "Longitude": row.Longitude,
                 "abundance": row.abundance,
+                "domain": (
+                    row.Taxonomy.domain.name if row.Taxonomy.domain else None
+                ),
+                "phylum": (
+                    row.Taxonomy.phylum.name if row.Taxonomy.phylum else None
+                ),
+                "class": (
+                    row.Taxonomy.class_.name if row.Taxonomy.class_ else None
+                ),
+                "order": (
+                    row.Taxonomy.order.name if row.Taxonomy.order else None
+                ),
+                "family": (
+                    row.Taxonomy.family.name if row.Taxonomy.family else None
+                ),
+                "genus": (
+                    row.Taxonomy.genus.name if row.Taxonomy.genus else None
+                ),
+                "species": (
+                    row.Taxonomy.species.name if row.Taxonomy.species else None
+                ),
+            }
+            for row in results
+        ]
+
+        session.close()
+        return formatted_results
+
+    @classmethod
+    def get_otus(cls, sample_id, region):
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        query = (
+            session.query(
+                Taxonomy,
+                OTU.abundance,
+            )
+            .join(Taxonomy, OTU.taxonomy_id == Taxonomy.id)
+            .filter(
+                OTU.sample_id == sample_id,  # Apply filtering
+            )
+        )
+        results = query.all()
+
+        # Format the results
+        formatted_results = [
+            {
+                "abundance": int(row.abundance),
                 "domain": (
                     row.Taxonomy.domain.name if row.Taxonomy.domain else None
                 ),

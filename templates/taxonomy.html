@@ -138,7 +138,9 @@
                   <tr>
                     <td>${row.upload_id}</td>
                     <td><a href="/metadata_form?process_id=${row.upload_id}" target="_blank">${row.project_id}</a></td>
-                    <td>${row.sample_id}</td>
+                    <td>
+                      <a href="/taxonomy/show_otus?sample_id=${row.sample_id}&region=ITS2" target="_blank" class="link">${row.SampleID}</a>
+                    </td>
                     <td>${row.domain || ''}</td>
                     <td>${row.phylum || ''}</td>
                     <td>${row.class || ''}</td>
@@ -224,7 +226,7 @@
     }    
 
     $(document).ready(function() {
-      addMarker(22.5581008950154324, 88.35288699669385, "My text", "https://bbc.co.uk/");
+      // addMarker(22.5581008950154324, 88.35288699669385, "My text", "https://bbc.co.uk/");
     });
 
     async function initMap() {

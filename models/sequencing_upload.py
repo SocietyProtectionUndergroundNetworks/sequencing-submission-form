@@ -19,6 +19,7 @@ from models.db_model import (
     SequencingSequencerIDsTable,
     SequencingFilesUploadedTable,
     SequencingAnalysisTypesTable,
+    Taxonomy,
     UserTable,
     OTU,
 )
@@ -30,7 +31,7 @@ from pathlib import Path
 from flask_login import current_user
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -895,6 +896,23 @@ class SequencingUpload:
                 sequencer["uploaded_files"] = uploaded_files_dict.get(
                     sample_id, {}
                 ).get(sequencer_id, [])
+
+                # Initialize OTU count for the sequencer
+                otu_count = 0
+
+                # Check if the region is ITS1 or ITS2
+                if sequencer["Region"] in ["ITS1", "ITS2"]:
+                    # Query to count the number of OTUs for this sample
+                    otu_count = (
+                        session.query(func.count(Taxonomy.id))
+                        .join(OTU, Taxonomy.id == OTU.taxonomy_id)
+                        .filter(OTU.sample_id == sample_id)
+                        .scalar()
+                    )
+
+                # Add OTU count to the sequencer
+                sequencer["otu_count"] = otu_count
+
             result.append(sample_data)
 
         # Close the session

@@ -1,0 +1,76 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnSuA4Ss2PkkikSOLtYs8BlYIeeIK1h99ty4YfvRPAlzr377vr3CXDb7sb7eEEBYjDtcYj+AjBH3FLv5uSJuXg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js" integrity="sha512-7Pi/otdlbbCR+LnW+F7PwFcSDJOuUJB3OxtEHbg4vSMvzvJjde4Po1v4BR9Gdc9aXNUNFVUY+SK51wWT8WF0Gg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <title>Users</title>
+</head>
+<body>
+  <div class="app-navbar">
+    <a href="https://spun.earth" class="logo"></a>
+    <div class="menu">
+      <ul>
+        <li><a href="https://spun.earth">Spun Website</a></li>
+        <li><a href="/">App homepage</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="container mt-4">
+      <h1>Operational Taxonomic Units (OTUs)</h1>
+      <p>
+        <strong>Project:</strong> 
+        
+        <a href="/metadata_form?process_id={{ upload["id"] }}" target="_blank" class="link">
+          {{ upload["project_id"] }}
+        </a>
+
+      </p>
+      <p><strong>Sample ID:</strong> {{ sample["SampleID"] }}</p>
+      <p><strong>Region:</strong> {{ region }}</p>
+      
+      {% if otus and otus|length > 0 %}
+      <div class="table-responsive">
+          <table class="table table-bordered table-striped">
+              <thead>
+                  <tr>
+                      <th>Domain</th>
+                      <th>Phylum</th>
+                      <th>Class</th>
+                      <th>Order</th>
+                      <th>Family</th>
+                      <th>Genus</th>
+                      <th>Species</th>
+                      <th>Count</th>
+                  </tr>
+              </thead>
+              <tbody>
+                  {% for otu in otus %}
+                  <tr>
+                      <td>{{ otu.domain or '' }}</td>
+                      <td>{{ otu.phylum or '' }}</td>
+                      <td>{{ otu.class or '' }}</td>
+                      <td>{{ otu.order or '' }}</td>
+                      <td>{{ otu.family or '' }}</td>
+                      <td>{{ otu.genus or '' }}</td>
+                      <td>{{ otu.species or '' }}</td>
+                      <td>{{ otu.abundance or '' }}</td>
+                  </tr>
+                  {% endfor %}
+              </tbody>
+          </table>
+      </div>
+      {% else %}
+      <p>No OTUs found for this sample and region.</p>
+      {% endif %}
+  </div>
+
+  <script>
+    
+  </script>
+  <style>
+
+  </style>
+</body>
+</html>

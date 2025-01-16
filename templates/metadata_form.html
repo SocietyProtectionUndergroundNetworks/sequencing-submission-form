@@ -493,6 +493,7 @@
                       <th scope="col" class="bg-gray"><span class="grey">____</span>Region<span class="grey">____</span></th>
                       <th scope="col" class="bg-gray"><span class="grey">____</span>Index_1<span class="grey">____</span></th>
                       <th scope="col" class="bg-gray"><span class="grey">____</span>Index_2<span class="grey">____</span></th>
+                      <th scope="col" class="bg-gray">OTUs</th>
                       <th scope="col" class="bg-gray">Files</th>
                       <th scope="col" class="bg-gray">New Names</th>
                       <th scope="col" class="bg-gray">Report</th>
@@ -531,7 +532,11 @@
                                         <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                                             {{ sequencer.Index_2 if sequencer.Index_2 is not none else 'N/A' }}
                                         </td>
-
+                                        <td id="OTU_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                                            {% if sequencer.otu_count != 0 %}
+                                              <a href="/taxonomy/show_otus?sample_id={{ row.id }}&region={{ sequencer.Region }}" target="_blank" class="link">{{ sequencer.otu_count }}</a>
+                                            {% endif %}
+                                        </td>
                                         <!-- Handling the first file -->
                                         <td id="F_{{ sequencer.id }}_A">
                                             {% if files|length > 0 %}
@@ -659,7 +664,11 @@
                                         <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                                             {{ sequencer.Index_2 if sequencer.Index_2 is not none else 'N/A' }}
                                         </td>
-
+                                        <td id="OTU_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                                          {% if sequencer.otu_count != 0 %}
+                                            <a href="/taxonomy/show_otus?sample_id={{ row.id }}&region={{ sequencer.Region }}" target="_blank" class="link">{{ sequencer.otu_count }}</a>
+                                          {% endif %}
+                                        </td>
                                         <!-- Handling the first file -->
                                         <td id="F_{{ sequencer.id }}_A">
                                             {% if files|length > 0 %}
@@ -792,7 +801,8 @@
                                         <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                                             <span class="red">No sequencer</span>
                                         </td>
-
+                                        <td id="OTU_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                                        </td>
                                         <!-- Handling missing files -->
                                         <td id="F_{{ row.id }}_A">
                                             <span class="red">Not available</span>
@@ -834,7 +844,8 @@
                                         <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                                             <span class="red">No sequencer</span>
                                         </td>
-
+                                        <td id="OTU_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                                        </td>
                                         <!-- Handling missing files -->
                                         <td id="F_{{ row.id }}_A">
                                             <span class="red">Not available</span>
@@ -894,6 +905,11 @@
                             <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                               {{ sequencer.Index_2 if sequencer.Index_2 is not none else 'N/A' }}
                             </td>
+                            <td id="OTU_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                              {% if sequencer.otu_count != 0 %}
+                                <a href="/taxonomy/show_otus?sample_id={{ row.id }}&region={{ sequencer.Region }}" target="_blank" class="link">{{ sequencer.otu_count }}</a>
+                              {% endif %}
+                            </td>                            
                             <td id="F_{{ sequencer.id }}_A">
                               {% if files|length > 0 %}
                                 {{ files[0].original_filename }}
@@ -963,6 +979,11 @@
                             <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                               {{ sequencer.Index_2 if sequencer.Index_2 is not none else 'N/A' }}
                             </td>
+                            <td id="OTU_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                              {% if sequencer.otu_count != 0 %}
+                                <a href="/taxonomy/show_otus?sample_id={{ row.id }}&region={{ sequencer.Region }}" target="_blank" class="link">{{ sequencer.otu_count }}</a>
+                              {% endif %}
+                            </td>                            
                             <td id="F_{{ sequencer.id }}_A">
                               {% if files|length > 0 %}
                                 {{ files[0].original_filename }}
@@ -1005,6 +1026,8 @@
                             <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                               <span class="red">No sequencer</span>
                             </td>
+                            <td id="OTU_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                            </td>                            
                             <td id="F_{{ row.id }}_A">
                               <span class="red">Not available</span>
                             </td>
@@ -1029,6 +1052,8 @@
                             <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                               <span class="red">No sequencer</span>
                             </td>
+                            <td id="OTU_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                            </td>                            
                             <td id="F_{{ row.id }}_A">
                               <span class="red">Not available</span>
                             </td>

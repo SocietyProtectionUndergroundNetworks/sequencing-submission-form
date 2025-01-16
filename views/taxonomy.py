@@ -9,6 +9,8 @@ from flask import (
 )
 from flask_login import current_user, login_required
 from models.taxonomy import TaxonomyManager
+from models.sequencing_sample import SequencingSample
+from models.sequencing_upload import SequencingUpload
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -106,3 +108,38 @@ def taxonomy_search_results():
     limited_results = all_results[:500]  # Return only the first 500 results
 
     return jsonify({"data": limited_results, "total_results": total_results})
+
+
+@taxonomy_bp.route(
+    "/taxonomy/show_otus",
+    methods=["GET"],
+    endpoint="taxonomy_show_otus",
+)
+@login_required
+@approved_required
+def taxonomy_show_otus():
+    sample_id = request.args.get("sample_id", "").strip()
+    region = request.args.get("region", "").strip()
+
+    # Validate region
+    if region not in ["ITS1", "ITS2"]:
+        return (
+            render_template("error.html", message="Invalid region specified."),
+            400,
+        )
+
+    # Query the OTUs for the sample and region
+    otus = TaxonomyManager.get_otus(sample_id=sample_id, region=region)
+
+    sample = SequencingSample.get(sample_id)
+    upload = SequencingUpload.get(sample.sequencingUploadId)
+
+    # Render the template with OTUs data
+    return render_template(
+        "otus.html",
+        sample_id=sample_id,
+        region=region,
+        otus=otus,
+        sample=sample,
+        upload=upload,
+    )
