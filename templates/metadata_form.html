@@ -1501,6 +1501,7 @@
               <th scope="col" class="bg-gray">filtered_rarefaction.pdf</th>
               <th scope="col" class="bg-gray">physeq_decontam.Rdata</th>
               <th scope="col" class="bg-gray">metadata_chaorichness.csv</th>
+              <th scope="col" class="bg-gray">(ecm_/amf_)physeq_by_genus.pdf</th>
               <th scope="col" class="bg-gray">Bucket</th>
             </tr>
           </thead>
@@ -1608,7 +1609,18 @@
                   {% else %}
                     <span class="text-danger">Not Found</span>
                   {% endif %}
-                </td>                
+                </td>  
+                <td>
+                  {% if region_data.files_exist.physeq_by_genus %}
+                    <span class="text-success">
+                      <a href="show_report_outcome?type=physeq_by_genus&process_id={{ process_data.id }}&analysis_type_id={{ region_data.analysis_type_id }}" target="_blank" class="link">
+                        Exists
+                      </a>
+                    </span>
+                  {% else %}
+                    <span class="text-danger">Not Found</span>
+                  {% endif %}
+                </td>
                 <td>
                   {% if region_data.rscripts_status == "Finished" %}
                     {% if region_data.bucket_log_exists %}

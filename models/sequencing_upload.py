@@ -1503,6 +1503,7 @@ class SequencingUpload:
                         "filtered_rarefaction": False,
                         "physeq_decontam": False,
                         "metadata_chaorichness": False,
+                        "physeq_by_genus": False,
                     },
                     "bucket_log_exists": False,
                     "rscripts_command_outcome": False,
@@ -1541,37 +1542,49 @@ class SequencingUpload:
                         library_size_file = os.path.join(
                             report_folder, "LibrarySize.pdf"
                         )
-
-                        control_vs_sample_file = os.path.join(
-                            report_folder, "control_vs_sample.pdf"
-                        )
-                        filtered_rarefaction_file = os.path.join(
-                            report_folder, "filtered_rarefaction.pdf"
-                        )
-                        physeq_decontam_file = os.path.join(
-                            report_folder, "physeq_decontam.Rdata"
-                        )
-                        metadata_chaorichness_file = os.path.join(
-                            report_folder, "metadata_chaorichness.csv"
-                        )
-
-                        # Update the existence status in the result dictionary
                         region_result["files_exist"]["LibrarySize"] = (
                             os.path.isfile(library_size_file)
                         )
 
+                        control_vs_sample_file = os.path.join(
+                            report_folder, "control_vs_sample.pdf"
+                        )
                         region_result["files_exist"]["control_vs_sample"] = (
                             os.path.isfile(control_vs_sample_file)
+                        )
+
+                        filtered_rarefaction_file = os.path.join(
+                            report_folder, "filtered_rarefaction.pdf"
                         )
                         region_result["files_exist"][
                             "filtered_rarefaction"
                         ] = os.path.isfile(filtered_rarefaction_file)
+
+                        physeq_decontam_file = os.path.join(
+                            report_folder, "physeq_decontam.Rdata"
+                        )
                         region_result["files_exist"]["physeq_decontam"] = (
                             os.path.isfile(physeq_decontam_file)
+                        )
+
+                        metadata_chaorichness_file = os.path.join(
+                            report_folder, "metadata_chaorichness.csv"
                         )
                         region_result["files_exist"][
                             "metadata_chaorichness"
                         ] = os.path.isfile(metadata_chaorichness_file)
+
+                        physeq_by_genus_file = os.path.join(
+                            report_folder, "ecm_physeq_by_genus.pdf"
+                        )
+                        if analysis_type.name in ["SSU_dada2", "SSU_vsearch"]:
+                            physeq_by_genus_file = os.path.join(
+                                report_folder, "amf_physeq_by_genus.pdf"
+                            )
+                        region_result["files_exist"]["physeq_by_genus"] = (
+                            os.path.isfile(physeq_by_genus_file)
+                        )
+
                         # Check if we need to verify files in the bucket
                         bucket_directory = (
                             f"lotus2_report/"

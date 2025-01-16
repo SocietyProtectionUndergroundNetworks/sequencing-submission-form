@@ -1403,6 +1403,7 @@ def show_report_outcome():
         "filtered_rarefaction",
         "physeq_decontam",
         "metadata_chaorichness",
+        "physeq_by_genus",
     ]:
         # Fetch process data from SequencingUpload model
         process_data = SequencingUpload.get(process_id)
@@ -1486,6 +1487,7 @@ def show_report_outcome():
             "filtered_rarefaction",
             "physeq_decontam",
             "metadata_chaorichness",
+            "physeq_by_genus",
         ]:
 
             # Check the rscripts report details
@@ -1536,6 +1538,19 @@ def show_report_outcome():
                         report_folder, "metadata_chaorichness.csv"
                     )
                     return send_file(file_path, as_attachment=True)
+                elif file_type == "physeq_by_genus":
+                    file_path = os.path.join(
+                        report_folder, "ecm_physeq_by_genus.pdf"
+                    )
+                    if rscipts_region_data["analysis_type"] in [
+                        "SSU_dada2",
+                        "SSU_vsearch",
+                    ]:
+                        file_path = os.path.join(
+                            report_folder, "amf_physeq_by_genus.pdf"
+                        )
+                    return send_file(file_path, as_attachment=True)
+
                 elif file_type == "rscripts_command_outcome":
                     # fix this !!!
                     command_output = rscipts_region_data[
