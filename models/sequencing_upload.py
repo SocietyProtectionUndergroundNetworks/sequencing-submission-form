@@ -891,27 +891,19 @@ class SequencingUpload:
             sample_data["sequencer_ids"] = sequencer_ids_dict.get(
                 sample_id, []
             )
+
+            sample_data["otu_count"] = (
+                session.query(func.count(Taxonomy.id))
+                .join(OTU, Taxonomy.id == OTU.taxonomy_id)
+                .filter(OTU.sample_id == sample_id)
+                .scalar()
+            )
+
             for sequencer in sample_data["sequencer_ids"]:
                 sequencer_id = sequencer["id"]
                 sequencer["uploaded_files"] = uploaded_files_dict.get(
                     sample_id, {}
                 ).get(sequencer_id, [])
-
-                # Initialize OTU count for the sequencer
-                otu_count = 0
-
-                # Check if the region is ITS1 or ITS2
-                if sequencer["Region"] in ["ITS1", "ITS2"]:
-                    # Query to count the number of OTUs for this sample
-                    otu_count = (
-                        session.query(func.count(Taxonomy.id))
-                        .join(OTU, Taxonomy.id == OTU.taxonomy_id)
-                        .filter(OTU.sample_id == sample_id)
-                        .scalar()
-                    )
-
-                # Add OTU count to the sequencer
-                sequencer["otu_count"] = otu_count
 
             result.append(sample_data)
 

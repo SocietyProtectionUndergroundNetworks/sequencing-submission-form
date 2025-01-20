@@ -189,11 +189,6 @@ if (str_detect(args$lotus2, "SSU_dada2")) {
     amf_physeq
   )
 
-  otu_long <- otu_table(amf_physeq_truesamples) %>%
-    as.data.frame() %>%
-    rownames_to_column("OTU") %>%
-    pivot_longer(!OTU, names_to = "sample_id", values_to = "abundance") %>%
-    filter(abundance != 0)
 }
 
 ## if SSU_vsearch then
@@ -266,11 +261,30 @@ if (str_detect(args$lotus2, "SSU_vsearch")) {
 
   write_csv(amf_physeq_as_vt_table,
     str_c(args$output, "/SSU_vsearch_vt_abundance.csv"))
-
-  otu_long <- amf_physeq_as_vt_table %>%
-    pivot_longer(!vt, names_to = "sample_id", values_to = "abundance") %>%
-    filter(abundance != 0)
+    
 }
+
+## In both cases export the OTUs table
+
+# Extract the OTUs
+otu_long <- otu_table(amf_physeq_truesamples) %>%
+  as.data.frame() %>%
+  rownames_to_column("OTU") %>%
+  pivot_longer(!OTU, names_to = "sample_id", values_to = "abundance") %>%
+  filter(abundance != 0)    
+
+# Extract taxonomy data
+taxonomy_data <- tax_table(amf_physeq_truesamples) %>%
+  as.data.frame() %>%
+  rownames_to_column("OTU")
+
+# Combine OTU table with taxonomy data
+otu_full_data <- otu_long %>%
+  left_join(taxonomy_data, by = "OTU")
+
+# Export the combined data to a CSV file
+fwrite(otu_full_data, file = str_c(args$output, "/otu_full_data.csv"))
+
 
 div.output <- foreach(i = unique(otu_long$sample_id), .final = function(i) setNames(i, unique(otu_long$sample_id))) %do% {
   freq_list <- otu_long %>%

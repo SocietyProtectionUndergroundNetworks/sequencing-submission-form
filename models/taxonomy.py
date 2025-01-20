@@ -9,6 +9,8 @@ from models.db_model import (
     Genus,
     Species,
     Taxonomy,
+    SequencingAnalysisTable,
+    SequencingAnalysisTypesTable,
     SequencingSamplesTable,
     SequencingUploadsTable,
     OTU,
@@ -318,23 +320,40 @@ class TaxonomyManager:
     def get_otus(cls, sample_id, region):
         db_engine = connect_db()
         session = get_session(db_engine)
-
         query = (
             session.query(
                 Taxonomy,
                 OTU.abundance,
+                SequencingAnalysisTypesTable.name.label("analysis_type"),
             )
-            .join(Taxonomy, OTU.taxonomy_id == Taxonomy.id)
-            .filter(
-                OTU.sample_id == sample_id,  # Apply filtering
-            )
+            .join(
+                Taxonomy, OTU.taxonomy_id == Taxonomy.id
+            )  # Join with Taxonomy
+            .join(
+                SequencingAnalysisTable,
+                OTU.sequencing_analysis_id == SequencingAnalysisTable.id,
+            )  # Join with SequencingAnalysisTable
+            .join(
+                SequencingAnalysisTypesTable,
+                SequencingAnalysisTable.sequencingAnalysisTypeId
+                == SequencingAnalysisTypesTable.id,
+            )  # Join with SequencingAnalysisTypesTable
         )
+
+        # Apply filter for sample_id (always required)
+        query = query.filter(OTU.sample_id == sample_id)
+
+        # Conditionally add region filter
+        if region in ["ITS1", "ITS2", "SSU"]:
+            query = query.filter(SequencingAnalysisTypesTable.region == region)
+
         results = query.all()
 
         # Format the results
         formatted_results = [
             {
                 "abundance": int(row.abundance),
+                "analysis_type": row.analysis_type,
                 "domain": (
                     row.Taxonomy.domain.name if row.Taxonomy.domain else None
                 ),

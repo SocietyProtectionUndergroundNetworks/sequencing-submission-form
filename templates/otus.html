@@ -43,6 +43,7 @@
                       <th>Genus</th>
                       <th>Species</th>
                       <th>Count</th>
+                      <th>Analysis Type</th>
                   </tr>
               </thead>
               <tbody>
@@ -56,6 +57,7 @@
                       <td>{{ otu.genus or '' }}</td>
                       <td>{{ otu.species or '' }}</td>
                       <td>{{ otu.abundance or '' }}</td>
+                      <td>{{ otu.analysis_type or '' }}</td>
                   </tr>
                   {% endfor %}
               </tbody>

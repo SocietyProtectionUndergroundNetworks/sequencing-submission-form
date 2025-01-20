@@ -121,13 +121,6 @@ def taxonomy_show_otus():
     sample_id = request.args.get("sample_id", "").strip()
     region = request.args.get("region", "").strip()
 
-    # Validate region
-    if region not in ["ITS1", "ITS2"]:
-        return (
-            render_template("error.html", message="Invalid region specified."),
-            400,
-        )
-
     # Query the OTUs for the sample and region
     otus = TaxonomyManager.get_otus(sample_id=sample_id, region=region)
 
