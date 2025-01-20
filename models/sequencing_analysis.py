@@ -356,9 +356,7 @@ class SequencingAnalysis:
             )
 
             if not records_to_delete:
-                logger.info(
-                    f"No otu found for analysis_id {analysis_id}."
-                )
+                logger.info(f"No otu found for analysis_id {analysis_id}.")
                 return False
 
             # Delete the records

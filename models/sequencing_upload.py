@@ -1618,7 +1618,9 @@ class SequencingUpload:
             SequencingFileUploaded.update_primer_occurrences_count(file["id"])
 
     @classmethod
-    def process_otu_data(cls, csv_file_path, sequencing_upload_id, analysis_id):
+    def process_otu_data(
+        cls, csv_file_path, sequencing_upload_id, analysis_id
+    ):
         from models.taxonomy import TaxonomyManager
 
         # Step 1: Open and read the CSV file

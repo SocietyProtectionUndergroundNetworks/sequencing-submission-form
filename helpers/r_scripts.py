@@ -130,7 +130,9 @@ def generate_rscripts_report(process_id, input_dir, region, analysis_type_id):
                     + analysis_type.name
                     + "/otu_full_data.csv"
                 )
-                SequencingUpload.process_otu_data(otu_full_data, process_id, analysis_id)
+                SequencingUpload.process_otu_data(
+                    otu_full_data, process_id, analysis_id
+                )
 
         else:
             logger.info(
