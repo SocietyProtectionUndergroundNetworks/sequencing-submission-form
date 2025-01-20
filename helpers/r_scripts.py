@@ -130,7 +130,7 @@ def generate_rscripts_report(process_id, input_dir, region, analysis_type_id):
                     + analysis_type.name
                     + "/otu_full_data.csv"
                 )
-                SequencingUpload.process_otu_data(otu_full_data, process_id)
+                SequencingUpload.process_otu_data(otu_full_data, process_id, analysis_id)
 
         else:
             logger.info(
@@ -183,6 +183,7 @@ def delete_generated_rscripts_report(
                 analysis_id, "rscripts_result", None
             )
             SequencingAnalysis.delete_richness_data(analysis_id)
+            SequencingAnalysis.delete_otu_data(analysis_id)
 
             output_path = input_dir + "/r_output/" + analysis_type.name
             if os.path.exists(output_path):

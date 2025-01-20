@@ -8,6 +8,7 @@ from models.db_model import (
     SequencingAnalysisTypesTable,
     SequencingUploadsTable,
     SequencingAnalysisSampleRichnessTable,
+    OTU,
 )
 from helpers.dbm import connect_db, get_session
 
@@ -323,6 +324,58 @@ class SequencingAnalysis:
         except Exception as e:
             logger.error(
                 f"Error deleting richness "
+                f"data for analysis_id {analysis_id}: {str(e)}"
+            )
+            session.rollback()
+            raise
+
+        finally:
+            session.close()
+
+    @classmethod
+    def delete_otu_data(cls, analysis_id):
+        """
+        Deletes all OTU data associated with the given analysis_id.
+
+        Args:
+            analysis_id (int): The ID of the analysis for
+                                which to delete richness data.
+
+        Returns:
+            bool: True if records were deleted, False if no records were found.
+        """
+        db_engine = connect_db()
+        session = get_session(db_engine)
+
+        try:
+            # Query for all richness records associated with the analysis_id
+            records_to_delete = (
+                session.query(OTU)
+                .filter_by(sequencing_analysis_id=analysis_id)
+                .all()
+            )
+
+            if not records_to_delete:
+                logger.info(
+                    f"No otu found for analysis_id {analysis_id}."
+                )
+                return False
+
+            # Delete the records
+            for record in records_to_delete:
+                session.delete(record)
+
+            # Commit the changes
+            session.commit()
+            logger.info(
+                f"Deleted {len(records_to_delete)} richness "
+                f"records for analysis_id {analysis_id}."
+            )
+            return True
+
+        except Exception as e:
+            logger.error(
+                f"Error deleting otu "
                 f"data for analysis_id {analysis_id}: {str(e)}"
             )
             session.rollback()

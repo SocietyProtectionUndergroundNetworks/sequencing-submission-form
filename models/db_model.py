@@ -189,7 +189,12 @@ class SequencingAnalysisTable(Base):
         nullable=True,
     )
     parameters = Column(JSON(none_as_null=True))
-
+    # Define the relationship to OTU
+    otus = relationship(
+        "OTU",
+        back_populates="sequencing_analysis",
+        cascade="all, delete-orphan",  # Enable cascading delete
+    )
 
 class SequencingAnalysisSampleRichnessTable(Base):
     __tablename__ = "sequencing_analysis_sample_richness"
@@ -443,7 +448,9 @@ class OTU(Base):
         Integer, ForeignKey("sequencing_samples.id"), nullable=False
     )
     taxonomy_id = Column(Integer, ForeignKey("taxonomy.id"), nullable=False)
-    abundance = Column(Float, nullable=True)
+    abundance = Column(Integer, nullable=True)
+    sequencing_analysis_id = Column(Integer, ForeignKey("sequencing_analysis.id"), nullable=False)
 
     sample = relationship("SequencingSamplesTable", back_populates="otus")
     taxonomy = relationship("Taxonomy")
+    sequencing_analysis = relationship("SequencingAnalysisTable")
