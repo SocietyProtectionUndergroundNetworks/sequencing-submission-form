@@ -177,31 +177,42 @@ def generate_lotus2_report(
             parameters = parameters | analysis_type.parameters
             clustering = parameters["clustering"]
 
-            # The following two is if we want to use
-            # The FULL SILVA database
-            refDB = (
-                "/lotus2_files/vt_types_fasta_from_05-06-2019.qiime.fasta,SLV"
-            )
-
-            tax4refDB = "/lotus2_files/vt_types_GF.txt"
-
-            # The following two is if we want to use
-            # The reduced SILVA database
-            refDB = (
-                "/lotus2_files/vt_types_fasta_from_05-06-2019.qiime.fasta,"
-                "/lotus2_files/SLV_138.1_SSU_NO_AMF.fasta"
-            )
-
-            tax4refDB = (
-                "/lotus2_files/vt_types_GF.txt,"
-                "/lotus2_files/SLV_138.1_SSU_NO_AMF.tax"
-            )
-
             sdmopt = (
                 "/home/condauser/miniconda/envs/lotus2_env/share/"
                 "lotus2-2.34.1-0/configs/sdm_miSeq2.txt"
             )
+
             mapping_file = input_dir + "/mapping_files/SSU_Mapping.txt"
+
+            if analysis_type.name in ["SSU_dada2", "SSU_vsearch"]:
+
+                # The following two is if we want to use
+                # The FULL SILVA database
+                refDB = (
+                    "/lotus2_files"
+                    "/vt_types_fasta_from_05-06-2019.qiime.fasta,SLV"
+                )
+
+                tax4refDB = "/lotus2_files/vt_types_GF.txt"
+
+                # The following two is if we want to use
+                # The reduced SILVA database
+                refDB = (
+                    "/lotus2_files/vt_types_fasta_from_05-06-2019.qiime.fasta,"
+                    "/lotus2_files/SLV_138.1_SSU_NO_AMF.fasta"
+                )
+
+                tax4refDB = (
+                    "/lotus2_files/vt_types_GF.txt,"
+                    "/lotus2_files/SLV_138.1_SSU_NO_AMF.tax"
+                )
+
+            elif analysis_type.name in ["SSU_eukaryome"]:
+
+                # eukaryome database
+                refDB = "/lotus2_files/mothur_EUK_SSU_v1.9.3.fasta"
+
+                tax4refDB = "/lotus2_files/vt_types_GF.txt"
 
             command = [
                 "lotus2",
@@ -233,6 +244,7 @@ def generate_lotus2_report(
                 "-sdmopt",
                 sdmopt,
             ]
+
             command_str = "source activate lotus2_env && " + " ".join(command)
             logger.info(" - the command is: ")
             logger.info(command_str)
