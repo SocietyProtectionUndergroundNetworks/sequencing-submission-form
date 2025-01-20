@@ -212,7 +212,7 @@ def generate_lotus2_report(
                 # eukaryome database
                 refDB = "/lotus2_files/mothur_EUK_SSU_v1.9.3.fasta"
 
-                tax4refDB = "/lotus2_files/vt_types_GF.txt"
+                tax4refDB = "/lotus2_files/mothur_EUK_SSU_v1.9.3.tax"
 
             command = [
                 "lotus2",
