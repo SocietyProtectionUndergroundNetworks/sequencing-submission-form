@@ -40,6 +40,7 @@ from helpers.file_renaming import calculate_md5
 from helpers.lotus2 import (
     init_generate_lotus2_report,
     delete_generated_lotus2_report,
+    init_generate_all_lotus2_reports,
 )
 from helpers.r_scripts import (
     init_generate_rscripts_report,
@@ -1839,4 +1840,32 @@ def export_all_richness_data():
     SequencingAnalysis.export_richness_data(
         4, export_path + "/richness_ITS1.csv"
     )
+    return jsonify({"done": 1}), 200
+
+
+@metadata_bp.route(
+    "/generate_all_lotus2_reports",
+    methods=["GET"],
+    endpoint="generate_all_lotus2_reports",
+)
+@login_required
+@approved_required
+@admin_required
+def generate_all_lotus2_reports():
+    anti_nuke_env = os.environ.get("ANTI_NUKE_STRING")
+    # process_id = request.form.get("process_id")
+    analysis_type_id = request.args.get("analysis_type_id")
+    anti_nuke = request.args.get("anti_nuke")
+    if (
+        anti_nuke_env is not None
+        and anti_nuke_env != ""
+        and anti_nuke_env == anti_nuke
+    ):
+        if analysis_type_id is not None:
+            init_generate_all_lotus2_reports(analysis_type_id)
+        else:
+            return jsonify({"result": "Something wrong with your input"})
+    else:
+        return jsonify({"result": "Not passing antinuke"})
+
     return jsonify({"done": 1}), 200

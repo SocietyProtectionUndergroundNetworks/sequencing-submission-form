@@ -16,7 +16,10 @@ from helpers.fastqc import (
     create_fastqc_report,
     create_multiqc_report,
 )
-from helpers.lotus2 import generate_lotus2_report
+from helpers.lotus2 import (
+    generate_lotus2_report,
+    generate_all_lotus2_reports,
+)
 from helpers.r_scripts import (
     generate_rscripts_report,
     generate_all_rscripts_reports,
@@ -91,6 +94,26 @@ def generate_rscripts_report_async(
 @celery_app.task
 def generate_all_rscripts_reports_async(amplicon_type, analysis_type_id):
     generate_all_rscripts_reports(amplicon_type, analysis_type_id)
+
+
+@celery_app.task
+def generate_all_lotus2_reports_async(analysis_type_id):
+    lock_key = f"celery-lock:generate_all_lotus2_reports:{analysis_type_id}"
+    try:
+        # Try to acquire the lock
+        with redis_lock(lock_key):
+            # If lock is acquired, proceed with the task
+            generate_all_lotus2_reports(analysis_type_id)
+
+    except Exception:
+        # If the task is already locked (running), log a
+        # message instead of raising an error
+        logger.info(
+            f"Task generate_all_lotus2_reports_async for "
+            f"analysis_type_id:{analysis_type_id} "
+            f"is already running. "
+            "Skipping execution."
+        )
 
 
 @celery_app.task
