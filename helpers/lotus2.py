@@ -212,7 +212,12 @@ def generate_lotus2_report(
                 # eukaryome database
                 refDB = "/lotus2_files/mothur_EUK_SSU_v1.9.3.fasta"
 
-                tax4refDB = "/lotus2_files/mothur_EUK_SSU_v1.9.3.tax"
+                # Special version of the .tax file for this database
+                # We had to add a space after the first tab
+                # and after each ; (field seperator) so that
+                # the taxonomy that gets produced doesnt have the first
+                # letter of each category cut out
+                tax4refDB = "/lotus2_files/mothur_EUK_SSU_v1.9.3_lotus.tax"
 
             command = [
                 "lotus2",
