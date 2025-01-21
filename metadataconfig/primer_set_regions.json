@@ -36,7 +36,7 @@
   },
   "ITS1/ITS2": {
     "Region": "ITS1",
-    "Forward Primer": "TCCGTAGGTGAACCTGCGG",
+    "Forward Primer": "CTTGGTCATTTAGAGGAAGTAA",
     "Reverse Primer": "GCTGCGTTCTTCATCGATGC"
   },
   "ITS1/ITS3": {
