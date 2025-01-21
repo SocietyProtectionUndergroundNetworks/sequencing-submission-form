@@ -39,16 +39,22 @@ if [ -z "$sequences" ]; then
   echo "No sequences found for \"$PRIMER_KEY\" in the JSON file."
   exit 1
 fi
-# echo "Unique sequences extracted: $sequences"
+echo "Unique sequences extracted: $sequences"
 
 # Loop through each unique primer sequence
 while IFS= read -r sequence; do
   # Extract primer names and filter the second part
   primer_names=$(jq -r "to_entries | map(select(.value[\"$PRIMER_KEY\"] == \"$sequence\")) | .[].key" "$PRIMERS_FILE")
 
-  # Get the second part of the primer name (e.g., ITS2 from "ITS1/ITS2")
-  primer_name_second_part=$(echo "$primer_names" | awk -F'/' '{print $2}' | head -n 1)
-
+  # Get the primer name based on the primer type
+  if [ "$PRIMER_KEY" == "Forward Primer" ]; then
+    # For forward primers, use the first part of the name
+    primer_name_part=$(echo "$primer_names" | awk -F'/' '{print $1}' | head -n 1)
+  else
+    # For reverse primers, use the second part of the name
+    primer_name_part=$(echo "$primer_names" | awk -F'/' '{print $2}' | head -n 1)
+  fi
+  
   # Count total occurrences of the sequence in the .fastq.gz file
   total_count=$(zgrep -o "$sequence" "$FASTQ_FILE" | wc -l)
 
@@ -56,5 +62,5 @@ while IFS= read -r sequence; do
   beginning_count=$(zgrep -o "^$sequence" "$FASTQ_FILE" | wc -l)
 
   # Print the results in the desired format: second part of primer name (sequence): total_count (beginning_count)
-  echo "$primer_name_second_part ($sequence): Total found $total_count. Beginning of line $beginning_count"
+  echo "$primer_name_part ($sequence): Total found $total_count. Beginning of line $beginning_count"
 done <<< "$sequences"
