@@ -1,6 +1,7 @@
 import logging
 from celery import current_app as celery_app
 from redis import Redis
+from redis.exceptions import LockError
 from contextlib import contextmanager
 from helpers.bucket import (
     upload_raw_file_to_storage,
@@ -97,23 +98,27 @@ def generate_all_rscripts_reports_async(amplicon_type, analysis_type_id):
 
 
 @celery_app.task
-def generate_all_lotus2_reports_async(analysis_type_id):
+def generate_all_lotus2_reports_async(analysis_type_id, from_id, to_id):
     lock_key = f"celery-lock:generate_all_lotus2_reports:{analysis_type_id}"
     try:
         # Try to acquire the lock
         with redis_lock(lock_key):
             # If lock is acquired, proceed with the task
-            generate_all_lotus2_reports(analysis_type_id)
-
-    except Exception:
-        # If the task is already locked (running), log a
-        # message instead of raising an error
+            generate_all_lotus2_reports(analysis_type_id, from_id, to_id)
+    except LockError:
+        # If a lock error occurs, log a message indicating the task is locked
         logger.info(
             f"Task generate_all_lotus2_reports_async for "
             f"analysis_type_id:{analysis_type_id} "
-            f"is already running. "
-            "Skipping execution."
+            f"is already running. Skipping execution."
         )
+    except Exception as e:
+        # Handle other exceptions separately
+        logger.error(
+            f"An unexpected error occurred in "
+            f"generate_all_lotus2_reports_async: {e}"
+        )
+        raise
 
 
 @celery_app.task

@@ -1856,13 +1856,15 @@ def generate_all_lotus2_reports():
     # process_id = request.form.get("process_id")
     analysis_type_id = request.args.get("analysis_type_id")
     anti_nuke = request.args.get("anti_nuke")
+    from_id = request.args.get("from_id")
+    to_id = request.args.get("to_id")
     if (
         anti_nuke_env is not None
         and anti_nuke_env != ""
         and anti_nuke_env == anti_nuke
     ):
         if analysis_type_id is not None:
-            init_generate_all_lotus2_reports(analysis_type_id)
+            init_generate_all_lotus2_reports(analysis_type_id, from_id, to_id)
         else:
             return jsonify({"result": "Something wrong with your input"})
     else:
