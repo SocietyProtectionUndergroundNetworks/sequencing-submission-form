@@ -292,7 +292,7 @@
                               <!-- Links for individual analysis types -->
                               {% for analysis_type_id, analysis_data in row.otu_counts.items() %}
                                 <a href="/taxonomy/show_otus?sample_id={{ row.id }}&analysis_type_id={{ analysis_type_id }}" target="_blank" class="link">
-                                  {{ analysis_data.name }} ({{ analysis_data.count }})
+                                  {{ analysis_data.name }}
                                 </a>
                               {% endfor %}
                             {% endif %}

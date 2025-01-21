@@ -193,7 +193,7 @@ def taxonomy_download_otus_csv():
             "Family",
             "Genus",
             "Species",
-            "Count",
+            "ReadsCount",
         ]
     )
     last_analysis_type = ""
