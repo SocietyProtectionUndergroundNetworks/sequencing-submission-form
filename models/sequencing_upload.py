@@ -18,6 +18,7 @@ from models.db_model import (
     SequencingSamplesTable,
     SequencingSequencerIDsTable,
     SequencingFilesUploadedTable,
+    SequencingAnalysisTable,
     SequencingAnalysisTypesTable,
     Taxonomy,
     UserTable,
@@ -392,8 +393,54 @@ class SequencingUpload:
                 for column in instance.__table__.columns
             }
 
-        # Convert each sample instance to a dictionary
-        samples_list = [as_dict(sample) for sample in samples]
+        # Convert each sample instance to a dictionary and add otu_counts
+        samples_list = []
+        for sample in samples:
+            sample_data = as_dict(sample)
+            sample_id = sample_data.get("id")  # Get the sample id
+
+            # Initialize the otu_counts dictionary
+            otu_counts = {}
+
+            # Query to get the counts grouped by analysis
+            # type name and analysis_type_id
+            counts = (
+                session.query(
+                    SequencingAnalysisTypesTable.name,
+                    func.count(Taxonomy.id),
+                    SequencingAnalysisTypesTable.id,
+                )
+                .join(OTU, OTU.taxonomy_id == Taxonomy.id)
+                .join(
+                    SequencingAnalysisTable,
+                    SequencingAnalysisTable.id == OTU.sequencing_analysis_id,
+                )
+                .join(
+                    SequencingAnalysisTypesTable,
+                    SequencingAnalysisTypesTable.id
+                    == SequencingAnalysisTable.sequencingAnalysisTypeId,
+                )
+                .filter(OTU.sample_id == sample_id)
+                .group_by(
+                    SequencingAnalysisTypesTable.name,
+                    SequencingAnalysisTypesTable.id,
+                )
+                .all()
+            )
+
+            # Populate the otu_counts dictionary with
+            # analysis_type_id, name, and count
+            for analysis_name, count, analysis_type_id in counts:
+                otu_counts[analysis_type_id] = {
+                    "name": analysis_name,
+                    "count": count,
+                }
+
+            # Add the otu_counts dictionary to the sample data
+            sample_data["otu_counts"] = otu_counts
+
+            # Append the updated sample data to the list
+            samples_list.append(sample_data)
 
         # Close the session
         session.close()
@@ -890,13 +937,6 @@ class SequencingUpload:
         for sample_id, sample_data in samples_dict.items():
             sample_data["sequencer_ids"] = sequencer_ids_dict.get(
                 sample_id, []
-            )
-
-            sample_data["otu_count"] = (
-                session.query(func.count(Taxonomy.id))
-                .join(OTU, Taxonomy.id == OTU.taxonomy_id)
-                .filter(OTU.sample_id == sample_id)
-                .scalar()
             )
 
             for sequencer in sample_data["sequencer_ids"]:

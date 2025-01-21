@@ -317,13 +317,14 @@ class TaxonomyManager:
         return formatted_results
 
     @classmethod
-    def get_otus(cls, sample_id, region):
+    def get_otus(cls, sample_id, region, analysis_type_id):
         db_engine = connect_db()
         session = get_session(db_engine)
         query = (
             session.query(
                 Taxonomy,
                 OTU.abundance,
+                OTU.sample_id,
                 SequencingAnalysisTypesTable.name.label("analysis_type"),
             )
             .join(
@@ -346,6 +347,14 @@ class TaxonomyManager:
         # Conditionally add region filter
         if region in ["ITS1", "ITS2", "SSU"]:
             query = query.filter(SequencingAnalysisTypesTable.region == region)
+
+        # Check if the analysis_type_id is a valid integer
+        if analysis_type_id and analysis_type_id.isdigit():
+            analysis_type_id = int(analysis_type_id)
+            # Conditionally add analysis_type_id filter if it's numeric
+            query = query.filter(
+                SequencingAnalysisTypesTable.id == analysis_type_id
+            )
 
         results = query.all()
 

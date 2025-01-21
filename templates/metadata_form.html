@@ -256,7 +256,7 @@
               <tr>
                   <th scope="col" class="bg-gray">DbID</th>
                   <th scope="col" class="bg-gray"><span class="grey">____</span>Sequencer_IDs<span class="grey">____</span></th>
-                  <th scope="col" class="bg-gray"><span class="grey">__</span>OTU<span class="grey">__</span></th>
+                  <th scope="col" class="bg-gray"><span class="grey">____</span>OTU<span class="grey">____</span></th>
                   {% for expectedColumn in expected_columns.keys() %}
                       <th scope="col">{{ expectedColumn }}</th>
                   {% endfor %}
@@ -279,9 +279,23 @@
                             {% endif %}
                           </td>
                           <td>
-                            {% if row.otu_count != 0 %}
-                              <a href="/taxonomy/show_otus?sample_id={{ row.id }}" target="_blank" class="link">Full list</a>
-                            {% endif %}                          
+                            {% if row.otu_counts %}
+                              {% set analysis_count = row.otu_counts | length %}
+                              
+                              {% if analysis_count > 1 %}
+                                <!-- Link for "All" -->
+                                <a href="/taxonomy/show_otus?sample_id={{ row.id }}" target="_blank" class="link">
+                                  All 
+                                </a> <br>
+                              {% endif %}
+
+                              <!-- Links for individual analysis types -->
+                              {% for analysis_type_id, analysis_data in row.otu_counts.items() %}
+                                <a href="/taxonomy/show_otus?sample_id={{ row.id }}&analysis_type_id={{ analysis_type_id }}" target="_blank" class="link">
+                                  {{ analysis_data.name }} ({{ analysis_data.count }})
+                                </a>
+                              {% endfor %}
+                            {% endif %}
                           </td>
                           {% for column in expected_columns.keys() %}
                               <td>{{ row[column] }}</td>

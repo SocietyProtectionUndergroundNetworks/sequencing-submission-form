@@ -29,6 +29,9 @@
       </p>
       <p><strong>Sample ID:</strong> {{ sample["SampleID"] }}</p>
       <p><strong>Region:</strong> {{ region }}</p>
+      <p><strong>Analysis type:</strong> {{ analysis_type }}</p>
+      <p><a href="/taxonomy/download_otus_csv?{{ request.args.to_dict(flat=True)|urlencode }}">Download</a></p>
+      
       
       {% if otus and otus|length > 0 %}
       <div class="table-responsive">

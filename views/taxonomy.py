@@ -1,4 +1,6 @@
 import logging
+import csv
+import io
 from flask import (
     redirect,
     Blueprint,
@@ -6,6 +8,7 @@ from flask import (
     request,
     url_for,
     jsonify,
+    Response,
 )
 from flask_login import current_user, login_required
 from models.taxonomy import TaxonomyManager
@@ -120,12 +123,24 @@ def taxonomy_search_results():
 def taxonomy_show_otus():
     sample_id = request.args.get("sample_id", "").strip()
     region = request.args.get("region", "").strip()
+    analysis_type_id = request.args.get("analysis_type_id", "").strip()
 
     # Query the OTUs for the sample and region
-    otus = TaxonomyManager.get_otus(sample_id=sample_id, region=region)
+    otus = TaxonomyManager.get_otus(
+        sample_id=sample_id, region=region, analysis_type_id=analysis_type_id
+    )
 
     sample = SequencingSample.get(sample_id)
     upload = SequencingUpload.get(sample.sequencingUploadId)
+
+    analysis_type = ""
+    # Check if the analysis_type_id is a valid integer
+    if analysis_type_id and analysis_type_id.isdigit():
+        analysis_type_id = int(analysis_type_id)
+        from models.sequencing_analysis_type import SequencingAnalysisType
+
+        analysis = SequencingAnalysisType.get(analysis_type_id)
+        analysis_type = analysis.name
 
     # Render the template with OTUs data
     return render_template(
@@ -135,4 +150,85 @@ def taxonomy_show_otus():
         otus=otus,
         sample=sample,
         upload=upload,
+        analysis_type=analysis_type,
+        analysis_type_id=analysis_type_id,
+    )
+
+
+@taxonomy_bp.route(
+    "/taxonomy/download_otus_csv",
+    methods=["GET"],
+    endpoint="taxonomy_download_otus_csv",
+)
+@login_required
+@approved_required
+def taxonomy_download_otus_csv():
+    sample_id = request.args.get("sample_id", "").strip()
+    region = request.args.get("region", "").strip()
+    analysis_type_id = request.args.get("analysis_type_id", "").strip()
+    sample = SequencingSample.get(sample_id)
+    upload = SequencingUpload.get(sample.sequencingUploadId)
+
+    # Query the OTUs for the sample and region
+    otus = TaxonomyManager.get_otus(
+        sample_id=sample_id, region=region, analysis_type_id=analysis_type_id
+    )
+
+    # Create an in-memory string buffer
+    output = io.StringIO()
+    csv_writer = csv.writer(
+        output, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
+    )
+
+    # Write the header (adjust according to your OTU data structure)
+    csv_writer.writerow(
+        [
+            "Project",
+            "Sample_id",
+            "Analysis_Type",
+            "Domain",
+            "Phylum",
+            "Class",
+            "Order",
+            "Family",
+            "Genus",
+            "Species",
+            "Count",
+        ]
+    )
+    last_analysis_type = ""
+    # Write the rows based on OTU data
+    for otu in otus:
+        last_analysis_type = otu["analysis_type"]
+        csv_writer.writerow(
+            [
+                upload["project_id"],
+                sample.SampleID,
+                otu["analysis_type"],
+                otu["domain"],
+                otu["phylum"],
+                otu["class"],
+                otu["order"],
+                otu["family"],
+                otu["genus"],
+                otu["species"],
+                otu["abundance"],
+            ]
+        )
+
+    # Seek to the start of the StringIO buffer
+    # so it can be read from the beginning
+    output.seek(0)
+    filename = f"attachment;filename=otus_sample_{sample_id}"
+
+    if region:
+        filename += f"_region_{region}"
+
+    if analysis_type_id:
+        filename += f"_analysis_type_{last_analysis_type}"
+    # Return the CSV as a response with appropriate headers for downloading
+    return Response(
+        output,
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"{filename}.csv"},
     )
