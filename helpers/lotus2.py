@@ -353,6 +353,7 @@ def generate_all_lotus2_reports(analysis_type_id, from_id, to_id):
     for process_data in processes_data:
         process_id = process_data["id"]
         # Check if the process_id satisfies the given conditions
+
         if (
             (from_id is None and to_id is None)
             or (
@@ -365,19 +366,16 @@ def generate_all_lotus2_reports(analysis_type_id, from_id, to_id):
                 and from_id <= process_id <= to_id
             )
         ):
-
             for region_type, analysis_list in process_data["analysis"].items():
                 for analysis in analysis_list:
                     if (
-                        analysis["analysis_id"] is not None
-                        and str(analysis_type_id)
+                        str(analysis_type_id)
                         == str(analysis["analysis_type_id"])
                         and analysis["lotus2_status"] is None
                     ):
                         input_dir = (
                             "seq_processed/" + process_data["uploads_folder"]
                         )
-                        logger.info(input_dir)
                         generate_lotus2_report(
                             process_id=process_data["id"],
                             input_dir=input_dir,
