@@ -1247,14 +1247,11 @@ def generate_lotus2_report():
 @admin_required
 def delete_lotus2_report():
     process_id = request.form.get("process_id")
-    region = request.form.get("region")
     analysis_type_id = request.form.get("analysis_type_id")
     process_data = SequencingUpload.get(process_id)
 
     input_dir = "seq_processed/" + process_data["uploads_folder"]
-    delete_generated_lotus2_report(
-        process_id, input_dir, region, analysis_type_id
-    )
+    delete_generated_lotus2_report(process_id, input_dir, analysis_type_id)
 
     return jsonify({"result": 1})
 
@@ -1871,3 +1868,44 @@ def generate_all_lotus2_reports():
         return jsonify({"result": "Not passing antinuke"})
 
     return jsonify({"done": 1}), 200
+
+
+@metadata_bp.route(
+    "/delete_all_lotus2_reports",
+    methods=["GET"],
+    endpoint="delete_all_lotus2_reports",
+)
+@login_required
+@approved_required
+@admin_required
+def delete_all_lotus2_reports():
+    anti_nuke_env = os.environ.get("ANTI_NUKE_STRING")
+    analysis_type_id = request.args.get("analysis_type_id")
+    anti_nuke = request.args.get("anti_nuke")
+
+    if (
+        anti_nuke_env is not None
+        and anti_nuke_env != ""
+        and anti_nuke_env == anti_nuke
+        and analysis_type_id is not None
+    ):
+        processes_data = SequencingUpload.get_all()
+
+        for process_data in processes_data:
+            for region_type, analysis_list in process_data["analysis"].items():
+                for analysis in analysis_list:
+                    if (
+                        analysis["analysis_id"] is not None
+                        and analysis["lotus2_status"] == "Finished"
+                        and str(analysis_type_id)
+                        == str(analysis["analysis_type_id"])
+                    ):
+                        input_dir = (
+                            "seq_processed/" + process_data["uploads_folder"]
+                        )
+                        delete_generated_lotus2_report(
+                            process_data["id"], input_dir, analysis_type_id
+                        )
+    else:
+        return jsonify({"result": "Not passing antinuke"})
+    return jsonify({"result": 1})

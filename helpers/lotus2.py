@@ -177,9 +177,7 @@ def generate_lotus2_report(
             parameters = parameters | analysis_type.parameters
             clustering = parameters["clustering"]
 
-            sdmopt = (
-                "/lotus2_files/sdm_miSeq2_SSU_Spun.txt"
-            )
+            sdmopt = "/lotus2_files/sdm_miSeq2_SSU_Spun.txt"
 
             mapping_file = input_dir + "/mapping_files/SSU_Mapping.txt"
 
@@ -290,9 +288,7 @@ def generate_lotus2_report(
         SequencingAnalysis.update_field(analysis_id, "lotus2_result", str(e))
 
 
-def delete_generated_lotus2_report(
-    process_id, input_dir, region, analysis_type_id
-):
+def delete_generated_lotus2_report(process_id, input_dir, analysis_type_id):
 
     if analysis_type_id != 0:
         from models.sequencing_analysis import SequencingAnalysis
