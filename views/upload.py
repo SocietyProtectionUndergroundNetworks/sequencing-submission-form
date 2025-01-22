@@ -195,38 +195,15 @@ def privacy_and_terms():
     return render_template("privacy_and_terms.html")
 
 
-@upload_bp.route("/csv_structure", endpoint="csv_structure")
-def csv_structure():
-    return render_template("csv_structure.html")
-
-
 @upload_bp.route("/app_instructions", endpoint="app_instructions")
 def app_instructions():
-
-    user_should_see_v2 = False
-    if current_user.is_authenticated:
-        user_groups = User.get_user_groups(current_user.id)
-        for group in user_groups:
-            if str(group.version) == "2":
-                user_should_see_v2 = True
-    if user_should_see_v2:
-        return render_template("app_instructions_v2.html")
-    return render_template("app_instructions.html")
+    # leaving it here for legacy.
+    return render_template("app_instructions_v2.html")
 
 
 @upload_bp.route("/app_instructions_v2", endpoint="app_instructions_v2")
 def app_instructions_v2():
     return render_template("app_instructions_v2.html")
-
-
-@upload_bp.route("/csv_sample", endpoint="csv_sample")
-def csv_sample():
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    path = Path(project_root, "static", "csv")
-    csv_path = path / "csv_structure.csv"
-
-    return send_file(csv_path, as_attachment=True)
-
 
 @upload_bp.route(
     "/process_fastq_files_to_gz", endpoint="process_fastq_files_to_gz"
@@ -1034,82 +1011,6 @@ def upload_final_files_route():
     )
 
     return jsonify({"message": "Process initiated"})
-
-
-@upload_bp.route("/user_uploads", methods=["GET"], endpoint="user_uploads")
-@login_required
-@approved_required
-def user_uploads():
-    user_id = request.args.get("user_id")
-    order_by = request.args.get("order_by", "id")
-    if order_by not in ["id", "filesize"]:
-        order_by = "id"
-    user = User.get(user_id)
-    if (current_user.admin) or (current_user.id == user_id):
-        user_uploads = Upload.get_uploads(user_id, order_by=order_by)
-        return render_template(
-            "user_uploads.html",
-            user_uploads=user_uploads,
-            user_id=user_id,
-            is_admin=current_user.admin,
-            username=user.name,
-            user_email=user.email,
-            order_by=order_by,
-        )
-    else:
-        return redirect(url_for("user.only_admins"))
-
-
-@upload_bp.route("/all_uploads", methods=["GET"], endpoint="all_uploads")
-@login_required
-@admin_required
-@approved_required
-def all_uploads():
-    order_by = request.args.get("order_by", "id")
-    if order_by not in ["id", "filesize"]:
-        order_by = "id"
-
-    all_uploads = Upload.get_uploads(None, order_by=order_by)
-    return render_template(
-        "all_uploads.html", all_uploads=all_uploads, order_by=order_by
-    )
-
-
-@upload_bp.route(
-    "/delete_upload_files", methods=["GET"], endpoint="delete_renamed_files"
-)
-@admin_required
-@login_required
-@approved_required
-def delete_upload_files():
-    process_id = request.args.get("process_id")
-    user_id = request.args.get("user_id")
-    upload = Upload.get(process_id)
-    upload.delete_files_from_filesystem()
-    return redirect(url_for("upload.user_uploads", user_id=user_id))
-
-
-@upload_bp.route(
-    "/delete_upload_process", methods=["GET"], endpoint="delete_upload_process"
-)
-@admin_required
-@login_required
-@approved_required
-def delete_upload_process():
-    process_id = request.args.get("process_id")
-    return_to = request.args.get("return_to")
-    order_by = request.args.get("order_by")
-    upload = Upload.get(process_id)
-    uploads_folder = upload.uploads_folder
-    delete_bucket_folder("uploads/" + uploads_folder)
-    Upload.delete_upload_and_files(process_id)
-    if return_to == "user":
-        user_id = request.args.get("user_id")
-        return redirect(
-            url_for("upload.user_uploads", user_id=user_id, order_by=order_by)
-        )
-    else:
-        return redirect(url_for("upload.all_uploads", order_by=order_by))
 
 
 @upload_bp.route(

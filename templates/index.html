@@ -42,45 +42,6 @@
             </a>
           {% endif %}
         {% endif %}
-        {% if (not user_should_see_v2) or current_user.admin %}
-          <h3> Version 1 </h3>
-          {% if gz_filedata %}
-            <a href="/form_resume">
-              <div class="page-menu-item">
-                <div>
-
-                    {% for filename, file_data in gz_filedata.items() %}
-                        {% if 'percent_uploaded' in file_data %}
-                            {% if file_data.percent_uploaded == 100 %}
-                                You have uploaded the file {{ filename }}<br>
-                            {% else %}
-                                {% if file_data.percent_uploaded > 0 %}
-                                    You have previously started uploading a file: {{ filename }}<br>
-                                    Already uploaded: {{ file_data.percent_uploaded }}%<br>
-                                    Enter the form and select the same file to resume uploading<br>
-                                {% endif %}
-                            {% endif %}
-                        {% endif %}
-                    {% endfor %}
-
-                </div>
-
-                <h3>Resume Upload</h3>
-              </div>
-
-            </a>
-          {% endif %}
-          <a href="/user_uploads?user_id={{ user_id }}">
-            <div class="page-menu-item">
-              <h3>Previous uploads</h3>
-            </div>
-          </a>
-          <a href="/form">
-            <div class="page-menu-item">
-              <h3>Start a new upload</h3>
-            </div>
-          </a>
-        {% endif %}
         <a href="/data">
           <div class="page-menu-item">
             <h3>My data</h3>
@@ -108,11 +69,6 @@
         <a href="{{ url_for('user.users') }}">
           <div class="page-menu-item">
             <h3>Users</h3>
-          </div>
-        </a>
-        <a href="{{ url_for('upload.all_uploads') }}">
-          <div class="page-menu-item">
-            <h3>All v1 uploads</h3>
           </div>
         </a>
         <a href="/all_uploads_v2">
