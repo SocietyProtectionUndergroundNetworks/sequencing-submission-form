@@ -178,8 +178,7 @@ def generate_lotus2_report(
             clustering = parameters["clustering"]
 
             sdmopt = (
-                "/home/condauser/miniconda/envs/lotus2_env/share/"
-                "lotus2-2.34.1-0/configs/sdm_miSeq2.txt"
+                "/lotus2_files/sdm_miSeq2_SSU_Spun.txt"
             )
 
             mapping_file = input_dir + "/mapping_files/SSU_Mapping.txt"
@@ -345,6 +344,7 @@ def init_generate_all_lotus2_reports(analysis_type_id, from_id, to_id):
 
 def generate_all_lotus2_reports(analysis_type_id, from_id, to_id):
     from models.sequencing_upload import SequencingUpload
+    from models.sequencing_analysis import SequencingAnalysis
 
     processes_data = SequencingUpload.get_all()
     from_id = int(from_id)
@@ -373,14 +373,32 @@ def generate_all_lotus2_reports(analysis_type_id, from_id, to_id):
                         == str(analysis["analysis_type_id"])
                         and analysis["lotus2_status"] is None
                     ):
-                        input_dir = (
-                            "seq_processed/" + process_data["uploads_folder"]
-                        )
-                        generate_lotus2_report(
-                            process_id=process_data["id"],
-                            input_dir=input_dir,
-                            region=region_type,
-                            debug=False,
-                            analysis_type_id=analysis_type_id,
-                            parameters={},
-                        )
+                        if analysis_type_id != 0:
+                            analysis_id = SequencingAnalysis.create(
+                                process_id, analysis_type_id
+                            )
+                            analysis = SequencingAnalysis.get(analysis_id)
+                            status = analysis.lotus2_status
+
+                            if status is None:
+                                input_dir = (
+                                    "seq_processed/"
+                                    + process_data["uploads_folder"]
+                                )
+                                generate_lotus2_report(
+                                    process_id=process_data["id"],
+                                    input_dir=input_dir,
+                                    region=region_type,
+                                    debug=False,
+                                    analysis_type_id=analysis_type_id,
+                                    parameters={},
+                                )
+                                if analysis_id != 0:
+                                    SequencingAnalysis.update_field(
+                                        analysis_id,
+                                        "lotus2_started_at",
+                                        datetime.utcnow(),
+                                    )
+                                    SequencingAnalysis.update_field(
+                                        analysis_id, "lotus2_status", "Started"
+                                    )
