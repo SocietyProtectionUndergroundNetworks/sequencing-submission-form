@@ -4,6 +4,7 @@ import math
 import logging
 import json
 import pandas as pd
+from unidecode import unidecode
 from flask_login import current_user
 
 logger = logging.getLogger("my_app_logger")
@@ -605,3 +606,60 @@ def check_row(row, expected_columns_data):
     row_result.update(row_issues)
 
     return row_result
+
+
+def get_sequences_based_on_primers(forward_primer, reverse_primer):
+    current_dir = os.path.dirname(__file__)
+    base_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
+    regions_file_path = os.path.join(
+        base_dir, "metadataconfig", "primer_set_regions.json"
+    )
+
+    # Load the JSON file
+    with open(regions_file_path, "r") as f:
+        primer_set_region = json.load(f)
+
+    # Construct the key to search in the JSON
+    search_key = f"{forward_primer}/{reverse_primer}"
+
+    # Check if the key exists in the JSON
+    if search_key in primer_set_region:
+        region_data = primer_set_region[search_key]
+        return {
+            "Region": region_data.get("Region"),
+            "Forward Primer": region_data.get("Forward Primer"),
+            "Reverse Primer": region_data.get("Reverse Primer"),
+        }
+    else:
+        return None
+
+
+def sanitize_string(s):
+    # Escape quotes, special characters,
+    # and transliterate non-Latin characters.
+    if isinstance(s, str):
+        # Transliterate non-Latin characters to Latin equivalents
+        s = unidecode(s)
+        # Escape double quotes
+        s = s.replace('"', '\\"')
+        # Escape newline characters
+        s = s.replace("\n", "\\n")
+        # Escape backslashes
+        s = s.replace("\\", "\\\\")
+    return s
+
+
+def sanitize_data(data):
+    """Recursively sanitize the input data."""
+    if isinstance(data, list):
+        return [
+            sanitize_data(item) for item in data
+        ]  # Sanitize each item in the list
+    elif isinstance(data, dict):
+        return {
+            key: sanitize_data(value) for key, value in data.items()
+        }  # Sanitize each value in the dict
+    else:
+        return sanitize_string(
+            data
+        )  # Escape string if it's not a list or dict

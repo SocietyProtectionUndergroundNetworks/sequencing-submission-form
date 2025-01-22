@@ -12,7 +12,7 @@ from helpers.fastqc import (
     extract_total_sequences_from_fastqc_zip,
     count_primer_occurrences,
 )
-from helpers.csv import get_sequences_based_on_primers
+from helpers.metadata_check import get_sequences_based_on_primers
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
