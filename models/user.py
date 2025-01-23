@@ -3,13 +3,12 @@ from flask_login import UserMixin
 from helpers.dbm import connect_db, get_session
 from models.db_model import (
     UserTable,
-    UploadTable,
     BucketTable,
     UserGroupsTable,
     SequencingUploadsTable,
     user_groups_association,
 )
-from sqlalchemy import func, case
+from sqlalchemy import func
 from sqlalchemy.orm import subqueryload
 import logging
 
@@ -107,24 +106,6 @@ class User(UserMixin):
         db_engine = connect_db()
         session = get_session(db_engine)
 
-        # Subquery to get counts of uploads per user
-        uploads_subquery = (
-            session.query(
-                UploadTable.user_id,
-                func.count(UploadTable.id).label("uploads_count"),
-                func.sum(
-                    case(
-                        (UploadTable.reviewed_by_admin.is_(False), 1), else_=0
-                    )
-                ).label("reviewed_false_count"),
-                func.sum(
-                    case((UploadTable.reviewed_by_admin.is_(True), 1), else_=0)
-                ).label("reviewed_true_count"),
-            )
-            .group_by(UploadTable.user_id)
-            .subquery()
-        )
-
         # Subquery to get group names per user
         groups_subquery = (
             session.query(
@@ -156,22 +137,10 @@ class User(UserMixin):
         all_users_db = (
             session.query(
                 UserTable,
-                func.coalesce(uploads_subquery.c.uploads_count, 0).label(
-                    "uploads_count"
-                ),
-                func.coalesce(
-                    uploads_subquery.c.reviewed_false_count, 0
-                ).label("reviewed_false_count"),
-                func.coalesce(uploads_subquery.c.reviewed_true_count, 0).label(
-                    "reviewed_true_count"
-                ),
                 func.coalesce(groups_subquery.c.groups, "").label("groups"),
                 func.coalesce(
                     sequencing_uploads_subquery.c.uploads_v2_count, 0
                 ).label("uploads_v2_count"),
-            )
-            .outerjoin(
-                uploads_subquery, UserTable.id == uploads_subquery.c.user_id
             )
             .outerjoin(
                 groups_subquery, UserTable.id == groups_subquery.c.user_id
@@ -192,9 +161,6 @@ class User(UserMixin):
         all_users = []
         for (
             user_db,
-            uploads_count,
-            reviewed_false_count,
-            reviewed_true_count,
             groups_str,
             uploads_v2_count,
         ) in all_users_db:
@@ -212,8 +178,6 @@ class User(UserMixin):
                     buckets=user_buckets,
                     groups=user_groups,
                 ),
-                "uploads_count": uploads_count,
-                "reviewed_by_admin_count": reviewed_true_count,
                 "uploads_v2_count": uploads_v2_count,
             }
             all_users.append(user_info)
@@ -397,7 +361,7 @@ class User(UserMixin):
         to_return = {"status": 0, "message": "Not run"}
         # Check if the user has uploads
         uploads_count = (
-            session.query(func.count(UploadTable.id))
+            session.query(func.count(SequencingUploadsTable.id))
             .filter_by(user_id=user_id)
             .scalar()
         )
