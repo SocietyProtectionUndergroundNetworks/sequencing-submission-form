@@ -95,6 +95,7 @@ def taxonomy_search_results():
     family = request.args.get("family")
     genus = request.args.get("genus")
     species = request.args.get("species")
+    project = request.args.get("project")
 
     # Use TaxonomyManager to perform the search
     all_results = TaxonomyManager.search(
@@ -105,6 +106,7 @@ def taxonomy_search_results():
         family=family,
         genus=genus,
         species=species,
+        project=project,
     )
 
     total_results = len(all_results)  # Get total number of results

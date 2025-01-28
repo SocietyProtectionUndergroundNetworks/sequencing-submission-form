@@ -231,6 +231,7 @@ class TaxonomyManager:
         family=None,
         genus=None,
         species=None,
+        project=None,
     ):
         """
         Search for taxonomies based on the given parameters.
@@ -275,7 +276,8 @@ class TaxonomyManager:
             query = query.filter(Taxonomy.genus.has(name=genus))
         if species:
             query = query.filter(Taxonomy.species.has(name=species))
-
+        if project:
+            query = query.filter(SequencingUploadsTable.project_id == project)
         results = query.all()
 
         # Format the results
