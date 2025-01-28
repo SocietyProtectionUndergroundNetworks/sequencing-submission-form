@@ -115,10 +115,9 @@
               );              
               // Build and populate the results table
               let table = `
-                <table class="table table-bordered table-striped">
+                <table class="table table-bordered table-striped table-fit">
                   <thead>
                     <tr>
-                      <th>Upload ID</th>
                       <th>Project</th>
                       <th>Sample ID</th>
                       <th>Domain</th>
@@ -129,6 +128,7 @@
                       <th>Genus</th>
                       <th>Species</th>
                       <th>Count</th>
+                      <th>Analysis Type</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -142,10 +142,9 @@
                 }                
                 table += `
                   <tr>
-                    <td>${row.upload_id}</td>
                     <td><a href="/metadata_form?process_id=${row.upload_id}" target="_blank">${row.project_id}</a></td>
                     <td>
-                      <a href="/taxonomy/show_otus?sample_id=${row.sample_id}&region=ITS2" target="_blank" class="link">${row.SampleID}</a>
+                      <a href="/taxonomy/show_otus?sample_id=${row.sample_id}&region=${row.analysis_type || ''}" target="_blank" class="link">${row.SampleID}</a>
                     </td>
                     <td>${row.domain || ''}</td>
                     <td>${row.phylum || ''}</td>
@@ -155,6 +154,7 @@
                     <td>${row.genus || ''}</td>
                     <td>${row.species || ''}</td>
                     <td>${row.abundance || ''}</td>
+                    <td>${row.analysis_type || ''}</td>
                   </tr>
                 `;
               });
@@ -264,6 +264,16 @@
       width: 700px;
     }
 
-  </style>
+    .table-fit {
+      font-size: 0.90rem; /* Reduce font size */
+      width: 95%; /* Ensure table fits available space */
+    }
+
+    .table-fit th, .table-fit td {
+      white-space: normal; /* Allow text wrapping */
+      word-wrap: break-word; /* Break long words if needed */
+      vertical-align: top; /* Align content to the top for better readability */
+    }
+</style>
 </body>
 </html>

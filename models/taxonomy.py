@@ -251,6 +251,7 @@ class TaxonomyManager:
                 SequencingUploadsTable.project_id,
                 Taxonomy,
                 OTU.abundance,
+                SequencingAnalysisTypesTable.name.label("analysis_type"),
             )
             .join(OTU, OTU.sample_id == SequencingSamplesTable.id)
             .join(Taxonomy, OTU.taxonomy_id == Taxonomy.id)
@@ -258,6 +259,15 @@ class TaxonomyManager:
                 SequencingUploadsTable,
                 SequencingSamplesTable.sequencingUploadId
                 == SequencingUploadsTable.id,
+            )
+            .join(
+                SequencingAnalysisTable,
+                OTU.sequencing_analysis_id == SequencingAnalysisTable.id,
+            )
+            .join(
+                SequencingAnalysisTypesTable,
+                SequencingAnalysisTable.sequencingAnalysisTypeId
+                == SequencingAnalysisTypesTable.id,
             )
         )
 
@@ -290,6 +300,7 @@ class TaxonomyManager:
                 "Latitude": row.Latitude,
                 "Longitude": row.Longitude,
                 "abundance": row.abundance,
+                "analysis_type": row.analysis_type,
                 "domain": (
                     row.Taxonomy.domain.name if row.Taxonomy.domain else None
                 ),
