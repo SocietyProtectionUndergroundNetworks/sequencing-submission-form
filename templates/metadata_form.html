@@ -3196,19 +3196,40 @@
   ////// ############################################# /////////
   ////// ###### MAP HELPER FUNCTIONS START HERE ###### /////////
   ////// ############################################# /////////
-  function addMarker(lat, lng) {
+
+  function addMarker(lat, lng, text = "", link = "") {
       var location = { lat: parseFloat(lat), lng: parseFloat(lng) };
       if (!isNaN(location.lat) && !isNaN(location.lng)) {
           var marker = new google.maps.marker.AdvancedMarkerElement({
               position: location,
-              map: map
+              map: map,
           });
-          //var bounds = new google.maps.LatLngBounds();
-          markersArray.push(marker);
-          bounds.extend(location);
-          map.fitBounds(bounds);
 
-          var maxZoom = 14;
+          // Create the content for the info window
+          let infoContent = `<div style="max-width: 200px;">
+                                <p>${text}</p>
+                                ${link ? `<a href="${link}" target="_blank">View More</a>` : ""}
+                             </div>`;
+
+          // Create an info window
+          var infoWindow = new google.maps.InfoWindow({
+              content: infoContent,
+          });
+
+          // Add a click listener to open the info window when the marker is clicked
+          marker.addListener("click", function () {
+              infoWindow.open({
+                  anchor: marker,
+                  map,
+                  shouldFocus: false,
+              });
+          });
+
+          markersArray.push(marker); // Add marker to the array
+          bounds.extend(location); // Extend bounds to include this marker
+          map.fitBounds(bounds); // Adjust map to fit all markers
+
+          var maxZoom = 14; // Set maximum zoom level
           var listener = google.maps.event.addListener(map, "idle", function () {
               if (map.getZoom() > maxZoom) map.setZoom(maxZoom);
               google.maps.event.removeListener(listener);
@@ -3273,7 +3294,7 @@
         row.hasOwnProperty('Longitude') && row['Longitude'] !== null
       ) {
         // Call addMarker with the values
-        addMarker(row['Latitude'], row['Longitude']);
+        addMarker(row['Latitude'], row['Longitude'], row['SampleID']);
       }
     });
 
