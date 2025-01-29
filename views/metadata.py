@@ -1542,6 +1542,7 @@ def show_report_outcome():
                     if rscipts_region_data["analysis_type"] in [
                         "SSU_dada2",
                         "SSU_vsearch",
+                        "SSU_eukaryome",
                     ]:
                         file_path = os.path.join(
                             report_folder, "amf_physeq_by_genus.pdf"

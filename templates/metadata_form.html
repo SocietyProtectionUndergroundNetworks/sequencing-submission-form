@@ -281,11 +281,11 @@
                           <td>
                             {% if row.otu_counts %}
                               {% set analysis_count = row.otu_counts | length %}
-                              
+
                               {% if analysis_count > 1 %}
                                 <!-- Link for "All" -->
                                 <a href="/taxonomy/show_otus?sample_id={{ row.id }}" target="_blank" class="link">
-                                  All 
+                                  All
                                 </a> <br>
                               {% endif %}
 
@@ -368,7 +368,7 @@
             You can either upload a .xls, .xlsx, .csv file with the following data, or you can fill it in using the form bellow.
           </p>
           <p>
-            Your .xls, .xlsx, .csv file should have three columns with <span class="fw-bold">exactly</span> those column names:
+            Your .xls, .xlsx, .csv file should have five columns with <span class="fw-bold">exactly</span> those column names:
             <ul>
               <li><span class="fw-bold">SampleID</span>, which should match the SampleID from your metadata</li>
               <li>
@@ -909,7 +909,7 @@
                             </td>
                             <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                               {{ sequencer.Index_2 if sequencer.Index_2 is not none else 'N/A' }}
-                            </td>                           
+                            </td>
                             <td id="F_{{ sequencer.id }}_A">
                               {% if files|length > 0 %}
                                 {{ files[0].original_filename }}
@@ -1344,9 +1344,9 @@
                           Debug: <input type="checkbox" id="debug-checkbox" name="debug"> <br>
 
                           {% if region_data.analysis_type=='SSU_dada2' %}
-                            <div>Clustering DADA2</div>                         
+                            <div>Clustering DADA2</div>
                           {% elif region_data.analysis_type=='SSU_vsearch' %}
-                            <div>Clustering VSEARCH</div>                          
+                            <div>Clustering VSEARCH</div>
                           {% elif (region_data.analysis_type=='ITS1' or region_data.analysis_type=='ITS2')%}
                             <h4> Sdmopt:</h4>
                             <div>
@@ -1600,7 +1600,7 @@
                   {% else %}
                     <span class="text-danger">Not Found</span>
                   {% endif %}
-                </td>  
+                </td>
                 <td>
                   {% if region_data.files_exist.physeq_by_genus %}
                     <span class="text-success">
@@ -1803,8 +1803,8 @@
         $('#step_4_msg').html("<p>Sample submited. Please submit the next one.</p>").removeClass('text-danger').addClass('text-success');
         // Show the metadata form
         $('#metadataForm').show();
-    }    
-    
+    }
+
     ////// Choose upload method (form or file) ///////
     $('input[name="upload_method"]').change(function() {
       if (this.value == '1') {
