@@ -158,12 +158,12 @@ ggsave(
 )
 
 
-## if SSU_dada2 then
+## if SSU_dada2 or SSU_eukaryome then
 ## Subset decontam phloseq object to include only
 ## the three classes of Mucoromycota that are AMF
 ## "Glomeromycetes", "Archaeosporomycetes" and "Paraglomeromycetes"
 
-if (str_detect(args$lotus2, "SSU_dada2")) {
+if (str_detect(args$lotus2, "SSU_dada2") | str_detect(args$lotus2, "SSU_eukaryome")) {
 
   amf_physeq <- physeq_decontam %>%
     subset_taxa(
