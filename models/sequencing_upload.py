@@ -1611,7 +1611,11 @@ class SequencingUpload:
                         physeq_by_genus_file = os.path.join(
                             report_folder, "ecm_physeq_by_genus.pdf"
                         )
-                        if analysis_type.name in ["SSU_dada2", "SSU_vsearch"]:
+                        if analysis_type.name in [
+                            "SSU_dada2",
+                            "SSU_vsearch",
+                            "SSU_eukaryome",
+                        ]:
                             physeq_by_genus_file = os.path.join(
                                 report_folder, "amf_physeq_by_genus.pdf"
                             )
