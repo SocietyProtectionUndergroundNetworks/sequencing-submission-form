@@ -194,60 +194,69 @@ def metadata_form():
 
     if process_id:
         process_data = SequencingUpload.get(process_id)
+        logger.info(process_data)
+        if process_data is not None:
 
-        nr_files_per_sequence = process_data["nr_files_per_sequence"]
-        regions = process_data["regions"]
+            nr_files_per_sequence = process_data["nr_files_per_sequence"]
+            regions = process_data["regions"]
 
-        samples_data = SequencingUpload.get_samples(process_id)
+            samples_data = SequencingUpload.get_samples(process_id)
 
-        samples_data = sanitize_data(samples_data)
+            samples_data = sanitize_data(samples_data)
 
-        # lets create the extra data dictionary
-        # Iterate through each sample in samples_data
-        for sample in samples_data:
-            # Ensure that both 'SampleID' and 'extracolumns_json'
-            # exist in the sample
-            if "SampleID" in sample:
-                extracolumns_json = sample.get("extracolumns_json")
+            # lets create the extra data dictionary
+            # Iterate through each sample in samples_data
+            for sample in samples_data:
+                # Ensure that both 'SampleID' and 'extracolumns_json'
+                # exist in the sample
+                if "SampleID" in sample:
+                    extracolumns_json = sample.get("extracolumns_json")
 
-                if extracolumns_json:  # Check if extracolumns_json is not None
-                    # Add to extra_data dictionary
-                    extra_data[sample["SampleID"]] = extracolumns_json
+                    if (
+                        extracolumns_json
+                    ):  # Check if extracolumns_json is not None
+                        # Add to extra_data dictionary
+                        extra_data[sample["SampleID"]] = extracolumns_json
 
-                    # Update the set of unique keys with keys from the
-                    # extracolumns_json dictionary
-                    extra_data_keys.update(extracolumns_json.keys())
-        # lets delete the extracolumns_json from the samples_data
-        for sample in samples_data:
-            if "extracolumns_json" in sample:
-                del sample["extracolumns_json"]
-        sequencer_ids = SequencingUpload.get_sequencer_ids(process_id)
-        valid_samples = SequencingUpload.validate_samples(process_id)
-        missing_sequencing_ids = SequencingUpload.check_missing_sequencer_ids(
-            process_id
-        )
-        samples_data_complete = (
-            SequencingUpload.get_samples_with_sequencers_and_files(process_id)
-        )
+                        # Update the set of unique keys with keys from the
+                        # extracolumns_json dictionary
+                        extra_data_keys.update(extracolumns_json.keys())
+            # lets delete the extracolumns_json from the samples_data
+            for sample in samples_data:
+                if "extracolumns_json" in sample:
+                    del sample["extracolumns_json"]
+            sequencer_ids = SequencingUpload.get_sequencer_ids(process_id)
+            valid_samples = SequencingUpload.validate_samples(process_id)
+            missing_sequencing_ids = (
+                SequencingUpload.check_missing_sequencer_ids(process_id)
+            )
+            samples_data_complete = (
+                SequencingUpload.get_samples_with_sequencers_and_files(
+                    process_id
+                )
+            )
 
-        # check if we have files without fastq report
-        has_empty_fastqc_report = any(
-            not file.get("fastqc_report")
-            for entry in samples_data_complete
-            for sequencer in entry.get("sequencer_ids", [])
-            for file in sequencer.get("uploaded_files", [])
-        )
+            # check if we have files without fastq report
+            has_empty_fastqc_report = any(
+                not file.get("fastqc_report")
+                for entry in samples_data_complete
+                for sequencer in entry.get("sequencer_ids", [])
+                for file in sequencer.get("uploaded_files", [])
+            )
 
-        multiqc_report_exists = check_multiqc_report(process_id)
-        mapping_files_exist = SequencingUpload.check_mapping_files_exist(
-            process_id
-        )
+            multiqc_report_exists = check_multiqc_report(process_id)
+            mapping_files_exist = SequencingUpload.check_mapping_files_exist(
+                process_id
+            )
 
-        lotus2_report = SequencingUpload.check_lotus2_reports_exist(process_id)
-        rscripts_report = SequencingUpload.check_rscripts_reports_exist(
-            process_id
-        )
-
+            lotus2_report = SequencingUpload.check_lotus2_reports_exist(
+                process_id
+            )
+            rscripts_report = SequencingUpload.check_rscripts_reports_exist(
+                process_id
+            )
+        else:
+            return redirect(url_for("metadata.metadata_form"))
     return render_template(
         "metadata_form.html",
         my_buckets=my_buckets,
