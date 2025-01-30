@@ -1853,8 +1853,23 @@ def generate_all_lotus2_reports():
     # process_id = request.form.get("process_id")
     analysis_type_id = request.args.get("analysis_type_id")
     anti_nuke = request.args.get("anti_nuke")
-    from_id = request.args.get("from_id")
-    to_id = request.args.get("to_id")
+    from_id = request.args.get("from_id", default=None)
+    to_id = request.args.get("to_id", default=None)
+    # Convert to integers only if the parameters are provided
+    if from_id is not None:
+        try:
+            from_id = int(from_id)
+        except ValueError:
+            raise ValueError(
+                "Invalid 'from_id' parameter. Must be an integer."
+            )
+
+    if to_id is not None:
+        try:
+            to_id = int(to_id)
+        except ValueError:
+            raise ValueError("Invalid 'to_id' parameter. Must be an integer.")
+
     if (
         anti_nuke_env is not None
         and anti_nuke_env != ""
@@ -1882,8 +1897,22 @@ def delete_all_lotus2_reports():
     anti_nuke_env = os.environ.get("ANTI_NUKE_STRING")
     analysis_type_id = request.args.get("analysis_type_id")
     anti_nuke = request.args.get("anti_nuke")
-    from_id = request.args.get("from_id")
-    to_id = request.args.get("to_id")
+    from_id = request.args.get("from_id", default=None)
+    to_id = request.args.get("to_id", default=None)
+    # Convert to integers only if the parameters are provided
+    if from_id is not None:
+        try:
+            from_id = int(from_id)
+        except ValueError:
+            raise ValueError(
+                "Invalid 'from_id' parameter. Must be an integer."
+            )
+
+    if to_id is not None:
+        try:
+            to_id = int(to_id)
+        except ValueError:
+            raise ValueError("Invalid 'to_id' parameter. Must be an integer.")
 
     if (
         anti_nuke_env is not None
@@ -1897,7 +1926,8 @@ def delete_all_lotus2_reports():
 
             process_id = process_data["id"]
             # Check if the process_id satisfies the given conditions
-
+            from_id = int(from_id)
+            to_id = int(to_id)
             if (
                 (from_id is None and to_id is None)
                 or (
