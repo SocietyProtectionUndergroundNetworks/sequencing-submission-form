@@ -1946,17 +1946,27 @@ def delete_all_lotus2_reports():
                     and from_id <= process_id <= to_id
                 )
             ):
+                logger.info("The process id is " + str(process_id))
 
                 for region_type, analysis_list in process_data[
                     "analysis"
                 ].items():
                     for analysis in analysis_list:
+                        logger.info(
+                            "The analysis id is "
+                            + str(analysis["analysis_id"])
+                        )
+                        logger.info(
+                            "The analysis type id is "
+                            + str(analysis["analysis_type_id"])
+                        )
                         if (
                             analysis["analysis_id"] is not None
                             and analysis["lotus2_status"] == "Finished"
                             and str(analysis_type_id)
                             == str(analysis["analysis_type_id"])
                         ):
+                            logger.info("And we will delete it")
                             input_dir = (
                                 "seq_processed/"
                                 + process_data["uploads_folder"]

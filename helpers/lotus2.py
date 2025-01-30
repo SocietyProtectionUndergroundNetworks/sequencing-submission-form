@@ -43,15 +43,6 @@ def init_generate_lotus2_report(
                     SequencingAnalysis.update_field(
                         analysis_id, "lotus2_celery_task_id", result.id
                     )
-                    SequencingAnalysis.update_field(
-                        analysis_id, "lotus2_started_at", datetime.utcnow()
-                    )
-                    SequencingAnalysis.update_field(
-                        analysis_id, "lotus2_status", "Started"
-                    )
-                    SequencingAnalysis.update_field(
-                        analysis_id, "parameters", parameters
-                    )
 
             except Exception as e:
                 logger.error(
@@ -91,6 +82,12 @@ def generate_lotus2_report(
         process_id, analysis_type_id
     )
 
+    SequencingAnalysis.update_field(
+        analysis_id, "lotus2_started_at", datetime.utcnow()
+    )
+    SequencingAnalysis.update_field(analysis_id, "lotus2_status", "Started")
+    SequencingAnalysis.update_field(analysis_id, "parameters", parameters)
+
     analysis_type = SequencingAnalysisType.get(analysis_type_id)
     input_dir = "/" + input_dir
     output_path = input_dir + "/lotus2_report/" + analysis_type.name
@@ -98,6 +95,7 @@ def generate_lotus2_report(
     logger.info("Trying for:")
     logger.info(" - process_id : " + str(process_id))
     logger.info(" - analysis_type_id : " + str(analysis_type_id))
+    logger.info(" - analysis_id : " + str(analysis_id))
     logger.info(" - input_dir : " + str(input_dir))
     logger.info(" - output_path : " + str(output_path))
     logger.info(" - region : " + str(region))
@@ -389,12 +387,8 @@ def generate_all_lotus2_reports(analysis_type_id, from_id, to_id):
                                     analysis_type_id=analysis_type_id,
                                     parameters={},
                                 )
-                                if analysis_id != 0:
-                                    SequencingAnalysis.update_field(
-                                        analysis_id,
-                                        "lotus2_started_at",
-                                        datetime.utcnow(),
-                                    )
-                                    SequencingAnalysis.update_field(
-                                        analysis_id, "lotus2_status", "Started"
-                                    )
+                                logger.info(
+                                    "inside generate_all_lotus2_reports . "
+                                    + " The analysis_id is "
+                                    + str(analysis_id)
+                                )
