@@ -7,6 +7,7 @@ library(doParallel)
 library(iNEXT)
 library(janitor)
 library(data.table)
+library(jsonlite)
 
 # Define options
 option_list <- list(
@@ -39,6 +40,14 @@ option_list <- list(
     type = "integer",
     default = 10,
     help = "Minimum number of reads for a sample to be included in rarefaction curves"
+  ),
+  make_option(
+    c("-e", "--exclude"),
+    type = "character",
+    #default = '[{"Taxonomy_level": "Genus","Value": "Racocetra"},
+    #            {"Taxonomy_level": "Genus","Value": "Archaeospora"}]',
+    default = '',
+    help = "JSON string of taxonomy levels and values to exclude when making AMF subset"
   )
 )
 
@@ -157,6 +166,21 @@ ggsave(
   width = 7, height = 7, units = "in"
 )
 
+# Generate exclude expression from --exclude arg
+if (args$exclude != "") {
+  exclude_taxa_list <- fromJSON(args$exclude, simplifyDataFrame = FALSE)  # Ensures proper list format
+  
+  filter_expr <- sapply(exclude_taxa_list, function(x) {
+    tax_level <- x$Taxonomy_level  # e.g., "Family" or "Class"
+    tax_name <- x[[2]]             # e.g., "Tricholomataceae"
+    paste0("!", tax_level, " %in% '", tax_name, "'")  # Negate to exclude taxa
+  })
+  
+  # Combine expressions using "|" (logical OR) to exclude all unwanted taxa
+  filter_expr_combined <- paste(filter_expr, collapse = " & ")
+} else {
+  filter_expr_combined <- "TRUE"
+}
 
 ## if SSU_dada2 or SSU_eukaryome then
 ## Subset decontam phloseq object to include only
@@ -170,7 +194,8 @@ if (str_detect(args$lotus2, "SSU_dada2") | str_detect(args$lotus2, "SSU_eukaryom
       Class == "Glomeromycetes" |
       Class ==  "Archaeosporomycetes" |
       Class ==  "Paraglomeromycetes"
-    )
+    ) %>%
+    subset_taxa(eval(parse(text = filter_expr_combined)))
 
   # Save file. To open in R use: amf_physeq <- readRDS("amf_physeq.Rdata")
   saveRDS(amf_physeq, file = str_c(args$output, "/", "amf_physeq.Rdata"))
@@ -232,7 +257,9 @@ if (str_detect(args$lotus2, "SSU_vsearch")) {
     select(otu = qaccver, vt = saccver)
 
   # keep only those taxa that match the above criteria
-  amf_physeq <- prune_taxa(otu_vt_map$otu, physeq_decontam)
+  # and exclude all --exclude taxa
+  amf_physeq <- prune_taxa(otu_vt_map$otu, physeq_decontam) %>%
+    subset_taxa(eval(parse(text = filter_expr_combined)))
 
   # Save file. To open in R use: amf_physeq <- readRDS("amf_physeq.Rdata")
   saveRDS(amf_physeq, file = str_c(args$output, "/", "amf_physeq.Rdata"))

@@ -2,6 +2,8 @@ import docker
 import logging
 import shutil
 import os
+import json
+import shlex
 from datetime import datetime
 
 # PROCESS_DIR =
@@ -69,6 +71,23 @@ def generate_rscripts_report(process_id, input_dir, region, analysis_type_id):
     from models.sequencing_analysis import SequencingAnalysis
     from models.sequencing_analysis_type import SequencingAnalysisType
 
+    process_data = SequencingUpload.get(process_id)
+    project_id = process_data["project_id"]
+
+    # Load the excluded_otus JSON file
+    with open("metadataconfig/excluded_otus.json", "r") as f:
+        excluded_otus = json.load(f)
+
+    # Filter relevant exclusions
+    filtered_exclusions = [
+        {"Taxonomy_level": entry["Taxonomy_level"], "Value": entry["Value"]}
+        for entry in excluded_otus
+        if entry["project_id"] == project_id
+    ]
+
+    # Convert to JSON string (ensure it's properly escaped for shell use)
+    exclude_json = json.dumps(filtered_exclusions)
+
     analysis_id = SequencingAnalysis.get_by_upload_and_type(
         process_id, analysis_type_id
     )
@@ -83,6 +102,7 @@ def generate_rscripts_report(process_id, input_dir, region, analysis_type_id):
     logger.info(" - process_id : " + str(process_id))
     logger.info(" - input_dir : " + str(input_dir))
     logger.info(" - region : " + str(region))
+    logger.info(" - exclude : " + str(exclude_json))
 
     try:
         # Run rscripts inside the 'spun-r_service' container
@@ -99,6 +119,7 @@ def generate_rscripts_report(process_id, input_dir, region, analysis_type_id):
                 input_dir + "/r_output/" + analysis_type.name, exist_ok=True
             )
 
+            # Construct the Rscript command
             command = [
                 "Rscript",
                 r_script,
@@ -106,8 +127,12 @@ def generate_rscripts_report(process_id, input_dir, region, analysis_type_id):
                 lotus_2_dir,
                 "-o",
                 output_dir,
+                "--exclude",
+                exclude_json,  # Pass the JSON string as an argument
             ]
-            command_str = " ".join(command)
+
+            # Escape the command for safe execution
+            command_str = " ".join(shlex.quote(arg) for arg in command)
             logger.info(" - Here we will try the command")
             logger.info(command_str)
             # Run the command inside the container
