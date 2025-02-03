@@ -44,6 +44,15 @@ The two files we need are SLV_138.1_SSU.fasta  and SLV_138.1_SSU.tax .
 To find them we used an existing installation of lotus2 via conda, and copied them from /lotus2/share/lotus2-2.34.1-0/DB/
 We copied them with the same names as above in the lotus2_files/SILVA/ folder.
 
+#### EUCARYOME databases
+We used as basis the v1.9.3 of the ITS and SSU databases. 
+The db files are :
+- mothur_EUK_SSU_v1.9.3.fasta
+- mothur_EUK_ITS_v1.9.3.fasta
+For the taxonomy we used the corresponding files with a few fixes.
+- mothur_EUK_SSU_v1.9.3_lotus.tax
+- mothur_EUK_ITS_v1.9.3_lotus.tax
+
 #### Do docker things: 
 - Copy the `docker-compose-dev.yml` to `docker-compose.yml`
 - Copy the `nginx.conf-local-ssh` `nginx.conf`
@@ -80,6 +89,16 @@ Takes as parameters: region , analysis_type_id  and anti_nuke. Example:
 - Regenerate all r_script reports for a specific analysis type: 
 Takes as parameters: region , analysis_type_id  and anti_nuke. Example:
 `https://myserver/generate_all_region_rscripts_reports?region=ITS2&analysis_type_id=3&anti_nuke=THE_ANTINUKE_STRING_HERE`
+It will only generate reports that are marked as "None" (aka, have not started), and whole lotus2 corresponding report is finished.
+
+- Delete all lotus2 reports for a specific analysis type: 
+Takes as parameters: analysis_type_id, from_id, to_id and anti_nuke. 
+Example:
+`https://myserver/delete_all_region_rscripts_reports?analysis_type_id=3&from_id=1&to_id=10&anti_nuke=THE_ANTINUKE_STRING_HERE`
+
+- Regenerate all lotus2 reports for a specific analysis type: 
+Takes as parameters: analysis_type_id, from_id, to_id and anti_nuke. Example:
+`https://myserver/generate_all_region_rscripts_reports?analysis_type_id=3&from_id=1&to_id=10&anti_nuke=THE_ANTINUKE_STRING_HERE`
 It will only generate reports that are marked as "None" (aka, have not started), and whole lotus2 corresponding report is finished.
 
 

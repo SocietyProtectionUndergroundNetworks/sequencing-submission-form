@@ -124,6 +124,13 @@ def generate_lotus2_report(
                 input_dir + "/mapping_files/" + region + "_Mapping.txt"
             )
 
+            if analysis_type.name in ["ITS1", "ITS2"]:
+                refDB = "UNITE"
+                tax4refDB = ""
+            if analysis_type.name in ["ITS1_eukaryome", "ITS2_eukaryome"]:
+                refDB = "/lotus2_files/mothur_EUK_ITS_v1.9.3.fasta"
+                tax4refDB = "/lotus2_files/mothur_EUK_ITS_v1.9.3_lotus.tax"
+
             command = [
                 "lotus2",
                 debug_command,
@@ -134,7 +141,7 @@ def generate_lotus2_report(
                 "-m",
                 mapping_file,
                 "-refDB",
-                "UNITE",
+                refDB,
                 "-amplicon_type",
                 region,
                 "-LCA_idthresh",
@@ -152,6 +159,9 @@ def generate_lotus2_report(
                 "-id",
                 "0.97",
             ]
+            # Conditionally add -tax4refDB argument
+            if tax4refDB:
+                command.extend(["-tax4refDB", tax4refDB])
             command_str = "source activate lotus2_env && " + " ".join(command)
             logger.info(" - the command is: ")
             logger.info(command_str)
