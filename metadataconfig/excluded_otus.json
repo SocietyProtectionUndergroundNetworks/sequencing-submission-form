@@ -1,0 +1,22 @@
+[
+  {
+    "project_id": "sl-palmyra22-soil",
+    "Taxonomy_level": "Class",
+    "Value": "Example_Class_To_Exclude"
+  },
+  {
+    "project_id": "sl-palmyra22-soil",
+    "Taxonomy_level": "Genus",
+    "Value": "Example_Genus_To_Exclude"
+  },
+  {
+    "project_id": "sl-palmyra22-soil",
+    "Taxonomy_level": "Family",
+    "Value": "Example_Family_To_Exclude"
+  },  
+  {
+    "project_id": "sl-other-project",
+    "Taxonomy_level": "Family",
+    "Value": "Example_Family_To_Exclude"
+  }
+]
