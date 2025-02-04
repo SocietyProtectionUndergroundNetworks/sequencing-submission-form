@@ -9,7 +9,6 @@ Create Date: 2025-02-04 08:45:40.175540
 from typing import Sequence, Union
 
 from alembic import op
-import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
@@ -30,7 +29,8 @@ def upgrade() -> None:
             FROM sequencing_files_uploaded
             GROUP BY sequencerId
         ) b
-        ON a.sequencerId = b.sequencerId AND a.original_filename = b.first_filename;
+        ON a.sequencerId = b.sequencerId
+        AND a.original_filename = b.first_filename;
     """
     )
 
@@ -47,11 +47,14 @@ def upgrade() -> None:
         JOIN (
             SELECT sequencerId, MIN(original_filename) AS second_filename
             FROM sequencing_files_uploaded
-            WHERE original_filename > (SELECT MIN(original_filename) 
-                                       FROM sequencing_files_uploaded t 
-                                       WHERE t.sequencerId = sequencing_files_uploaded.sequencerId)
+            WHERE original_filename > (
+                SELECT MIN(original_filename)
+                FROM sequencing_files_uploaded t
+                WHERE t.sequencerId = sequencing_files_uploaded.sequencerId
+            )
             GROUP BY sequencerId
-        ) c ON a.sequencerId = c.sequencerId AND a.original_filename = c.second_filename;
+        ) c ON a.sequencerId = c.sequencerId
+        AND a.original_filename = c.second_filename;
     """
     )
 
