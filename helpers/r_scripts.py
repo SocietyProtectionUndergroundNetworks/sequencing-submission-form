@@ -77,14 +77,14 @@ def generate_rscripts_report(process_id, input_dir, region, analysis_type_id):
     # Load the excluded_otus JSON file
     with open("metadataconfig/excluded_otus.json", "r") as f:
         excluded_otus = json.load(f)
-    logger.info(project_id)
+
     # Filter relevant exclusions
     filtered_exclusions = [
         {"Taxonomy_level": entry["Taxonomy_level"], "Value": entry["Value"]}
         for entry in excluded_otus
         if entry["project_id"] == project_id
     ]
-    logger.info(filtered_exclusions)
+
     # Convert to JSON string (ensure it's properly escaped for shell use)
     exclude_json = json.dumps(filtered_exclusions)
 
@@ -132,7 +132,7 @@ def generate_rscripts_report(process_id, input_dir, region, analysis_type_id):
             # Only add -exclude parameter if there are exclusions
             if filtered_exclusions:
                 exclude_json = json.dumps(filtered_exclusions)
-                command.extend(["-exclude", exclude_json])
+                command.extend(["--exclude", exclude_json])
 
             # Escape the command for safe execution
             command_str = " ".join(shlex.quote(arg) for arg in command)
