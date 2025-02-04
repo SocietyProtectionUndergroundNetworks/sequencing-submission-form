@@ -44,12 +44,23 @@ The two files we need are SLV_138.1_SSU.fasta  and SLV_138.1_SSU.tax .
 To find them we used an existing installation of lotus2 via conda, and copied them from /lotus2/share/lotus2-2.34.1-0/DB/
 We copied them with the same names as above in the lotus2_files/SILVA/ folder.
 
-#### EUCARYOME databases
-We used as basis the v1.9.3 of the ITS and SSU databases. 
+#### EUKARYOME databases
+We used as basis the v1.9.3 of the ITS and SSU databases.
+
 The db files are :
 - mothur_EUK_SSU_v1.9.3.fasta
 - mothur_EUK_ITS_v1.9.3.fasta
-For the taxonomy we used the corresponding files with a few fixes.
+
+For the taxonomy we used the corresponding `.tax` files shipped with the above and ensured they were compatible with lotus2 by adding prefixes to each taxonomy name according to its level:
+- `k__` for kingdom
+- `p__` for phylum
+- `c__` for clade
+- `o__` for order
+- `f__` for family
+- `g__` for genus
+- `s__` for species
+
+The resulting lotus2-compatible files we used are called:
 - mothur_EUK_SSU_v1.9.3_lotus.tax
 - mothur_EUK_ITS_v1.9.3_lotus.tax
 
