@@ -5,6 +5,7 @@ Revises: 7806d577e603
 Create Date: 2025-02-04 08:45:40.175540
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -12,14 +13,15 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '93d024d36b5f'
-down_revision: Union[str, None] = '7806d577e603'
+revision: str = "93d024d36b5f"
+down_revision: Union[str, None] = "7806d577e603"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.execute("""
+    op.execute(
+        """
         CREATE VIEW files_per_sequencer_first AS
         SELECT a.*
         FROM sequencing_files_uploaded a
@@ -29,9 +31,11 @@ def upgrade() -> None:
             GROUP BY sequencerId
         ) b
         ON a.sequencerId = b.sequencerId AND a.original_filename = b.first_filename;
-    """)
+    """
+    )
 
-    op.execute("""
+    op.execute(
+        """
         CREATE VIEW files_per_sequencer_second AS
         SELECT a.*
         FROM sequencing_files_uploaded a
@@ -48,8 +52,8 @@ def upgrade() -> None:
                                        WHERE t.sequencerId = sequencing_files_uploaded.sequencerId)
             GROUP BY sequencerId
         ) c ON a.sequencerId = c.sequencerId AND a.original_filename = c.second_filename;
-    """)    
-
+    """
+    )
 
 
 def downgrade() -> None:
