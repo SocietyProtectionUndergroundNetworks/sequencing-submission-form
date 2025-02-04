@@ -96,9 +96,12 @@ dbimport:
 dbexport:
 	docker-compose run --rm db mysqldump -h${MYSQL_HOST} -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} > backup/backup.sql
 	ls -l backup/backup.sql
+	rm -f -- backup/backup.sql.gz
+	gzip backup/backup.sql
+	ls -l backup/backup.sql.gz
 
 dbbackup:
-	gsutil cp backup/backup.sql gs://${GOOGLE_STORAGE_BUCKET_NAME}/backup/
+	gsutil cp backup/backup.sql.gz gs://${GOOGLE_STORAGE_BUCKET_NAME}/backup/
 
 dbexportbackup:
 	docker-compose run --rm db mysqldump -h${MYSQL_HOST} -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} > backup/backup.sql
@@ -106,7 +109,8 @@ dbexportbackup:
 	gsutil cp backup/backup.sql gs://${GOOGLE_STORAGE_BUCKET_NAME}/backup/
 
 dbfetch:
-	scp ${SSH_KEY} ubuntu@${SERVER_IP}:${REMOTE_SERVER_APP_PATH}/backup/backup.sql backup/backup.sql
+	scp ${SSH_KEY} ubuntu@${SERVER_IP}:${REMOTE_SERVER_APP_PATH}/backup/backup.sql.gz backup/backup.sql.gz
+	gzip -dfk backup/backup.sql.gz
 
 sshvm:
 	gcloud compute ssh ${GOOGLE_VM_PROPERTY}
