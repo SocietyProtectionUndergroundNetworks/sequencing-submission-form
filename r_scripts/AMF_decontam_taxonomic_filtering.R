@@ -88,8 +88,8 @@ if (num_of_controls > 0) {
   # Make phyloseq object of presence-absence in negative controls and true samples
   physeq.pa <- transform_sample_counts(physeq, function(abund) 1 * (abund > 0))
   physeq.pa.neg <- prune_samples(sample_data(physeq.pa)$Sample_or_Control == "Control", physeq.pa)
-  physeq.pa.pos <- prune_samples(sample_data(physeq.pa)$Sample_or_Control == "True sample", physeq.pa)
-
+  physeq.pa.pos <- prune_samples(sample_data(physeq.pa)$Sample_or_Control == "True sample" | sample_data(physeq.pa)$Sample_or_Control == "sample", physeq.pa)
+  
   ## Extract the taxonomic classifications of the identified contaminants
   contamdf <- isContaminant(physeq, method = "prevalence", neg = "is.neg", threshold = args$threshold)
   contaminant_otus <- contamdf %>% filter(contaminant == TRUE) %>% rownames()

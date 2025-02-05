@@ -1233,6 +1233,8 @@ class SequencingUpload:
             land_use = info["land_use"]
             ecosystem = info["ecosystem"]
             sample_or_control = info["sample_or_control"]
+            if sample_or_control in ["True sample", "True Sample"]:
+                sample_or_control = "sample"
             sequencing_run = (
                 info["sequencing_run"] if info["sequencing_run"] else "Run_1"
             )
