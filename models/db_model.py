@@ -4,7 +4,6 @@ from sqlalchemy import (
     Column,
     Integer,
     String,
-    Text,
     Boolean,
     DateTime,
     func,
@@ -121,14 +120,6 @@ class SequencingUploadsTable(Base):
     DNA_conc_instrument = Column(String(255), nullable=True)
     reviewed_by_admin = Column(Boolean, default=False)
     files_uploading_confirmed = Column(Boolean, default=False)
-    region_1_rscripts_report_task_id = Column(String(255), nullable=True)
-    region_1_rscripts_report_started_at = Column(DateTime, nullable=True)
-    region_1_rscripts_report_status = Column(String(255), nullable=True)
-    region_1_rscripts_report_result = Column(Text, nullable=True)
-    region_2_rscripts_report_task_id = Column(String(255), nullable=True)
-    region_2_rscripts_report_started_at = Column(DateTime, nullable=True)
-    region_2_rscripts_report_status = Column(String(255), nullable=True)
-    region_2_rscripts_report_result = Column(Text, nullable=True)
 
 
 class SequencingAnalysisTable(Base):
