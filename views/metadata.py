@@ -11,6 +11,7 @@ from flask import (
     url_for,
     jsonify,
     send_file,
+    Response,
 )
 from flask_login import current_user, login_required
 from models.bucket import Bucket
@@ -194,7 +195,6 @@ def metadata_form():
 
     if process_id:
         process_data = SequencingUpload.get(process_id)
-        logger.info(process_data)
         if process_data is not None:
 
             nr_files_per_sequence = process_data["nr_files_per_sequence"]
@@ -1977,3 +1977,50 @@ def delete_all_lotus2_reports():
     else:
         return jsonify({"result": "Not passing antinuke"})
     return jsonify({"result": 1})
+
+
+@metadata_bp.route(
+    "/get_sequencers_sample", methods=["GET"], endpoint="get_sequencers_sample"
+)
+@login_required
+@approved_required
+def get_sequencers_sample():
+    process_data = None
+    process_id = request.args.get("process_id", "")
+    if process_id:
+        process_data = SequencingUpload.get(process_id)
+        # logger.info(process_data)
+        if process_data is not None:
+            samples_data = SequencingUpload.get_samples(process_id)
+            # logger.info(samples_data)
+
+    # Define CSV headers
+    fieldnames = ["SampleID", "Region", "SequencerID", "Index_1", "Index_2"]
+
+    # Create CSV data
+    csv_data = []
+    for sample in samples_data:
+        for region in process_data["regions"]:
+            csv_data.append(
+                {
+                    "SampleID": sample["SampleID"],
+                    "Region": region,
+                    "SequencerID": "",  # Empty field
+                    "Index_1": "",  # Empty field
+                    "Index_2": "",  # Empty field
+                }
+            )
+
+    # Generate CSV response
+    def generate():
+        yield ",".join(fieldnames) + "\n"  # Header row
+        for row in csv_data:
+            yield ",".join([str(row[field]) for field in fieldnames]) + "\n"
+
+    return Response(
+        generate(),
+        mimetype="text/csv",
+        headers={
+            "Content-Disposition": "attachment; filename=sequencer_ids.csv"
+        },
+    )

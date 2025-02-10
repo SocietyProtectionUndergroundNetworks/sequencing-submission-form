@@ -332,12 +332,17 @@
       >
         <h3> Step 6: Provide the sequencer ID</h3>
 
+        {% if process_data["metadata_upload_confirmed"] %}
+          Sample file: <a href="get_sequencers_sample?process_id={{ process_id }}" target="_blank" class="link"> Get sequencers file template </a>
+        {% endif %}
+
         <form id="step_6_form">
           <fieldset
             {% if not process_data["metadata_upload_confirmed"] %}
              disabled="disabled"
             {% endif %}
           >
+          
           <p>
             For each sample we expect two different pairs of sequencing fastq files, on two different sequencing regions - i.e. four files in total.
           </p>
