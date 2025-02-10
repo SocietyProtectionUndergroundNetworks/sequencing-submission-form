@@ -43,7 +43,7 @@ logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 class SequencingUpload:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
-        self.nr_files_per_sequence = 1
+        self.nr_files_per_sequence = 2
         self.regions = []
 
     @classmethod
@@ -312,6 +312,7 @@ class SequencingUpload:
             "Illumina MiSeq",
             "Illumina NovaSeq",
             "Element Biosciences AVITI",
+            "Other",
         ]
 
         # Strip whitespace
