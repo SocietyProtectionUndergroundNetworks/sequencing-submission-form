@@ -91,6 +91,8 @@ runmysql:
 	docker-compose run --rm db mysql -h${MYSQL_HOST} -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE}
 
 dbimport:
+	LC_ALL=C sed -i.bak '/\/\*!50013 DEFINER=`${MYSQL_USER_PROD}`@`%` SQL SECURITY DEFINER \*\//d' backup/backup.sql
+	LC_ALL=C sed -i.bak 's/`${MYSQL_DATABASE_PROD}`//g' backup/backup.sql
 	docker-compose run --rm -T db mysql -h${MYSQL_HOST} -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} < backup/backup.sql
 
 dbexport:
