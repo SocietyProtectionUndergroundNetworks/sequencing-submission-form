@@ -26,6 +26,7 @@ services:
       - PORT=56733
       - DOCKER_HOST=tcp://socat:2375  # Set Docker host to socat
       - REDIS_URL=redis://redis:6379/0
+      - GUNICORN_RELOAD=
     expose:
       - 56733
     volumes:

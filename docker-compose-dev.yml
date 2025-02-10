@@ -19,6 +19,8 @@ services:
       - GOOGLE_APPLICATION_CREDENTIALS=/google_auth_file/key_file.json
       - OAUTHLIB_INSECURE_TRANSPORT=1
       - PORT=56733
+      - DOCKER_HOST=tcp://socat:2375  # Set Docker host to socat
+      - GUNICORN_RELOAD=--reload
     networks:
       - flask
     command: ["alembic", "upgrade", "head"]
