@@ -365,16 +365,22 @@ class User(UserMixin):
     @classmethod
     def get_user_groups(cls, user_id):
         with session_scope() as session:
-            # Fetch the user by user_id
-            user = session.query(UserTable).filter_by(id=user_id).first()
+            user = (
+                session.query(UserTable)
+                .filter_by(id=user_id)
+                .options(
+                    subqueryload(UserTable.groups)
+                )  # Use subqueryload to load related groups
+                .first()
+            )
 
             if not user:
                 raise ValueError(f"User with ID '{user_id}' not found")
 
-            # Assuming 'groups' is a relationship attribute in UserTable
-            user_groups = (
-                user.groups
-            )  # This will fetch the groups associated with the user
+            # Return a list of dictionaries representing the group details
+            user_groups_list = [
+                {"id": group.id, "name": group.name, "version": group.version}
+                for group in user.groups
+            ]
 
-            # Return the full group objects instead of just the names
-            return user_groups
+            return user_groups_list

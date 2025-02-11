@@ -72,9 +72,10 @@ def index():
         user_groups = User.get_user_groups(current_user.id)
 
         user_should_see_v2 = False
+        logger.info(user_groups)
 
         for group in user_groups:
-            if group.version == 2:
+            if group["version"] == 2:
                 user_should_see_v2 = True
                 break  # No need to check further, since we found a match
 
