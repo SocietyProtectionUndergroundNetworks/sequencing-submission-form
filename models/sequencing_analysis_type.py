@@ -1,5 +1,5 @@
 import logging
-from helpers.dbm import connect_db, get_session
+from helpers.dbm import session_scope
 from models.db_model import SequencingAnalysisTypesTable
 
 # Get the logger instance from app.py
@@ -12,57 +12,49 @@ class SequencingAnalysisType:
 
     @classmethod
     def get(self, id):
-        db_engine = connect_db()
-        session = get_session(db_engine)
+        with session_scope() as session:
+            item_db = (
+                session.query(SequencingAnalysisTypesTable)
+                .filter_by(id=id)
+                .first()
+            )
 
-        item_db = (
-            session.query(SequencingAnalysisTypesTable)
-            .filter_by(id=id)
-            .first()
-        )
+            if not item_db:
+                return None
 
-        session.close()
+            # Assuming upload_db is an instance of some SQLAlchemy model
+            item_db_dict = item_db.__dict__
 
-        if not item_db:
-            return None
+            # Remove keys starting with '_'
+            filtered_dict = {
+                key: value
+                for key, value in item_db_dict.items()
+                if not key.startswith("_")
+            }
 
-        # Assuming upload_db is an instance of some SQLAlchemy model
-        item_db_dict = item_db.__dict__
+            # Create an instance of YourClass using the dictionary
+            upload = SequencingAnalysisTypesTable(**filtered_dict)
 
-        # Remove keys starting with '_'
-        filtered_dict = {
-            key: value
-            for key, value in item_db_dict.items()
-            if not key.startswith("_")
-        }
-
-        # Create an instance of YourClass using the dictionary
-        upload = SequencingAnalysisTypesTable(**filtered_dict)
-
-        return upload
+            return upload
 
     @classmethod
     def get_all_by_region(cls, region):
-        db_engine = connect_db()
-        session = get_session(db_engine)
+        with session_scope() as session:
+            # Query for all items with the specified region
+            items = (
+                session.query(SequencingAnalysisTypesTable)
+                .filter_by(region=region)
+                .all()
+            )
 
-        # Query for all items with the specified region
-        items = (
-            session.query(SequencingAnalysisTypesTable)
-            .filter_by(region=region)
-            .all()
-        )
+            # Format results as a list of dictionaries with specific fields
+            results = [
+                {
+                    "id": item.id,
+                    "name": item.name,
+                    "parameters": item.parameters,
+                }
+                for item in items
+            ]
 
-        session.close()
-
-        # Format results as a list of dictionaries with specific fields
-        results = [
-            {
-                "id": item.id,
-                "name": item.name,
-                "parameters": item.parameters,
-            }
-            for item in items
-        ]
-
-        return results
+            return results

@@ -1,7 +1,7 @@
 import logging
 import pandas as pd
 import numpy as np
-from helpers.dbm import connect_db, get_session
+from helpers.dbm import session_scope
 from models.db_model import SequencingSequencerIDsTable, SequencingSamplesTable
 from models.sequencing_upload import SequencingUpload
 from sqlalchemy import and_
@@ -16,77 +16,73 @@ class SequencingSequencerId:
 
     @classmethod
     def get(self, id):
-        db_engine = connect_db()
-        session = get_session(db_engine)
+        with session_scope() as session:
 
-        sequencer_id_db = (
-            session.query(SequencingSequencerIDsTable).filter_by(id=id).first()
-        )
+            sequencer_id_db = (
+                session.query(SequencingSequencerIDsTable)
+                .filter_by(id=id)
+                .first()
+            )
 
-        session.close()
+            if not sequencer_id_db:
+                return None
 
-        if not sequencer_id_db:
-            return None
+            # Assuming upload_db is an instance of some SQLAlchemy model
+            sequencer_id_db_dict = sequencer_id_db.__dict__
 
-        # Assuming upload_db is an instance of some SQLAlchemy model
-        sequencer_id_db_dict = sequencer_id_db.__dict__
+            # Remove keys starting with '_'
+            filtered_dict = {
+                key: value
+                for key, value in sequencer_id_db_dict.items()
+                if not key.startswith("_")
+            }
 
-        # Remove keys starting with '_'
-        filtered_dict = {
-            key: value
-            for key, value in sequencer_id_db_dict.items()
-            if not key.startswith("_")
-        }
+            # Create an instance of YourClass using the dictionary
+            sequencer_id = SequencingSequencerId(**filtered_dict)
 
-        # Create an instance of YourClass using the dictionary
-        sequencer_id = SequencingSequencerId(**filtered_dict)
-
-        return sequencer_id
+            return sequencer_id
 
     @classmethod
     def create(cls, sample_id, sequencer_id, region, index_1, index_2):
-        db_engine = connect_db()
-        session = get_session(db_engine)
+        with session_scope() as session:
 
-        existing_record = (
-            session.query(SequencingSequencerIDsTable)
-            .filter(
-                and_(
-                    SequencingSequencerIDsTable.sequencingSampleId
-                    == sample_id,
-                    SequencingSequencerIDsTable.Region == region,
+            existing_record = (
+                session.query(SequencingSequencerIDsTable)
+                .filter(
+                    and_(
+                        SequencingSequencerIDsTable.sequencingSampleId
+                        == sample_id,
+                        SequencingSequencerIDsTable.Region == region,
+                    )
                 )
+                .first()
             )
-            .first()
-        )
 
-        if existing_record:
-            # If record exists, return its id
-            session.close()
-            return existing_record.id, "existing"
-        else:
-            # If record does not exist, create a new one
-            # Prepare the new record dictionary with mandatory fields
-            record_data = {
-                "sequencingSampleId": sample_id,
-                "SequencerID": sequencer_id,
-                "Region": region,
-            }
+            if existing_record:
+                # If record exists, return its id
+                return existing_record.id, "existing"
+            else:
+                # If record does not exist, create a new one
+                # Prepare the new record dictionary with mandatory fields
+                record_data = {
+                    "sequencingSampleId": sample_id,
+                    "SequencerID": sequencer_id,
+                    "Region": region,
+                }
 
-            # Only add index_1 and index_2 if they are not None or empty
-            if index_1:
-                record_data["Index_1"] = index_1
-            if index_2:
-                record_data["Index_2"] = index_2
+                # Only add index_1 and index_2 if they are not None or empty
+                if index_1:
+                    record_data["Index_1"] = index_1
+                if index_2:
+                    record_data["Index_2"] = index_2
 
-            # Create the new record using the dictionary
-            new_record = SequencingSequencerIDsTable(**record_data)
-            session.add(new_record)
-            session.commit()
-            # Return the id of the newly created record
-            new_record_id = new_record.id
-            session.close()
-            return new_record_id, "new"
+                # Create the new record using the dictionary
+                new_record = SequencingSequencerIDsTable(**record_data)
+                session.add(new_record)
+                session.commit()
+                # Return the id of the newly created record
+                new_record_id = new_record.id
+                return new_record_id, "new"
 
     @classmethod
     def check_df_and_add_records(cls, process_id, df, process_data):
@@ -248,85 +244,81 @@ class SequencingSequencerId:
     def get_matching_sequencer_ids(
         cls, process_id, filename, sequencing_run=None
     ):
-        db_engine = connect_db()
-        session = get_session(db_engine)
-        matching_ids = []
+        with session_scope() as session:
+            matching_ids = []
 
-        # Ensure the filename ends with .fastq.gz and strip it off
-        if filename.endswith(".fastq.gz"):
-            filename_no_ext = filename[:-9]  # Remove the .fastq.gz suffix
+            # Ensure the filename ends with .fastq.gz and strip it off
+            if filename.endswith(".fastq.gz"):
+                filename_no_ext = filename[:-9]  # Remove the .fastq.gz suffix
 
-            # Query to get all ids and SequencerIDs
-            # Start building the query
-            query = (
-                session.query(
-                    SequencingSequencerIDsTable.id,
-                    SequencingSequencerIDsTable.SequencerID,
-                )
-                .join(SequencingSamplesTable)
-                .filter(
-                    SequencingSamplesTable.sequencingUploadId == process_id
-                )
-            )
-
-            # Apply additional filter if sequencing_run is not None
-            if sequencing_run is not None:
-                query = query.filter(
-                    SequencingSamplesTable.SequencingRun == sequencing_run
+                # Query to get all ids and SequencerIDs
+                # Start building the query
+                query = (
+                    session.query(
+                        SequencingSequencerIDsTable.id,
+                        SequencingSequencerIDsTable.SequencerID,
+                    )
+                    .join(SequencingSamplesTable)
+                    .filter(
+                        SequencingSamplesTable.sequencingUploadId == process_id
+                    )
                 )
 
-            # Execute the query and retrieve results
-            sequencer_ids = query.all()
+                # Apply additional filter if sequencing_run is not None
+                if sequencing_run is not None:
+                    query = query.filter(
+                        SequencingSamplesTable.SequencingRun == sequencing_run
+                    )
 
-            # Extract id and SequencerID pairs from the query result
-            sequencer_ids = [(id, seq_id) for id, seq_id in sequencer_ids]
+                # Execute the query and retrieve results
+                sequencer_ids = query.all()
 
-            # Find matching sequencer IDs and return the corresponding ids
-            for id, seq_id in sequencer_ids:
-                if filename_no_ext.startswith(seq_id):
-                    matching_ids.append(id)
+                # Extract id and SequencerID pairs from the query result
+                sequencer_ids = [(id, seq_id) for id, seq_id in sequencer_ids]
 
-        session.close()
-        return matching_ids
+                # Find matching sequencer IDs and return the corresponding ids
+                for id, seq_id in sequencer_ids:
+                    if filename_no_ext.startswith(seq_id):
+                        matching_ids.append(id)
+
+            return matching_ids
 
     @classmethod
     def generate_new_filename(cls, process_id, filename):
-        db_engine = connect_db()
-        session = get_session(db_engine)
+        with session_scope() as session:
 
-        # Ensure the filename ends with .fastq.gz and strip it off
-        if filename.endswith(".fastq.gz"):
-            filename_no_ext = filename[:-9]  # Remove the .fastq.gz suffix
-        else:
-            # Return None if the filename doesn't have the correct suffix
-            session.close()
-            return None
+            # Ensure the filename ends with .fastq.gz and strip it off
+            if filename.endswith(".fastq.gz"):
+                filename_no_ext = filename[:-9]  # Remove the .fastq.gz suffix
+            else:
+                # Return None if the filename doesn't have the correct suffix
+                return None
 
-        # Query to get all relevant records
-        sequencer_records = (
-            session.query(
-                SequencingSamplesTable.SampleID,
-                SequencingSequencerIDsTable.SequencerID,
-                SequencingSequencerIDsTable.Region,
-            )
-            .join(SequencingSequencerIDsTable)
-            .filter(SequencingSamplesTable.sequencingUploadId == process_id)
-            .all()
-        )
-
-        # Iterate through the results to find the matching record
-        for sample_id, sequencer_id, region in sequencer_records:
-            if filename_no_ext.startswith(
-                sequencer_id
-            ):  # Match against the full name without the extension
-                # Generate the new filename
-                region = region.replace(" ", "_")
-                new_filename = filename.replace(
-                    sequencer_id, f"{sample_id}_{region}_"
+            # Query to get all relevant records
+            sequencer_records = (
+                session.query(
+                    SequencingSamplesTable.SampleID,
+                    SequencingSequencerIDsTable.SequencerID,
+                    SequencingSequencerIDsTable.Region,
                 )
-                session.close()
-                return new_filename
+                .join(SequencingSequencerIDsTable)
+                .filter(
+                    SequencingSamplesTable.sequencingUploadId == process_id
+                )
+                .all()
+            )
 
-        # Return None if no matching record is found
-        session.close()
-        return None
+            # Iterate through the results to find the matching record
+            for sample_id, sequencer_id, region in sequencer_records:
+                if filename_no_ext.startswith(
+                    sequencer_id
+                ):  # Match against the full name without the extension
+                    # Generate the new filename
+                    region = region.replace(" ", "_")
+                    new_filename = filename.replace(
+                        sequencer_id, f"{sample_id}_{region}_"
+                    )
+                    return new_filename
+
+            # Return None if no matching record is found
+            return None

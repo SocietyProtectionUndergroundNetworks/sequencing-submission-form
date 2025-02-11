@@ -13,7 +13,7 @@ from models.bucket import Bucket
 from models.db_model import (
     SequencingFilesUploadedTable,
 )
-from helpers.dbm import connect_db, get_session
+from helpers.dbm import session_scope
 from google.api_core.exceptions import Forbidden, NotFound
 
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -306,25 +306,19 @@ def update_sequencer_file_progress(sequencer_file_id, progress):
         + " and progress "
         + str(progress)
     )
-    db_engine = connect_db()
-    session = get_session(db_engine)
+    with session_scope() as session:
 
-    # Fetch the existing record
-    sequencer_file_db = (
-        session.query(SequencingFilesUploadedTable)
-        .filter_by(id=sequencer_file_id)
-        .first()
-    )
+        # Fetch the existing record
+        sequencer_file_db = (
+            session.query(SequencingFilesUploadedTable)
+            .filter_by(id=sequencer_file_id)
+            .first()
+        )
 
-    if not sequencer_file_db:
-        session.close()
-        return None
+        if not sequencer_file_db:
+            return None
 
-    sequencer_file_db.bucket_upload_progress = progress
-
-    # Commit the changes
-    session.commit()
-    session.close()
+        sequencer_file_db.bucket_upload_progress = progress
 
 
 # Quite similar to bucket_upload_folder but accomodating for a different data

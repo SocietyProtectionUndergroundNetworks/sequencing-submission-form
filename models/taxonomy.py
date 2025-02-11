@@ -1,5 +1,5 @@
 import logging
-from helpers.dbm import connect_db, get_session
+from helpers.dbm import session_scope
 from models.db_model import (
     Domain,
     Phylum,
@@ -23,27 +23,25 @@ logger = logging.getLogger("my_app_logger")
 class TaxonomyManager:
     @classmethod
     def get(cls, id):
-        db_engine = connect_db()
-        session = get_session(db_engine)
+        with session_scope() as session:
 
-        taxonomy_db = session.query(Taxonomy).filter_by(id=id).first()
-        session.close()
+            taxonomy_db = session.query(Taxonomy).filter_by(id=id).first()
 
-        if not taxonomy_db:
-            return None
+            if not taxonomy_db:
+                return None
 
-        # Assuming taxonomy_db is an instance of some SQLAlchemy model
-        taxonomy_db_dict = taxonomy_db.__dict__
+            # Assuming taxonomy_db is an instance of some SQLAlchemy model
+            taxonomy_db_dict = taxonomy_db.__dict__
 
-        # Remove keys starting with '_'
-        filtered_dict = {
-            key: value
-            for key, value in taxonomy_db_dict.items()
-            if not key.startswith("_")
-        }
+            # Remove keys starting with '_'
+            filtered_dict = {
+                key: value
+                for key, value in taxonomy_db_dict.items()
+                if not key.startswith("_")
+            }
 
-        # Return as a dictionary or an object instance
-        return filtered_dict
+            # Return as a dictionary or an object instance
+            return filtered_dict
 
     @classmethod
     def create(
@@ -56,10 +54,7 @@ class TaxonomyManager:
         genus_name,
         species_name,
     ):
-        db_engine = connect_db()
-
-        # Use the `with` statement to automatically handle session closing
-        with get_session(db_engine) as session:
+        with session_scope() as session:
             # Handle "?" by setting subsequent levels to None
             if domain_name == "?":
                 phylum_name = class_name = order_name = family_name = (
@@ -236,170 +231,190 @@ class TaxonomyManager:
         """
         Search for taxonomies based on the given parameters.
         """
-        db_engine = connect_db()
-        session = get_session(db_engine)
+        with session_scope() as session:
 
-        # Join SequencingSamplesTable with OTU, Taxonomy
-        # and SequencingUploadsTable
-        query = (
-            session.query(
-                OTU.sample_id,
-                SequencingSamplesTable.SampleID,
-                SequencingSamplesTable.Longitude,
-                SequencingSamplesTable.Latitude,
-                SequencingUploadsTable.id.label("upload_id"),
-                SequencingUploadsTable.project_id,
-                Taxonomy,
-                OTU.abundance,
-                SequencingAnalysisTypesTable.name.label("analysis_type"),
+            # Join SequencingSamplesTable with OTU, Taxonomy
+            # and SequencingUploadsTable
+            query = (
+                session.query(
+                    OTU.sample_id,
+                    SequencingSamplesTable.SampleID,
+                    SequencingSamplesTable.Longitude,
+                    SequencingSamplesTable.Latitude,
+                    SequencingUploadsTable.id.label("upload_id"),
+                    SequencingUploadsTable.project_id,
+                    Taxonomy,
+                    OTU.abundance,
+                    SequencingAnalysisTypesTable.name.label("analysis_type"),
+                )
+                .join(OTU, OTU.sample_id == SequencingSamplesTable.id)
+                .join(Taxonomy, OTU.taxonomy_id == Taxonomy.id)
+                .join(
+                    SequencingUploadsTable,
+                    SequencingSamplesTable.sequencingUploadId
+                    == SequencingUploadsTable.id,
+                )
+                .join(
+                    SequencingAnalysisTable,
+                    OTU.sequencing_analysis_id == SequencingAnalysisTable.id,
+                )
+                .join(
+                    SequencingAnalysisTypesTable,
+                    SequencingAnalysisTable.sequencingAnalysisTypeId
+                    == SequencingAnalysisTypesTable.id,
+                )
             )
-            .join(OTU, OTU.sample_id == SequencingSamplesTable.id)
-            .join(Taxonomy, OTU.taxonomy_id == Taxonomy.id)
-            .join(
-                SequencingUploadsTable,
-                SequencingSamplesTable.sequencingUploadId
-                == SequencingUploadsTable.id,
-            )
-            .join(
-                SequencingAnalysisTable,
-                OTU.sequencing_analysis_id == SequencingAnalysisTable.id,
-            )
-            .join(
-                SequencingAnalysisTypesTable,
-                SequencingAnalysisTable.sequencingAnalysisTypeId
-                == SequencingAnalysisTypesTable.id,
-            )
-        )
 
-        # Dynamically add filters based on provided arguments
-        if domain:
-            query = query.filter(Taxonomy.domain.has(name=domain))
-        if phylum:
-            query = query.filter(Taxonomy.phylum.has(name=phylum))
-        if class_:
-            query = query.filter(Taxonomy.class_.has(name=class_))
-        if order:
-            query = query.filter(Taxonomy.order.has(name=order))
-        if family:
-            query = query.filter(Taxonomy.family.has(name=family))
-        if genus:
-            query = query.filter(Taxonomy.genus.has(name=genus))
-        if species:
-            query = query.filter(Taxonomy.species.has(name=species))
-        if project:
-            query = query.filter(SequencingUploadsTable.project_id == project)
-        results = query.all()
+            # Dynamically add filters based on provided arguments
+            if domain:
+                query = query.filter(Taxonomy.domain.has(name=domain))
+            if phylum:
+                query = query.filter(Taxonomy.phylum.has(name=phylum))
+            if class_:
+                query = query.filter(Taxonomy.class_.has(name=class_))
+            if order:
+                query = query.filter(Taxonomy.order.has(name=order))
+            if family:
+                query = query.filter(Taxonomy.family.has(name=family))
+            if genus:
+                query = query.filter(Taxonomy.genus.has(name=genus))
+            if species:
+                query = query.filter(Taxonomy.species.has(name=species))
+            if project:
+                query = query.filter(
+                    SequencingUploadsTable.project_id == project
+                )
+            results = query.all()
 
-        # Format the results
-        formatted_results = [
-            {
-                "sample_id": row.sample_id,
-                "SampleID": row.SampleID,
-                "upload_id": row.upload_id,
-                "project_id": row.project_id,
-                "Latitude": row.Latitude,
-                "Longitude": row.Longitude,
-                "abundance": row.abundance,
-                "analysis_type": row.analysis_type,
-                "domain": (
-                    row.Taxonomy.domain.name if row.Taxonomy.domain else None
-                ),
-                "phylum": (
-                    row.Taxonomy.phylum.name if row.Taxonomy.phylum else None
-                ),
-                "class": (
-                    row.Taxonomy.class_.name if row.Taxonomy.class_ else None
-                ),
-                "order": (
-                    row.Taxonomy.order.name if row.Taxonomy.order else None
-                ),
-                "family": (
-                    row.Taxonomy.family.name if row.Taxonomy.family else None
-                ),
-                "genus": (
-                    row.Taxonomy.genus.name if row.Taxonomy.genus else None
-                ),
-                "species": (
-                    row.Taxonomy.species.name if row.Taxonomy.species else None
-                ),
-            }
-            for row in results
-        ]
+            # Format the results
+            formatted_results = [
+                {
+                    "sample_id": row.sample_id,
+                    "SampleID": row.SampleID,
+                    "upload_id": row.upload_id,
+                    "project_id": row.project_id,
+                    "Latitude": row.Latitude,
+                    "Longitude": row.Longitude,
+                    "abundance": row.abundance,
+                    "analysis_type": row.analysis_type,
+                    "domain": (
+                        row.Taxonomy.domain.name
+                        if row.Taxonomy.domain
+                        else None
+                    ),
+                    "phylum": (
+                        row.Taxonomy.phylum.name
+                        if row.Taxonomy.phylum
+                        else None
+                    ),
+                    "class": (
+                        row.Taxonomy.class_.name
+                        if row.Taxonomy.class_
+                        else None
+                    ),
+                    "order": (
+                        row.Taxonomy.order.name if row.Taxonomy.order else None
+                    ),
+                    "family": (
+                        row.Taxonomy.family.name
+                        if row.Taxonomy.family
+                        else None
+                    ),
+                    "genus": (
+                        row.Taxonomy.genus.name if row.Taxonomy.genus else None
+                    ),
+                    "species": (
+                        row.Taxonomy.species.name
+                        if row.Taxonomy.species
+                        else None
+                    ),
+                }
+                for row in results
+            ]
 
-        session.close()
-        return formatted_results
+            return formatted_results
 
     @classmethod
     def get_otus(cls, sample_id, region, analysis_type_id):
-        db_engine = connect_db()
-        session = get_session(db_engine)
-        query = (
-            session.query(
-                Taxonomy,
-                OTU.abundance,
-                OTU.sample_id,
-                SequencingAnalysisTypesTable.name.label("analysis_type"),
-            )
-            .join(
-                Taxonomy, OTU.taxonomy_id == Taxonomy.id
-            )  # Join with Taxonomy
-            .join(
-                SequencingAnalysisTable,
-                OTU.sequencing_analysis_id == SequencingAnalysisTable.id,
-            )  # Join with SequencingAnalysisTable
-            .join(
-                SequencingAnalysisTypesTable,
-                SequencingAnalysisTable.sequencingAnalysisTypeId
-                == SequencingAnalysisTypesTable.id,
-            )  # Join with SequencingAnalysisTypesTable
-        )
-
-        # Apply filter for sample_id (always required)
-        query = query.filter(OTU.sample_id == sample_id)
-
-        # Conditionally add region filter
-        if region in ["ITS1", "ITS2", "SSU"]:
-            query = query.filter(SequencingAnalysisTypesTable.region == region)
-
-        # Check if the analysis_type_id is a valid integer
-        if analysis_type_id and analysis_type_id.isdigit():
-            analysis_type_id = int(analysis_type_id)
-            # Conditionally add analysis_type_id filter if it's numeric
-            query = query.filter(
-                SequencingAnalysisTypesTable.id == analysis_type_id
+        with session_scope() as session:
+            query = (
+                session.query(
+                    Taxonomy,
+                    OTU.abundance,
+                    OTU.sample_id,
+                    SequencingAnalysisTypesTable.name.label("analysis_type"),
+                )
+                .join(
+                    Taxonomy, OTU.taxonomy_id == Taxonomy.id
+                )  # Join with Taxonomy
+                .join(
+                    SequencingAnalysisTable,
+                    OTU.sequencing_analysis_id == SequencingAnalysisTable.id,
+                )  # Join with SequencingAnalysisTable
+                .join(
+                    SequencingAnalysisTypesTable,
+                    SequencingAnalysisTable.sequencingAnalysisTypeId
+                    == SequencingAnalysisTypesTable.id,
+                )  # Join with SequencingAnalysisTypesTable
             )
 
-        results = query.all()
+            # Apply filter for sample_id (always required)
+            query = query.filter(OTU.sample_id == sample_id)
 
-        # Format the results
-        formatted_results = [
-            {
-                "abundance": int(row.abundance),
-                "analysis_type": row.analysis_type,
-                "domain": (
-                    row.Taxonomy.domain.name if row.Taxonomy.domain else None
-                ),
-                "phylum": (
-                    row.Taxonomy.phylum.name if row.Taxonomy.phylum else None
-                ),
-                "class": (
-                    row.Taxonomy.class_.name if row.Taxonomy.class_ else None
-                ),
-                "order": (
-                    row.Taxonomy.order.name if row.Taxonomy.order else None
-                ),
-                "family": (
-                    row.Taxonomy.family.name if row.Taxonomy.family else None
-                ),
-                "genus": (
-                    row.Taxonomy.genus.name if row.Taxonomy.genus else None
-                ),
-                "species": (
-                    row.Taxonomy.species.name if row.Taxonomy.species else None
-                ),
-            }
-            for row in results
-        ]
+            # Conditionally add region filter
+            if region in ["ITS1", "ITS2", "SSU"]:
+                query = query.filter(
+                    SequencingAnalysisTypesTable.region == region
+                )
 
-        session.close()
-        return formatted_results
+            # Check if the analysis_type_id is a valid integer
+            if analysis_type_id and analysis_type_id.isdigit():
+                analysis_type_id = int(analysis_type_id)
+                # Conditionally add analysis_type_id filter if it's numeric
+                query = query.filter(
+                    SequencingAnalysisTypesTable.id == analysis_type_id
+                )
+
+            results = query.all()
+
+            # Format the results
+            formatted_results = [
+                {
+                    "abundance": int(row.abundance),
+                    "analysis_type": row.analysis_type,
+                    "domain": (
+                        row.Taxonomy.domain.name
+                        if row.Taxonomy.domain
+                        else None
+                    ),
+                    "phylum": (
+                        row.Taxonomy.phylum.name
+                        if row.Taxonomy.phylum
+                        else None
+                    ),
+                    "class": (
+                        row.Taxonomy.class_.name
+                        if row.Taxonomy.class_
+                        else None
+                    ),
+                    "order": (
+                        row.Taxonomy.order.name if row.Taxonomy.order else None
+                    ),
+                    "family": (
+                        row.Taxonomy.family.name
+                        if row.Taxonomy.family
+                        else None
+                    ),
+                    "genus": (
+                        row.Taxonomy.genus.name if row.Taxonomy.genus else None
+                    ),
+                    "species": (
+                        row.Taxonomy.species.name
+                        if row.Taxonomy.species
+                        else None
+                    ),
+                }
+                for row in results
+            ]
+
+            return formatted_results
