@@ -258,16 +258,16 @@ if (num_ecm_genera > 0) {
     
     
   # Extract taxonomy data
-  taxonomy_data <- tax_table(ecm_physeq_truesamples) %>%
+  taxonomy_data <- tax_table(physeq_decontam) %>%  # or physeq_filtered if you prefer
     as.data.frame() %>%
     rownames_to_column("OTU")
 
   # Extract OTU data (abundance) from the OTU table
-  otu_long <- otu_table(ecm_physeq_truesamples) %>%
+  otu_long <- otu_table(physeq_decontam) %>%  # Keep the unfiltered data
     as.data.frame() %>%
     rownames_to_column("OTU") %>%
     pivot_longer(!OTU, names_to = "sample_id", values_to = "abundance") %>%
-    filter(abundance != 0)
+    filter(abundance != 0)  
 
   # Combine OTU table with taxonomy data
   otu_full_data <- otu_long %>%
