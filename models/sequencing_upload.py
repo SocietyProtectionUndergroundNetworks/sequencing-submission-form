@@ -27,6 +27,7 @@ from models.db_model import (
     OTU,
 )
 from models.sequencing_analysis import SequencingAnalysis
+from models.taxonomy import TaxonomyManager
 from models.sequencing_analysis_type import SequencingAnalysisType
 from models.sequencing_files_uploaded import SequencingFileUploaded
 from helpers.bucket import init_bucket_chunked_upload_v2
@@ -1625,20 +1626,76 @@ class SequencingUpload:
     def process_otu_data(
         cls, csv_file_path, sequencing_upload_id, analysis_id
     ):
-        from models.taxonomy import TaxonomyManager
 
         # Step 1: Open and read the CSV file
         with open(csv_file_path, "r") as file:
             reader = csv.DictReader(file)
+            
+            # Part A: Create taxonomies and return their ids
+            taxonomies = cls.create_taxonomies_from_csv(reader, sequencing_upload_id)
 
+
+        # Part B: Bulk create OTUs using the taxonomy_ids
+        cls.create_otus_from_csv(csv_file_path, sequencing_upload_id, analysis_id, taxonomies)
+
+        logger.info("OTU data processed and stored successfully.")
+
+    @classmethod
+    def create_taxonomies_from_csv(cls, reader, sequencing_upload_id):
+        # Prepare a list to store the taxonomies
+        taxonomies = []
+
+        with session_scope() as session:
+            # Iterate through the CSV and collect taxonomies
+            for row in reader:
+                domain_name = row["Domain"]
+                if domain_name and domain_name != '':   
+                    phylum_name = row["Phylum"]
+                    class_name = row["Class"]
+                    order_name = row["Order"]
+                    family_name = row["Family"]
+                    genus_name = row["Genus"]
+                    species_name = row["Species"]
+
+                    # Get or create the taxonomy
+                    taxonomy_id = TaxonomyManager.create(
+                        domain_name=domain_name,
+                        phylum_name=phylum_name,
+                        class_name=class_name,
+                        order_name=order_name,
+                        family_name=family_name,
+                        genus_name=genus_name,
+                        species_name=species_name,
+                        session=session  # Pass session to create
+                    )
+
+                    taxonomies.append((row["sample_id"], taxonomy_id))  # Store the sample_id and corresponding taxonomy_id
+
+        return taxonomies
+
+    @classmethod
+    def create_otus_from_csv(cls, csv_file_path, sequencing_upload_id, analysis_id, taxonomies):
+        # Step 1: Open and read the CSV file
+        with open(csv_file_path, "r") as file:
+            reader = csv.DictReader(file)  
             with session_scope() as session:
+                # Create the OTUs in bulk
+                otus = []
 
                 for row in reader:
                     sample_id = row["sample_id"]
                     abundance = row["abundance"]
 
-                    # Step 2: Find the corresponding sequencing_sample
-                    # Try finding the sample with the original sample_id
+                    # Find the matching taxonomy_id
+                    taxonomy_id = next(
+                        (taxonomy_id for sample_id_in_taxonomy, taxonomy_id in taxonomies if sample_id_in_taxonomy == sample_id),
+                        None
+                    )
+
+                    if taxonomy_id is None:
+                        continue  # Skip this row if no taxonomy is found
+
+                    # Find the sequencing sample
                     sequencing_sample = (
                         session.query(SequencingSamplesTable)
                         .filter_by(
@@ -1648,12 +1705,8 @@ class SequencingUpload:
                         .first()
                     )
 
-                    # If not found, check for a sample_id
-                    # without the "S_" prefix
                     if not sequencing_sample and sample_id.startswith("S_"):
-                        adjusted_sample_id = sample_id[
-                            2:
-                        ]  # Remove "S_" prefix
+                        adjusted_sample_id = sample_id[2:]  # Remove "S_" prefix
                         sequencing_sample = (
                             session.query(SequencingSamplesTable)
                             .filter_by(
@@ -1664,43 +1717,20 @@ class SequencingUpload:
                         )
 
                     if not sequencing_sample:
-                        # Log or handle the case where no matching
-                        # sample is found
-                        logger.info(
-                            f"No matching sample found for SampleID: "
-                            f"{sample_id}"
-                        )
-                        continue  # Skip to the next row
+                        logger.info(f"No matching sample found for SampleID: {sample_id}. Skipping.")
+                        continue  # Skip this row if no matching sequencing sample is found
 
-                    # Step 3: Get or create the taxonomy
-                    domain_name = row["Domain"]
-                    phylum_name = row["Phylum"]
-                    class_name = row["Class"]
-                    order_name = row["Order"]
-                    family_name = row["Family"]
-                    genus_name = row["Genus"]
-                    species_name = row["Species"]
-
-                    taxonomy_id = TaxonomyManager.create(
-                        domain_name=domain_name,
-                        phylum_name=phylum_name,
-                        class_name=class_name,
-                        order_name=order_name,
-                        family_name=family_name,
-                        genus_name=genus_name,
-                        species_name=species_name,
-                    )
-
-                    # Step 4: Assign the taxonomy and abundance
-                    # to the OTU table
+                    # Create the OTU
                     otu = OTU(
                         sample_id=sequencing_sample.id,
                         taxonomy_id=taxonomy_id,
                         abundance=abundance,
                         sequencing_analysis_id=analysis_id,
                     )
-                    session.add(otu)
+                    otus.append(otu)
 
-            session.commit()  # Commit all changes in bulk
+                # Bulk insert OTUs
+                if otus:
+                    session.add_all(otus)
 
-        logger.info("OTU data processed and stored successfully.")
+                session.commit()  # Commit all changes in bulk
