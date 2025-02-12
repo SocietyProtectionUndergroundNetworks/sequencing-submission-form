@@ -359,7 +359,8 @@ def upload_metadata_file():
     file_extension = os.path.splitext(filename)[1].lower()
 
     if file_extension == ".csv":
-        df = pd.read_csv(file)
+        df = pd.read_csv(file, sep=None, engine="python")
+        logger.info(df)
     elif file_extension in [".xls", ".xlsx"]:
         df = pd.read_excel(file, engine="openpyxl")
     else:

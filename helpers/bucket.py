@@ -367,7 +367,7 @@ def init_bucket_upload_folder_v2(
 # Quite similar to bucket_chunked_upload but accomodating for a different data
 # model in version 2 of the application.
 # To keep things simple, we are redoing the function with different parameters
-# the original function can be removed when version1 will be out of commision
+# the original function has been removed when version1 went out of commision
 def bucket_chunked_upload_v2(
     local_file_path,
     destination_upload_directory,

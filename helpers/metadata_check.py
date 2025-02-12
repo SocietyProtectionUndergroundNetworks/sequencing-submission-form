@@ -85,33 +85,6 @@ def get_project_common_data():
     return data
 
 
-def check_expected_columns(df, expected_columns_data):
-    """
-    Check for missing and extra columns in the DataFrame.
-    """
-
-    expected_columns = list(expected_columns_data.keys())
-    uploaded_columns = df.columns.tolist()
-    missing_columns = list(set(expected_columns) - set(uploaded_columns))
-    extra_columns = list(set(uploaded_columns) - set(expected_columns))
-    issues = []
-
-    if missing_columns:
-        issues.append(
-            {
-                "invalid": missing_columns,
-                "message": "Missing columns",
-                "status": 0,
-            }
-        )
-
-    if extra_columns:
-        issues.append(
-            {"invalid": extra_columns, "message": "Extra columns", "status": 0}
-        )
-    return issues
-
-
 def check_sample_id(sample_id):
     """
     Check if a given SampleID follows the format:

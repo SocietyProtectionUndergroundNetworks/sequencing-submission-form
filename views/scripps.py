@@ -254,3 +254,26 @@ def move_sequencer_ids_to_project():
         {"result": 1},
         200,
     )
+
+
+@scripps_bp.route(
+    "/move_sequencing_blank_records",
+    methods=["POST"],
+    endpoint="move_sequencing_blank_records",
+)
+@admin_required
+@login_required
+def move_sequencing_blank_records():
+    upload_id = request.form.get("upload_id")
+    directory_name = request.form.get("directory_name")
+    bucket_folder_name = request.form.get("bucket_folder_name")
+
+    if bucket_folder_name and directory_name and upload_id:
+        SequencingCompanyInput.move_sequencing_blanks(
+            upload_id, directory_name, bucket_folder_name
+        )
+
+    return (
+        {"result": 1},
+        200,
+    )

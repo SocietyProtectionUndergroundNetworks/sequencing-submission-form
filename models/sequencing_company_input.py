@@ -1,7 +1,8 @@
 import logging
 import pandas as pd
+import os
 from helpers.dbm import session_scope
-from helpers.bucket import list_buckets
+from helpers.bucket import list_buckets, init_bucket_chunked_upload_v2
 from models.db_model import (
     SequencingCompanyInputTable,
     SequencingSamplesTable,
@@ -285,3 +286,76 @@ class SequencingCompanyInput:
 
             # Commit the new entries to the database
             session.commit()
+
+    @classmethod
+    def move_sequencing_blanks(
+        cls, sequencingCompanyUploadId, directory_name, bucket_folder_name
+    ):
+        with session_scope() as session:
+            # Query all records with the specified sequencingCompanyUploadId
+            results = (
+                session.query(SequencingCompanyInputTable)
+                .filter_by(
+                    sequencingCompanyUploadId=sequencingCompanyUploadId,
+                    project="sequencing_blanks",
+                )
+                .order_by(
+                    SequencingCompanyInputTable.project,
+                    SequencingCompanyInputTable.sample_number,
+                )
+                .all()
+            )
+
+            for record in results:
+                record_dict = {
+                    key: value
+                    for key, value in record.__dict__.items()
+                    if not key.startswith("_")
+                }
+
+                sequencer_id = record_dict.get("sequencer_id")
+                if not sequencer_id:
+                    logger.warning(
+                        f"Skipping record {record_dict.get('id')}"
+                        f" due to missing sequencer_id"
+                    )
+                    continue
+
+                logger.info(f"Processing sequencer_id: {sequencer_id}")
+
+                # Step 1: List and filter files
+                matching_files = [
+                    f
+                    for f in os.listdir(directory_name)
+                    if f.startswith(sequencer_id)
+                ]
+
+                if not matching_files:
+                    logger.warning(
+                        f"No files found for sequencer_id: {sequencer_id}"
+                    )
+
+                # Step 2: Upload each file
+                for filename in matching_files:
+                    local_file_path = os.path.join(directory_name, filename)
+                    destination_blob_name = (
+                        filename  # Upload with the same filename
+                    )
+
+                    logger.info(
+                        f"Uploading {local_file_path} to "
+                        f"{bucket_folder_name}/{destination_blob_name}"
+                    )
+
+                    init_bucket_chunked_upload_v2(
+                        local_file_path=local_file_path,
+                        destination_upload_directory=bucket_folder_name,
+                        destination_blob_name=destination_blob_name,
+                        sequencer_file_id=None,
+                        bucket_name="sequencing_blanks",
+                        known_md5=None,
+                    )
+
+                    logger.info(f"Upload complete for {filename}")
+
+        logger.info("Processing complete for all sequencing blanks.")
