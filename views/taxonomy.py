@@ -137,7 +137,10 @@ def taxonomy_show_otus():
 
     # Query the OTUs for the sample and region
     otus = TaxonomyManager.get_otus(
-        sample_id=sample_id, region=region, analysis_type_id=analysis_type_id
+        sample_id=sample_id,
+        region=region,
+        analysis_type_id=analysis_type_id,
+        glom_filter=glom_filter,
     )
 
     sample = SequencingSample.get(sample_id)

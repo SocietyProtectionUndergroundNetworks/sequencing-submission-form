@@ -359,7 +359,7 @@ class TaxonomyManager:
             return formatted_results
 
     @classmethod
-    def get_otus(cls, sample_id, region, analysis_type_id):
+    def get_otus(cls, sample_id, region, analysis_type_id, glom_filter):
         with session_scope() as session:
             query = (
                 session.query(
@@ -398,6 +398,30 @@ class TaxonomyManager:
                 query = query.filter(
                     SequencingAnalysisTypesTable.id == analysis_type_id
                 )
+
+            # New filter logic for Glomeromycetes,
+            # Archaeosporomycetes, and Paraglomeromycetes
+            if glom_filter == 1:
+                # Query the Class table to get the IDs of the specific classes
+                class_ids = (
+                    session.query(Class.id)
+                    .filter(
+                        Class.name.in_(
+                            [
+                                "Glomeromycetes",
+                                "Archaeosporomycetes",
+                                "Paraglomeromycetes",
+                            ]
+                        )
+                    )
+                    .all()
+                )
+
+                # Extract the IDs from the result
+                class_ids = [class_id[0] for class_id in class_ids]
+
+                # Apply the filter using the dynamically retrieved IDs
+                query = query.filter(Taxonomy.class_id.in_(class_ids))
 
             results = query.all()
 
