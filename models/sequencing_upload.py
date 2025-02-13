@@ -1625,27 +1625,40 @@ class SequencingUpload:
             SequencingFileUploaded.update_primer_occurrences_count(file["id"])
 
     @classmethod
-    def process_otu_data(cls, csv_file_path, sequencing_upload_id, analysis_id):
+    def process_otu_data(
+        cls, csv_file_path, sequencing_upload_id, analysis_id
+    ):
         # Step 1: Read CSV into a Pandas DataFrame
         df = pd.read_csv(csv_file_path)
         # Step 2: Get all existing samples upfront
-        samples = cls.get_samples(sequencing_upload_id)  # Fetch all samples once
-        samples_dict = {sample["SampleID"]: sample["id"] for sample in samples}  # Map SampleID -> id
+        samples = cls.get_samples(
+            sequencing_upload_id
+        )  # Fetch all samples once
+        samples_dict = {
+            sample["SampleID"]: sample["id"] for sample in samples
+        }  # Map SampleID -> id
         # logger.info(samples_dict)
 
         # Part A: Create taxonomies and return their IDs
-        taxonomies = cls.create_taxonomies_from_csv(df, sequencing_upload_id, samples_dict)
+        taxonomies = cls.create_taxonomies_from_csv(
+            df, sequencing_upload_id, samples_dict
+        )
         # logger.info(taxonomies)
 
         # Part B: Bulk create OTUs using the taxonomy_ids
         with session_scope() as session:
             otus = []
             counter = 0
-            
+
             for sample_id, taxonomy_id, abundance in taxonomies:
                 # Ensure that all required values are present and not None
-                if sample_id is not None and pd.notna(taxonomy_id) and abundance is not None and analysis_id is not None:
-                    counter += 1                
+                if (
+                    sample_id is not None
+                    and pd.notna(taxonomy_id)
+                    and abundance is not None
+                    and analysis_id is not None
+                ):
+                    counter += 1
                     otu = OTU(
                         sample_id=sample_id,
                         taxonomy_id=taxonomy_id,
@@ -1657,20 +1670,31 @@ class SequencingUpload:
             # Bulk insert OTUs into the database
             if otus:
                 session.add_all(otus)
-                session.commit()  # Ensure the changes are committed to the database
+                session.commit()
 
         logger.info(f"Nr of OTUs we found: {counter}")
         logger.info("OTU data processed and stored successfully.")
 
     @classmethod
-    def create_taxonomies_from_csv(cls, df, sequencing_upload_id, samples_dict):
+    def create_taxonomies_from_csv(
+        cls, df, sequencing_upload_id, samples_dict
+    ):
         df = df.copy()
-        # Drop rows where Domain is missing (optional, prevents unnecessary processing)
+        # Drop rows where Domain is missing (optional,
+        #  prevents unnecessary processing)
         df = df[df["Domain"].notna() & (df["Domain"] != "")]
 
         # Extract unique taxonomies
         unique_taxonomies = df[
-            ["Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species"]
+            [
+                "Domain",
+                "Phylum",
+                "Class",
+                "Order",
+                "Family",
+                "Genus",
+                "Species",
+            ]
         ].drop_duplicates()
 
         logger.info(f"Found {len(unique_taxonomies)} unique taxonomies.")
@@ -1691,22 +1715,41 @@ class SequencingUpload:
                     species_name=row["Species"],
                     session=session,
                 )
-                taxonomy_tuple = tuple(row)  # Convert row to a tuple for unique identification
+                taxonomy_tuple = tuple(
+                    row
+                )  # Convert row to a tuple for unique identification
                 taxonomy_id_map[taxonomy_tuple] = taxonomy_id  # Store in map
 
         # Map sample IDs to taxonomy IDs
         df["taxonomy_tuple"] = df[
-            ["Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species"]
-        ].apply(tuple, axis=1)  # Convert taxonomy columns into a tuple
+            [
+                "Domain",
+                "Phylum",
+                "Class",
+                "Order",
+                "Family",
+                "Genus",
+                "Species",
+            ]
+        ].apply(
+            tuple, axis=1
+        )  # Convert taxonomy columns into a tuple
 
-        df["taxonomy_id"] = df["taxonomy_tuple"].map(taxonomy_id_map)  # Map to taxonomy_id
+        df["taxonomy_id"] = df["taxonomy_tuple"].map(
+            taxonomy_id_map
+        )  # Map to taxonomy_id
 
         # Create a list of tuples with (sample_id, taxonomy_id, abundance)
-        # Use samples_dict to map SampleID to id and ensure we pass the abundance as well
+        # Use samples_dict to map SampleID to id and ensure we pass
+        # the abundance as well
         taxonomies = []
         for _, row in df.iterrows():
-            sample_id = samples_dict.get(row["sample_id"])  # Get the sample ID from the dict
-            if sample_id:  # Only proceed if the sample exists in the dictionary
+            sample_id = samples_dict.get(
+                row["sample_id"]
+            )  # Get the sample ID from the dict
+            if (
+                sample_id
+            ):  # Only proceed if the sample exists in the dictionary
                 taxonomies.append(
                     (sample_id, row["taxonomy_id"], row["abundance"])
                 )

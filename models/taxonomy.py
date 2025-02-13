@@ -56,7 +56,7 @@ class TaxonomyManager:
         session,
     ):
 
-        if domain_name and domain_name != '' and domain_name != '?':
+        if domain_name and domain_name != "" and domain_name != "?":
             # Handle "?" by setting subsequent levels to None
             if phylum_name == "?":
                 class_name = order_name = family_name = genus_name = (
