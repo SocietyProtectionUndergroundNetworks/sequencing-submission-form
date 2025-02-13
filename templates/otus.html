@@ -17,7 +17,7 @@
       </ul>
     </div>
   </div>
-  <div class="container mt-4">
+  <div class="container-fluid mt-4">
       <h1>Operational Taxonomic Units (OTUs)</h1>
       <p>
         <strong>Project:</strong> 
@@ -34,7 +34,7 @@
       
       
       {% if otus and otus|length > 0 %}
-      <div class="table-responsive">
+      <div class="table-responsive-wrapper">
           <table class="table table-bordered table-striped">
               <thead>
                   <tr>
@@ -75,7 +75,28 @@
     
   </script>
   <style>
+    /* Make sure the table container stretches across the page */
+    .table-container {
+      width: 100%;
+      overflow-x: hidden;  /* Prevent scroll inside the container */
+    }
 
+    /* Ensure the page itself has horizontal scrolling */
+    body {
+      overflow-x: auto;    /* Horizontal scroll will appear at page level */
+    }
+
+    /* Ensure the table behaves normally (no table-layout: fixed) */
+    .table {
+      width: 100%;                /* Table takes up full width of the container */
+      word-wrap: normal;          /* Prevent word wrapping */
+      word-break: break-word;     /* Force break of long words */
+      white-space: nowrap;        /* Prevent wrapping of text inside cells */
+    }
+
+    .table th, .table td {
+      white-space: nowrap;        /* Prevent wrapping of text inside cells */
+    }
   </style>
 </body>
 </html>
