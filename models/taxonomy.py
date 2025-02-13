@@ -53,14 +53,12 @@ class TaxonomyManager:
         family_name,
         genus_name,
         species_name,
+        session,
     ):
-        with session_scope() as session:
+
+        if domain_name and domain_name != '' and domain_name != '?':
             # Handle "?" by setting subsequent levels to None
-            if domain_name == "?":
-                phylum_name = class_name = order_name = family_name = (
-                    genus_name
-                ) = species_name = None
-            elif phylum_name == "?":
+            if phylum_name == "?":
                 class_name = order_name = family_name = genus_name = (
                     species_name
                 ) = None
@@ -187,6 +185,7 @@ class TaxonomyManager:
                 session.commit()
                 taxonomy_id = new_taxonomy.id
                 return taxonomy_id
+            return None
 
     @staticmethod
     def get_or_create(model, name, session=None, **kwargs):
