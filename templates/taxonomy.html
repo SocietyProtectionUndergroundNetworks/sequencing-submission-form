@@ -69,7 +69,18 @@
           <label for="project" class="form-label">Project</label>
           <input type="text" class="form-control" id="project" name="project" placeholder="Enter SPUN project">
         </div>
-      </div>      
+      </div>  
+      <div class="row mb-3">
+        <div class="col-md-12">
+          <label for="glom_filter" class="form-label">Show only Glomeromycetes, Archaeosporomycetes and Paraglomeromycetes</label>
+          <div>
+            <input type="radio" id="glom_filter_yes" name="glom_filter" value="yes" checked>
+            <label for="glom_filter_yes">Yes</label>
+            <input type="radio" id="glom_filter_no" name="glom_filter" value="no">
+            <label for="glom_filter_no">No</label>
+          </div>
+        </div>
+      </div>   
       <button type="submit" class="btn btn-primary">Search</button>
     </form>
 

@@ -226,6 +226,7 @@ class TaxonomyManager:
         genus=None,
         species=None,
         project=None,
+        glom_filter_yes=None,
     ):
         """
         Search for taxonomies based on the given parameters.
@@ -283,6 +284,30 @@ class TaxonomyManager:
                 query = query.filter(
                     SequencingUploadsTable.project_id == project
                 )
+
+            # New filter logic for Glomeromycetes,
+            # Archaeosporomycetes, and Paraglomeromycetes
+            if glom_filter_yes:
+                # Query the Class table to get the IDs of the specific classes
+                class_ids = (
+                    session.query(Class.id)
+                    .filter(
+                        Class.name.in_(
+                            [
+                                "Glomeromycetes",
+                                "Archaeosporomycetes",
+                                "Paraglomeromycetes",
+                            ]
+                        )
+                    )
+                    .all()
+                )
+
+                # Extract the IDs from the result
+                class_ids = [class_id[0] for class_id in class_ids]
+
+                # Apply the filter using the dynamically retrieved IDs
+                query = query.filter(Taxonomy.class_id.in_(class_ids))
             results = query.all()
 
             # Format the results

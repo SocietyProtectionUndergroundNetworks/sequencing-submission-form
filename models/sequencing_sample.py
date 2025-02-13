@@ -7,7 +7,7 @@ from helpers.land_use import (
     get_elevation,
 )
 from models.db_model import SequencingSamplesTable, OTU
-from sqlalchemy import or_
+from sqlalchemy import or_, select
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")
@@ -288,3 +288,36 @@ class SequencingSample:
                     f"Assigned new taxonomy {taxonomy_id} to "
                     f"sample {sample_id} with abundance {abundance}."
                 )
+
+    @classmethod
+    def get_analysis_types_with_otus(cls, sample_id):
+        from models.db_model import (
+            SequencingAnalysisTypesTable,
+            OTU,
+            SequencingAnalysisTable,
+        )
+
+        with session_scope() as session:
+            query = (
+                select(
+                    SequencingAnalysisTypesTable.name,
+                    SequencingAnalysisTypesTable.id,
+                )
+                .join(
+                    SequencingAnalysisTable,
+                    SequencingAnalysisTypesTable.id
+                    == SequencingAnalysisTable.sequencingAnalysisTypeId,
+                )
+                .join(
+                    OTU,
+                    SequencingAnalysisTable.id == OTU.sequencing_analysis_id,
+                )
+                .where(OTU.sample_id == sample_id)
+                .group_by(
+                    SequencingAnalysisTypesTable.name,
+                    SequencingAnalysisTypesTable.id,
+                )
+            )
+
+            result = session.execute(query).all()
+            return [(row.name, row.id) for row in result]

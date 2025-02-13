@@ -96,6 +96,11 @@ def taxonomy_search_results():
     genus = request.args.get("genus")
     species = request.args.get("species")
     project = request.args.get("project")
+    glom_filter = request.args.get("glom_filter")
+    # The default should be with the filtering
+    glom_filter_yes = True
+    if glom_filter == "no":
+        glom_filter_yes = False
 
     # Use TaxonomyManager to perform the search
     all_results = TaxonomyManager.search(
@@ -107,6 +112,7 @@ def taxonomy_search_results():
         genus=genus,
         species=species,
         project=project,
+        glom_filter_yes=glom_filter_yes,
     )
 
     total_results = len(all_results)  # Get total number of results
@@ -126,6 +132,8 @@ def taxonomy_show_otus():
     sample_id = request.args.get("sample_id", "").strip()
     region = request.args.get("region", "").strip()
     analysis_type_id = request.args.get("analysis_type_id", "").strip()
+    glom_filter = request.args.get("glom_filter", 1)
+    glom_filter = int(glom_filter) if glom_filter else 0
 
     # Query the OTUs for the sample and region
     otus = TaxonomyManager.get_otus(
@@ -134,6 +142,9 @@ def taxonomy_show_otus():
 
     sample = SequencingSample.get(sample_id)
     upload = SequencingUpload.get(sample.sequencingUploadId)
+    sample_analysis_types = SequencingSample.get_analysis_types_with_otus(
+        sample_id
+    )
 
     analysis_type = ""
     # Check if the analysis_type_id is a valid integer
@@ -154,6 +165,8 @@ def taxonomy_show_otus():
         upload=upload,
         analysis_type=analysis_type,
         analysis_type_id=analysis_type_id,
+        sample_analysis_types=sample_analysis_types,
+        glom_filter=glom_filter,
     )
 
 

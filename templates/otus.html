@@ -19,6 +19,7 @@
   </div>
   <div class="container-fluid mt-4">
       <h1>Operational Taxonomic Units (OTUs)</h1>
+      <p><a href="/taxonomy/download_otus_csv?{{ request.args.to_dict(flat=True)|urlencode }}">Download (unfiltered)</a></p>
       <p>
         <strong>Project:</strong> 
         
@@ -29,10 +30,31 @@
       </p>
       <p><strong>Sample ID:</strong> {{ sample["SampleID"] }}</p>
       <p><strong>Region:</strong> {{ region }}</p>
-      <p><strong>Analysis type:</strong> {{ analysis_type }}</p>
-      <p><a href="/taxonomy/download_otus_csv?{{ request.args.to_dict(flat=True)|urlencode }}">Download</a></p>
-      
-      
+      <p><strong>Analysis type:</strong> {{ analysis_type if analysis_type else "All" }} </p>
+      {% if glom_filter == 1 %}
+        <p><strong>Showing ONLY Glomeromycetes, Archaeosporomycetes and Paraglomeromycetes</strong> {{ region }}</p>
+      {% endif %}
+
+
+
+      {% set glom_filter_text = "&glom_filter=1" if glom_filter == 1 else "&glom_filter=0" %}
+      <p>
+        {% if analysis_type %}
+          <a class="btn btn-primary" href="show_otus?sample_id={{ sample_id }}{{ glom_filter_text}}">Show all analysis</a>
+        {% endif %}
+        
+        {% for name, analysis_id in sample_analysis_types %}
+          {% if name != analysis_type %}
+            <a class="btn btn-primary" href="show_otus?sample_id={{ sample_id }}&analysis_type_id={{ analysis_id }}{{ glom_filter_text}}">Show only {{ name }} analysis</a>
+          {% endif %}
+        {% endfor %}
+      </p>
+      {% if glom_filter == 1 %}
+        <p><a class="btn btn-primary" href="show_otus?sample_id={{ sample_id }}&analysis_type_id={{ analysis_id }}&glom_filter=0">Dont filter for Glomeromycetes, Archaeosporomycetes and Paraglomeromycetes</a></p>
+      {% else %}
+        <p><a class="btn btn-primary" href="show_otus?sample_id={{ sample_id }}&analysis_type_id={{ analysis_id }}&glom_filter=1">Show only Glomeromycetes, Archaeosporomycetes and Paraglomeromycetes</a></p>
+      {% endif %}
+
       {% if otus and otus|length > 0 %}
       <div class="table-responsive-wrapper">
           <table class="table table-bordered table-striped">
