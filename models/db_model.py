@@ -10,6 +10,7 @@ from sqlalchemy import (
     ForeignKey,
     Float,
     JSON,
+    Index,
 )
 
 from sqlalchemy.orm import relationship, declarative_base
@@ -407,6 +408,7 @@ class Taxonomy(Base):
 # OTU Table
 class OTU(Base):
     __tablename__ = "otu"
+
     id = Column(Integer, primary_key=True)
     sample_id = Column(
         Integer, ForeignKey("sequencing_samples.id"), nullable=False
@@ -416,7 +418,21 @@ class OTU(Base):
     sequencing_analysis_id = Column(
         Integer, ForeignKey("sequencing_analysis.id"), nullable=False
     )
-    ecm_flag = Column(Boolean, nullable=False, server_default="0")
+    ecm_flag = Column(Boolean, default=False, nullable=False)
+
     sample = relationship("SequencingSamplesTable", back_populates="otus")
     taxonomy = relationship("Taxonomy")
     sequencing_analysis = relationship("SequencingAnalysisTable")
+
+    __table_args__ = (
+        Index("idx_ecm_flag", ecm_flag),  # Simple index for ecm_flag
+        Index(
+            "idx_ecm_sample", ecm_flag, sample_id
+        ),  # Composite index for ecm_flag + sample_id
+        Index(
+            "idx_ecm_taxonomy", ecm_flag, taxonomy_id
+        ),  # Composite index for ecm_flag + taxonomy_id
+        Index(
+            "idx_ecm_analysis", ecm_flag, sequencing_analysis_id
+        ),  # Composite index for ecm_flag + sequencing_analysis_id
+    )
