@@ -284,14 +284,21 @@
 
                               {% if analysis_count > 1 %}
                                 <!-- Link for "All" -->
-                                <a href="/taxonomy/show_otus?sample_id={{ row.id }}" target="_blank" class="link">
+                                <a href="/taxonomy/show_otus?sample_id={{ row.id }}&ecm_filter=0&amf_filter=0" target="_blank" class="link">
                                   All
                                 </a> <br>
                               {% endif %}
 
                               <!-- Links for individual analysis types -->
                               {% for analysis_type_id, analysis_data in row.otu_counts.items() %}
-                                <a href="/taxonomy/show_otus?sample_id={{ row.id }}&analysis_type_id={{ analysis_type_id }}" target="_blank" class="link">
+                                {% set filter_params = '' %}
+                                {% if analysis_data.name[:3] == 'ITS' %}
+                                  {% set filter_params = '&ecm_filter=1&amf_filter=0' %}
+                                {% elif analysis_data.name[:3] == 'SSU' %}
+                                  {% set filter_params = '&ecm_filter=0&amf_filter=1' %}
+                                {% endif %}
+                                
+                                <a href="/taxonomy/show_otus?sample_id={{ row.id }}&analysis_type_id={{ analysis_type_id }}{{ filter_params }}" target="_blank" class="link">
                                   {{ analysis_data.name }}
                                 </a>
                               {% endfor %}
