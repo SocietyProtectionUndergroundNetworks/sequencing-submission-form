@@ -71,16 +71,25 @@
         </div>
       </div>  
       <div class="row mb-3">
-        <div class="col-md-12">
-          <label for="glom_filter" class="form-label">Show only Glomeromycetes, Archaeosporomycetes and Paraglomeromycetes</label>
+        <div class="col-md-6">
+          <label for="amf_filter" class="form-label">Show only Glomeromycetes, Archaeosporomycetes and Paraglomeromycetes (AMF)</label>
           <div>
-            <input type="radio" id="glom_filter_yes" name="glom_filter" value="yes" checked>
-            <label for="glom_filter_yes">Yes</label>
-            <input type="radio" id="glom_filter_no" name="glom_filter" value="no">
-            <label for="glom_filter_no">No</label>
+            <input type="radio" id="amf_filter_yes" name="amf_filter" value="yes" checked>
+            <label for="amf_filter_yes">Yes</label>
+            <input type="radio" id="amf_filter_no" name="amf_filter" value="no">
+            <label for="amf_filter_no">No</label>
           </div>
         </div>
-      </div>   
+        <div class="col-md-6">
+          <label for="ecm_filter" class="form-label">Show only ECM</label>
+          <div>
+            <input type="radio" id="ecm_filter_yes" name="ecm_filter" value="yes">
+            <label for="ecm_filter_yes">Yes</label>
+            <input type="radio" id="ecm_filter_no" name="ecm_filter" value="no" checked>
+            <label for="ecm_filter_no">No</label>
+          </div>
+        </div>        
+      </div>
       <button type="submit" class="btn btn-primary">Search</button>
     </form>
 
@@ -138,6 +147,7 @@
                       <th>Family</th>
                       <th>Genus</th>
                       <th>Species</th>
+                      <th>ECM</th>
                       <th>Count</th>
                       <th>Analysis Type</th>
                     </tr>
@@ -164,6 +174,7 @@
                     <td>${row.family || ''}</td>
                     <td>${row.genus || ''}</td>
                     <td>${row.species || ''}</td>
+                    <td>${row.ecm_flag || ''}</td>
                     <td>${row.abundance || ''}</td>
                     <td>${row.analysis_type || ''}</td>
                   </tr>

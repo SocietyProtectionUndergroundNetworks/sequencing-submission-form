@@ -226,7 +226,8 @@ class TaxonomyManager:
         genus=None,
         species=None,
         project=None,
-        glom_filter_yes=None,
+        amf_filter=None,
+        ecm_filter=None,
     ):
         """
         Search for taxonomies based on the given parameters.
@@ -245,6 +246,7 @@ class TaxonomyManager:
                     SequencingUploadsTable.project_id,
                     Taxonomy,
                     OTU.abundance,
+                    OTU.ecm_flag,
                     SequencingAnalysisTypesTable.name.label("analysis_type"),
                 )
                 .join(OTU, OTU.sample_id == SequencingSamplesTable.id)
@@ -285,9 +287,13 @@ class TaxonomyManager:
                     SequencingUploadsTable.project_id == project
                 )
 
+            # New filter logic for ECM
+            if ecm_filter:
+                query = query.filter(OTU.ecm_flag == 1)
+
             # New filter logic for Glomeromycetes,
             # Archaeosporomycetes, and Paraglomeromycetes
-            if glom_filter_yes:
+            if amf_filter:
                 # Query the Class table to get the IDs of the specific classes
                 class_ids = (
                     session.query(Class.id)
@@ -320,6 +326,7 @@ class TaxonomyManager:
                     "Latitude": row.Latitude,
                     "Longitude": row.Longitude,
                     "abundance": row.abundance,
+                    "ecm_flag": row.ecm_flag,
                     "analysis_type": row.analysis_type,
                     "domain": (
                         row.Taxonomy.domain.name
@@ -359,13 +366,16 @@ class TaxonomyManager:
             return formatted_results
 
     @classmethod
-    def get_otus(cls, sample_id, region, analysis_type_id, glom_filter):
+    def get_otus(
+        cls, sample_id, region, analysis_type_id, amf_filter, ecm_filter
+    ):
         with session_scope() as session:
             query = (
                 session.query(
                     Taxonomy,
                     OTU.abundance,
                     OTU.sample_id,
+                    OTU.ecm_flag,
                     SequencingAnalysisTypesTable.name.label("analysis_type"),
                 )
                 .join(
@@ -398,10 +408,11 @@ class TaxonomyManager:
                 query = query.filter(
                     SequencingAnalysisTypesTable.id == analysis_type_id
                 )
-
+            if ecm_filter == 1:
+                query = query.filter(OTU.ecm_flag == 1)
             # New filter logic for Glomeromycetes,
             # Archaeosporomycetes, and Paraglomeromycetes
-            if glom_filter == 1:
+            if amf_filter == 1:
                 # Query the Class table to get the IDs of the specific classes
                 class_ids = (
                     session.query(Class.id)
@@ -430,6 +441,7 @@ class TaxonomyManager:
                 {
                     "abundance": int(row.abundance),
                     "analysis_type": row.analysis_type,
+                    "ecm_flag": row.ecm_flag,
                     "domain": (
                         row.Taxonomy.domain.name
                         if row.Taxonomy.domain

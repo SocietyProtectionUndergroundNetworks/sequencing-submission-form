@@ -96,11 +96,17 @@ def taxonomy_search_results():
     genus = request.args.get("genus")
     species = request.args.get("species")
     project = request.args.get("project")
-    glom_filter = request.args.get("glom_filter")
+    amf_filter = request.args.get("amf_filter")
     # The default should be with the filtering
-    glom_filter_yes = True
-    if glom_filter == "no":
-        glom_filter_yes = False
+    amf_filter_yes = True
+    if amf_filter == "no":
+        amf_filter_yes = False
+
+    ecm_filter = request.args.get("ecm_filter")
+    # The default should be with the filtering
+    ecm_filter_yes = True
+    if ecm_filter == "no":
+        ecm_filter_yes = False
 
     # Use TaxonomyManager to perform the search
     all_results = TaxonomyManager.search(
@@ -112,7 +118,8 @@ def taxonomy_search_results():
         genus=genus,
         species=species,
         project=project,
-        glom_filter_yes=glom_filter_yes,
+        amf_filter=amf_filter_yes,
+        ecm_filter=ecm_filter_yes,
     )
 
     total_results = len(all_results)  # Get total number of results
@@ -132,15 +139,19 @@ def taxonomy_show_otus():
     sample_id = request.args.get("sample_id", "").strip()
     region = request.args.get("region", "").strip()
     analysis_type_id = request.args.get("analysis_type_id", "").strip()
-    glom_filter = request.args.get("glom_filter", 1)
-    glom_filter = int(glom_filter) if glom_filter else 0
+    amf_filter = request.args.get("amf_filter", 1)
+    amf_filter = int(amf_filter) if amf_filter else 0
+
+    ecm_filter = request.args.get("ecm_filter", 1)
+    ecm_filter = int(ecm_filter) if ecm_filter else 0
 
     # Query the OTUs for the sample and region
     otus = TaxonomyManager.get_otus(
         sample_id=sample_id,
         region=region,
         analysis_type_id=analysis_type_id,
-        glom_filter=glom_filter,
+        amf_filter=amf_filter,
+        ecm_filter=ecm_filter,
     )
 
     sample = SequencingSample.get(sample_id)
@@ -169,7 +180,8 @@ def taxonomy_show_otus():
         analysis_type=analysis_type,
         analysis_type_id=analysis_type_id,
         sample_analysis_types=sample_analysis_types,
-        glom_filter=glom_filter,
+        amf_filter=amf_filter,
+        ecm_filter=ecm_filter,
     )
 
 
