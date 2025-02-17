@@ -293,8 +293,9 @@ if (str_detect(args$lotus2, "SSU_vsearch")) {
 
 ## In both cases export the OTUs table
 
+## Work for the full otu data for importing to the database
 # Extract the OTUs
-otu_long <- otu_table(amf_physeq_truesamples) %>%
+otu_unfiltered <- otu_table(physeq_decontam) %>% # Keep the unfiltered data
   as.data.frame() %>%
   rownames_to_column("OTU") %>%
   pivot_longer(!OTU, names_to = "sample_id", values_to = "abundance") %>%
@@ -306,12 +307,21 @@ taxonomy_data <- tax_table(amf_physeq_truesamples) %>%
   rownames_to_column("OTU")
 
 # Combine OTU table with taxonomy data
-otu_full_data <- otu_long %>%
+otu_full_data <- otu_unfiltered %>%
   left_join(taxonomy_data, by = "OTU")
+  mutate(ecm_flag = ifelse(Genus %in% fungal_traits_ecm$Genus, 1, 0))  # Add AMF flag
 
 # Export the combined data to a CSV file
 fwrite(otu_full_data, file = str_c(args$output, "/otu_full_data.csv"))
 
+
+# Work for the metadata_chaorichness.csv
+# Extract the OTUs from the amf_physeq_truesamples
+otu_long <- otu_table(amf_physeq_truesamples) %>%
+  as.data.frame() %>%
+  rownames_to_column("OTU") %>%
+  pivot_longer(!OTU, names_to = "sample_id", values_to = "abundance") %>%
+  filter(abundance != 0)    
 
 div.output <- foreach(i = unique(otu_long$sample_id), .final = function(i) setNames(i, unique(otu_long$sample_id))) %do% {
   freq_list <- otu_long %>%
