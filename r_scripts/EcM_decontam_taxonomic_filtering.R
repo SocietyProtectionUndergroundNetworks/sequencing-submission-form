@@ -267,11 +267,12 @@ if (num_ecm_genera > 0) {
     as.data.frame() %>%
     rownames_to_column("OTU") %>%
     pivot_longer(!OTU, names_to = "sample_id", values_to = "abundance") %>%
-    filter(abundance != 0)  
+    filter(abundance != 0)
 
   # Combine OTU table with taxonomy data
   otu_full_data <- otu_long %>%
-    left_join(taxonomy_data, by = "OTU")
+    left_join(taxonomy_data, by = "OTU") %>%
+    mutate(ecm_flag = ifelse(Genus %in% fungal_traits_ecm$Genus, 1, 0))  # Add ECM flag
 
   # Export the combined data to a CSV file
   fwrite(otu_full_data, file = str_c(args$output, "/otu_full_data.csv"))

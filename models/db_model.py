@@ -416,7 +416,7 @@ class OTU(Base):
     sequencing_analysis_id = Column(
         Integer, ForeignKey("sequencing_analysis.id"), nullable=False
     )
-
+    ecm_flag = Column(Boolean, nullable=False, server_default="0")
     sample = relationship("SequencingSamplesTable", back_populates="otus")
     taxonomy = relationship("Taxonomy")
     sequencing_analysis = relationship("SequencingAnalysisTable")

@@ -1650,7 +1650,7 @@ class SequencingUpload:
             otus = []
             counter = 0
 
-            for sample_id, taxonomy_id, abundance in taxonomies:
+            for sample_id, taxonomy_id, abundance, ecm_flag in taxonomies:
                 # Ensure that all required values are present and not None
                 if (
                     sample_id is not None
@@ -1664,6 +1664,7 @@ class SequencingUpload:
                         taxonomy_id=taxonomy_id,
                         abundance=abundance,
                         sequencing_analysis_id=analysis_id,
+                        ecm_flag=ecm_flag,
                     )
                     otus.append(otu)
 
@@ -1750,8 +1751,9 @@ class SequencingUpload:
             if (
                 sample_id
             ):  # Only proceed if the sample exists in the dictionary
+                ecm_flag = row["ecm_flag"] if "ecm_flag" in df.columns else 0
                 taxonomies.append(
-                    (sample_id, row["taxonomy_id"], row["abundance"])
+                    (sample_id, row["taxonomy_id"], row["abundance"], ecm_flag)
                 )
 
         logger.info(f"Mapped taxonomies to sample IDs: {len(taxonomies)}")
