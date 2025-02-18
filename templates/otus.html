@@ -53,21 +53,21 @@
           <a class="btn btn-primary" href="show_otus?sample_id={{ sample_id }}{{ amf_filter_text}}{{ ecm_filter_text}}">Show all analysis</a>
         {% endif %}
         
-        {% for name, analysis_id in sample_analysis_types %}
+        {% for name, sample_analysis_id in sample_analysis_types %}
           {% if name != analysis_type %}
-            <a class="btn btn-primary" href="show_otus?sample_id={{ sample_id }}&analysis_type_id={{ analysis_id }}{{ amf_filter_text}}{{ ecm_filter_text}}">Show only {{ name }} analysis</a>
+            <a class="btn btn-primary" href="show_otus?sample_id={{ sample_id }}&analysis_type_id={{ sample_analysis_id }}{{ amf_filter_text}}{{ ecm_filter_text}}">Show only {{ name }} analysis</a>
           {% endif %}
         {% endfor %}
       </p>
       {% if amf_filter == 1 %}
-        <p><a class="btn btn-primary" href="show_otus?sample_id={{ sample_id }}&analysis_type_id={{ analysis_id }}{{ ecm_filter_text}}&amf_filter=0">Dont filter for AMF</a></p>
+        <p><a class="btn btn-primary" href="show_otus?sample_id={{ sample_id }}&analysis_type_id={{ analysis_type_id }}{{ ecm_filter_text}}&amf_filter=0">Dont filter for AMF</a></p>
       {% elif amf_count>0 %}
-        <p><a class="btn btn-primary" href="show_otus?sample_id={{ sample_id }}&analysis_type_id={{ analysis_id }}{{ ecm_filter_text}}&amf_filter=1">Show only AMF</a></p>
+        <p><a class="btn btn-primary" href="show_otus?sample_id={{ sample_id }}&analysis_type_id={{ analysis_type_id }}{{ ecm_filter_text}}&amf_filter=1">Show only AMF</a></p>
       {% endif %}
       {% if ecm_filter == 1 %}
-        <p><a class="btn btn-primary" href="show_otus?sample_id={{ sample_id }}&analysis_type_id={{ analysis_id }}{{ amf_filter_text}}&ecm_filter=0">Dont filter for ECM</a></p>
+        <p><a class="btn btn-primary" href="show_otus?sample_id={{ sample_id }}&analysis_type_id={{ analysis_type_id }}{{ amf_filter_text}}&ecm_filter=0">Dont filter for ECM</a></p>
       {% elif ecm_count>0 %}
-        <p><a class="btn btn-primary" href="show_otus?sample_id={{ sample_id }}&analysis_type_id={{ analysis_id }}{{ amf_filter_text}}&ecm_filter=1">Show only ECM</a></p>
+        <p><a class="btn btn-primary" href="show_otus?sample_id={{ sample_id }}&analysis_type_id={{ analysis_type_id }}{{ amf_filter_text}}&ecm_filter=1">Show only ECM</a></p>
       {% endif %}
 
       
