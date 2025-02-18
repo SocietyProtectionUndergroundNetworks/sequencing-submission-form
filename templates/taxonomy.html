@@ -69,7 +69,18 @@
           <label for="project" class="form-label">Project</label>
           <input type="text" class="form-control" id="project" name="project" placeholder="Enter SPUN project">
         </div>
-      </div>  
+      </div>
+      <div class="row mb-3">
+        <div class="col-md-12">
+          <label for="analysis_type" class="form-label">Analysis type</label>
+          <select class="form-control" id="analysis_type" name="analysis_type">
+            <option value="" selected>All</option>
+            {% for analysis in analysis_types %}
+              <option value="{{ analysis.id }}">{{ analysis.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>        
       <div class="row mb-3">
         <div class="col-md-6">
           <label for="amf_filter" class="form-label">Show only Glomeromycetes, Archaeosporomycetes and Paraglomeromycetes (AMF)</label>

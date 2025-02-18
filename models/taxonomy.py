@@ -228,6 +228,7 @@ class TaxonomyManager:
         project=None,
         amf_filter=None,
         ecm_filter=None,
+        analysis_type=None,
     ):
         """
         Search for taxonomies based on the given parameters.
@@ -285,6 +286,10 @@ class TaxonomyManager:
             if project:
                 query = query.filter(
                     SequencingUploadsTable.project_id == project
+                )
+            if analysis_type:
+                query = query.filter(
+                    SequencingAnalysisTypesTable.id == analysis_type
                 )
 
             # New filter logic for ECM

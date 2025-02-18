@@ -58,3 +58,21 @@ class SequencingAnalysisType:
             ]
 
             return results
+
+    @classmethod
+    def get_all(cls):
+        with session_scope() as session:
+            # Query for all items with the specified region
+            items = session.query(SequencingAnalysisTypesTable).all()
+
+            # Format results as a list of dictionaries with specific fields
+            results = [
+                {
+                    "id": item.id,
+                    "name": item.name,
+                    "parameters": item.parameters,
+                }
+                for item in items
+            ]
+
+            return results

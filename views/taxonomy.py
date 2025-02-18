@@ -14,6 +14,7 @@ from flask_login import current_user, login_required
 from models.taxonomy import TaxonomyManager
 from models.sequencing_sample import SequencingSample
 from models.sequencing_upload import SequencingUpload
+from models.sequencing_analysis_type import SequencingAnalysisType
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -76,7 +77,8 @@ def approved_required(view_func):
 @login_required
 def taxonomy_search():
 
-    return render_template("taxonomy.html")
+    analysis_types = SequencingAnalysisType.get_all()
+    return render_template("taxonomy.html", analysis_types=analysis_types)
 
 
 @taxonomy_bp.route(
@@ -97,6 +99,8 @@ def taxonomy_search_results():
     species = request.args.get("species")
     project = request.args.get("project")
     amf_filter = request.args.get("amf_filter")
+    analysis_type = request.args.get("analysis_type")
+
     # The default should be with the filtering
     amf_filter_yes = True
     if amf_filter == "no":
@@ -120,6 +124,7 @@ def taxonomy_search_results():
         project=project,
         amf_filter=amf_filter_yes,
         ecm_filter=ecm_filter_yes,
+        analysis_type=analysis_type,
     )
 
     total_results = len(all_results)  # Get total number of results
