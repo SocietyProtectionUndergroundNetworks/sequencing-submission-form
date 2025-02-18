@@ -309,7 +309,6 @@ taxonomy_data <- tax_table(amf_physeq_truesamples) %>%
 # Combine OTU table with taxonomy data
 otu_full_data <- otu_unfiltered %>%
   left_join(taxonomy_data, by = "OTU")
-  mutate(ecm_flag = ifelse(Genus %in% fungal_traits_ecm$Genus, 1, 0))  # Add AMF flag
 
 # Export the combined data to a CSV file
 fwrite(otu_full_data, file = str_c(args$output, "/otu_full_data.csv"))
