@@ -357,7 +357,6 @@ def generate_all_lotus2_reports(analysis_type_id, from_id, to_id):
     for process_data in processes_data:
         process_id = process_data["id"]
         # Check if the process_id satisfies the given conditions
-
         if (
             (from_id is None and to_id is None)
             or (
@@ -372,33 +371,32 @@ def generate_all_lotus2_reports(analysis_type_id, from_id, to_id):
         ):
             for region_type, analysis_list in process_data["analysis"].items():
                 for analysis in analysis_list:
-                    if (
-                        str(analysis_type_id)
-                        == str(analysis["analysis_type_id"])
-                        and analysis["lotus2_status"] is None
+                    if str(analysis_type_id) == str(
+                        analysis["analysis_type_id"]
                     ):
-                        if analysis_type_id != 0:
-                            analysis_id = SequencingAnalysis.create(
-                                process_id, analysis_type_id
-                            )
-                            analysis = SequencingAnalysis.get(analysis_id)
-                            status = analysis.lotus2_status
+                        # Get the fresh status from the database
+                        analysis_id = SequencingAnalysis.create(
+                            process_id, analysis_type_id
+                        )
+                        analysis = SequencingAnalysis.get(analysis_id)
+                        status = analysis.lotus2_status
 
-                            if status is None:
-                                input_dir = (
-                                    "seq_processed/"
-                                    + process_data["uploads_folder"]
-                                )
-                                generate_lotus2_report(
-                                    process_id=process_data["id"],
-                                    input_dir=input_dir,
-                                    region=region_type,
-                                    debug=False,
-                                    analysis_type_id=analysis_type_id,
-                                    parameters={},
-                                )
-                                logger.info(
-                                    "inside generate_all_lotus2_reports . "
-                                    + " The analysis_id is "
-                                    + str(analysis_id)
-                                )
+                        # Only proceed if the status is None
+                        if status is None:
+                            input_dir = (
+                                "seq_processed/"
+                                + process_data["uploads_folder"]
+                            )
+                            generate_lotus2_report(
+                                process_id=process_data["id"],
+                                input_dir=input_dir,
+                                region=region_type,
+                                debug=False,
+                                analysis_type_id=analysis_type_id,
+                                parameters={},
+                            )
+                            logger.info(
+                                "inside generate_all_lotus2_reports . "
+                                + " The analysis_id is "
+                                + str(analysis_id)
+                            )
