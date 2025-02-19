@@ -1,5 +1,6 @@
 import logging
 from helpers.dbm import session_scope
+from collections import defaultdict
 from models.db_model import (
     Domain,
     Phylum,
@@ -11,8 +12,6 @@ from models.db_model import (
     Taxonomy,
     SequencingAnalysisTable,
     SequencingAnalysisTypesTable,
-    SequencingSamplesTable,
-    SequencingUploadsTable,
     OTU,
 )
 
@@ -229,6 +228,7 @@ class TaxonomyManager:
         amf_filter=None,
         ecm_filter=None,
         analysis_type=None,
+        group_same=None,
     ):
         """
         Search for taxonomies based on the given parameters.
@@ -237,137 +237,173 @@ class TaxonomyManager:
 
             # Join SequencingSamplesTable with OTU, Taxonomy
             # and SequencingUploadsTable
-            query = (
-                session.query(
-                    OTU.sample_id,
-                    SequencingSamplesTable.SampleID,
-                    SequencingSamplesTable.Longitude,
-                    SequencingSamplesTable.Latitude,
-                    SequencingUploadsTable.id.label("upload_id"),
-                    SequencingUploadsTable.project_id,
-                    Taxonomy,
-                    OTU.abundance,
-                    OTU.ecm_flag,
-                    SequencingAnalysisTypesTable.name.label("analysis_type"),
-                )
-                .join(OTU, OTU.sample_id == SequencingSamplesTable.id)
-                .join(Taxonomy, OTU.taxonomy_id == Taxonomy.id)
-                .join(
-                    SequencingUploadsTable,
-                    SequencingSamplesTable.sequencingUploadId
-                    == SequencingUploadsTable.id,
-                )
-                .join(
-                    SequencingAnalysisTable,
-                    OTU.sequencing_analysis_id == SequencingAnalysisTable.id,
-                )
-                .join(
-                    SequencingAnalysisTypesTable,
-                    SequencingAnalysisTable.sequencingAnalysisTypeId
-                    == SequencingAnalysisTypesTable.id,
-                )
-            )
+            from sqlalchemy import text
 
-            # Dynamically add filters based on provided arguments
+            # Base SQL query
+            sql_query = """
+            SELECT
+                o.sample_id,
+                ss.SampleID,
+                ss.Longitude,
+                ss.Latitude,
+                su.id AS upload_id,
+                su.project_id,
+                t.id AS taxonomy_id,
+                taxonomy_domain.name AS domain_name,
+                taxonomy_phylum.name AS phylum_name,
+                taxonomy_class.name AS class_name,
+                taxonomy_order.name AS order_name,
+                taxonomy_family.name AS family_name,
+                taxonomy_genus.name AS genus_name,
+                taxonomy_species.name AS species_name,
+                o.abundance,
+                o.ecm_flag,
+                sat.name AS analysis_type
+            FROM sequencing_samples AS ss
+                INNER JOIN otu AS o
+                    ON o.sample_id = ss.id
+                INNER JOIN taxonomy AS t
+                    ON o.taxonomy_id = t.id
+                INNER JOIN sequencing_uploads AS su
+                    ON ss.sequencingUploadId = su.id
+                INNER JOIN sequencing_analysis AS sa
+                    ON o.sequencing_analysis_id = sa.id
+                INNER JOIN sequencing_analysis_types AS sat
+                    ON sa.sequencingAnalysisTypeId = sat.id
+                LEFT JOIN taxonomy_domain
+                    ON t.domain_id = taxonomy_domain.id
+                LEFT JOIN taxonomy_phylum
+                    ON t.phylum_id = taxonomy_phylum.id
+                LEFT JOIN taxonomy_class
+                    ON t.class_id = taxonomy_class.id
+                LEFT JOIN taxonomy_order
+                    ON t.order_id = taxonomy_order.id
+                LEFT JOIN taxonomy_family
+                    ON t.family_id = taxonomy_family.id
+                LEFT JOIN taxonomy_genus
+                    ON t.genus_id = taxonomy_genus.id
+                LEFT JOIN taxonomy_species
+                    ON t.species_id = taxonomy_species.id
+            """
+
+            # Build dynamic WHERE conditions
+            filters = []
+            query_params = {}
+
             if domain:
-                query = query.filter(Taxonomy.domain.has(name=domain))
+                filters.append("taxonomy_domain.name = :domain")
+                query_params["domain"] = domain
             if phylum:
-                query = query.filter(Taxonomy.phylum.has(name=phylum))
+                filters.append("taxonomy_phylum = :phylum")
+                query_params["phylum"] = phylum
             if class_:
-                query = query.filter(Taxonomy.class_.has(name=class_))
+                filters.append("taxonomy_class.name = :class_")
+                query_params["class_"] = class_
             if order:
-                query = query.filter(Taxonomy.order.has(name=order))
+                filters.append("taxonomy_order.name = :order")
+                query_params["order"] = order
             if family:
-                query = query.filter(Taxonomy.family.has(name=family))
+                filters.append("taxonomy_family.name = :family")
+                query_params["family"] = family
             if genus:
-                query = query.filter(Taxonomy.genus.has(name=genus))
+                filters.append("taxonomy_genus.name = :genus")
+                query_params["genus"] = genus
             if species:
-                query = query.filter(Taxonomy.species.has(name=species))
+                filters.append("taxonomy_species.name = :species")
+                query_params["species"] = species
             if project:
-                query = query.filter(
-                    SequencingUploadsTable.project_id == project
-                )
+                filters.append("su.project_id = :project")
+                query_params["project"] = project
             if analysis_type:
-                query = query.filter(
-                    SequencingAnalysisTypesTable.id == analysis_type
-                )
-
-            # New filter logic for ECM
+                filters.append("sat.id = :analysis_type")
+                query_params["analysis_type"] = analysis_type
             if ecm_filter:
-                query = query.filter(OTU.ecm_flag == 1)
-
-            # New filter logic for Glomeromycetes,
-            # Archaeosporomycetes, and Paraglomeromycetes
+                filters.append("o.ecm_flag = 1")
             if amf_filter:
-                # Query the Class table to get the IDs of the specific classes
-                class_ids = (
-                    session.query(Class.id)
-                    .filter(
-                        Class.name.in_(
-                            [
-                                "Glomeromycetes",
-                                "Archaeosporomycetes",
-                                "Paraglomeromycetes",
-                            ]
-                        )
-                    )
-                    .all()
-                )
+                filters.append("t.class_id IN (25, 26, 27)")
 
-                # Extract the IDs from the result
-                class_ids = [class_id[0] for class_id in class_ids]
+            # Apply WHERE conditions if filters exist
+            if filters:
+                sql_query += " WHERE " + " AND ".join(filters)
 
-                # Apply the filter using the dynamically retrieved IDs
-                query = query.filter(Taxonomy.class_id.in_(class_ids))
-            results = query.all()
+            # Log the final SQL query for debugging
+            # logger.info(f"Executing raw SQL: {sql_query}")
 
-            # Format the results
+            # Execute the query
+            result = session.execute(text(sql_query), query_params)
+
+            # Fetch results
+            results = result.fetchall()
+
+            # Log the number of results
+            # logger.info(f"Retrieved rows: {len(results)}")
+
+            # Format results
             formatted_results = [
                 {
                     "sample_id": row.sample_id,
                     "SampleID": row.SampleID,
+                    "Longitude": row.Longitude,
+                    "Latitude": row.Latitude,
                     "upload_id": row.upload_id,
                     "project_id": row.project_id,
-                    "Latitude": row.Latitude,
-                    "Longitude": row.Longitude,
                     "abundance": row.abundance,
                     "ecm_flag": row.ecm_flag,
                     "analysis_type": row.analysis_type,
-                    "domain": (
-                        row.Taxonomy.domain.name
-                        if row.Taxonomy.domain
-                        else None
-                    ),
-                    "phylum": (
-                        row.Taxonomy.phylum.name
-                        if row.Taxonomy.phylum
-                        else None
-                    ),
-                    "class": (
-                        row.Taxonomy.class_.name
-                        if row.Taxonomy.class_
-                        else None
-                    ),
-                    "order": (
-                        row.Taxonomy.order.name if row.Taxonomy.order else None
-                    ),
-                    "family": (
-                        row.Taxonomy.family.name
-                        if row.Taxonomy.family
-                        else None
-                    ),
-                    "genus": (
-                        row.Taxonomy.genus.name if row.Taxonomy.genus else None
-                    ),
-                    "species": (
-                        row.Taxonomy.species.name
-                        if row.Taxonomy.species
-                        else None
-                    ),
+                    "domain": row.domain_name if row.domain_name else None,
+                    "phylum": row.phylum_name if row.phylum_name else None,
+                    "class": row.class_name if row.class_name else None,
+                    "order": row.order_name if row.order_name else None,
+                    "family": row.family_name if row.family_name else None,
+                    "genus": row.genus_name if row.genus_name else None,
+                    "species": row.species_name if row.species_name else None,
                 }
                 for row in results
             ]
 
+            # Group identical rows if group_same is True
+            if group_same:
+                grouped_data = defaultdict(
+                    lambda: {"count": 0, "sum_abundance": 0}
+                )
+
+                for row in formatted_results:
+                    key = (
+                        row["sample_id"],
+                        row["SampleID"],
+                        row["Longitude"],
+                        row["Latitude"],
+                        row["upload_id"],
+                        row["project_id"],
+                        row["ecm_flag"],
+                        row["analysis_type"],
+                        row["domain"],
+                        row["phylum"],
+                        row["class"],
+                        row["order"],
+                        row["family"],
+                        row["genus"],
+                        row["species"],
+                    )
+
+                    if key not in grouped_data:
+                        grouped_data[key].update(
+                            {k: v for k, v in row.items() if k != "abundance"}
+                        )
+                        grouped_data[key]["count"] = 1
+                        grouped_data[key]["sum_abundance"] = row["abundance"]
+                    else:
+                        grouped_data[key]["count"] += 1
+                        grouped_data[key]["sum_abundance"] += row["abundance"]
+
+                formatted_results = list(grouped_data.values())
+
+                # Convert dictionary back to list
+                formatted_results = list(grouped_data.values())
+
+            return formatted_results
+
+            # logger.info(f"Formatted results count: {len(formatted_results)}")
             return formatted_results
 
     @classmethod

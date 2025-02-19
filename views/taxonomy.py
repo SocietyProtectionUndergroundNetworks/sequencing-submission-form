@@ -99,7 +99,13 @@ def taxonomy_search_results():
     species = request.args.get("species")
     project = request.args.get("project")
     amf_filter = request.args.get("amf_filter")
+    group_same = request.args.get("group_same")
     analysis_type = request.args.get("analysis_type")
+
+    # The default should be ungrouped
+    group_same_yes = False
+    if group_same == "yes":
+        group_same_yes = True
 
     # The default should be with the filtering
     amf_filter_yes = True
@@ -125,6 +131,7 @@ def taxonomy_search_results():
         amf_filter=amf_filter_yes,
         ecm_filter=ecm_filter_yes,
         analysis_type=analysis_type,
+        group_same=group_same_yes,
     )
 
     total_results = len(all_results)  # Get total number of results
