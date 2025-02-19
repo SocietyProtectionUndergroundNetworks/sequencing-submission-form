@@ -30,24 +30,18 @@ redis_client = Redis(host="redis", port=6379, db=0)
 @contextmanager
 def redis_lock(lock_name, expire_time=86400):
     """
-    Context manager for Redis-based locking.
-    Attempts to acquire a lock with a unique name (lock_name).
+    Context manager for Redis-based locking using Redis native lock.
     """
-    acquired = redis_client.setnx(lock_name, "locked")
+    lock = redis_client.lock(lock_name, timeout=expire_time)
 
-    if acquired:
-        redis_client.expire(lock_name, expire_time)
-
-    try:
-        if acquired:
-            yield  # Only run the task if the lock was acquired
-        else:
-            logger.info(f"Task with lock {lock_name} is already running.")
-            # Ensure we always yield to avoid "generator didn't yield" error
-            yield
-    finally:
-        if acquired:
-            redis_client.delete(lock_name)
+    if lock.acquire(blocking=False):  # Try to acquire the lock without waiting
+        try:
+            yield  # Proceed if lock was acquired
+        finally:
+            lock.release()
+    else:
+        logger.info(f"Task with lock {lock_name} is already running.")
+        yield  # Ensure we always yield to avoid "generator didn't yield" error
 
 
 @celery_app.task
