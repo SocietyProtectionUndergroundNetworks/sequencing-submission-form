@@ -71,7 +71,7 @@
         </div>
       </div>
       <div class="row mb-3">
-        <div class="col-md-6">
+        <div class="col-md-12">
           <label for="analysis_type" class="form-label">Analysis type</label>
           <select class="form-control" id="analysis_type" name="analysis_type">
             <option value="" selected>All</option>
@@ -80,15 +80,6 @@
             {% endfor %}
           </select>
         </div>
-        <div class="col-md-6">
-          <label for="group_same" class="form-label">Group identical values?</label>
-          <div>
-            <input type="radio" id="group_same_yes" name="group_same" value="yes">
-            <label for="group_same_yes">Yes</label>
-            <input type="radio" id="amf_filter_no" name="group_same" value="no" checked>
-            <label for="group_same_no">No</label>
-          </div>
-        </div>     
       </div>        
       <div class="row mb-3">
         <div class="col-md-6">
@@ -147,16 +138,13 @@
 
             if (response.data && response.data.length > 0) {
               const totalResults = response.total_results;
-              const isGrouped = $("input[name='group_same']:checked").val() === "yes"; // Check if grouping is enabled
-
-              clearMarkers();
+              clearMarkers()
               
               // Display the number of results
               $("#results-count").html(
                 `<p><strong>${response.data.length}</strong> results displayed out of <strong>${totalResults}</strong>.</p>`
               );              
-
-              // Build table headers dynamically
+              // Build and populate the results table
               let table = `
                 <table class="table table-bordered table-striped table-fit">
                   <thead>
@@ -171,21 +159,20 @@
                       <th>Genus</th>
                       <th>Species</th>
                       <th>ECM</th>
-                      ${isGrouped ? "<th>Count</th><th>Summed Abundance</th>" : "<th>Abundance</th>"}
+                      <th>Count</th>
                       <th>Analysis Type</th>
                     </tr>
                   </thead>
                   <tbody>
               `;
-
+              console.log(response.data)
               response.data.forEach(row => {
                 // Add markers if Latitude and Longitude are available
                 const lat = row.Latitude;
                 const lon = row.Longitude;
                 if (lat && lon) {
-                  addMarker(lat, lon, "Sample: " + row.sample_id + " <br> Project:  " + row.project_id, "/metadata_form?process_id=" + row.upload_id);
+                  addMarker(lat, lon, "Sample: " + row.sample_id + " <br> Project:  " + row.project_id, "/metadata_form?process_id=" + row.upload_id); // Add marker to the map
                 }                
-
                 table += `
                   <tr>
                     <td><a href="/metadata_form?process_id=${row.upload_id}" target="_blank">${row.project_id}</a></td>
@@ -200,12 +187,11 @@
                     <td>${row.genus || ''}</td>
                     <td>${row.species || ''}</td>
                     <td>${row.ecm_flag || ''}</td>
-                    ${isGrouped ? `<td>${row.count || ''}</td><td>${row.sum_abundance || ''}</td>` : `<td>${row.abundance || ''}</td>`}
+                    <td>${row.abundance || ''}</td>
                     <td>${row.analysis_type || ''}</td>
                   </tr>
                 `;
               });
-
               table += `</tbody></table>`;
               $("#results-container").append(table);
             } else {

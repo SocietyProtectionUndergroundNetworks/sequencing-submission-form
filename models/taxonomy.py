@@ -1,6 +1,5 @@
 import logging
 from helpers.dbm import session_scope
-from collections import defaultdict
 from models.db_model import (
     Domain,
     Phylum,
@@ -228,7 +227,6 @@ class TaxonomyManager:
         amf_filter=None,
         ecm_filter=None,
         analysis_type=None,
-        group_same=None,
     ):
         """
         Search for taxonomies based on the given parameters.
@@ -361,49 +359,6 @@ class TaxonomyManager:
                 for row in results
             ]
 
-            # Group identical rows if group_same is True
-            if group_same:
-                grouped_data = defaultdict(
-                    lambda: {"count": 0, "sum_abundance": 0}
-                )
-
-                for row in formatted_results:
-                    key = (
-                        row["sample_id"],
-                        row["SampleID"],
-                        row["Longitude"],
-                        row["Latitude"],
-                        row["upload_id"],
-                        row["project_id"],
-                        row["ecm_flag"],
-                        row["analysis_type"],
-                        row["domain"],
-                        row["phylum"],
-                        row["class"],
-                        row["order"],
-                        row["family"],
-                        row["genus"],
-                        row["species"],
-                    )
-
-                    if key not in grouped_data:
-                        grouped_data[key].update(
-                            {k: v for k, v in row.items() if k != "abundance"}
-                        )
-                        grouped_data[key]["count"] = 1
-                        grouped_data[key]["sum_abundance"] = row["abundance"]
-                    else:
-                        grouped_data[key]["count"] += 1
-                        grouped_data[key]["sum_abundance"] += row["abundance"]
-
-                formatted_results = list(grouped_data.values())
-
-                # Convert dictionary back to list
-                formatted_results = list(grouped_data.values())
-
-            return formatted_results
-
-            # logger.info(f"Formatted results count: {len(formatted_results)}")
             return formatted_results
 
     @classmethod
