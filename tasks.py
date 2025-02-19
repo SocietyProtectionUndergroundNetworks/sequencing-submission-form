@@ -33,18 +33,21 @@ def redis_lock(lock_name, expire_time=86400):
     Context manager for Redis-based locking.
     Attempts to acquire a lock with a unique name (lock_name).
     """
-    # Try to acquire the lock
-    if redis_client.setnx(lock_name, "locked"):
-        # Set an expiration to prevent deadlock if something goes wrong
+    acquired = redis_client.setnx(lock_name, "locked")
+
+    if acquired:
         redis_client.expire(lock_name, expire_time)
-        try:
-            yield  # This is where the task will run
-        finally:
-            # Release the lock after task completion
+
+    try:
+        if acquired:
+            yield  # Only run the task if the lock was acquired
+        else:
+            logger.info(f"Task with lock {lock_name} is already running.")
+            # Ensure we always yield to avoid "generator didn't yield" error
+            yield
+    finally:
+        if acquired:
             redis_client.delete(lock_name)
-    else:
-        # Log or handle that the lock is already acquired
-        logger.info(f"Task with lock {lock_name} is already running.")
 
 
 @celery_app.task
