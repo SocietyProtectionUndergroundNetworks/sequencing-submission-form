@@ -8,6 +8,7 @@ from helpers.land_use import (
 )
 from models.db_model import SequencingSamplesTable, OTU
 from sqlalchemy import or_, select
+from sqlalchemy.sql import func
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")
@@ -147,14 +148,15 @@ class SequencingSample:
                         SequencingSamplesTable.BaileysEcoregion.is_(None),
                     ),
                 )
-                .limit(100)
+                .limit(50)
             )
 
             # Fetch the results after logging the query
             samples_to_update = samples_to_update_query.all()
 
             for sample in samples_to_update:
-                logger.info(sample.SampleID)
+                logger.info("###############################")
+                logger.info("Doing " + sample.SampleID)
                 latitude_str = sample.Latitude
                 longitude_str = sample.Longitude
 
@@ -181,6 +183,7 @@ class SequencingSample:
                         # (Land_use, ResolveEcoregion,
                         # BaileysEcoregion, Elevation)
                         if not sample.Land_use:
+                            logger.info(" - Missing Land_use")
                             land_use = get_land_use(longitude, latitude)
                             if land_use:
                                 sample.Land_use = land_use
@@ -188,8 +191,14 @@ class SequencingSample:
                                     f"Updated Land_use for SampleID"
                                     f" {sample.SampleID} with {land_use}"
                                 )
-
+                            else:
+                                sample.Land_use = "-"
+                                logger.info(
+                                    f"Updated Land_use for SampleID"
+                                    f" {sample.SampleID} with '-'"
+                                )
                         if not sample.ResolveEcoregion:
+                            logger.info(" - Missing ResolveEcoregion")
                             ecoregion = get_resolve_ecoregion(
                                 longitude, latitude
                             )
@@ -207,6 +216,7 @@ class SequencingSample:
                                 )
 
                         if not sample.BaileysEcoregion:
+                            logger.info(" - Missing BaileysEcoregion")
                             ecoregion = get_baileys_ecoregion(
                                 longitude, latitude
                             )
@@ -224,6 +234,7 @@ class SequencingSample:
                                 )
 
                         if not sample.Elevation:
+                            logger.info(" - Missing Elevation")
                             elevation = get_elevation(longitude, latitude)
                             if elevation:
                                 sample.Elevation = elevation
@@ -231,7 +242,12 @@ class SequencingSample:
                                     f"Updated Elevation for SampleID"
                                     f" {sample.SampleID} with {elevation}"
                                 )
-
+                            else:
+                                sample.Elevation = "-"
+                                logger.info(
+                                    f"Updated Elevation for SampleID"
+                                    f" {sample.SampleID} with '-'"
+                                )
                         # Commit the changes
                         session.commit()
                         logger.info(
@@ -253,6 +269,41 @@ class SequencingSample:
                         f" for SampleID {sample.SampleID}"
                     )
                     continue
+
+    @classmethod
+    def count_missing_fields(cls):
+        with session_scope() as session:
+            count_query = session.query(
+                func.count(SequencingSamplesTable.id)
+            ).filter(  # Counting rows
+                or_(
+                    SequencingSamplesTable.Elevation.is_(None),
+                    SequencingSamplesTable.Elevation == "",
+                    SequencingSamplesTable.Land_use.is_(None),
+                    SequencingSamplesTable.Land_use == "",
+                    SequencingSamplesTable.ResolveEcoregion.is_(None),
+                    SequencingSamplesTable.ResolveEcoregion == "",
+                    SequencingSamplesTable.BaileysEcoregion.is_(None),
+                    SequencingSamplesTable.BaileysEcoregion == "",
+                ),
+                SequencingSamplesTable.Latitude.isnot(None),
+                SequencingSamplesTable.Latitude != "",
+                SequencingSamplesTable.Longitude.isnot(None),
+                SequencingSamplesTable.Longitude != "",
+                SequencingSamplesTable.Latitude != "nan",
+                SequencingSamplesTable.Longitude != "nan",
+                or_(
+                    SequencingSamplesTable.ResolveEcoregion != "-",
+                    SequencingSamplesTable.ResolveEcoregion.is_(None),
+                ),
+                or_(
+                    SequencingSamplesTable.BaileysEcoregion != "-",
+                    SequencingSamplesTable.BaileysEcoregion.is_(None),
+                ),
+            )
+
+            count_result = count_query.scalar()  # Returns the count directly
+            return count_result
 
     @classmethod
     def assign_taxonomy(cls, sample_id, taxonomy_id, abundance):

@@ -250,6 +250,11 @@
 
     <div class="table-container">
       <h4> Your metadata </h4>
+      {% if samples_data %}
+        <div>
+          <a href="download_metadata?process_id={{ process_data.id }}" class="btn btn-primary" target="_blank"> Download metadata </a>
+        </div>
+      {% endif %}      
       <p>Please note: you don't need to (and you shouldn't) provide the first two columns. Our system will fill those in at a later stage</a></p>
       <table id="dataTable" class="table-bordered">
           <thead>

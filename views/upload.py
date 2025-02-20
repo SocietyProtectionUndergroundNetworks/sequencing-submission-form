@@ -14,6 +14,7 @@ from flask_login import (
 
 from models.user import User
 from models.sequencing_upload import SequencingUpload
+from models.sequencing_sample import SequencingSample
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -73,6 +74,11 @@ def index():
 
         user_should_see_v2 = False
         logger.info(user_groups)
+        samples_with_missing_fields_nr = 0
+        if current_user.admin:
+            samples_with_missing_fields_nr = (
+                SequencingSample.count_missing_fields()
+            )
 
         for group in user_groups:
             if group["version"] == 2:
@@ -88,6 +94,7 @@ def index():
             user_groups=user_groups,
             user_should_see_v2=user_should_see_v2,
             user_metadata_uploads=user_metadata_uploads,
+            samples_with_missing_fields_nr=samples_with_missing_fields_nr,
         )
     else:
         return render_template("public_homepage.html")

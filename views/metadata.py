@@ -2,6 +2,7 @@ import logging
 import pandas as pd
 import os
 import json
+import csv
 import shutil
 from flask import (
     redirect,
@@ -2009,4 +2010,106 @@ def get_sequencers_sample():
         headers={
             "Content-Disposition": "attachment; filename=sequencer_ids.csv"
         },
+    )
+
+
+@metadata_bp.route(
+    "/download_metadata",
+    methods=["GET"],
+    endpoint="download_metadata",
+)
+@login_required
+@approved_required
+@admin_or_owner_required
+def download_metadata():
+    process_id = request.args.get("process_id")
+    process_data = SequencingUpload.get(process_id)
+
+    if process_data is None:
+        return "Process data not found", 404
+
+    samples_data = SequencingUpload.get_samples(process_id)
+
+    # Define CSV headers (Sample columns first, Process columns last)
+    sample_columns = [
+        "SampleID",
+        "Site_name",
+        "Latitude",
+        "Longitude",
+        "Vegetation",
+        "Land_use",
+        "Agricultural_land",
+        "Ecosystem",
+        "ResolveEcoregion",
+        "BaileysEcoregion",
+        "Grid_Size",
+        "Soil_depth",
+        "Transport_refrigeration",
+        "Drying",
+        "Date_collected",
+        "DNA_concentration_ng_ul",
+        "Elevation",
+        "Sample_type",
+        "Sample_or_Control",
+        "SequencingRun",
+        "IndigenousPartnership",
+        "Notes",
+    ]
+
+    process_columns = [
+        "Country",
+        "Sequencing_platform",
+        "Sequencing_facility",
+        "Expedition_lead",
+        "Collaborators",
+        "region_1",
+        "region_1_forward_primer",
+        "region_1_reverse_primer",
+        "region_2",
+        "region_2_forward_primer",
+        "region_2_reverse_primer",
+        "Extraction_method",
+        "Multiple_sequencing_runs",
+        "Sequencing_regions_number",
+    ]
+
+    fieldnames = (
+        sample_columns + process_columns
+    )  # Order: Sample first, Process last
+
+    def safe_get(data_dict, key):
+        # Ensures missing keys or None values are
+        # # replaced with an empty string."""
+        return str(data_dict.get(key, "") or "")
+
+    def generate():
+        # Use csv.writer to handle quoting
+        import io
+
+        output = io.StringIO()
+        writer = csv.writer(
+            output, quoting=csv.QUOTE_MINIMAL
+        )  # Ensures proper quoting
+
+        # Write header row
+        writer.writerow(fieldnames)
+        yield output.getvalue()
+        output.seek(0)
+        output.truncate(0)
+
+        for sample in samples_data:
+            row = [safe_get(sample, col) for col in sample_columns] + [
+                safe_get(process_data, col) for col in process_columns
+            ]
+
+            writer.writerow(row)
+            yield output.getvalue()
+            output.seek(0)
+            output.truncate(0)
+
+    filename = f"metadata_{process_data.get('project_id', 'unknown')}.csv"
+    return Response(
+        generate(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
