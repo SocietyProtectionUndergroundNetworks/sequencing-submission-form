@@ -27,6 +27,7 @@ services:
       - DOCKER_HOST=tcp://socat:2375  # Set Docker host to socat
       - REDIS_URL=redis://redis:6379/0
       - GUNICORN_RELOAD=
+      - GUNICORN_WORKERS=4
     expose:
       - 56733
     volumes:
@@ -97,6 +98,8 @@ services:
       - PORT=56734
       - DOCKER_HOST=tcp://socat:2375  # Set Docker host to socat
       - CELERY_BROKER_URL=redis://redis:6379/0
+      - GUNICORN_RELOAD=
+      - GUNICORN_WORKERS=1
     networks:
       - flask
     entrypoint: celery -A app.celery worker --loglevel=info  # Celery worker command

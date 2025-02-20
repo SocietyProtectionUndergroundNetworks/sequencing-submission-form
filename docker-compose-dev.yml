@@ -21,6 +21,7 @@ services:
       - PORT=56733
       - DOCKER_HOST=tcp://socat:2375  # Set Docker host to socat
       - GUNICORN_RELOAD=--reload
+      - GUNICORN_WORKERS=1
     networks:
       - flask
     command: ["alembic", "upgrade", "head"]
