@@ -13,7 +13,6 @@ from helpers.dbm import session_scope
 from helpers.fastqc import init_create_fastqc_report, check_fastqc_report
 from helpers.metadata_check import (
     get_sequences_based_on_primers,
-    sanitize_string,
 )
 from helpers.bucket import check_file_exists_in_bucket, calculate_md5
 from models.db_model import (
@@ -1127,14 +1126,16 @@ class SequencingUpload:
         # Process each sample data
         for sample_data in samples_data_complete:
             sample_id = sample_data["SampleID"]
-            site_name = sanitize_string(sample_data["Site_name"])
+            site_name = sanitize_mapping_string(sample_data["Site_name"])
             latitude = sample_data["Latitude"]
             longitude = sample_data["Longitude"]
-            vegetation = sanitize_string(sample_data["Vegetation"])
-            land_use = sanitize_string(sample_data["Land_use"])
-            ecosystem = sanitize_string(sample_data["Ecosystem"])
+            vegetation = sanitize_mapping_string(sample_data["Vegetation"])
+            land_use = sanitize_mapping_string(sample_data["Land_use"])
+            ecosystem = sanitize_mapping_string(sample_data["Ecosystem"])
             sample_or_control = sample_data["Sample_or_Control"]
-            sequencing_run = sanitize_string(sample_data["SequencingRun"])
+            sequencing_run = sanitize_mapping_string(
+                sample_data["SequencingRun"]
+            )
 
             # Initialize sample_info dictionary if not already
             if sample_id not in sample_info:
