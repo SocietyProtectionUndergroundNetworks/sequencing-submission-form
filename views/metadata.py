@@ -2051,26 +2051,14 @@ def download_metadata():
         "Elevation",
         "Sample_type",
         "Sample_or_Control",
-        "SequencingRun",
         "IndigenousPartnership",
         "Notes",
     ]
 
     process_columns = [
         "Country",
-        "Sequencing_platform",
-        "Sequencing_facility",
         "Expedition_lead",
         "Collaborators",
-        "region_1",
-        "region_1_forward_primer",
-        "region_1_reverse_primer",
-        "region_2",
-        "region_2_forward_primer",
-        "region_2_reverse_primer",
-        "Extraction_method",
-        "Multiple_sequencing_runs",
-        "Sequencing_regions_number",
     ]
 
     fieldnames = (
