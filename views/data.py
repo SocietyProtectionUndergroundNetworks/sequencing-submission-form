@@ -1,45 +1,17 @@
 import logging
-from flask import redirect, Blueprint, render_template, request, url_for
+from flask import Blueprint, render_template, request
 from flask_login import current_user, login_required
 from models.bucket import Bucket
 from helpers.bucket import make_file_accessible
+from helpers.decorators import (
+    admin_or_owner_required,
+    approved_required,
+)
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
 data_bp = Blueprint("data", __name__)
-
-
-# Custom admin_required decorator
-def admin_required(view_func):
-    def decorated_view(*args, **kwargs):
-        if not current_user.is_authenticated:
-            # Redirect unauthenticated users to the login page
-            return redirect(
-                url_for("user.login")
-            )  # Adjust 'login' to your actual login route
-        elif not current_user.admin:
-            # Redirect non-admin users to some unauthorized page
-            return redirect(url_for("user.only_admins"))
-        return view_func(*args, **kwargs)
-
-    return decorated_view
-
-
-# Custom approved_required decorator
-def approved_required(view_func):
-    def decorated_approved_view(*args, **kwargs):
-        if not current_user.is_authenticated:
-            # Redirect unauthenticated users to the login page
-            return redirect(
-                url_for("user.login")
-            )  # Adjust 'login' to your actual login route
-        elif not current_user.approved:
-            # Redirect non-approved users to some unauthorized page
-            return redirect(url_for("user.only_approved"))
-        return view_func(*args, **kwargs)
-
-    return decorated_approved_view
 
 
 @data_bp.route("/data")
@@ -58,6 +30,7 @@ def data():
     endpoint="generate_download_link",
 )
 @login_required
+@admin_or_owner_required
 def generate_download_link():
     file = request.form.get("file")
     bucket = request.form.get("bucket")
@@ -73,6 +46,7 @@ def generate_download_link():
 )
 @login_required
 @approved_required
+@admin_or_owner_required
 def create_bucket_archive():
     from tasks import download_bucket_contents_async
 

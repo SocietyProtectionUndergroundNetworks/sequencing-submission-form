@@ -14,18 +14,17 @@ from flask import (
 from oauthlib.oauth2 import WebApplicationClient
 from extensions import login_manager
 from flask_login import (
-    current_user,
     login_required,
     login_user,
     logout_user,
 )
-
 from models.user import User
 from models.user_groups import UserGroups
 from models.bucket import Bucket
 from models.preapproved_user import PreapprovedUser
 from helpers.bucket import list_buckets
 from helpers.goodgrands import get_goodgrands_users
+from helpers.decorators import admin_required
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -38,27 +37,10 @@ GOOGLE_DISCOVERY_URL = (
     "https://accounts.google.com/.well-known/openid-configuration"
 )
 
-
 # OAuth 2 client setup
 client = WebApplicationClient(GOOGLE_CLIENT_ID)
 
 user_bp = Blueprint("user", __name__)
-
-
-# Custom admin_required decorator
-def admin_required(view_func):
-    def decorated_view(*args, **kwargs):
-        if not current_user.is_authenticated:
-            # Redirect unauthenticated users to the login page
-            return redirect(
-                url_for("user.login")
-            )  # Adjust 'login' to your actual login route
-        elif not current_user.admin:
-            # Redirect non-admin users to some unauthorized page
-            return redirect(url_for("user.only_admins"))
-        return view_func(*args, **kwargs)
-
-    return decorated_view
 
 
 # Flask-Login helper to retrieve a user from our db

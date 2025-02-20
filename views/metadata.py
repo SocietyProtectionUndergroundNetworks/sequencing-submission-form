@@ -50,6 +50,11 @@ from helpers.r_scripts import (
     init_generate_rscripts_report,
     delete_generated_rscripts_report,
 )
+from helpers.decorators import (
+    admin_or_owner_required,
+    approved_required,
+    admin_required,
+)
 
 
 from pathlib import Path
@@ -57,38 +62,6 @@ from pathlib import Path
 metadata_bp = Blueprint("metadata", __name__)
 
 logger = logging.getLogger("my_app_logger")
-
-
-# Custom admin_required decorator
-def admin_required(view_func):
-    def decorated_view(*args, **kwargs):
-        if not current_user.is_authenticated:
-            # Redirect unauthenticated users to the login page
-            return redirect(
-                url_for("user.login")
-            )  # Adjust 'login' to your actual login route
-        elif not current_user.admin:
-            # Redirect non-admin users to some unauthorized page
-            return redirect(url_for("user.only_admins"))
-        return view_func(*args, **kwargs)
-
-    return decorated_view
-
-
-# Custom approved_required decorator
-def approved_required(view_func):
-    def decorated_approved_view(*args, **kwargs):
-        if not current_user.is_authenticated:
-            # Redirect unauthenticated users to the login page
-            return redirect(
-                url_for("user.login")
-            )  # Adjust 'login' to your actual login route
-        elif not current_user.approved:
-            # Redirect non-approved users to some unauthorized page
-            return redirect(url_for("user.only_approved"))
-        return view_func(*args, **kwargs)
-
-    return decorated_approved_view
 
 
 def process_uploaded_file(
@@ -168,6 +141,7 @@ def process_uploaded_file(
 @metadata_bp.route("/metadata_form", endpoint="metadata_form")
 @login_required
 @approved_required
+@admin_or_owner_required
 def metadata_form():
     my_buckets = {}
     map_key = os.environ.get("GOOGLE_MAP_API_KEY")
@@ -291,6 +265,7 @@ def metadata_form():
 )
 @login_required
 @approved_required
+@admin_or_owner_required
 def metadata_validate_row():
     # we have panda available, and because we want to reuse the same
     # existing functions, we want to put all the data from the form
@@ -346,6 +321,7 @@ def metadata_validate_row():
 )
 @login_required
 @approved_required
+@admin_or_owner_required
 def upload_metadata_file():
     file = request.files.get("file")
     using_scripps = request.form.get("using_scripps")
@@ -504,6 +480,7 @@ def add_sequencer_id():
 )
 @login_required
 @approved_required
+@admin_or_owner_required
 def upload_sequencer_ids_file():
     file = request.files.get("file")
     process_id = request.form.get("process_id")
@@ -543,6 +520,7 @@ def upload_sequencer_ids_file():
 )
 @login_required
 @approved_required
+@admin_or_owner_required
 def sequencing_confirm_metadata():
     process_id = request.form.get("process_id")
 
@@ -594,6 +572,7 @@ def create_xls_template():
 )
 @login_required
 @approved_required
+@admin_or_owner_required
 def check_filename_matching():
     process_id = request.form.get("process_id")
     filename = request.form.get("filename")
@@ -724,6 +703,7 @@ def sequencing_upload_chunk():
 )
 @login_required
 @approved_required
+@admin_or_owner_required
 def sequencing_upload_chunk_check():
     process_id = request.args.get("process_id")
     chunk_number = request.args.get("resumableChunkNumber")
@@ -760,6 +740,7 @@ def sequencing_upload_chunk_check():
 )
 @login_required
 @approved_required
+@admin_or_owner_required
 def sequencing_file_upload_completed():
     process_id = request.form.get("process_id")
     if process_id:
@@ -874,7 +855,7 @@ def delete_upload_process_v2():
     process_id = request.args.get("process_id")
     return_to = request.args.get("return_to")
     process_data = SequencingUpload.get(process_id)
-    uploads_folder = process_data["uploads_folder"]
+    uploads_folder = process_data["user_id"]
     if uploads_folder:
         delete_bucket_folder("uploads/" + uploads_folder)
     SequencingUpload.delete_upload_and_files(process_id)
@@ -906,6 +887,7 @@ def show_fastqc_report():
 )
 @login_required
 @approved_required
+@admin_or_owner_required
 def show_multiqc_report():
     process_id = request.args.get("process_id")
     region = request.args.get("region")
@@ -995,6 +977,7 @@ def delete_multiqc_report():
 )
 @login_required
 @approved_required
+@admin_or_owner_required
 def confirm_files_uploading_finished():
     process_id = request.form.get("process_id")
     SequencingUpload.update_field(
@@ -1072,6 +1055,7 @@ def generate_mapping_files():
 )
 @login_required
 @approved_required
+@admin_or_owner_required
 def show_mapping_file():
     process_id = request.args.get("process_id")
     region = request.args.get("region")
@@ -1384,6 +1368,7 @@ def generate_all_region_rscripts_reports():
 )
 @login_required
 @approved_required
+@admin_or_owner_required
 def show_report_outcome():
     process_id = request.args.get("process_id")
     analysis_type_id = request.args.get("analysis_type_id")
