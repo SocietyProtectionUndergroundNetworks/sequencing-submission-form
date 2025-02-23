@@ -30,18 +30,21 @@ redis_client = Redis(host="redis", port=6379, db=0)
 @contextmanager
 def redis_lock(lock_name, expire_time=86400):
     """
-    Context manager for Redis-based locking using Redis native lock.
+    Context manager for Redis-based locking.
+    Attempts to acquire a lock with a unique name (lock_name).
     """
-    lock = redis_client.lock(lock_name, timeout=expire_time)
+    acquired = redis_client.setnx(lock_name, "locked")
 
-    if lock.acquire(blocking=False):  # Try to acquire the lock without waiting
-        try:
-            yield  # Proceed if lock was acquired
-        finally:
-            lock.release()
-    else:
+    if not acquired:
+        # Log and raise an exception so execution stops
         logger.info(f"Task with lock {lock_name} is already running.")
-        yield  # Ensure we always yield to avoid "generator didn't yield" error
+        raise LockError(f"Lock already acquired: {lock_name}")
+
+    try:
+        redis_client.expire(lock_name, expire_time)  # Set expiration
+        yield  # Task runs only if lock is acquired
+    finally:
+        redis_client.delete(lock_name)  # Ensure lock is released
 
 
 @celery_app.task
@@ -53,9 +56,7 @@ def generate_lotus2_report_async(
     )
 
     try:
-        # Try to acquire the lock
         with redis_lock(lock_key):
-            # If lock is acquired, proceed with the task
             generate_lotus2_report(
                 process_id,
                 input_dir,
@@ -65,14 +66,16 @@ def generate_lotus2_report_async(
                 parameters,
             )
 
-    except Exception:
-        # If the task is already locked (running), log a
-        # message instead of raising an error
+    except LockError:
         logger.info(
-            f"Task generate_lotus2_report_async for process_id:{process_id} "
-            f"and analysis_type_id:{analysis_type_id} is already running. "
-            "Skipping execution."
+            f"Skipping execution: Task generate_lotus2_report_async "
+            f"is already running for process_id:"
+            f"{process_id} and analysis_type_id:{analysis_type_id}."
         )
+
+    except Exception as e:
+        logger.error(f"Unexpected error in generate_lotus2_report_async: {e}")
+        raise
 
 
 @celery_app.task
@@ -93,22 +96,16 @@ def generate_all_rscripts_reports_async(amplicon_type, analysis_type_id):
 def generate_all_lotus2_reports_async(analysis_type_id, from_id, to_id):
     lock_key = f"celery-lock:generate_all_lotus2_reports:{analysis_type_id}"
     try:
-        # Try to acquire the lock
         with redis_lock(lock_key):
-            # If lock is acquired, proceed with the task
             generate_all_lotus2_reports(analysis_type_id, from_id, to_id)
     except LockError:
-        # If a lock error occurs, log a message indicating the task is locked
         logger.info(
-            f"Task generate_all_lotus2_reports_async for "
-            f"analysis_type_id:{analysis_type_id} "
-            f"is already running. Skipping execution."
+            f"Skipping execution: Task is already "
+            f"running for analysis_type_id {analysis_type_id}."
         )
     except Exception as e:
-        # Handle other exceptions separately
         logger.error(
-            f"An unexpected error occurred in "
-            f"generate_all_lotus2_reports_async: {e}"
+            f"Unexpected error in generate_all_lotus2_reports_async: {e}"
         )
         raise
 
