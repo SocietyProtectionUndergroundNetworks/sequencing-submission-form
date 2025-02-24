@@ -436,3 +436,51 @@ class OTU(Base):
             "idx_ecm_analysis", ecm_flag, sequencing_analysis_id
         ),  # Composite index for ecm_flag + sequencing_analysis_id
     )
+
+
+class ResolveEcoregionsTable(Base):
+    __tablename__ = "resolve_ecoregions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    FID = Column(Integer, nullable=False)
+    OBJECTID = Column(Integer, nullable=False)
+    ecoregion_name = Column(String(255), nullable=True)
+    biome_number = Column(Integer, nullable=True)
+    biome_name = Column(String(255), nullable=True)
+    realm_name = Column(String(255), nullable=True)
+    ecoregion_biome = Column(String(255), nullable=True)
+    nature_needs_half_number = Column(Integer, nullable=True)
+    ecoregion_unique_id = Column(Integer, nullable=True)
+    shape_leng = Column(Float, nullable=True)
+    nature_needs_half_description = Column(String(255), nullable=True)
+    color = Column(String(50), nullable=True)
+    biome_color = Column(String(50), nullable=True)
+    nature_needs_half_color = Column(String(50), nullable=True)
+    license = Column(String(255), nullable=True)
+    shape_area = Column(Float, nullable=True)
+    shape_length = Column(Float, nullable=True)
+
+    # Relationship to ExternalSamplingTable
+    external_samples = relationship(
+        "ExternalSamplingTable", back_populates="ecoregion"
+    )
+
+
+class ExternalSamplingTable(Base):
+    __tablename__ = "external_sampling"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    sample_id = Column(String(255), nullable=True)
+    dna_region = Column(String(3), nullable=True)
+    longitude = Column(String(255), nullable=True)
+    latitude = Column(String(255), nullable=True)
+
+    # Foreign Key Relationship
+    resolve_ecoregion_id = Column(
+        Integer, ForeignKey("resolve_ecoregions.id"), nullable=True
+    )
+    ecoregion = relationship(
+        "ResolveEcoregionsTable", back_populates="external_samples"
+    )
+
+    __table_args__ = (Index("idx_dna_region", dna_region),)

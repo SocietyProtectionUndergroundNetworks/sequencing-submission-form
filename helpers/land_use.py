@@ -1,6 +1,7 @@
 import ee
 import json
 import logging
+from helpers.ecoregions import return_ecoregion
 
 # Define the path to the service account JSON
 service_account_key = "/google_auth_file/key_file.json"
@@ -61,25 +62,31 @@ def get_land_use(longitude, latitude):
 
 
 def get_resolve_ecoregion(longitude, latitude):
-    # Load the WWF Terrestrial Ecoregions dataset
-    ecoregions = ee.FeatureCollection("RESOLVE/ECOREGIONS/2017")
+    """Get the resolved ecoregion name using the Geopandas container."""
+    coordinates_list = [(latitude, longitude)]  # Ensure correct format
+    result = return_ecoregion(coordinates_list)
 
-    # Define the point geometry for the specified coordinates
-    point = ee.Geometry.Point([longitude, latitude])
-
-    # Filter the dataset to find the ecoregion at the given point
-    ecoregion_info = ecoregions.filterBounds(point).first()
-
-    # Try retrieving the ecoregion name, handling any errors
     try:
-        biome_name = ecoregion_info.get("ECO_NAME").getInfo()
-        return biome_name
-    except Exception as e:
-        # Log the error and return None
-        logger.error(
-            f"Error retrieving biome data for "
-            f" coordinates ({latitude}, {longitude}): {e}"
-        )
+        output = json.loads(result)  # Parse the JSON string
+
+        if isinstance(output, list) and output:
+            ecoregion_data = output[0]  # Extract the first result
+
+            if (
+                "ecoregion" in ecoregion_data
+                and "ECO_NAME" in ecoregion_data["ecoregion"]
+            ):
+                return ecoregion_data["ecoregion"][
+                    "ECO_NAME"
+                ]  # Return the ecoregion name
+            else:
+                logger.error("Unexpected response format: Missing 'ECO_NAME'")
+                return None
+        else:
+            logger.error("Unexpected response format from Geopandas")
+            return None
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse Geopandas response: {e}")
         return None
 
 

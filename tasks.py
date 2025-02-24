@@ -20,6 +20,7 @@ from helpers.r_scripts import (
     generate_rscripts_report,
     generate_all_rscripts_reports,
 )
+from helpers.ecoregions import update_external_samples_with_ecoregions
 
 logger = logging.getLogger("my_app_logger")
 
@@ -149,3 +150,8 @@ def bucket_chunked_upload_v2_async(
 @celery_app.task
 def create_multiqc_report_async(process_id):
     create_multiqc_report(process_id)
+
+
+@celery_app.task
+def update_external_samples_with_ecoregions_async():
+    update_external_samples_with_ecoregions()

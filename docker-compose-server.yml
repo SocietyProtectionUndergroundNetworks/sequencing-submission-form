@@ -142,6 +142,20 @@ services:
       - flask
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
 
+  geopandas:
+    build:
+      context: .
+      dockerfile: Dockerfile-geopandas
+    container_name: spun-geopandas
+    volumes:
+      - ./geopandasapp:/geopandasapp
+    networks:
+      - flask
+    ports:
+      - "5002:5001"
+    working_dir: /geopandasapp
+    command: ["python", "app.py"]
+
 networks:
   default:
     name: default_network

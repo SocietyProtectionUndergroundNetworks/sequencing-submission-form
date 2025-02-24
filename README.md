@@ -64,6 +64,31 @@ The resulting lotus2-compatible files we used are called:
 - mothur_EUK_SSU_v1.9.3_lotus.tax
 - mothur_EUK_ITS_v1.9.3_lotus.tax
 
+#### Resolve ecoregions GeoPackage
+We use the resolve ecoregions dataset to retreive the resolveEcoregion name to a set of coordinates. 
+To do that we create a docker image with a minimized geopandas installation. For this to work on first installation
+of the application we need to download the GeoPackage file from https://hub.arcgis.com/datasets/esri::resolve-ecoregions-and-biomes/explore
+And place it in the geopandasapp folder. 
+The filename is hardcoded in the geopandasapp/app.py and currently it is Resolve_Ecoregions_-6779945127424040112.gpkg
+
+#### Resolve ecoregions db table
+From the same source as above we download the csv file and we use it to populate a table with all the available ecoregions. 
+- Place the csv file in a directory `temp`
+- Run https://myapplication/run_import_ecoregions_from_csv
+
+#### External sampling
+To be able to see which ecoregions have been sampled and which not, we need to import (additionally to our own samples) a list of samples that
+have been sampled externaly to SPUN. We are interested in ITS and SSU data. 
+To import them
+For ITS:
+- Place the csv file called `external_samples_its.csv` in a directory `temp`
+- Run https://myapplication/run_import_external_samples_from_csv_its
+For SSU:
+- Place the csv file called `external_samples_ssu.csv` in a directory `temp`
+- Run https://myapplication/run_import_external_samples_from_csv_ssu
+
+
+
 #### Do docker things: 
 - Copy the `docker-compose-dev.yml` to `docker-compose.yml`
 - Copy the `nginx.conf-local-ssh` `nginx.conf`
