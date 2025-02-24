@@ -1388,6 +1388,7 @@ def show_report_outcome():
         "physeq_decontam",
         "metadata_chaorichness",
         "physeq_by_genus",
+        "contaminants",
     ]:
         # Fetch process data from SequencingUpload model
         process_data = SequencingUpload.get(process_id)
@@ -1472,6 +1473,7 @@ def show_report_outcome():
             "physeq_decontam",
             "metadata_chaorichness",
             "physeq_by_genus",
+            "contaminants",
         ]:
 
             # Check the rscripts report details
@@ -1506,6 +1508,9 @@ def show_report_outcome():
                     file_path = os.path.join(
                         report_folder, "control_vs_sample.pdf"
                     )
+                    return send_file(file_path)
+                elif file_type == "contaminants":
+                    file_path = os.path.join(report_folder, "contaminants.csv")
                     return send_file(file_path)
                 elif file_type == "filtered_rarefaction":
                     file_path = os.path.join(

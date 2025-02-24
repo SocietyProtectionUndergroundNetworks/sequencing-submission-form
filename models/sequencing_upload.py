@@ -1506,6 +1506,7 @@ class SequencingUpload:
                             "filtered_rarefaction": False,
                             "physeq_decontam": False,
                             "metadata_chaorichness": False,
+                            "contaminants": False,
                             "physeq_by_genus": False,
                         },
                         "bucket_log_exists": False,
@@ -1580,6 +1581,13 @@ class SequencingUpload:
                             region_result["files_exist"][
                                 "metadata_chaorichness"
                             ] = os.path.isfile(metadata_chaorichness_file)
+
+                            contaminants_file = os.path.join(
+                                report_folder, "contaminants.csv"
+                            )
+                            region_result["files_exist"]["contaminants"] = (
+                                os.path.isfile(contaminants_file)
+                            )
 
                             physeq_by_genus_file = os.path.join(
                                 report_folder, "ecm_physeq_by_genus.pdf"
