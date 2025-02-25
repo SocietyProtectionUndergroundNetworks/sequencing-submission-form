@@ -182,7 +182,6 @@ def update_external_samples_with_ecoregions():
                     else None
                 )
 
-
             except (json.JSONDecodeError, TypeError, IndexError):
                 logger.error(
                     f"Failed to parse ecoregion "
