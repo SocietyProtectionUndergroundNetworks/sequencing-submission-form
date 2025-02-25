@@ -16,6 +16,7 @@ from helpers.metadata_check import (
 )
 from helpers.bucket import check_file_exists_in_bucket, calculate_md5
 from models.db_model import (
+    ResolveEcoregionsTable,
     SequencingUploadsTable,
     SequencingSamplesTable,
     SequencingSequencerIDsTable,
@@ -383,8 +384,21 @@ class SequencingUpload:
 
             # Fetch related samples
             samples = (
-                session.query(SequencingSamplesTable)
-                .filter_by(sequencingUploadId=sequencingUploadId)
+                session.query(
+                    SequencingSamplesTable,
+                    ResolveEcoregionsTable.ecoregion_name.label(
+                        "ResolveEcoregion"
+                    ),
+                )
+                .outerjoin(
+                    ResolveEcoregionsTable,
+                    SequencingSamplesTable.resolve_ecoregion_id
+                    == ResolveEcoregionsTable.id,
+                )
+                .filter(
+                    SequencingSamplesTable.sequencingUploadId
+                    == sequencingUploadId
+                )
                 .all()
             )
 
@@ -398,11 +412,13 @@ class SequencingUpload:
 
             # Convert each sample instance to a dictionary and add otu_counts
             samples_list = []
-            for sample in samples:
-                sample_data = as_dict(sample)
-                sample_id = sample_data.get("id")  # Get the sample id
+            for sample, ecoregion_name in samples:  # ✅ Unpack tuple properly
+                sample_data = as_dict(sample)  # Convert sample to dictionary
+                sample_data["ResolveEcoregion"] = (
+                    ecoregion_name  # Add ecoregion text
+                )
 
-                # Initialize the otu_counts dictionary
+                sample_id = sample_data.get("id")  # Get the sample id
                 otu_counts = {}
 
                 # Query to get the counts grouped by analysis
@@ -432,8 +448,7 @@ class SequencingUpload:
                     .all()
                 )
 
-                # Populate the otu_counts dictionary with
-                # analysis_type_id, name, and count
+                # Populate the otu_counts dictionary
                 for analysis_name, count, analysis_type_id in counts:
                     otu_counts[analysis_type_id] = {
                         "name": analysis_name,

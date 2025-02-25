@@ -2,11 +2,11 @@ import logging
 from helpers.dbm import session_scope
 from helpers.land_use import (
     get_land_use,
-    get_resolve_ecoregion,
     get_baileys_ecoregion,
     get_elevation,
 )
-from models.db_model import SequencingSamplesTable, OTU
+from helpers.ecoregions import get_resolve_ecoregion_objectid
+from models.db_model import SequencingSamplesTable, OTU, ResolveEcoregionsTable
 from sqlalchemy import or_, select
 from sqlalchemy.sql import func
 
@@ -124,8 +124,7 @@ class SequencingSample:
                         SequencingSamplesTable.Elevation == "",
                         SequencingSamplesTable.Land_use.is_(None),
                         SequencingSamplesTable.Land_use == "",
-                        SequencingSamplesTable.ResolveEcoregion.is_(None),
-                        SequencingSamplesTable.ResolveEcoregion == "",
+                        SequencingSamplesTable.resolve_ecoregion_id.is_(None),
                         SequencingSamplesTable.BaileysEcoregion.is_(None),
                         SequencingSamplesTable.BaileysEcoregion == "",
                     ),
@@ -137,12 +136,9 @@ class SequencingSample:
                     SequencingSamplesTable.Longitude != "",
                     SequencingSamplesTable.Latitude != "nan",
                     SequencingSamplesTable.Longitude != "nan",
+                    SequencingSamplesTable.Sample_or_Control == "True sample",
                     # Additional conditions to exclude '-' values or NULL
-                    # for ResolveEcoregion and BaileysEcoregion
-                    or_(
-                        SequencingSamplesTable.ResolveEcoregion != "-",
-                        SequencingSamplesTable.ResolveEcoregion.is_(None),
-                    ),
+                    # for BaileysEcoregion
                     or_(
                         SequencingSamplesTable.BaileysEcoregion != "-",
                         SequencingSamplesTable.BaileysEcoregion.is_(None),
@@ -180,7 +176,7 @@ class SequencingSample:
                             continue
 
                         # Proceed with getting the missing fields
-                        # (Land_use, ResolveEcoregion,
+                        # (Land_use, resolve_ecoregion_id,
                         # BaileysEcoregion, Elevation)
                         if not sample.Land_use:
                             logger.info(" - Missing Land_use")
@@ -197,22 +193,39 @@ class SequencingSample:
                                     f"Updated Land_use for SampleID"
                                     f" {sample.SampleID} with '-'"
                                 )
-                        if not sample.ResolveEcoregion:
+                        if not sample.resolve_ecoregion_id:
                             logger.info(" - Missing ResolveEcoregion")
-                            ecoregion = get_resolve_ecoregion(
-                                longitude, latitude
+                            ecoregion_object_id = (
+                                get_resolve_ecoregion_objectid(
+                                    longitude, latitude
+                                )
                             )
-                            if ecoregion:
-                                sample.ResolveEcoregion = ecoregion
+
+                            resolve_ecoregion = (
+                                session.query(ResolveEcoregionsTable.id)
+                                .filter_by(OBJECTID=ecoregion_object_id)
+                                .first()
+                            )
+                            if resolve_ecoregion:
+                                sample.resolve_ecoregion_id = (
+                                    resolve_ecoregion.id
+                                )
                                 logger.info(
                                     f"Updated Resolve Ecoregion for SampleID"
-                                    f" {sample.SampleID} with {ecoregion}"
+                                    f" {sample.SampleID} with "
+                                    f" {resolve_ecoregion.id}"
                                 )
                             else:
-                                sample.ResolveEcoregion = "-"
+                                zero_ecoregion = (
+                                    session.query(ResolveEcoregionsTable.id)
+                                    .filter_by(OBJECTID=0)
+                                    .first()
+                                )
+                                sample.resolve_ecoregion_id = zero_ecoregion.id
                                 logger.info(
                                     f"Updated Resolve Ecoregion for SampleID"
-                                    f" {sample.SampleID} with '-'"
+                                    f" {sample.SampleID} with "
+                                    f" {zero_ecoregion.id}"
                                 )
 
                         if not sample.BaileysEcoregion:
@@ -281,8 +294,7 @@ class SequencingSample:
                     SequencingSamplesTable.Elevation == "",
                     SequencingSamplesTable.Land_use.is_(None),
                     SequencingSamplesTable.Land_use == "",
-                    SequencingSamplesTable.ResolveEcoregion.is_(None),
-                    SequencingSamplesTable.ResolveEcoregion == "",
+                    SequencingSamplesTable.resolve_ecoregion_id.is_(None),
                     SequencingSamplesTable.BaileysEcoregion.is_(None),
                     SequencingSamplesTable.BaileysEcoregion == "",
                 ),
@@ -292,10 +304,7 @@ class SequencingSample:
                 SequencingSamplesTable.Longitude != "",
                 SequencingSamplesTable.Latitude != "nan",
                 SequencingSamplesTable.Longitude != "nan",
-                or_(
-                    SequencingSamplesTable.ResolveEcoregion != "-",
-                    SequencingSamplesTable.ResolveEcoregion.is_(None),
-                ),
+                SequencingSamplesTable.Sample_or_Control == "True sample",
                 or_(
                     SequencingSamplesTable.BaileysEcoregion != "-",
                     SequencingSamplesTable.BaileysEcoregion.is_(None),

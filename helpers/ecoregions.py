@@ -130,6 +130,35 @@ def init_update_external_samples_with_ecoregions():
     update_external_samples_with_ecoregions_async.delay()
 
 
+def get_resolve_ecoregion_objectid(longitude, latitude):
+    """Get the resolved ecoregion OBJECTID using the Geopandas container."""
+    coordinates_list = [(latitude, longitude)]  # Ensure correct format
+    result = return_ecoregion(coordinates_list)
+
+    try:
+        output = json.loads(result)  # Parse the JSON string
+
+        if isinstance(output, list) and output:
+            ecoregion_data = output[0]  # Extract the first result
+            logger.info(ecoregion_data)
+            if (
+                "ecoregion" in ecoregion_data
+                and "OBJECTID" in ecoregion_data["ecoregion"]
+            ):
+                return ecoregion_data["ecoregion"][
+                    "OBJECTID"
+                ]  # Return OBJECTID
+            else:
+                logger.error("Unexpected response format: Missing 'OBJECTID'")
+                return None
+        else:
+            logger.error("Unexpected response format from Geopandas")
+            return None
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse Geopandas response: {e}")
+        return None
+
+
 def update_external_samples_with_ecoregions():
     with session_scope() as session:
         # Get the ecoregion ID for OBJECTID = 0
@@ -164,31 +193,7 @@ def update_external_samples_with_ecoregions():
                 break  # Exit when there are no more samples to update
 
             lat, lon = coordinate.latitude, coordinate.longitude
-            result = return_ecoregion(
-                [(lat, lon)]
-            )  # Get ecoregion for the coordinate
-
-            try:
-                ecoregion_data = json.loads(result)
-
-                # If the result is a list, get the first element
-                if isinstance(ecoregion_data, list) and ecoregion_data:
-                    ecoregion_data = ecoregion_data[0]
-
-                objectid = (
-                    ecoregion_data["ecoregion"].get("OBJECTID")
-                    if isinstance(ecoregion_data, dict)
-                    and "ecoregion" in ecoregion_data
-                    else None
-                )
-
-
-            except (json.JSONDecodeError, TypeError, IndexError):
-                logger.error(
-                    f"Failed to parse ecoregion "
-                    f"result for {lat}, {lon}: {result}"
-                )
-                objectid = None
+            objectid = get_resolve_ecoregion_objectid(lat, lon)
 
             if objectid is None:
                 resolve_ecoregion_id = (
