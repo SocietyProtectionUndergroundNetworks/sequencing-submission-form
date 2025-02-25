@@ -207,7 +207,11 @@ class SequencingSamplesTable(Base):
     Land_use = Column(String(255), nullable=True)
     Agricultural_land = Column(String(255), nullable=True)
     Ecosystem = Column(String(255), nullable=True)
-    ResolveEcoregion = Column(String(255), nullable=True)
+    resolve_ecoregion_id = Column(
+        Integer,
+        ForeignKey("resolve_ecoregions.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     BaileysEcoregion = Column(String(255), nullable=True)
     Grid_Size = Column(String(255), nullable=True)
     Soil_depth = Column(String(255), nullable=True)
@@ -227,6 +231,11 @@ class SequencingSamplesTable(Base):
     extracolumns_json = Column(JSON(none_as_null=True))
     otus = relationship(
         "OTU", back_populates="sample", cascade="all, delete-orphan"
+    )
+
+    # Relationship with ResolveEcoregionsTable
+    resolve_ecoregion = relationship(
+        "ResolveEcoregionsTable", back_populates="sequencing_samples"
     )
 
 
@@ -463,6 +472,12 @@ class ResolveEcoregionsTable(Base):
     # Relationship to ExternalSamplingTable
     external_samples = relationship(
         "ExternalSamplingTable", back_populates="ecoregion"
+    )
+    # Define relationship with sequencing_samples
+    sequencing_samples = relationship(
+        "SequencingSamplesTable",
+        back_populates="resolve_ecoregion",
+        cascade="save-update",
     )
 
 
