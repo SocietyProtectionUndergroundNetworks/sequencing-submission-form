@@ -22,42 +22,29 @@
       <p><a href="/ecoregions/download">Download</a></p>
       
       {% if ecoregions and ecoregions|length > 0 %}
+
       <div class="table-responsive-wrapper">
           <table class="table table-bordered table-striped">
               <thead>
                   <tr>
                       <th>Resolve Ecoregion</th>
                       <th>Number of Spun Samples</th>
-                      <th>Number of External Samples</th>
-                      <th>Order</th>
-                      <th>Family</th>
-                      <th>Genus</th>
-                      <th>Species</th>
-                      <th>Read Count</th>
-                      <th>Analysis Type</th>
-                      <th>ECM</th>
+                      <th>Number of ITS External Samples</th>
+                      <th>Number of SSU External Samples</th>
                   </tr>
               </thead>
               <tbody>
-                  {% for otu in otus %}
+                  {% for ecoregion in ecoregions %}
                   <tr>
-                      <td>{{ otu.domain or '' }}</td>
-                      <td>{{ otu.phylum or '' }}</td>
-                      <td>{{ otu.class or '' }}</td>
-                      <td>{{ otu.order or '' }}</td>
-                      <td>{{ otu.family or '' }}</td>
-                      <td>{{ otu.genus or '' }}</td>
-                      <td>{{ otu.species or '' }}</td>
-                      <td>{{ otu.abundance or '' }}</td>
-                      <td>{{ otu.analysis_type or '' }}</td>
-                      <td>{{ otu.ecm_flag or '' }}</td>
+                      <td>{{ ecoregion.ecoregion_name or '' }}</td>
+                      <td>{{ ecoregion.num_sequencing_samples or '' }}</td>
+                      <td>{{ ecoregion.num_external_samples_ITS or '' }}</td>
+                      <td>{{ ecoregion.num_external_samples_SSU or '' }}</td>
                   </tr>
                   {% endfor %}
               </tbody>
           </table>
       </div>
-      {% else %}
-      <p>No OTUs found for this sample and region.</p>
       {% endif %}
   </div>
 

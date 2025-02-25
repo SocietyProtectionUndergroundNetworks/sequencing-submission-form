@@ -1,6 +1,5 @@
 import logging
-from sqlalchemy.orm import aliased
-from sqlalchemy.sql import func
+from sqlalchemy.sql import case, func
 from models.db_model import (
     ResolveEcoregionsTable,
     SequencingSamplesTable,
@@ -17,30 +16,38 @@ class Ecoregion:
         self.__dict__.update(kwargs)
 
     @classmethod
-    def get_counts(self):
+    def get_counts(cls):
         with session_scope() as session:
-            query = (
-                session.query(
-                    ResolveEcoregionsTable.ecoregion_name,
-                    func.count(func.distinct(SequencingSamplesTable.id)).label(
-                        "num_sequencing_samples"
-                    ),
-                    func.count(func.distinct(ExternalSamplingTable.id)).label(
-                        "num_external_samples"
-                    ),
-                )
-                .outerjoin(
-                    SequencingSamplesTable,
-                    SequencingSamplesTable.ResolveEcoregion
-                    == ResolveEcoregionsTable.ecoregion_name,
-                )
-                .outerjoin(
-                    ExternalSamplingTable,
-                    ExternalSamplingTable.resolve_ecoregion_id
-                    == ResolveEcoregionsTable.id,
-                )
-                .group_by(ResolveEcoregionsTable.ecoregion_name)
+            re = ResolveEcoregionsTable
+            ss = SequencingSamplesTable
+            es = ExternalSamplingTable
+
+            num_sequencing_samples = func.count(func.distinct(ss.id)).label(
+                "num_sequencing_samples"
             )
 
-            results = query.all()
-            return results
+            num_external_samples_ITS = func.count(
+                func.distinct(
+                    case((es.dna_region == "ITS", es.id), else_=None)
+                )
+            ).label("num_external_samples_ITS")
+
+            num_external_samples_SSU = func.count(
+                func.distinct(
+                    case((es.dna_region == "SSU", es.id), else_=None)
+                )
+            ).label("num_external_samples_SSU")
+
+            query = (
+                session.query(
+                    re.ecoregion_name,
+                    num_sequencing_samples,
+                    num_external_samples_ITS,
+                    num_external_samples_SSU,
+                )
+                .outerjoin(ss, ss.resolve_ecoregion_id == re.id)
+                .outerjoin(es, es.resolve_ecoregion_id == re.id)
+                .group_by(re.ecoregion_name)
+            )
+
+            return query.all()
