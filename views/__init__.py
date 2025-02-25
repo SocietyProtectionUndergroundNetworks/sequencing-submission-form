@@ -3,6 +3,7 @@ from flask import Flask
 from .user import user_bp
 from .upload import upload_bp
 from .data import data_bp
+from .ecoregions import ecoregions_bp
 from .metadata import metadata_bp
 from .scripps import scripps_bp
 from .buckets import bucket_bp
@@ -32,5 +33,6 @@ def create_app():
     app.register_blueprint(scripps_bp)
     app.register_blueprint(bucket_bp)
     app.register_blueprint(taxonomy_bp)
+    app.register_blueprint(ecoregions_bp)
 
     return app
