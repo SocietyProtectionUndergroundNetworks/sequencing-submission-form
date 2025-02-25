@@ -41,6 +41,9 @@ bashcelery:
 bashnginx:
 	docker-compose run --rm nginx /bin/sh
 
+bashgeopandas:
+	docker-compose run --rm geopandas bash
+
 bashdb:
 	docker-compose run --rm db /bin/sh
 

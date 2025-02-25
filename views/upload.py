@@ -11,7 +11,13 @@ from flask_login import (
     current_user,
     login_required,
 )
-
+from helpers.ecoregions import (
+    import_ecoregions_from_csv,
+    return_ecoregion,
+    import_ecoregions_from_csv_its,
+    import_ecoregions_from_csv_ssu,
+    init_update_external_samples_with_ecoregions,
+)
 from models.user import User
 from models.sequencing_upload import SequencingUpload
 from models.sequencing_sample import SequencingSample
@@ -114,6 +120,74 @@ def app_instructions():
 @upload_bp.route("/app_instructions_v2", endpoint="app_instructions_v2")
 def app_instructions_v2():
     return render_template("app_instructions_v2.html")
+
+
+@upload_bp.route(
+    "/run_import_ecoregions_from_csv",
+    methods=["GET"],
+    endpoint="run_import_ecoregions_from_csv",
+)
+@login_required
+@approved_required
+@admin_required
+def run_import_ecoregions_from_csv():
+    import_ecoregions_from_csv(
+        "temp/Resolve_Ecoregions_-2451418960243700221.csv"
+    )
+    return {}
+
+
+@upload_bp.route(
+    "/run_import_external_samples_from_csv_its",
+    methods=["GET"],
+    endpoint="run_import_external_samples_from_csv_its",
+)
+@login_required
+@approved_required
+@admin_required
+def run_import_external_samples_from_csv_its():
+    import_ecoregions_from_csv_its("temp/external_samples_its.csv")
+    return {}
+
+
+@upload_bp.route(
+    "/run_import_external_samples_from_csv_ssu",
+    methods=["GET"],
+    endpoint="run_import_external_samples_from_csv_ssu",
+)
+@login_required
+@approved_required
+@admin_required
+def run_import_external_samples_from_csv_ssu():
+    import_ecoregions_from_csv_ssu("temp/external_samples_ssu.csv")
+    return {}
+
+
+@upload_bp.route(
+    "/run_update_external_samples_with_ecoregions",
+    methods=["GET"],
+    endpoint="run_update_external_samples_with_ecoregions",
+)
+@login_required
+@approved_required
+@admin_required
+def run_update_external_samples_with_ecoregions():
+    init_update_external_samples_with_ecoregions()
+    return {}
+
+
+@upload_bp.route(
+    "/test_resolve_ecoregion",
+    methods=["GET"],
+    endpoint="test_resolve_ecoregion",
+)
+@login_required
+@approved_required
+@admin_required
+def test_resolve_ecoregion():
+    coordinates_list = [(45.43, -73.94), (50.47, -104.37)]
+    result = return_ecoregion(coordinates_list)
+    return jsonify({"result": result}), 200
 
 
 @upload_bp.route("/sysreport", methods=["GET"], endpoint="show_system_report")
