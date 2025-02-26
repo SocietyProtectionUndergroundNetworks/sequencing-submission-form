@@ -3,9 +3,11 @@ from flask import Blueprint, render_template, request
 from flask_login import current_user, login_required
 from models.bucket import Bucket
 from helpers.bucket import make_file_accessible
+from helpers.statistics import get_cohorts_data
 from helpers.decorators import (
     admin_or_owner_required,
     approved_required,
+    staff_required,
 )
 
 # Get the logger instance from app.py
@@ -68,3 +70,12 @@ def get_archive_progress():
         return {"progress": progress, "url": url}
     else:
         return {"progress": progress}
+
+
+@data_bp.route("/show_statistics", endpoint="show_statistics")
+@login_required
+@approved_required
+@staff_required
+def show_statistics():
+    cohort_data = get_cohorts_data()
+    return render_template("statistics.html", cohort_data=cohort_data)
