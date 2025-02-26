@@ -72,5 +72,11 @@ lotus2_files/mothur_EUK_ITS_v1.9.3.tax
 lotus2_files/mothur_EUK_ITS_v1.9.3.zip
 
 geopandasapp/Resolve_Ecoregions_-6779945127424040112.gpkg
-
+geopandasapp/Resolve_Ecoregions_4640920143581050779.geojson
 static/map.html
+
+static/map_with_ecoregions.html
+
+geopandasapp/resolve_ecoregions_min.geojson
+
+geopandasapp/resolve_ecoregions_simplified.geojson

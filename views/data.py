@@ -13,6 +13,7 @@ from helpers.decorators import (
     approved_required,
     staff_required,
 )
+from helpers.maps import generate_map_with_markers
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -91,56 +92,33 @@ def show_statistics():
 @staff_required
 def generate_map():
     data = get_samples_per_cohort_type_data()
+    map = generate_map_with_markers(data)
 
-    color_map = {
-        "SpunLed": "red",
-        "ThirdParty": "blue",
-        "UE": "green",
-        "Other": "gray",
-    }
+    # Add the ecoregions layer
+    folium.GeoJson(
+        "geopandasapp/resolve_ecoregions_min.geojson",
+        name="Ecoregions",
+        style_function=lambda feature: {
+            "fillColor": "#6baed6",
+            "color": "#2171b5",
+            "weight": 1,
+            "fillOpacity": 0.4,
+        },
+        tooltip=folium.GeoJsonTooltip(
+            fields=["ECO_NAME", "BIOME_NAME", "REALM"],
+            aliases=["Ecoregion:", "Biome:", "Realm:"],
+            localize=True,
+        ),
+        popup=folium.GeoJsonPopup(
+            fields=["ECO_NAME", "BIOME_NAME", "REALM"],
+            aliases=["Ecoregion:", "Biome:", "Realm:"],
+            max_width=400,
+        ),
+    ).add_to(map)
 
-    m = folium.Map(location=[20, 0], zoom_start=2)
-    feature_groups = {
-        key: folium.FeatureGroup(name=key) for key in color_map.keys()
-    }
+    folium.LayerControl().add_to(map)
 
-    for item in data:
-        lat, lon = item["Latitude"], item["Longitude"]
-        cohort_group = item["cohort_group"]
-        sample_id = item["SampleID"]
-        project_id = item["project_id"]
-        cohort = item["cohort"]  # Full cohort name if needed
-
-        color = color_map.get(cohort_group, "gray")
-
-        # Create a popup with additional information
-        popup_text = f"""
-        <b>Sample ID:</b> {sample_id}<br>
-        <b>Project ID:</b> {project_id}<br>
-        <b>Cohort:</b> {cohort}<br>
-        <b>Cohort Group:</b> {cohort_group}
-        """
-
-        marker = folium.CircleMarker(
-            location=[lat, lon],
-            radius=5,
-            color=color,
-            fill=True,
-            fill_color=color,
-            fill_opacity=0.7,
-            popup=folium.Popup(popup_text, max_width=300),
-        )
-
-        feature_groups[cohort_group].add_child(marker)
-
-    for group in feature_groups.values():
-        m.add_child(group)
-
-    folium.LayerControl().add_to(m)
-
-    # Save the map
-    map_path = "static/map.html"
-    m.save(map_path)
+    map.save("static/map_with_ecoregions.html")
 
     return render_template("index.html")
 
