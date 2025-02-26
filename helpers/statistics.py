@@ -46,3 +46,37 @@ def get_cohorts_data():
     # Convert to list of dicts
     columns = result.keys()
     return [dict(zip(columns, row)) for row in rows]
+
+
+def get_samples_per_cohort_type_data():
+    # we dont want to break the formating of the SQL:
+    # fmt: off
+    sql = text("""  # noqa: E501
+                SELECT
+                    ss.SampleID,
+                    ss.Latitude,
+                    ss.Longitude,
+                    su.project_id,
+                    b.cohort,
+                    CASE
+                        WHEN b.cohort LIKE 'SpunLed%' THEN 'SpunLed'
+                        WHEN b.cohort LIKE 'ThirdParty%' THEN 'ThirdParty'
+                        WHEN b.cohort LIKE 'UE%' THEN 'UE'
+                        ELSE 'Other'  -- Optional: Handles cases that don't match any condition
+                    END AS cohort_group
+                FROM sequencing_samples AS ss
+                    JOIN sequencing_uploads AS su ON ss.sequencingUploadId = su.id
+                    JOIN buckets AS b ON b.id = su.project_id
+                WHERE Latitude IS NOT NULL
+                AND Longitude IS NOT NULL
+                AND ss.Sample_or_Control = 'True sample';
+    """)
+    # fmt: on
+
+    with session_scope() as session:
+        result = session.execute(sql)
+        rows = result.fetchall()
+
+    # Convert to list of dicts
+    columns = result.keys()
+    return [dict(zip(columns, row)) for row in rows]
