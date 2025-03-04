@@ -29,6 +29,8 @@ def download_ecoregions():
     fieldnames = [
         "ecoregion_name",
         "num_sequencing_samples",
+        "num_sequencing_samples_ITS",
+        "num_sequencing_samples_SSU",
         "num_external_samples_ITS",
         "num_external_samples_SSU",
     ]
@@ -40,6 +42,12 @@ def download_ecoregions():
             {
                 "ecoregion_name": ecoregion.ecoregion_name,
                 "num_sequencing_samples": ecoregion.num_sequencing_samples,
+                "num_sequencing_samples_ITS": (
+                    ecoregion.num_sequencing_samples_ITS
+                ),
+                "num_sequencing_samples_SSU": (
+                    ecoregion.num_sequencing_samples_SSU
+                ),
                 "num_external_samples_ITS": ecoregion.num_external_samples_ITS,
                 "num_external_samples_SSU": ecoregion.num_external_samples_SSU,
             }

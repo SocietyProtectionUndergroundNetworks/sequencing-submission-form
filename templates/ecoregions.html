@@ -28,7 +28,9 @@
               <thead>
                   <tr>
                       <th>Resolve Ecoregion</th>
-                      <th>Number of Spun Samples</th>
+                      <th>Number of Spun Samples TOTAL</th>
+                      <th>Number of Spun Samples ITS</th>
+                      <th>Number of Spun Samples SSU</th>
                       <th>Number of ITS External Samples</th>
                       <th>Number of SSU External Samples</th>
                   </tr>
@@ -38,6 +40,8 @@
                   <tr>
                       <td>{{ ecoregion.ecoregion_name or '' }}</td>
                       <td>{{ ecoregion.num_sequencing_samples or '' }}</td>
+                      <td>{{ ecoregion.num_sequencing_samples_ITS or '' }}</td>
+                      <td>{{ ecoregion.num_sequencing_samples_SSU or '' }}</td>
                       <td>{{ ecoregion.num_external_samples_ITS or '' }}</td>
                       <td>{{ ecoregion.num_external_samples_SSU or '' }}</td>
                   </tr>
