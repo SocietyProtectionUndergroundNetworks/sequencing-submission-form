@@ -1667,7 +1667,6 @@ class SequencingUpload:
         taxonomies = cls.create_taxonomies_from_csv(
             df, sequencing_upload_id, samples_dict
         )
-        # logger.info(taxonomies)
 
         # Part B: Bulk create OTUs using the taxonomy_ids
         with session_scope() as session:
@@ -1769,9 +1768,17 @@ class SequencingUpload:
         # the abundance as well
         taxonomies = []
         for _, row in df.iterrows():
+            sample = str(row["sample_id"])
             sample_id = samples_dict.get(
-                row["sample_id"]
+                sample
             )  # Get the sample ID from the dict
+
+            if not sample_id and sample.startswith(
+                "S_"
+            ):  # Only try without "S_" if the sample starts with it
+                sample_without_prefix = sample[2:]  # Remove the "S_" prefix
+                sample_id = samples_dict.get(sample_without_prefix)
+
             if (
                 sample_id
             ):  # Only proceed if the sample exists in the dictionary
