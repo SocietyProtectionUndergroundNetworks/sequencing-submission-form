@@ -83,7 +83,8 @@ services:
       - MYSQL_USER=flask
       - MYSQL_PASSWORD=flask
     volumes:
-      - ./mysql:/var/lib/mysql      
+      - ./mysql:/var/lib/mysql
+      - ./config/docker/db/my.cnf:/etc/mysql/conf.d/my.cnf    
     networks:
       - database
       - flask

@@ -127,6 +127,7 @@ services:
     image: mysql:5.7
     volumes:
       - ./mysql:/var/lib/mysql
+      - ./config/docker/db/my.cnf:/etc/mysql/conf.d/my.cnf 
     environment:
       - flask
     env_file:
