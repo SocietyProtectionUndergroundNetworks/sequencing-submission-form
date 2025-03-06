@@ -450,11 +450,9 @@ def bucket_chunked_upload_v2(
             chunk_num += 1
 
             if sequencer_file_id:
-                # if the total size is bigger than 100Mb, update gradially
-                if total_size > 100 * 1024 * 1024:
-                    update_sequencer_file_progress(
-                        sequencer_file_id, (file.tell() / total_size) * 100
-                    )
+                update_sequencer_file_progress(
+                    sequencer_file_id, (file.tell() / total_size) * 100
+                )
             print(f"Bytes uploaded: {file.tell()} / {total_size}", flush=True)
 
         if destination_upload_directory:
