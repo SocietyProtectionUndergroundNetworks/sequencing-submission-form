@@ -50,6 +50,7 @@ from helpers.lotus2 import (
 from helpers.r_scripts import (
     init_generate_rscripts_report,
     delete_generated_rscripts_report,
+    create_pdf_report,
 )
 from helpers.decorators import (
     admin_or_owner_required,
@@ -167,6 +168,7 @@ def metadata_form():
     has_empty_fastqc_report = False
     lotus2_report = []
     rscripts_report = []
+    pdf_report = False
 
     if process_id:
         process_data = SequencingUpload.get(process_id)
@@ -230,6 +232,15 @@ def metadata_form():
             rscripts_report = SequencingUpload.check_rscripts_reports_exist(
                 process_id
             )
+            # check if pdf report exists
+            r_scripts_report = os.path.join(
+                "seq_processed",
+                process_data["uploads_folder"],
+                "r_output",
+                "report.pdf",
+            )
+            if os.path.isfile(r_scripts_report):
+                pdf_report = True
         else:
             return redirect(url_for("metadata.metadata_form"))
     return render_template(
@@ -256,6 +267,7 @@ def metadata_form():
         lotus2_report=lotus2_report,
         has_empty_fastqc_report=has_empty_fastqc_report,
         rscripts_report=rscripts_report,
+        pdf_report=pdf_report,
     )
 
 
@@ -1000,6 +1012,49 @@ def confirm_files_uploading_finished():
 def generate_multiqc_report():
     process_id = request.form.get("process_id")
     init_create_multiqc_report(process_id)
+    return []
+
+
+@metadata_bp.route(
+    "/prepare_pdf_report",
+    methods=["GET"],
+    endpoint="prepare_pdf_report",
+)
+@login_required
+@admin_required
+@approved_required
+def prepare_pdf_report():
+    process_id = request.args.get("process_id")
+    create_pdf_report(process_id)
+    return redirect(
+        url_for("metadata.metadata_form", process_id=process_id) + "#step_14"
+    )
+
+
+@metadata_bp.route(
+    "/download_pdf_report",
+    methods=["GET"],
+    endpoint="download_pdf_report",
+)
+@login_required
+@admin_required
+@approved_required
+def download_pdf_report():
+    process_id = request.args.get("process_id")
+    process_data = SequencingUpload.get(process_id)
+    uploads_folder = process_data["uploads_folder"]
+
+    pdf_report = os.path.join(
+        "seq_processed",
+        uploads_folder,
+        "r_output",
+        "report.pdf",
+    )
+    abs_pdf_report = os.path.abspath(pdf_report)
+
+    if os.path.isfile(abs_pdf_report):
+        return send_file(abs_pdf_report, as_attachment=True)
+
     return []
 
 

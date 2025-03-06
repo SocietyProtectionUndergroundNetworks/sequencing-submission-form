@@ -10,6 +10,49 @@ from datetime import datetime
 logger = logging.getLogger("my_app_logger")
 
 
+def create_pdf_report(process_id):
+    from models.sequencing_upload import SequencingUpload
+
+    # check if we have ITS2, ITS1, SSU_DADA analysis ready.
+    process_data = SequencingUpload.get(process_id)
+    uploads_folder = process_data["uploads_folder"]
+
+    rscripts_reports = SequencingUpload.check_rscripts_reports_exist(
+        process_id
+    )
+    # lets find out if we have an ITS
+    its_report = None
+    ssu_report = None
+    for r_report in rscripts_reports:
+        logger.info(r_report["analysis_type"])
+        if "ITS2" == r_report["analysis_type"]:
+            its_report = r_report["analysis_type"]
+        elif "SSU_dada2" == r_report["analysis_type"]:
+            ssu_report = r_report["analysis_type"]
+
+    # constract the r command
+    command = [
+        "Rscript",
+        "generate_pdf_report.R",
+        "-p",
+        "seq_processed/" + str(uploads_folder),
+    ]
+    if its_report:
+        command.extend(["-i", str(its_report)])
+
+    if ssu_report:
+        command.extend(["-s", str(ssu_report)])
+
+    command_str = " ".join(shlex.quote(arg) for arg in command)
+    logger.info(command_str)
+    # run it
+    client = docker.from_env()
+    container = client.containers.get("spun-r-service")
+    # Run the command inside the container
+    result = container.exec_run(["bash", "-c", command_str])
+    logger.info(result.output)
+
+
 def init_generate_rscripts_report(
     process_id,
     input_dir,

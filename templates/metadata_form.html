@@ -1658,6 +1658,16 @@
       </table>
     {% endif %}
     <div id="step_13_msg" class="explanation"></div>
+
+    {% if is_admin %}
+      <div id="step_14" class="form-step-item">
+        <h3> Step 14: Admin only. Prepare pdf report</h3>
+        <a href="prepare_pdf_report?process_id={{ process_data.id }}" class="btn btn-primary">Prepare pdf report</a>
+        {% if pdf_report %}
+          <a href="download_pdf_report?process_id={{ process_data.id }}" class="btn btn-primary" target="_blank">Download pdf report</a>
+        {% endif %}
+      </div>
+    {% endif %}
   </div>
 
   <script type="application/javascript">
