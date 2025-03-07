@@ -35,7 +35,7 @@ def create_pdf_report(process_id):
         "Rscript",
         "generate_pdf_report.R",
         "-p",
-        "seq_processed/" + str(uploads_folder),
+        "/seq_processed/" + str(uploads_folder),
     ]
     if its_report:
         command.extend(["-i", str(its_report)])
