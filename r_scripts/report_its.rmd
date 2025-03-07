@@ -1,0 +1,26 @@
+---
+params:
+  project: ""
+  its: ""
+---
+
+## ITS2 Data
+
+Quality:
+```{r load-image, echo=FALSE, out.width="100%"}
+knitr::include_graphics(paste0(params$project, "/fastqc/", params$its, "/multiqc_plots/png/mqc_fastqc_per_base_sequence_quality_plot_1.png"))
+```
+
+Lib sizes:
+```{r, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+pdf_page <- pdftools::pdf_convert(paste0(params$project, "/r_output/", params$its, "/LibrarySize.pdf"), pages = 1, dpi = 200)
+```
+```{r, echo=FALSE, message=FALSE, warning=FALSE, out.height="50%"}
+knitr::include_graphics(pdf_page)
+```
+
+Chao richness:
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+data <- read.csv(paste0(params$project, "/r_output/", params$its, "/metadata_chaorichness.csv"))
+knitr::kable(data)  # Display first few rows in a table
+```
