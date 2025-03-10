@@ -1045,7 +1045,10 @@ class SequencingUpload:
 
             # Iterate through the files and check the bucket_upload_progress
             for file, sample_id, region in uploaded_files:
-                if not file.bucket_upload_progress:
+                if (
+                    not file.bucket_upload_progress
+                    or file.bucket_upload_progress < 100
+                ):
                     # Construct the local path to the processed file
                     processed_file_path = (
                         f"seq_processed/{uploads_folder}/{file.new_name}"
