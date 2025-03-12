@@ -8,6 +8,7 @@ from helpers.land_use import (
 from helpers.ecoregions import get_resolve_ecoregion_objectid
 from models.db_model import SequencingSamplesTable, OTU, ResolveEcoregionsTable
 from sqlalchemy import or_, select
+from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.sql import func
 
 # Get the logger instance from app.py
@@ -111,6 +112,47 @@ class SequencingSample:
             new_sample_id = new_sample.id
 
             return new_sample_id
+
+    @classmethod
+    def update(cls, sample_id, datadict):
+        with session_scope() as session:
+            try:
+                sample = (
+                    session.query(SequencingSamplesTable)
+                    .filter_by(id=sample_id)
+                    .one()
+                )
+
+                # Convert 'yes'/'no' to boolean for specific field
+                datadict = {
+                    k: (v.lower() == "yes") if k == "using_scripps" else v
+                    for k, v in datadict.items()
+                }
+
+                # Get valid columns from the table's model class
+                valid_keys = {
+                    c.name for c in SequencingSamplesTable.__table__.columns
+                }
+
+                # Filter out valid keys to create the filtered data dictionary
+                filtered_datadict = {
+                    key: value
+                    for key, value in datadict.items()
+                    if key in valid_keys
+                }
+
+                for key, value in filtered_datadict.items():
+                    if hasattr(sample, key):
+                        setattr(sample, key, value)
+
+                session.commit()
+                return True  # Indicate successful update
+            except NoResultFound:
+                return False  # sample not found
+            except Exception as e:
+                print(f"Error updating sample: {e}")
+                session.rollback()
+                return False  # indicate failure
 
     @classmethod
     def update_missing_fields(self):

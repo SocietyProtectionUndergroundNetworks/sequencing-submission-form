@@ -582,6 +582,23 @@ class SequencingUpload:
                 return False
 
     @classmethod
+    def mark_upload_confirmed_as_false(cls, process_id):
+        with session_scope() as session:
+
+            upload = (
+                session.query(SequencingUploadsTable)
+                .filter_by(id=process_id)
+                .first()
+            )
+
+            if upload:
+                upload.metadata_upload_confirmed = False
+                session.commit()
+                return True
+            else:
+                return False
+
+    @classmethod
     def validate_samples(cls, id):
         with session_scope() as session:
 

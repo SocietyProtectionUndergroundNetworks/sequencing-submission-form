@@ -273,7 +273,12 @@
                   <!-- Iterate over each row in samples_data -->
                   {% for row in samples_data %}
                       <tr>
-                          <td class="bg-gray">{{ row.id }}</td>
+                          <td class="bg-gray">
+                            {{ row.id }}
+                            {% if not process_data["metadata_upload_confirmed"] and (is_owner or is_admin) %}
+                              <a href="edit_sample?process_id={{ process_id }}&sample_id={{ row.id }}">Edit</a>
+                            {% endif %}                            
+                          </td>
                           <td class="bg-gray">
                             {% if sequencer_ids %}
                               {% for seq in sequencer_ids %}
@@ -320,7 +325,7 @@
     </div>
 
     <div id="step_5" class="form-step-item">
-      <h3> Step 5: Confirm your locations</h3>
+      <h3> Step 5: Confirm your metadata</h3>
       <form id="step_5_form">
         <fieldset
           {% if ((not samples_data) or process_data["metadata_upload_confirmed"]) %}
@@ -333,6 +338,11 @@
           <input type="button" class="btn btn-primary" id="step_5_button" value="I confirm">
         </fieldset>
       </form>
+
+      {% if is_admin and process_data["metadata_upload_confirmed"] %}
+        (Only for admins: )<a href="/sequencing_revert_confirm_metadata?process_id={{ process_id }}" class="btn btn-primary"> Revert </a>
+      {% endif %}
+   
       <div id="step_5_msg"></div>
     </div>
 

@@ -169,10 +169,12 @@ def metadata_form():
     lotus2_report = []
     rscripts_report = []
     pdf_report = False
+    is_owner = False
 
     if process_id:
         process_data = SequencingUpload.get(process_id)
         if process_data is not None:
+            is_owner = current_user.id == process_data["user_id"]
 
             nr_files_per_sequence = process_data["nr_files_per_sequence"]
             regions = process_data["regions"]
@@ -268,6 +270,7 @@ def metadata_form():
         has_empty_fastqc_report=has_empty_fastqc_report,
         rscripts_report=rscripts_report,
         pdf_report=pdf_report,
+        is_owner=is_owner,
     )
 
 
@@ -540,6 +543,24 @@ def sequencing_confirm_metadata():
     SequencingUpload.mark_upload_confirmed_as_true(process_id)
 
     return (jsonify({"result": 1}), 200)
+
+
+@metadata_bp.route(
+    "/sequencing_revert_confirm_metadata",
+    methods=["GET"],
+    endpoint="sequencing_revert_confirm_metadata",
+)
+@login_required
+@approved_required
+@admin_required
+def sequencing_revert_confirm_metadata():
+    process_id = request.args.get("process_id")
+    logger.info("here")
+    SequencingUpload.mark_upload_confirmed_as_false(process_id)
+
+    return redirect(
+        url_for("metadata.metadata_form", process_id=process_id) + "#step_5"
+    )
 
 
 @metadata_bp.route(
@@ -2161,3 +2182,64 @@ def download_metadata():
         mimetype="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
+
+
+@metadata_bp.route(
+    "/edit_sample",
+    methods=["GET"],
+    endpoint="edit_sample",
+)
+@login_required
+@approved_required
+@admin_or_owner_required
+def edit_sample():
+    process_id = request.args.get("process_id")
+    sample_id = request.args.get("sample_id")
+
+    # Retreive the data for the sample
+    expected_columns = get_columns_data(exclude=False)
+    sample = SequencingSample.get(sample_id)
+
+    # Check that sample_id is part of this process_id
+    if int(sample.sequencingUploadId) != int(process_id):
+        logger.info(sample.sequencingUploadId)
+        return jsonify({"result": "Incorrect sample or process_id"})
+
+    logger.info(process_id)
+    logger.info(sample)
+
+    return render_template(
+        "metadata_edit_sample.html",
+        expected_columns=expected_columns,
+        sample=sample,
+    )
+
+
+@metadata_bp.route(
+    "/update_sample",
+    methods=["POST"],
+    endpoint="update_sample",
+)
+@login_required
+@approved_required
+@admin_or_owner_required
+def update_sample():
+    process_id = request.form.get("process_id")
+    sample_id = request.form.get("sample_id")
+
+    sample = SequencingSample.get(sample_id)
+
+    if not sample:
+        return jsonify({"result": "Sample not found"}), 404
+
+    if int(sample.sequencingUploadId) != int(process_id):
+        return jsonify({"result": "Incorrect sample or process_id"}), 400
+
+    # Collect the data from the form
+    datadict = request.form.to_dict()
+
+    # Update the sample
+    if SequencingSample.update(sample_id, datadict):
+        return jsonify({"success": True}), 200
+    else:
+        return jsonify({"result": "Failed to update sample"}), 500
