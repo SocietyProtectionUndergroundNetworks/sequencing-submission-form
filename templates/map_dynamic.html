@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+</head>
+<body>
+    <div style="margin-bottom: 10px;">
+        <table class="legend-table">
+            <tr>
+                <td style="color: red;">SpunLed</td>
+                <td style="color: blue;">Third Party</td>
+                <td style="color: green;">UE</td>
+                <td style="color: gray;">Other Internal</td>
+                <td style="color: purple;">ITS external</td>
+                <td style="color: orange;">SSU external</td>
+            </tr>
+        </table>
+    </div>
+    <div id="map" style="height: 600px;"></div>
+    <script>
+        var map = L.map('map').setView([20, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        var geojsonPath = "{{ geojson_path }}";
+
+        var colorMap = {
+            "SpunLed": "red",
+            "ThirdParty": "blue",
+            "UE": "green",
+            "Other": "gray",
+            "ITS": "purple",
+            "SSU": "orange"
+        };
+
+        fetch(geojsonPath)
+            .then(response => response.json())
+            .then(data => {
+                var layerControlOverlays = {};
+
+                function createClusterIcon(cluster) {
+                    var markers = cluster.getAllChildMarkers();
+                    var firstMarker = markers[0];
+                    var color;
+                    var count = cluster.getChildCount();
+                    var size = 20; // Default size
+
+                    if (firstMarker.feature.properties.type === "cohort") {
+                        color = colorMap[firstMarker.feature.properties.cohort_group] || "gray";
+                    } else if (firstMarker.feature.properties.type === "external") {
+                        color = colorMap[firstMarker.feature.properties.dna_region] || "gray";
+                    }
+
+                    if (count < 50) {
+                        size = 20;
+                    } else if (count < 100) {
+                        size = 25;
+                    } else if (count < 300) {
+                        size = 30;
+                    } else if (count < 500) {
+                        size = 35;
+                    } else if (count < 700) {
+                        size = 40;
+                    } else if (count < 900) {
+                        size = 45;                            
+                    } else {
+                        size = 50;
+                    }
+
+                    return L.divIcon({
+                        html: '<div style="background-color: ' + color + '; width: ' + size + 'px; height: ' + size + 'px; border-radius: ' + (size / 2) + 'px; text-align: center; color: white; line-height:' + size + 'px">' + count + '</div>',
+                        className: 'custom-cluster-icon',
+                        iconSize: L.point(size + 5, size + 5)
+                    });
+                }
+
+                // Process cohort data
+                var cohortCategories = {};
+                data.features.forEach(function(feature) {
+                    if (feature.properties.type === "cohort") {
+                        var category = feature.properties.cohort_group;
+                        if (!cohortCategories[category]) {
+                            cohortCategories[category] = [];
+                        }
+                        cohortCategories[category].push(feature);
+                    }
+                });
+
+                for (var category in cohortCategories) {
+                    var clusterGroup = L.markerClusterGroup({
+                        iconCreateFunction: createClusterIcon
+                    });
+                    L.geoJSON({ type: "FeatureCollection", features: cohortCategories[category] }, {
+                        pointToLayer: function(feature, latlng) {
+                            var color = colorMap[feature.properties.cohort_group] || "gray";
+                            return L.circleMarker(latlng, {
+                                radius: 5,
+                                color: color,
+                                fillColor: color,
+                                fillOpacity: 0.7
+                            });
+                        },
+                        onEachFeature: function(feature, layer) {
+                            layer.bindPopup(feature.properties.popupContent);
+                        }
+                    }).addTo(clusterGroup);
+                    map.addLayer(clusterGroup);
+                    layerControlOverlays["Cohort - " + category] = clusterGroup;
+                }
+
+                // Process external data
+                var externalCategories = {};
+                data.features.forEach(function(feature) {
+                    if (feature.properties.type === "external") {
+                        var category = feature.properties.dna_region;
+                        if (!externalCategories[category]) {
+                            externalCategories[category] = [];
+                        }
+                        externalCategories[category].push(feature);
+                    }
+                });
+
+                for (var category in externalCategories) {
+                    var clusterGroup = L.markerClusterGroup({
+                        iconCreateFunction: createClusterIcon
+                    });
+                    L.geoJSON({ type: "FeatureCollection", features: externalCategories[category] }, {
+                        pointToLayer: function(feature, latlng) {
+                            var color = colorMap[feature.properties.dna_region] || "gray";
+                            return L.circleMarker(latlng, {
+                                radius: 5,
+                                color: color,
+                                fillColor: color,
+                                fillOpacity: 0.7
+                            });
+                        },
+                        onEachFeature: function(feature, layer) {
+                            layer.bindPopup(feature.properties.popupContent);
+                        }
+                    }).addTo(clusterGroup);
+                    map.addLayer(clusterGroup);
+                    layerControlOverlays["External - " + category] = clusterGroup;
+                }
+
+                L.control.layers(null, layerControlOverlays).addTo(map);
+            });
+    </script>
+    <style>
+        .legend-table {
+            display: inline-block;
+            border-collapse: collapse;
+        }
+
+        .legend-table td {
+            padding: 5px 10px;
+            white-space: nowrap;
+        }
+    </style>    
+</body>
+</html>

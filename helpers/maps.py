@@ -2,12 +2,14 @@ import requests
 import os
 import folium
 import logging
+import json
 from folium.plugins import MarkerCluster
 from helpers.statistics import get_samples_per_cohort_type_data
 from models.db_model import ExternalSamplingTable
 from helpers.dbm import session_scope
 
 logger = logging.getLogger("my_app_logger")
+
 
 def get_elevations(locations):
     api_key = os.environ.get("GOOGLE_MAP_API_KEY")
@@ -97,6 +99,7 @@ def generate_samples_map():
     map_path = "static/map.html"
     m.save(map_path)
 
+
 def generate_samples_map_full():
     data = get_samples_per_cohort_type_data()
 
@@ -147,7 +150,9 @@ def generate_samples_map_full():
     with session_scope() as session:
         external_samples = session.query(ExternalSamplingTable).all()
         for sample in external_samples:
-            if sample.longitude and sample.latitude:  # Check if coordinates exist
+            if (
+                sample.longitude and sample.latitude
+            ):  # Check if coordinates exist
                 dna_region = sample.dna_region
                 lat, lon = sample.latitude, sample.longitude
                 color = color_map.get(dna_region, "gray")
@@ -232,4 +237,80 @@ def generate_samples_map_full_clustered():
     folium.LayerControl().add_to(m)
 
     map_path = "static/map_full_clustered.html"
-    m.save(map_path)    
+    m.save(map_path)
+
+
+def generate_samples_geojson():
+    data = get_samples_per_cohort_type_data()
+
+    features = []
+
+    # Add features from get_samples_per_cohort_type_data
+    for item in data:
+        lat, lon = item["Latitude"], item["Longitude"]
+        cohort_group = item["cohort_group"]
+        sample_id = item["SampleID"]
+        project_id = item["project_id"]
+        cohort = item["cohort"]
+
+        popup_text = f"""
+        <b>Sample ID:</b> {sample_id}<br>
+        <b>Project ID:</b> {project_id}<br>
+        <b>Cohort:</b> {cohort}<br>
+        <b>Cohort Group:</b> {cohort_group}
+        """
+
+        features.append(
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [
+                        lon,
+                        lat,
+                    ],  # GeoJSON: [longitude, latitude]
+                },
+                "properties": {
+                    "popupContent": popup_text,
+                    "cohort_group": cohort_group,
+                    "type": "cohort",
+                },
+            }
+        )
+
+    # Add features from ExternalSamplingTable
+    with session_scope() as session:
+        external_samples = session.query(ExternalSamplingTable).all()
+        for sample in external_samples:
+            if sample.longitude and sample.latitude:
+                dna_region = sample.dna_region
+                lat, lon = sample.latitude, sample.longitude
+
+                popup_text = f"""
+                <b>DNA Region:</b> {dna_region}<br>
+                <b>Latitude:</b> {lat}<br>
+                <b>Longitude:</b> {lon}
+                """
+
+                features.append(
+                    {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": [lon, lat],
+                        },
+                        "properties": {
+                            "popupContent": popup_text,
+                            "dna_region": dna_region,
+                            "type": "external",
+                        },
+                    }
+                )
+
+    geojson_data = {"type": "FeatureCollection", "features": features}
+
+    # Save to file
+    with open("static/data.geojson", "w") as f:
+        json.dump(geojson_data, f)
+
+    return "static/data.geojson"  # return the path to the file.

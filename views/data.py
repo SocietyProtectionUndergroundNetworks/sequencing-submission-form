@@ -1,19 +1,17 @@
 import logging
-import folium
 from flask import Blueprint, render_template, request
 from flask_login import current_user, login_required
 from models.bucket import Bucket
 from helpers.bucket import make_file_accessible
 from helpers.statistics import (
     get_cohorts_data,
-    get_samples_per_cohort_type_data,
 )
 from helpers.decorators import (
     admin_or_owner_required,
     approved_required,
     staff_required,
 )
-from helpers.maps import generate_samples_map
+from helpers.maps import generate_samples_geojson
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -91,7 +89,7 @@ def show_statistics():
 @approved_required
 @staff_required
 def generate_map():
-    generate_samples_map()
+    generate_samples_geojson()
 
     return render_template("index.html")
 
@@ -101,4 +99,5 @@ def generate_map():
 @approved_required
 @staff_required
 def show_map():
-    return render_template("map.html")
+    geojson_path = "/static/data.geojson"
+    return render_template("map_dynamic.html", geojson_path=geojson_path)
