@@ -61,24 +61,6 @@ paste0("Decontamination was carried out using the Decontam.R package. Prevalence
 "Decontamination using the Decontam.R package could not take place, as no negative control samples were sequenced alongside the project samples."
 }
 `
-`
-\newpage
-Filtered rarefaction curves:
-```{r, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
-pdf_page <- pdftools::pdf_convert(paste0(params$project, "/r_output/", params$ssu, "/filtered_rarefaction.pdf"), pages = 1, dpi = 200)
-```
-```{r, echo=FALSE, message=FALSE, warning=FALSE, out.width="100%"}
-knitr::include_graphics(pdf_page)
-```
-
-\newpage
-Arbuscular mycorrhizal fungi abundance:
-```{r, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
-pdf_page <- pdftools::pdf_convert(paste0(params$project, "/r_output/", params$ssu, "/amf_physeq_by_genus.pdf"), pages = 1, dpi = 200)
-```
-```{r, echo=FALSE, message=FALSE, warning=FALSE, out.width="100%"}
-knitr::include_graphics(pdf_page)
-```
 
 \newpage
 ### Rarefaction curves
