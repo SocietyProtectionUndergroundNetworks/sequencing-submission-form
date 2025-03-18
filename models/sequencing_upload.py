@@ -36,7 +36,7 @@ from pathlib import Path
 from flask_login import current_user
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import desc, func
+from sqlalchemy import desc, func, text
 
 
 # Get the logger instance from app.py
@@ -639,6 +639,60 @@ class SequencingUpload:
                     return False  # Incorrect regions
 
             return True
+
+    @classmethod
+    def get_missing_ssu_files(cls, sequencingUploadId):
+        query = text(
+            """
+        SELECT ss.id, ss.SampleID
+        FROM sequencing_samples AS ss
+        WHERE ss.sequencingUploadId = :sequencingUploadId
+        AND ss.id NOT IN (
+            SELECT ss.id
+            FROM sequencing_samples AS ss
+            JOIN sequencing_sequencer_ids
+                AS ssi ON ssi.sequencingSampleId = ss.id
+            JOIN sequencing_files_uploaded
+                AS sfu ON sfu.sequencerId = ssi.id
+            WHERE ss.sequencingUploadId = :sequencingUploadId
+            AND ssi.Region IN ('SSU')
+            GROUP BY ss.id
+        )
+        """
+        )
+        with session_scope() as session:
+            results = session.execute(
+                query, {"sequencingUploadId": sequencingUploadId}
+            ).fetchall()
+
+        return results
+
+    @classmethod
+    def get_missing_its_files(cls, sequencingUploadId):
+        query = text(
+            """
+        SELECT ss.id, ss.SampleID
+        FROM sequencing_samples AS ss
+        WHERE ss.sequencingUploadId = :sequencingUploadId
+        AND ss.id NOT IN (
+            SELECT ss.id
+            FROM sequencing_samples AS ss
+            JOIN sequencing_sequencer_ids
+                AS ssi ON ssi.sequencingSampleId = ss.id
+            JOIN sequencing_files_uploaded
+                AS sfu ON sfu.sequencerId = ssi.id
+            WHERE ss.sequencingUploadId = :sequencingUploadId
+            AND ssi.Region IN ('ITS1', 'ITS2')
+            GROUP BY ss.id
+        )
+        """
+        )
+        with session_scope() as session:
+            results = session.execute(
+                query, {"sequencingUploadId": sequencingUploadId}
+            ).fetchall()
+
+        return results
 
     @classmethod
     def get_uploaded_files(cls, sequencingUploadId):

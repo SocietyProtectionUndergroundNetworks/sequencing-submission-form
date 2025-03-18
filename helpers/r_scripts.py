@@ -24,12 +24,34 @@ def create_pdf_report(process_id):
     # lets find out if we have an ITS
     its_report = None
     ssu_report = None
+    missing_ssu_json_output = None
+    missing_its_json_output = None
+
     for r_report in rscripts_reports:
         logger.info(r_report["analysis_type"])
         if "ITS2" == r_report["analysis_type"]:
             its_report = r_report["analysis_type"]
+            missing_samples_its = SequencingUpload.get_missing_its_files(
+                process_id
+            )
+            missing_its_json_data = [
+                {"sample": sample[1]} for sample in missing_samples_its
+            ]
+            missing_its_json_output = json.dumps(
+                missing_its_json_data, separators=(",", ":")
+            )
+
         elif "SSU_dada2" == r_report["analysis_type"]:
             ssu_report = r_report["analysis_type"]
+            missing_samples_ssu = SequencingUpload.get_missing_ssu_files(
+                process_id
+            )
+            missing_ssu_json_data = [
+                {"sample": sample[1]} for sample in missing_samples_ssu
+            ]
+            missing_ssu_json_output = json.dumps(
+                missing_ssu_json_data, separators=(",", ":")
+            )
 
     # constract the r command
     command = [
@@ -45,6 +67,12 @@ def create_pdf_report(process_id):
 
     if ssu_report:
         command.extend(["-s", str(ssu_report)])
+
+    if missing_ssu_json_output:
+        command.extend(["--missing-ssu", str(missing_ssu_json_output)])
+
+    if missing_its_json_output:
+        command.extend(["--missing-its", str(missing_its_json_output)])
 
     command_str = " ".join(shlex.quote(arg) for arg in command)
     logger.info(command_str)
