@@ -74,3 +74,7 @@ lotus2_files/mothur_EUK_ITS_v1.9.3.zip
 geopandasapp/Resolve_Ecoregions_-6779945127424040112.gpkg
 
 static/map.html
+
+static/map_full.html
+
+static/data.geojson
