@@ -11,6 +11,12 @@ option_list <- list(
     help = "Path to r_output ITS1 or ITS2 folder"
   ),
   make_option(
+    c("-n", "--name"),
+    type = "character",
+    default = "",
+    help = "Name of project, eg 'sl-atacama'"
+  ),
+  make_option(
     c("-i", "--its"),
     type = "character",
     default = "",
@@ -39,7 +45,7 @@ its_pdf <- paste0(args$project, "/r_output/its.pdf")
 ssu_pdf <- paste0(args$project, "/r_output/ssu.pdf")
 
 # Render the intro (always included)
-render(intro_rmd, output_file = intro_pdf, )
+render(intro_rmd, output_file = intro_pdf, params = list(name = args$name))
 
 # Render ITS report if applicable
 if (args$its != "") {
