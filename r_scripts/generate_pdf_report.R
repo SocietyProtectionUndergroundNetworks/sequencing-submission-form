@@ -17,6 +17,18 @@ option_list <- list(
     help = "Name of project, eg 'sl-atacama'"
   ),
   make_option(
+    c("--missing-its"),
+    type = "character",
+    default = "",
+    help = "JSON string of missing its samples"
+  ),
+  make_option(
+    c("--missing-ssu"),
+    type = "character",
+    default = "",
+    help = "JSON string of missing ssu samples"
+  ),
+  make_option(
     c("-i", "--its"),
     type = "character",
     default = "",
@@ -32,7 +44,7 @@ option_list <- list(
 
 # Parse options
 parser <- OptionParser(option_list = option_list)
-args <- parse_args(parser)
+args <- parse_args(parser, convert_hyphens_to_underscores = TRUE)
 
 # Define Rmd files
 intro_rmd <- "report_intro.rmd"
@@ -49,14 +61,14 @@ render(intro_rmd, output_file = intro_pdf, params = list(name = args$name))
 
 # Render ITS report if applicable
 if (args$its != "") {
-  render(its_rmd, output_file = its_pdf, params = list(project = args$project, its = args$its))
+  render(its_rmd, output_file = its_pdf, params = list(project = args$project, its = args$its, missing = args$missing_its))
 } else {
   its_pdf <- NULL  # Skip ITS report
 }
 
 # Render SSU report if applicable
 if (args$ssu != "") {
-  render(ssu_rmd, output_file = ssu_pdf, params = list(project = args$project, ssu = args$ssu))
+  render(ssu_rmd, output_file = ssu_pdf, params = list(project = args$project, ssu = args$ssu, missing = args$missing_ssu))
 } else {
   ssu_pdf <- NULL  # Skip SSU report
 }

@@ -2,6 +2,7 @@
 params:
   project: ""
   ssu: ""
+  missing: ""
 header-includes:
   - \pagenumbering{gobble}
 urlcolor: blue
@@ -56,7 +57,7 @@ The database used for parameter -refDB is the [MaarjAM](https://maarjam.ut.ee/) 
 ### Decontamination
 
 `r if (file.exists(paste0(params$project, "/r_output/", params$its, "/contaminants.csv"))) {
-paste0("Decontamination was carried out using the Decontam.R package. Prevalence-based identification was used to identify and remove OTUs that are likely contaminants. This is based on which ASVs appear disproportionately in Control samples designated within the phyloseq object, the negative controls. ASVs were classified as contaminants using a Decontam.R threshold of 0.1.\n\nThe full table of contaminants removed from all samples by Decontam.R can be accessed by opening contaminants.csv from your **SSU/results** folder. Click on [contaminants.csv](./", params$its, "/contaminants.csv) to download this file")
+paste0("Decontamination was carried out using the Decontam.R package. Prevalence-based identification was used to identify and remove ASVs that are likely contaminants. This is based on which ASVs appear disproportionately in Control samples designated within the phyloseq object, the negative controls. ASVs were classified as contaminants using a Decontam.R threshold of 0.1.\n\nThe full table of contaminants removed from all samples by Decontam.R can be accessed by opening contaminants.csv from your **SSU/results** folder. Click on [contaminants.csv](./", params$its, "/contaminants.csv) to download this file")
 } else {
 "Decontamination using the Decontam.R package could not take place, as no negative control samples were sequenced alongside the project samples."
 }

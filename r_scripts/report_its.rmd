@@ -2,13 +2,16 @@
 params:
   project: ""
   its: ""
+  missing: ""
 header-includes:
   - \pagenumbering{gobble}
 urlcolor: blue
 ---
 
 ## ITS2 data
-
+`r if (params$missing != "") {
+paste0("### Missing samples\nThe following ITS2 samples were expected according to the metadata file but not found:\n\n", toString(jsonlite::fromJSON(params$missing)$sample) ) 
+}`
 ### Library size
 
 Figure below displays the library size (i.e., the number of sequencing reads per sample) of True Samples vs Control Samples from the project. This allows us to identify samples with abnormally low or high read counts.
@@ -16,7 +19,7 @@ Figure below displays the library size (i.e., the number of sequencing reads per
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
 pdf_page <- pdftools::pdf_convert(paste0(params$project, "/r_output/", params$its, "/LibrarySize.pdf"), pages = 1, dpi = 200)
 ```
-```{r, echo=FALSE, message=FALSE, warning=FALSE, out.height="40%"}
+```{r, echo=FALSE, message=FALSE, warning=FALSE, out.height="35%"}
 knitr::include_graphics(pdf_page)
 ```
 
