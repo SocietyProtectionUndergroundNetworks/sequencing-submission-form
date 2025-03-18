@@ -16,6 +16,7 @@ def create_pdf_report(process_id):
     # check if we have ITS2, ITS1, SSU_DADA analysis ready.
     process_data = SequencingUpload.get(process_id)
     uploads_folder = process_data["uploads_folder"]
+    project_id = process_data["project_id"]
 
     rscripts_reports = SequencingUpload.check_rscripts_reports_exist(
         process_id
@@ -36,6 +37,8 @@ def create_pdf_report(process_id):
         "generate_pdf_report.R",
         "-p",
         "/seq_processed/" + str(uploads_folder),
+        "-n",
+        str(project_id),
     ]
     if its_report:
         command.extend(["-i", str(its_report)])
