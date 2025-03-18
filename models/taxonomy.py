@@ -292,7 +292,7 @@ class TaxonomyManager:
                 filters.append("taxonomy_domain.name = :domain")
                 query_params["domain"] = domain
             if phylum:
-                filters.append("taxonomy_phylum = :phylum")
+                filters.append("taxonomy_phylum.name = :phylum")
                 query_params["phylum"] = phylum
             if class_:
                 filters.append("taxonomy_class.name = :class_")
