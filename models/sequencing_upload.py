@@ -2032,12 +2032,7 @@ class SequencingUpload:
                 symlink_path = os.path.join(results_folder, symlink_name)
                 full_source_path = source_paths[symlink_name]
 
-                # Adjust the source path for relative symlink creation
-                target_relative = os.path.relpath(
-                    full_source_path, start=results_folder
-                )
-
                 if os.path.exists(full_source_path) and not os.path.islink(
                     symlink_path
                 ):
-                    os.symlink(target_relative, symlink_path)
+                    os.symlink(relative_target, symlink_path)
