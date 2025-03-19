@@ -1864,3 +1864,180 @@ class SequencingUpload:
         logger.info(f"Mapped taxonomies to sample IDs: {len(taxonomies)}")
 
         return taxonomies
+
+    @classmethod
+    def create_symlinks(cls, sequencingUploadId):
+        process_data = cls.get(sequencingUploadId)
+        uploads_folder = process_data["uploads_folder"]
+        upload_files = cls.get_uploaded_files(sequencingUploadId)
+
+        base_path = os.path.join("seq_processed", uploads_folder)
+        share_folder = os.path.join(base_path, "share")
+        r_output_folder = "r_output"
+        fastqc_folder = "fastqc"
+        lotus2_report_folder = "lotus2_report"
+
+        # Ensure 'share' folder exists
+        os.makedirs(share_folder, exist_ok=True)
+
+        # Create relative symlink for report.pdf
+        report_source = os.path.join(r_output_folder, "report.pdf")
+        report_target = os.path.join("..", r_output_folder, "report.pdf")
+        report_symlink = os.path.join(share_folder, "report.pdf")
+        if os.path.exists(
+            os.path.join(base_path, report_source)
+        ) and not os.path.islink(report_symlink):
+            os.symlink(report_target, report_symlink)
+
+        for region in process_data["regions"]:
+            region_folder = os.path.join(share_folder, region)
+            raw_folder = os.path.join(region_folder, "raw")
+            results_folder = os.path.join(region_folder, "results")
+            predecontam_folder = os.path.join(results_folder, "predecontam")
+
+            # Ensure directories exist
+            os.makedirs(raw_folder, exist_ok=True)
+            os.makedirs(results_folder, exist_ok=True)
+            os.makedirs(predecontam_folder, exist_ok=True)
+
+            # Create relative symlinks for raw files
+            for file in upload_files:
+                if file["region"] == region:
+                    # Correct the relative path to go up three levels
+                    target_path = os.path.join(
+                        "..", "..", "..", file["new_name"]
+                    )
+                    symlink_path = os.path.join(raw_folder, file["new_name"])
+                    source_file = os.path.join(base_path, file["new_name"])
+
+                    if os.path.exists(source_file) and not os.path.islink(
+                        symlink_path
+                    ):
+                        os.symlink(target_path, symlink_path)
+
+            # Define relative paths for non-raw files (adjusted for base_path)
+            symlinks = {
+                "contaminants.csv": os.path.join(
+                    "..",
+                    "..",
+                    "..",
+                    r_output_folder,
+                    region if region != "SSU" else "SSU_dada2",
+                    "contaminants.csv",
+                ),
+                "multiqc_report.html": os.path.join(
+                    "..",
+                    "..",
+                    "..",
+                    fastqc_folder,
+                    region,
+                    "multiqc_report.html",
+                ),
+                "lotus2_report": os.path.join(
+                    "..",
+                    "..",
+                    "..",
+                    lotus2_report_folder,
+                    region if region != "SSU" else "SSU_dada2",
+                ),
+                "r_output": os.path.join(
+                    "..",
+                    "..",
+                    "..",
+                    r_output_folder,
+                    region if region != "SSU" else "SSU_dada2",
+                ),
+                "physeq_decontam.Rdata": os.path.join(
+                    "..",
+                    "..",
+                    "..",
+                    r_output_folder,
+                    region if region != "SSU" else "SSU_dada2",
+                    "physeq_decontam.Rdata",
+                ),
+                "predecontam/phyloseq_predecontam.Rdata": os.path.join(
+                    "..",
+                    "..",
+                    "..",
+                    "..",
+                    lotus2_report_folder,
+                    region if region != "SSU" else "SSU_dada2",
+                    "phyloseq.Rdata",
+                ),
+            }
+
+            # Construct the source paths similarly to the symlink dictionary
+            source_paths = {
+                "contaminants.csv": os.path.join(
+                    base_path,
+                    r_output_folder,
+                    region if region != "SSU" else "SSU_dada2",
+                    "contaminants.csv",
+                ),
+                "multiqc_report.html": os.path.join(
+                    base_path, fastqc_folder, region, "multiqc_report.html"
+                ),
+                "lotus2_report": os.path.join(
+                    base_path,
+                    lotus2_report_folder,
+                    region if region != "SSU" else "SSU_dada2",
+                ),
+                "r_output": os.path.join(
+                    base_path,
+                    r_output_folder,
+                    region if region != "SSU" else "SSU_dada2",
+                ),
+                "physeq_decontam.Rdata": os.path.join(
+                    base_path,
+                    r_output_folder,
+                    region if region != "SSU" else "SSU_dada2",
+                    "physeq_decontam.Rdata",
+                ),
+                "predecontam/phyloseq_predecontam.Rdata": os.path.join(
+                    base_path,
+                    lotus2_report_folder,
+                    region if region != "SSU" else "SSU_dada2",
+                    "phyloseq.Rdata",
+                ),
+            }
+
+            # Add region-specific source paths for SSU and ITS regions
+            if region == "SSU":
+                source_paths["amf_physeq.Rdata"] = os.path.join(
+                    base_path, r_output_folder, "SSU_dada2", "amf_physeq.Rdata"
+                )
+                symlinks["amf_physeq.Rdata"] = os.path.join(
+                    "..",
+                    "..",
+                    "..",
+                    r_output_folder,
+                    "SSU_dada2",
+                    "amf_physeq.Rdata",
+                )
+            elif region in ["ITS1", "ITS2"]:
+                source_paths["ecm_physeq.Rdata"] = os.path.join(
+                    base_path, r_output_folder, "SSU_dada2", "ecm_physeq.Rdata"
+                )
+                symlinks["ecm_physeq.Rdata"] = os.path.join(
+                    "..",
+                    "..",
+                    "..",
+                    r_output_folder,
+                    "SSU_dada2",
+                    "ecm_physeq.Rdata",
+                )
+
+            # Now check and create symlinks for each item
+            for symlink_name, relative_target in symlinks.items():
+                symlink_path = os.path.join(results_folder, symlink_name)
+                full_source_path = source_paths[symlink_name]
+
+                # Adjust the source path for relative symlink creation
+                target_relative = os.path.relpath(
+                    full_source_path, start=results_folder
+                )
+
+                if os.path.exists(full_source_path) and not os.path.islink(
+                    symlink_path
+                ):
+                    os.symlink(target_relative, symlink_path)
