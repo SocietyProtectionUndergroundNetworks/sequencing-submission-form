@@ -1915,124 +1915,201 @@ class SequencingUpload:
                     ):
                         os.symlink(target_path, symlink_path)
 
-            # Define relative paths for non-raw files (adjusted for base_path)
-            symlinks = {
-                "contaminants.csv": os.path.join(
-                    "..",
-                    "..",
-                    "..",
-                    r_output_folder,
-                    region if region != "SSU" else "SSU_dada2",
-                    "contaminants.csv",
-                ),
-                "multiqc_report.html": os.path.join(
-                    "..",
-                    "..",
-                    "..",
-                    fastqc_folder,
-                    region,
-                    "multiqc_report.html",
-                ),
-                "lotus2_report": os.path.join(
-                    "..",
-                    "..",
-                    "..",
-                    lotus2_report_folder,
-                    region if region != "SSU" else "SSU_dada2",
-                ),
-                "r_output": os.path.join(
-                    "..",
-                    "..",
-                    "..",
-                    r_output_folder,
-                    region if region != "SSU" else "SSU_dada2",
-                ),
-                "physeq_decontam.Rdata": os.path.join(
-                    "..",
-                    "..",
-                    "..",
-                    r_output_folder,
-                    region if region != "SSU" else "SSU_dada2",
-                    "physeq_decontam.Rdata",
-                ),
-                "predecontam/phyloseq_predecontam.Rdata": os.path.join(
-                    "..",
-                    "..",
-                    "..",
-                    "..",
-                    lotus2_report_folder,
-                    region if region != "SSU" else "SSU_dada2",
-                    "phyloseq.Rdata",
-                ),
-            }
+            # Determine the correct folder name for SSU
+            region_path = region if region != "SSU" else "SSU_dada2"
+            base_lotus_path = os.path.join(
+                base_path, lotus2_report_folder, region_path
+            )
+            base_r_output_path = os.path.join(
+                base_path, r_output_folder, region_path
+            )
 
-            # Construct the source paths similarly to the symlink dictionary
-            source_paths = {
-                "contaminants.csv": os.path.join(
-                    base_path,
-                    r_output_folder,
-                    region if region != "SSU" else "SSU_dada2",
-                    "contaminants.csv",
-                ),
-                "multiqc_report.html": os.path.join(
-                    base_path, fastqc_folder, region, "multiqc_report.html"
-                ),
-                "lotus2_report": os.path.join(
-                    base_path,
-                    lotus2_report_folder,
-                    region if region != "SSU" else "SSU_dada2",
-                ),
-                "r_output": os.path.join(
-                    base_path,
-                    r_output_folder,
-                    region if region != "SSU" else "SSU_dada2",
-                ),
-                "physeq_decontam.Rdata": os.path.join(
-                    base_path,
-                    r_output_folder,
-                    region if region != "SSU" else "SSU_dada2",
-                    "physeq_decontam.Rdata",
-                ),
-                "predecontam/phyloseq_predecontam.Rdata": os.path.join(
-                    base_path,
-                    lotus2_report_folder,
-                    region if region != "SSU" else "SSU_dada2",
-                    "phyloseq.Rdata",
-                ),
+            relative_lotus2_path_three_back = os.path.join(
+                "..", "..", "..", lotus2_report_folder, region_path
+            )
+            relative_lotus2_path_four_back = os.path.join(
+                "..", relative_lotus2_path_three_back
+            )
+            relative_r_output_path_three_back = os.path.join(
+                "..", "..", "..", r_output_folder, region_path
+            )
+
+            # Define all file mappings in a structured dictionary
+            file_mappings = {
+                "contaminants.csv": {
+                    "source": os.path.join(
+                        base_r_output_path, "contaminants.csv"
+                    ),
+                    "symlink": os.path.join(
+                        relative_r_output_path_three_back, "contaminants.csv"
+                    ),
+                },
+                "multiqc_report.html": {
+                    "source": os.path.join(
+                        base_path, fastqc_folder, region, "multiqc_report.html"
+                    ),
+                    "symlink": os.path.join(
+                        "..",
+                        "..",
+                        "..",
+                        fastqc_folder,
+                        region,
+                        "multiqc_report.html",
+                    ),
+                },
+                "physeq_decontam.Rdata": {
+                    "source": os.path.join(
+                        base_r_output_path, "physeq_decontam.Rdata"
+                    ),
+                    "symlink": os.path.join(
+                        relative_r_output_path_three_back,
+                        "physeq_decontam.Rdata",
+                    ),
+                },
+                "predecontam/phyloseq_predecontam.Rdata": {
+                    "source": os.path.join(base_lotus_path, "phyloseq.Rdata"),
+                    "symlink": os.path.join(
+                        relative_lotus2_path_four_back, "phyloseq.Rdata"
+                    ),
+                },
+                "report_images/control_vs_sample.pdf": {
+                    "source": os.path.join(
+                        base_lotus_path, "control_vs_sample.pdf"
+                    ),
+                    "symlink": os.path.join(
+                        relative_lotus2_path_four_back, "control_vs_sample.pdf"
+                    ),
+                },
+                "report_images/filtered_rarefaction.pdf": {
+                    "source": os.path.join(
+                        base_lotus_path, "filtered_rarefaction.pdf"
+                    ),
+                    "symlink": os.path.join(
+                        relative_lotus2_path_four_back,
+                        "filtered_rarefaction.pdf",
+                    ),
+                },
+                "report_images/LibrarySize.pdf": {
+                    "source": os.path.join(base_lotus_path, "LibrarySize.pdf"),
+                    "symlink": os.path.join(
+                        relative_lotus2_path_four_back, "LibrarySize.pdf"
+                    ),
+                },
+                "ExtraFiles": {
+                    "source": os.path.join(base_lotus_path, "ExtraFiles"),
+                    "symlink": os.path.join(
+                        relative_lotus2_path_three_back, "ExtraFiles"
+                    ),
+                },
+                "hiera_BLAST.txt": {
+                    "source": os.path.join(base_lotus_path, "hiera_BLAST.txt"),
+                    "symlink": os.path.join(
+                        relative_lotus2_path_three_back, "hiera_BLAST.txt"
+                    ),
+                },
+                "higherLvl": {
+                    "source": os.path.join(base_lotus_path, "higherLvl"),
+                    "symlink": os.path.join(
+                        relative_lotus2_path_three_back, "higherLvl"
+                    ),
+                },
+                "LotuSLogS": {
+                    "source": os.path.join(base_lotus_path, "LotuSLogS"),
+                    "symlink": os.path.join(
+                        relative_lotus2_path_three_back, "LotuSLogS"
+                    ),
+                },
+                "OTU.biom": {
+                    "source": os.path.join(base_lotus_path, "OTU.biom"),
+                    "symlink": os.path.join(
+                        relative_lotus2_path_three_back, "OTU.biom"
+                    ),
+                },
+                "OTU.fna": {
+                    "source": os.path.join(base_lotus_path, "OTU.fna"),
+                    "symlink": os.path.join(
+                        relative_lotus2_path_three_back, "OTU.fna"
+                    ),
+                },
+                "OTUphylo.nwk": {
+                    "source": os.path.join(base_lotus_path, "OTUphylo.nwk"),
+                    "symlink": os.path.join(
+                        relative_lotus2_path_three_back, "OTUphylo.nwk"
+                    ),
+                },
+                "OTU.txt": {
+                    "source": os.path.join(base_lotus_path, "OTU.txt"),
+                    "symlink": os.path.join(
+                        relative_lotus2_path_three_back, "OTU.txt"
+                    ),
+                },
+                "primary": {
+                    "source": os.path.join(base_lotus_path, "primary"),
+                    "symlink": os.path.join(
+                        relative_lotus2_path_three_back, "primary"
+                    ),
+                },
             }
 
             # Add region-specific source paths for SSU and ITS regions
             if region == "SSU":
-                source_paths["amf_physeq.Rdata"] = os.path.join(
-                    base_path, r_output_folder, "SSU_dada2", "amf_physeq.Rdata"
-                )
-                symlinks["amf_physeq.Rdata"] = os.path.join(
-                    "..",
-                    "..",
-                    "..",
-                    r_output_folder,
-                    "SSU_dada2",
-                    "amf_physeq.Rdata",
-                )
+                file_mappings["amf_physeq.Rdata"] = {
+                    "source": os.path.join(
+                        base_path,
+                        r_output_folder,
+                        "SSU_dada2",
+                        "amf_physeq.Rdata",
+                    ),
+                    "symlink": os.path.join(
+                        "..",
+                        "..",
+                        "..",
+                        r_output_folder,
+                        "SSU_dada2",
+                        "amf_physeq.Rdata",
+                    ),
+                }
+                file_mappings["report_images/amf_physeq_by_genus.pdf"] = {
+                    "source": os.path.join(
+                        base_lotus_path, "amf_physeq_by_genus.pdf"
+                    ),
+                    "symlink": os.path.join(
+                        relative_lotus2_path_four_back,
+                        "amf_physeq_by_genus.pdf",
+                    ),
+                }
             elif region in ["ITS1", "ITS2"]:
-                source_paths["ecm_physeq.Rdata"] = os.path.join(
-                    base_path, r_output_folder, "SSU_dada2", "ecm_physeq.Rdata"
-                )
-                symlinks["ecm_physeq.Rdata"] = os.path.join(
-                    "..",
-                    "..",
-                    "..",
-                    r_output_folder,
-                    "SSU_dada2",
-                    "ecm_physeq.Rdata",
-                )
+                file_mappings["ecm_physeq.Rdata"] = {
+                    "source": os.path.join(
+                        base_path,
+                        r_output_folder,
+                        "SSU_dada2",
+                        "ecm_physeq.Rdata",
+                    ),
+                    "symlink": os.path.join(
+                        "..",
+                        "..",
+                        "..",
+                        r_output_folder,
+                        "SSU_dada2",
+                        "ecm_physeq.Rdata",
+                    ),
+                }
+                file_mappings["report_images/ecm_physeq_by_genus.pdf"] = {
+                    "source": os.path.join(
+                        base_lotus_path, "ecm_physeq_by_genus.pdf"
+                    ),
+                    "symlink": os.path.join(
+                        relative_lotus2_path_four_back,
+                        "ecm_physeq_by_genus.pdf",
+                    ),
+                }
 
             # Now check and create symlinks for each item
-            for symlink_name, relative_target in symlinks.items():
-                symlink_path = os.path.join(results_folder, symlink_name)
-                full_source_path = source_paths[symlink_name]
-
+            for file_name, paths in file_mappings.items():
+                symlink_path = os.path.join(results_folder, file_name)
+                full_source_path = paths["source"]
                 if os.path.exists(full_source_path) and not os.path.islink(
                     symlink_path
                 ):
-                    os.symlink(relative_target, symlink_path)
+                    os.symlink(paths["symlink"], symlink_path)

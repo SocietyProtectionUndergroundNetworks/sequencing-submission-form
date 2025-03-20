@@ -83,6 +83,9 @@ def create_pdf_report(process_id):
     result = container.exec_run(["bash", "-c", command_str])
     logger.info(result.output)
 
+    # create the symlinks
+    SequencingUpload.create_symlinks(process_id)
+
 
 def init_generate_rscripts_report(
     process_id,
