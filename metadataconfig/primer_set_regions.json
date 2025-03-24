@@ -89,6 +89,11 @@
     "Forward Primer": "ACCCGCTGAACTTAAGC",
     "Reverse Primer": "TCCTGAGGGAAACTTCG"
   },
+  "FULFN1ngs/FULRNngs": {
+    "Region": "LSU",
+    "Forward Primer": "AGGGAAACGATTGAAGCCAGTC",
+    "Reverse Primer": "CGTGTTTCAAGACGGGTCGT"
+  },
   "Other": {
     "Region": "Other",
     "Forward Primer": "",
