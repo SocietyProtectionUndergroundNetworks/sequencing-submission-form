@@ -1,6 +1,7 @@
 import logging
 import os
 import requests
+import subprocess
 import xml.etree.ElementTree as ET
 from requests.auth import HTTPBasicAuth
 from urllib.parse import urlparse
@@ -115,3 +116,52 @@ def create_share(remote_path, label):
             f"Failed to create share: {response.status_code} - {response.text}"
         )
         return None
+
+
+def sync_folder(local_path, remote_path):
+    # Runs the rclone sync command to sync a
+    # folder to the remote destination.
+    command = [
+        "rclone",
+        "sync",
+        "-P",
+        "--copy-links",
+        local_path,
+        f"seqp:{remote_path}",
+    ]
+
+    try:
+        logger.info(f"Running command: {' '.join(command)}")
+        result = subprocess.run(
+            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+
+        if result.returncode == 0:
+            logger.info(f"Sync successful: {result.stdout}")
+            return True
+        else:
+            logger.error(f"Sync failed: {result.stderr}")
+            return False
+
+    except Exception as e:
+        logger.error(f"Error running rclone command: {e}")
+        return False
+
+
+def sync_project(process_id):
+    from models.sequencing_upload import SequencingUpload
+
+    # check if we have ITS2, ITS1, SSU_DADA analysis ready.
+    process_data = SequencingUpload.get(process_id)
+
+    remote_path = str(process_data["uploads_folder"]) + "/share"
+    local_path = "/app/seq_processed/" + remote_path
+
+    sync_folder(local_path, remote_path)
+
+
+def init_sync_project(process_id):
+    from tasks import sync_project_async
+
+    sync_project_async(process_id)
+    logger.info("Finished syncing the project " + str(process_id))

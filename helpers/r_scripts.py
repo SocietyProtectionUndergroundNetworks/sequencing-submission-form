@@ -86,6 +86,18 @@ def create_pdf_report(process_id):
     # create the symlinks
     SequencingUpload.create_symlinks(process_id)
 
+    # sync to the external share service
+    from helpers.share_directory import init_sync_project, create_share
+
+    init_sync_project(process_id)
+
+    # create the share link
+    share_link = create_share(
+        "seq_processed/" + process_data["uploads_folder"] + "/share",
+        project_id,
+    )
+    logger.info("The share url is " + share_link)
+
 
 def init_generate_rscripts_report(
     process_id,

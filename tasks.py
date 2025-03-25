@@ -21,6 +21,7 @@ from helpers.r_scripts import (
     generate_all_rscripts_reports,
 )
 from helpers.ecoregions import update_external_samples_with_ecoregions
+from helpers.share_directory import sync_project
 
 logger = logging.getLogger("my_app_logger")
 
@@ -155,3 +156,23 @@ def create_multiqc_report_async(process_id):
 @celery_app.task
 def update_external_samples_with_ecoregions_async():
     update_external_samples_with_ecoregions()
+
+
+@celery_app.task
+def sync_project_async(process_id):
+    lock_key = f"celery-lock:sync_project:{process_id}"
+
+    try:
+        with redis_lock(lock_key):
+            sync_project(process_id)
+
+    except LockError:
+        logger.info(
+            f"Skipping execution: Task sync_project_async "
+            f"is already running for process_id:"
+            f"{process_id}"
+        )
+
+    except Exception as e:
+        logger.error(f"Unexpected error in sync_project_async: {e}")
+        raise
