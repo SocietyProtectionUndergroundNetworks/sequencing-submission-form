@@ -69,7 +69,7 @@ def create_share(remote_path, label):
         return None
 
     USERNAME = os.getenv("RCLONE_CONFIG_SEQP_USER")
-    PASSWORD = os.getenv("RCLONE_CONFIG_SEQP_PASS")
+    PASSWORD = os.getenv("RCLONE_SEQP_PASS")
 
     if not USERNAME or not PASSWORD:
         logger.error("Missing Nextcloud username or password.")
