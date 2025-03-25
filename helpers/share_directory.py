@@ -159,9 +159,16 @@ def sync_project(process_id):
 
     sync_folder(local_path, remote_path)
 
+    logger.info("Finished calling sync of the project " + str(process_id))
+
 
 def init_sync_project(process_id):
     from tasks import sync_project_async
 
-    sync_project_async(process_id)
-    logger.info("Finished syncing the project " + str(process_id))
+    logger.info("We are starting the sync process")
+
+    result = sync_project_async.delay(process_id)
+    logger.info(
+        f"Celery sync_project_async task "
+        f"called successfully! Task ID: {result.id}"
+    )

@@ -161,7 +161,7 @@ def update_external_samples_with_ecoregions_async():
 @celery_app.task
 def sync_project_async(process_id):
     lock_key = f"celery-lock:sync_project:{process_id}"
-
+    logger.info("The lock key is" + lock_key)
     try:
         with redis_lock(lock_key):
             sync_project(process_id)

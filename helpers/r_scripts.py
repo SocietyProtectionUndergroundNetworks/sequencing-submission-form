@@ -96,7 +96,10 @@ def create_pdf_report(process_id):
         "seq_processed/" + process_data["uploads_folder"] + "/share",
         project_id,
     )
-    logger.info("The share url is " + share_link)
+    if share_link:
+        logger.info("The share url is " + share_link)
+    else:
+        logger.info("The share url could not be returned")
 
 
 def init_generate_rscripts_report(
