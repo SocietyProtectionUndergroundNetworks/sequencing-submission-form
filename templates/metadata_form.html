@@ -1676,6 +1676,18 @@
         {% if pdf_report %}
           <a href="download_pdf_report?process_id={{ process_data.id }}" class="btn btn-primary" target="_blank">Download pdf report</a>
         {% endif %}
+
+        <div class="pt-2">
+          Share url: 
+          {% if process_data.share_url %}
+            <a href="{{ process_data.share_url }}" target="_blank" class="link">
+              {{ process_data.share_url }} 
+            </a>
+          {% endif %}        
+        </div>
+
+        <div class="pt-2">Sync completed: {{ process_data.share_sync_completed }}</div>
+
       </div>
     {% endif %}
   </div>

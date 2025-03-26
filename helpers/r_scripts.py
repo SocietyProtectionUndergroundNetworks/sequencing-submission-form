@@ -92,12 +92,13 @@ def create_pdf_report(process_id):
     init_sync_project(process_id)
 
     # create the share link
-    share_link = create_share(
+    share_url = create_share(
         "seq_processed/" + process_data["uploads_folder"] + "/share",
         project_id,
     )
-    if share_link:
-        logger.info("The share url is " + share_link)
+    if share_url:
+        logger.info("The share url is " + share_url)
+        SequencingUpload.update_field(process_id, "share_sync_completed", True)
     else:
         logger.info("The share url could not be returned")
 

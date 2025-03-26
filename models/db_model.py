@@ -121,6 +121,8 @@ class SequencingUploadsTable(Base):
     DNA_conc_instrument = Column(String(255), nullable=True)
     reviewed_by_admin = Column(Boolean, default=False)
     files_uploading_confirmed = Column(Boolean, default=False)
+    share_url = Column(String(255), nullable=True)
+    share_sync_completed = Column(Boolean, default=False)
 
 
 class SequencingAnalysisTable(Base):
