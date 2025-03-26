@@ -98,7 +98,7 @@ def create_pdf_report(process_id):
     )
     if share_url:
         logger.info("The share url is " + share_url)
-        SequencingUpload.update_field(process_id, "share_sync_completed", True)
+        SequencingUpload.update_field(process_id, "share_url", share_url)
     else:
         logger.info("The share url could not be returned")
 

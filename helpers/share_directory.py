@@ -158,7 +158,7 @@ def sync_project(process_id):
     local_path = "/app/seq_processed/" + remote_path
 
     sync_folder(local_path, remote_path)
-
+    SequencingUpload.update_field(process_id, "share_sync_completed", True)
     logger.info("Finished calling sync of the project " + str(process_id))
 
 
