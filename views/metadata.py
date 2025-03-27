@@ -2243,3 +2243,54 @@ def update_sample():
         return jsonify({"success": True}), 200
     else:
         return jsonify({"result": "Failed to update sample"}), 500
+
+
+@metadata_bp.route(
+    "/start_sync_process",
+    methods=["POST"],
+    endpoint="start_sync_process",
+)
+@login_required
+@approved_required
+@admin_required
+def start_sync_process():
+    process_id = request.args.get("process_id")
+    # sync to the external share service
+    from helpers.share_directory import init_sync_project
+
+    init_sync_project(process_id)
+    return redirect(
+        url_for("metadata.metadata_form", process_id=process_id) + "#step_14"
+    )
+
+
+@metadata_bp.route(
+    "/create_share_link",
+    methods=["POST"],
+    endpoint="create_share_link",
+)
+@login_required
+@approved_required
+@admin_required
+def create_share_link():
+    process_id = request.args.get("process_id")
+    process_data = SequencingUpload.get(process_id)
+    project_id = process_data["project_id"]
+
+    # sync to the external share service
+    from helpers.share_directory import create_share
+
+    # create the share link
+    share_url = create_share(
+        "seq_processed/" + process_data["uploads_folder"] + "/share",
+        project_id,
+    )
+    if share_url:
+        logger.info("The share url is " + share_url)
+        SequencingUpload.update_field(process_id, "share_url", share_url)
+    else:
+        logger.info("The share url could not be returned")
+
+    return redirect(
+        url_for("metadata.metadata_form", process_id=process_id) + "#step_14"
+    )
