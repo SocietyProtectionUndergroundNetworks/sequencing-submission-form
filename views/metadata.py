@@ -2247,7 +2247,7 @@ def update_sample():
 
 @metadata_bp.route(
     "/start_sync_process",
-    methods=["POST"],
+    methods=["GET"],
     endpoint="start_sync_process",
 )
 @login_required
@@ -2266,7 +2266,7 @@ def start_sync_process():
 
 @metadata_bp.route(
     "/create_share_link",
-    methods=["POST"],
+    methods=["GET"],
     endpoint="create_share_link",
 )
 @login_required
