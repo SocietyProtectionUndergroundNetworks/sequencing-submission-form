@@ -362,7 +362,7 @@ def check_latitude_longitude(value):
         return {"status": 0, "message": "Invalid value: not a valid number"}
 
 
-def check_metadata(df, using_scripps, multiple_sequencing_runs=False):
+def check_metadata(df, using_scripps):
     """
     Check metadata including columns, and validity of fields.
     """
@@ -381,24 +381,6 @@ def check_metadata(df, using_scripps, multiple_sequencing_runs=False):
             messages.append(
                 "Please note: There is no control in your samples."
             )
-
-    if multiple_sequencing_runs == "Yes":
-        if "SequencingRun" in expected_columns_data:
-            expected_columns_data["SequencingRun"]["required"] = True
-
-            # Check if there is more than one unique value in
-            # the SequencingRun field
-            unique_sequencing_runs = df["SequencingRun"].nunique()
-            if unique_sequencing_runs <= 1:
-                issues["SequencingRun"] = {
-                    "status": 0,
-                    "message": (
-                        "Multiple sequencing runs indicated but "
-                        "only one unique value found in SequencingRun field"
-                    ),
-                    "invalid": [],
-                }
-                overall_status = 0
 
     for column_key, column_values in expected_columns_data.items():
         if column_key not in df.columns:

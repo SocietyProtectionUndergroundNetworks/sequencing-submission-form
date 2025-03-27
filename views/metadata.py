@@ -245,6 +245,7 @@ def metadata_form():
                 pdf_report = True
         else:
             return redirect(url_for("metadata.metadata_form"))
+
     return render_template(
         "metadata_form.html",
         my_buckets=my_buckets,
@@ -342,7 +343,6 @@ def upload_metadata_file():
     file = request.files.get("file")
     using_scripps = request.form.get("using_scripps")
     process_id = request.form.get("process_id")
-    multiple_sequencing_runs = request.form.get("Multiple_sequencing_runs")
     if not file:
         return jsonify({"error": "No file uploaded"}), 400
 
@@ -377,7 +377,7 @@ def upload_metadata_file():
         df["Longitude"] = df["Longitude"].astype(str).str.rstrip("°")
 
     # Check metadata using the helper function
-    result = check_metadata(df, using_scripps, multiple_sequencing_runs)
+    result = check_metadata(df, using_scripps)
 
     expected_columns_data = get_columns_data(exclude=True)
     expected_columns = list(expected_columns_data.keys())

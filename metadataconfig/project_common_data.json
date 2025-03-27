@@ -62,11 +62,5 @@
     "lookup_file": "dna_conc_instrument.json",
     "help_tip": "Instrument/machine used to quantify DNA",
     "required": "True"
-  },  
-  "Multiple_sequencing_runs": {
-    "label": "Multiple sequencing runs",
-    "lookup_file": "multiple_sequencing_runs.json",
-    "help_tip": "Were your samples run across multiple sequencing runs (if known)? ",
-    "required": "True"
   }
 }
