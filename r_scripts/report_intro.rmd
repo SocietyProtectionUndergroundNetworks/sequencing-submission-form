@@ -36,6 +36,12 @@ There are multiple phyloseq objects that have been provided to you:
 - amf_physeq.Rdata - A Phyloseq object that contains only AMF taxa. This was produced by removing any taxa from the SSU Phyloseq object that do not belong to one of the three classes of AMF taxa: Glomeromycetes, Archaeosporomycetes, and Paraglomeromycetes. This Phyloseq object can be found inside the 'SSU' folder. The script and database used to generate this can be found on the [SPUN Github](https://github.com/SocietyProtectionUndergroundNetworks/sequencing-submission-form/tree/master/r_scripts) and information on how this was generated is described below in the section 'SSU data'. *Use this if you are only interested in analysing AMF from your SSU data.*
 - physeq_predecontam.Rdata - If for any reason you would like to see the initial phyloseq object produced by Lotus2 prior to the removal of likely contaminant OTUs or ASVs, this can be found in the sub-folder 'pre_decontam'. within both the 'ITS2' and 'SSU' folders.
 
+**** NOTE: TO OPEN phyloseq_decontam.Rdata USE:
+physeq <- loadRData("phyloseq.Rdata")
+
+**** TO OPEN ecm_physeq.Rdata and/or amf_physeq.Rdata, use:
+ecm_physeq<-readRDS("ecm_physeq.Rdata")
+
 ### Bioinformatics processing
 
 The software [LotuS2](https://lotus2.earlham.ac.uk/) was used to designate OTUs from ITS2 sequences and ASVs from SSU sequences. Exact commands including parameters are listed below. Following generation of a [phyloseq](https://joey711.github.io/phyloseq/) object by Lotus2, the decontam program is run to remove contaminating OTUs or ASVs based on the included presence of which taxa are identified in the control samples. Removed contaminants are listed in the contaminants.html file which can be found in both the **ITS2** and **SSU** folders and is described further below.
