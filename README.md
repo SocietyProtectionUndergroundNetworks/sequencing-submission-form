@@ -44,6 +44,51 @@ The two files we need are SLV_138.1_SSU.fasta  and SLV_138.1_SSU.tax .
 To find them we used an existing installation of lotus2 via conda, and copied them from /lotus2/share/lotus2-2.34.1-0/DB/
 We copied them with the same names as above in the lotus2_files/SILVA/ folder.
 
+#### EUKARYOME databases
+We used as basis the v1.9.3 of the ITS and SSU databases.
+
+The db files are :
+- mothur_EUK_SSU_v1.9.3.fasta
+- mothur_EUK_ITS_v1.9.3.fasta
+
+For the taxonomy we used the corresponding `.tax` files shipped with the above and ensured they were compatible with lotus2 by adding prefixes to each taxonomy name according to its level:
+- `k__` for kingdom
+- `p__` for phylum
+- `c__` for clade
+- `o__` for order
+- `f__` for family
+- `g__` for genus
+- `s__` for species
+
+The resulting lotus2-compatible files we used are called:
+- mothur_EUK_SSU_v1.9.3_lotus.tax
+- mothur_EUK_ITS_v1.9.3_lotus.tax
+
+#### Resolve ecoregions GeoPackage
+We use the resolve ecoregions dataset to retreive the resolveEcoregion name to a set of coordinates. 
+To do that we create a docker image with a minimized geopandas installation. For this to work on first installation
+of the application we need to download the GeoPackage file from https://hub.arcgis.com/datasets/esri::resolve-ecoregions-and-biomes/explore
+And place it in the geopandasapp folder. 
+The filename is hardcoded in the geopandasapp/app.py and currently it is Resolve_Ecoregions_-6779945127424040112.gpkg
+
+#### Resolve ecoregions db table
+From the same source as above we download the csv file and we use it to populate a table with all the available ecoregions. 
+- Place the csv file in a directory `temp`
+- Run https://myapplication/run_import_ecoregions_from_csv
+
+#### External sampling
+To be able to see which ecoregions have been sampled and which not, we need to import (additionally to our own samples) a list of samples that
+have been sampled externaly to SPUN. We are interested in ITS and SSU data. 
+To import them
+For ITS:
+- Place the csv file called `external_samples_its.csv` in a directory `temp`
+- Run https://myapplication/run_import_external_samples_from_csv_its
+For SSU:
+- Place the csv file called `external_samples_ssu.csv` in a directory `temp`
+- Run https://myapplication/run_import_external_samples_from_csv_ssu
+
+
+
 #### Do docker things: 
 - Copy the `docker-compose-dev.yml` to `docker-compose.yml`
 - Copy the `nginx.conf-local-ssh` `nginx.conf`
@@ -80,6 +125,16 @@ Takes as parameters: region , analysis_type_id  and anti_nuke. Example:
 - Regenerate all r_script reports for a specific analysis type: 
 Takes as parameters: region , analysis_type_id  and anti_nuke. Example:
 `https://myserver/generate_all_region_rscripts_reports?region=ITS2&analysis_type_id=3&anti_nuke=THE_ANTINUKE_STRING_HERE`
+It will only generate reports that are marked as "None" (aka, have not started), and whole lotus2 corresponding report is finished.
+
+- Delete all lotus2 reports for a specific analysis type: 
+Takes as parameters: analysis_type_id, from_id, to_id and anti_nuke. 
+Example:
+`https://myserver/delete_all_region_rscripts_reports?analysis_type_id=3&from_id=1&to_id=10&anti_nuke=THE_ANTINUKE_STRING_HERE`
+
+- Regenerate all lotus2 reports for a specific analysis type: 
+Takes as parameters: analysis_type_id, from_id, to_id and anti_nuke. Example:
+`https://myserver/generate_all_region_rscripts_reports?analysis_type_id=3&from_id=1&to_id=10&anti_nuke=THE_ANTINUKE_STRING_HERE`
 It will only generate reports that are marked as "None" (aka, have not started), and whole lotus2 corresponding report is finished.
 
 

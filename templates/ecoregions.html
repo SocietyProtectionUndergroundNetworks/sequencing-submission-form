@@ -1,0 +1,83 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnSuA4Ss2PkkikSOLtYs8BlYIeeIK1h99ty4YfvRPAlzr377vr3CXDb7sb7eEEBYjDtcYj+AjBH3FLv5uSJuXg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js" integrity="sha512-7Pi/otdlbbCR+LnW+F7PwFcSDJOuUJB3OxtEHbg4vSMvzvJjde4Po1v4BR9Gdc9aXNUNFVUY+SK51wWT8WF0Gg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <title>Ecoregions</title>
+</head>
+<body>
+  <div class="app-navbar">
+    <a href="https://spun.earth" class="logo"></a>
+    <div class="menu">
+      <ul>
+        <li><a href="https://spun.earth">Spun Website</a></li>
+        <li><a href="/">App homepage</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="container-fluid mt-4">
+      <h1>Resolve Ecoregions</h1>
+      <p><a href="/ecoregions/download">Download</a></p>
+      
+      {% if ecoregions and ecoregions|length > 0 %}
+
+      <div class="table-responsive-wrapper">
+          <table class="table table-bordered table-striped">
+              <thead>
+                  <tr>
+                      <th>Resolve Ecoregion</th>
+                      <th>Number of Spun Samples TOTAL</th>
+                      <th>Number of Spun Samples ITS</th>
+                      <th>Number of Spun Samples SSU</th>
+                      <th>Number of ITS External Samples</th>
+                      <th>Number of SSU External Samples</th>
+                  </tr>
+              </thead>
+              <tbody>
+                  {% for ecoregion in ecoregions %}
+                  <tr>
+                      <td>{{ ecoregion.ecoregion_name or '' }}</td>
+                      <td>{{ ecoregion.num_sequencing_samples or '' }}</td>
+                      <td>{{ ecoregion.num_sequencing_samples_ITS or '' }}</td>
+                      <td>{{ ecoregion.num_sequencing_samples_SSU or '' }}</td>
+                      <td>{{ ecoregion.num_external_samples_ITS or '' }}</td>
+                      <td>{{ ecoregion.num_external_samples_SSU or '' }}</td>
+                  </tr>
+                  {% endfor %}
+              </tbody>
+          </table>
+      </div>
+      {% endif %}
+  </div>
+
+  <script>
+    
+  </script>
+  <style>
+    /* Make sure the table container stretches across the page */
+    .table-container {
+      width: 100%;
+      overflow-x: hidden;  /* Prevent scroll inside the container */
+    }
+
+    /* Ensure the page itself has horizontal scrolling */
+    body {
+      overflow-x: auto;    /* Horizontal scroll will appear at page level */
+    }
+
+    /* Ensure the table behaves normally (no table-layout: fixed) */
+    .table {
+      width: 100%;                /* Table takes up full width of the container */
+      word-wrap: normal;          /* Prevent word wrapping */
+      word-break: break-word;     /* Force break of long words */
+      white-space: nowrap;        /* Prevent wrapping of text inside cells */
+    }
+
+    .table th, .table td {
+      white-space: nowrap;        /* Prevent wrapping of text inside cells */
+    }
+  </style>
+</body>
+</html>

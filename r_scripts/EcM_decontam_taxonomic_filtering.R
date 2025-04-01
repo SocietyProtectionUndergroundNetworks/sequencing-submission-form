@@ -7,6 +7,7 @@ library(doParallel)
 library(iNEXT)
 library(janitor)
 library(data.table)
+library(jsonlite)
 
 # Define options
 option_list <- list(
@@ -39,6 +40,14 @@ option_list <- list(
     type = "integer",
     default = 10,
     help = "Minimum number of reads for a sample to be included in rarefaction curves"
+  ),
+  make_option(
+    c("-e", "--exclude"),
+    type = "character",
+    #default = '[{"Taxonomy_level": "Family","Value": "Suillaceae"},
+    #            {"Taxonomy_level": "Family","Value": "Tricholomataceae"}]',
+    default = '',
+    help = "JSON string of taxonomy levels and values to exclude when making AMF subset"
   )
 )
 
@@ -79,7 +88,7 @@ if (num_of_controls > 0) {
   # Make phyloseq object of presence-absence in negative controls and true samples
   physeq.pa <- transform_sample_counts(physeq, function(abund) 1 * (abund > 0))
   physeq.pa.neg <- prune_samples(sample_data(physeq.pa)$Sample_or_Control == "Control", physeq.pa)
-  physeq.pa.pos <- prune_samples(sample_data(physeq.pa)$Sample_or_Control == "True sample", physeq.pa)
+  physeq.pa.pos <- prune_samples(sample_data(physeq.pa)$Sample_or_Control == "True sample" | sample_data(physeq.pa)$Sample_or_Control == "sample", physeq.pa)
 
   ## Extract the taxonomic classifications of the identified contaminants
   contamdf <- isContaminant(physeq, method = "prevalence", neg = "is.neg", threshold = args$threshold)
@@ -157,6 +166,22 @@ ggsave(
   width = 7, height = 7, units = "in"
 )
 
+# Generate exclude expression from --exclude arg
+if (args$exclude != "") {
+  exclude_taxa_list <- fromJSON(args$exclude, simplifyDataFrame = FALSE)  # Ensures proper list format
+  
+  filter_expr <- sapply(exclude_taxa_list, function(x) {
+    tax_level <- x$Taxonomy_level  # e.g., "Family" or "Class"
+    tax_name <- x[[2]]             # e.g., "Tricholomataceae"
+    paste0("!", tax_level, " %in% '", tax_name, "'")  # Negate to exclude taxa
+  })
+  
+  # Combine expressions using "|" (logical OR) to exclude all unwanted taxa
+  filter_expr_combined <- paste(filter_expr, collapse = " & ")
+} else {
+  filter_expr_combined <- "TRUE"
+}
+
 ##### Extract out ECMs from FungalTraits database and phyloseq object. For this step, you need to have downloaded the file "EcM_guild_assignment_13225_2020_466_MOESM4_ESM.csv" from the SPUN 'project_bioinformatics_and_processing' Github repository
 
 fungaltraits <- read.csv("/usr/src/app/13225_2020_466_MOESM4_ESM.csv")
@@ -171,7 +196,9 @@ num_ecm_genera <- length(which(get_taxa_unique(physeq_filtered, taxonomic.rank =
 
 if (num_ecm_genera > 0) {
   # Filter physeq_decontam object by this list of EcM Genus
-  ecm_physeq <- subset_taxa(physeq_decontam, Genus %in% fungal_traits_ecm$Genus)
+  # and exclude list if any
+  ecm_physeq <- subset_taxa(physeq_decontam, Genus %in% fungal_traits_ecm$Genus) %>%
+    subset_taxa(eval(parse(text = filter_expr_combined)))
 
   # Save file. To open in R use: ecm_physeq <- readRDS("ecm_physeq.Rdata")
   saveRDS(ecm_physeq, file = str_c(args$output, "/", "ecm_physeq.Rdata"))
@@ -185,9 +212,9 @@ if (num_ecm_genera > 0) {
   ## ChaoRichness
 
   ecm_physeq_truesamples <- prune_samples(
-  !sample_data(ecm_physeq)$is.neg,
-  ecm_physeq
-)
+    !sample_data(ecm_physeq)$is.neg,
+    ecm_physeq
+  )
 
   otu_long <- otu_table(ecm_physeq_truesamples) %>%
     as.data.frame() %>%
@@ -231,12 +258,12 @@ if (num_ecm_genera > 0) {
     
     
   # Extract taxonomy data
-  taxonomy_data <- tax_table(ecm_physeq_truesamples) %>%
+  taxonomy_data <- tax_table(physeq_decontam) %>%  # or physeq_filtered if you prefer
     as.data.frame() %>%
     rownames_to_column("OTU")
 
   # Extract OTU data (abundance) from the OTU table
-  otu_long <- otu_table(ecm_physeq_truesamples) %>%
+  otu_long <- otu_table(physeq_decontam) %>%  # Keep the unfiltered data
     as.data.frame() %>%
     rownames_to_column("OTU") %>%
     pivot_longer(!OTU, names_to = "sample_id", values_to = "abundance") %>%
@@ -244,7 +271,8 @@ if (num_ecm_genera > 0) {
 
   # Combine OTU table with taxonomy data
   otu_full_data <- otu_long %>%
-    left_join(taxonomy_data, by = "OTU")
+    left_join(taxonomy_data, by = "OTU") %>%
+    mutate(ecm_flag = ifelse(Genus %in% fungal_traits_ecm$Genus, 1, 0))  # Add ECM flag
 
   # Export the combined data to a CSV file
   fwrite(otu_full_data, file = str_c(args$output, "/otu_full_data.csv"))

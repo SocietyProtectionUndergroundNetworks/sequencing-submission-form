@@ -42,13 +42,7 @@
           <th scope="col">Nr of Samples</th>
           <th scope="col">Nr of Regions</th>
           <th scope="col">Region 1</th>
-          <th scope="col">Lotus2 Phyloseq 1 exists</th>
-          <th scope="col">Rscripts Phyloseq 1 exists</th>
-          <th scope="col">Richness file 1 exists</th>
           <th scope="col">Region 2</th>
-          <th scope="col">Lotus2 Phyloseq 2 exists</th>
-          <th scope="col">Rscripts Phyloseq 2 exists</th>
-          <th scope="col">Richness file 2 exists</th>
           <th scope="col">Nr of Sequencer IDs</th>
           <th scope="col">Nr of files per sequence</th>
           <th scope="col">Nr of files</th>
@@ -83,93 +77,42 @@
               <td>{{ upload.uploads_folder }}</td>
               <td>{{ upload.nr_samples }}</td>
               <td>{{ upload.nr_regions }}</td>
-              <td>{{ upload.region_1 }}</td>
               <td>
+                <strong>{{ upload.region_1 }}</strong><br>
+                Analysis: 
                 {% for analysis in upload.analysis[upload.region_1] %}
                     <div>
                         <strong>{{ analysis.analysis_type_name }}</strong><br>
+                        
                         <span class="{{ 'text-success' if analysis.lotus2_status == 'Finished' else 'text-danger' }}">
-                          {{ analysis.lotus2_status if analysis.lotus2_status else 'Not Started' }}
-                        </span>
-                        <br>
-                        File Exists:
-                        <span class="{{ 'text-success' if analysis.lotus2_phyloseq_file_exists else 'text-danger' }}">
-                            {{ 'Yes' if analysis.lotus2_phyloseq_file_exists else 'No' }}
-                        </span>
-                        <br>                     
-                    </div>
-                {% endfor %}
-              </td>            
-              <td>
-                {% for analysis in upload.analysis[upload.region_1] %}
-                    <div>
-                        <strong>{{ analysis.analysis_type_name }}</strong><br>
+                          Lotus2: {{ analysis.lotus2_status if analysis.lotus2_status else 'Not Started' }}
+                        </span><br>
                         <span class="{{ 'text-success' if analysis.rscripts_status == 'Finished' else 'text-danger' }}">
-                          {{ analysis.rscripts_status if analysis.rscripts_status else 'Not Started' }}
-                        </span>
-                        <br>
-                        File Exists:
-                        <span class="{{ 'text-success' if analysis.rscripts_phyloseq_file_exists else 'text-danger' }}">
-                            {{ 'Yes' if analysis.rscripts_phyloseq_file_exists else 'No' }}
-                        </span>
+                          Rscripts: {{ analysis.rscripts_status if analysis.rscripts_status else 'Not Started' }}
+                        </span>                                       
                     </div>
                 {% endfor %}
+                
               </td>
+             
               <td>
-                {% for analysis in upload.analysis[upload.region_1] %}
-                    <div>
-                        <strong>{{ analysis.analysis_type_name }}</strong><br>
-                        File Exists:
-                        <span class="{{ 'text-success' if analysis.richness_file_exists else 'text-danger' }}">
-                            {{ 'Yes' if analysis.richness_file_exists else 'No' }}
-                        </span>
-                        <br>                     
-                    </div>
-                {% endfor %}
-              </td>                
-              <td>{{ upload.region_2 }}</td>
-              
-              <td>
+
+                <strong>{{ upload.region_2 }}</strong><br>
+                Analysis: 
                 {% for analysis in upload.analysis[upload.region_2] %}
                     <div>
                         <strong>{{ analysis.analysis_type_name }}</strong><br>
+                        
                         <span class="{{ 'text-success' if analysis.lotus2_status == 'Finished' else 'text-danger' }}">
-                          {{ analysis.lotus2_status if analysis.lotus2_status else 'Not Started' }}
-                        </span>
-                        <br>
-                        File Exists:
-                        <span class="{{ 'text-success' if analysis.lotus2_phyloseq_file_exists else 'text-danger' }}">
-                            {{ 'Yes' if analysis.lotus2_phyloseq_file_exists else 'No' }}
-                        </span>
-                    </div>
-                {% endfor %}
-              </td>
-              <td>
-                {% for analysis in upload.analysis[upload.region_2] %}
-                    <div>
-                        <strong>{{ analysis.analysis_type_name }}</strong><br>
+                          Lotus2: {{ analysis.lotus2_status if analysis.lotus2_status else 'Not Started' }}
+                        </span><br>  
                         <span class="{{ 'text-success' if analysis.rscripts_status == 'Finished' else 'text-danger' }}">
-                          {{ analysis.rscripts_status if analysis.rscripts_status else 'Not Started' }}
-                        </span>
-                        <br>
-                        File Exists:
-                        <span class="{{ 'text-success' if analysis.rscripts_phyloseq_file_exists else 'text-danger' }}">
-                            {{ 'Yes' if analysis.rscripts_phyloseq_file_exists else 'No' }}
-                        </span>
+                          Rscripts: {{ analysis.rscripts_status if analysis.rscripts_status else 'Not Started' }}
+                        </span>                                       
                     </div>
-                {% endfor %}
+                {% endfor %}             
               </td>
-              <td>
-                {% for analysis in upload.analysis[upload.region_2] %}
-                    <div>
-                        <strong>{{ analysis.analysis_type_name }}</strong><br>
-                        File Exists:
-                        <span class="{{ 'text-success' if analysis.richness_file_exists else 'text-danger' }}">
-                            {{ 'Yes' if analysis.richness_file_exists else 'No' }}
-                        </span>
-                    </div>
-                {% endfor %}
-              </td>              
+            
               <td class="{% if upload.nr_sequencer_ids < (upload.nr_samples * upload.nr_regions) %}text-danger{% endif %}">
                   {{ upload.nr_sequencer_ids }}
               </td>

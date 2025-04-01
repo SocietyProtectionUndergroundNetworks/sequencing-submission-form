@@ -1,4 +1,4 @@
-from helpers.dbm import connect_db, get_session
+from helpers.dbm import session_scope
 from models.db_model import PreapprovedUsersTable
 import logging
 
@@ -14,99 +14,88 @@ class PreapprovedUser:
 
     @classmethod
     def get(cls, user_id):
-        db_engine = connect_db()
-        session = get_session(db_engine)
+        with session_scope() as session:
+            user_db = (
+                session.query(PreapprovedUsersTable)
+                .filter_by(id=user_id)
+                .first()
+            )
+            if not user_db:
+                return None
 
-        user_db = (
-            session.query(PreapprovedUsersTable).filter_by(id=user_id).first()
-        )
-        if not user_db:
-            return None
+            user = PreapprovedUser(
+                id=user_db.id,
+                email=user_db.email,
+                bucket=user_db.bucket,
+                group_id=user_db.group_id,
+            )
 
-        session.close()
-
-        user = PreapprovedUser(
-            id=user_db.id,
-            email=user_db.email,
-            bucket=user_db.bucket,
-            group_id=user_db.group_id,
-        )
-
-        return user
+            return user
 
     @classmethod
     def create(cls, email, bucket, group_id):
-        db_engine = connect_db()
-        session = get_session(db_engine)
+        with session_scope() as session:
+            new_user = PreapprovedUsersTable(
+                email=email,
+                bucket=bucket,
+                group_id=group_id,
+            )
 
-        new_user = PreapprovedUsersTable(
-            email=email,
-            bucket=bucket,
-            group_id=group_id,
-        )
+            session.add(new_user)
+            session.commit()
 
-        session.add(new_user)
-        session.commit()
-
-        session.close()
-
-        return id
+            return id
 
     @classmethod
     def delete(cls, user_id):
-        db_engine = connect_db()
-        session = get_session(db_engine)
-        to_return = {"status": 0, "message": "Not run"}
+        with session_scope() as session:
+            to_return = {"status": 0, "message": "Not run"}
 
-        user_db = (
-            session.query(PreapprovedUsersTable).filter_by(id=user_id).first()
-        )
-        if user_db:
+            user_db = (
+                session.query(PreapprovedUsersTable)
+                .filter_by(id=user_id)
+                .first()
+            )
+            if user_db:
 
-            # Delete the user
-            session.delete(user_db)
-            session.commit()
-            to_return = {"status": 1, "message": "Success"}
+                # Delete the user
+                session.delete(user_db)
+                session.commit()
+                to_return = {"status": 1, "message": "Success"}
 
-        return to_return
+            return to_return
 
     @classmethod
     def get_all(cls):
-        db_engine = connect_db()
-        session = get_session(db_engine)
+        with session_scope() as session:
+            users_db = session.query(PreapprovedUsersTable).all()
+            users = [
+                PreapprovedUser(
+                    id=user.id,
+                    email=user.email,
+                    bucket=user.bucket,
+                    group_id=user.group_id,
+                )
+                for user in users_db
+            ]
 
-        users_db = session.query(PreapprovedUsersTable).all()
-        users = [
-            PreapprovedUser(
-                id=user.id,
-                email=user.email,
-                bucket=user.bucket,
-                group_id=user.group_id,
-            )
-            for user in users_db
-        ]
-
-        session.close()
-        return users
+            return users
 
     @classmethod
     def get_by_email(cls, email):
-        db_engine = connect_db()
-        session = get_session(db_engine)
+        with session_scope() as session:
+            user_db = (
+                session.query(PreapprovedUsersTable)
+                .filter_by(email=email)
+                .first()
+            )
+            if not user_db:
+                return None
 
-        user_db = (
-            session.query(PreapprovedUsersTable).filter_by(email=email).first()
-        )
-        if not user_db:
-            session.close()
-            return None
-
-        user = PreapprovedUser(
-            id=user_db.id,
-            email=user_db.email,
-            bucket=user_db.bucket,
-            group_id=user_db.group_id,
-        )
-
-        session.close()
-        return user
+            user = PreapprovedUser(
+                id=user_db.id,
+                email=user_db.email,
+                bucket=user_db.bucket,
+                group_id=user_db.group_id,
+            )
+            return user

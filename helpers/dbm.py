@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
+from contextlib import contextmanager
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
-
 import os
 
 
@@ -19,6 +19,22 @@ def connect_db():
     return db_engine
 
 
+@contextmanager
+def session_scope():
+    """Provide a transactional scope around a series of operations."""
+    db_engine = connect_db()
+    session = sessionmaker(bind=db_engine, autoflush=False)()
+    try:
+        yield session  # Provide the session for use
+        session.commit()  # Commit any changes made inside the block
+    except Exception:
+        session.rollback()  # Rollback on error
+        raise
+    finally:
+        session.close()  # Always close the session
+
+
+# To delete when I have removed all of them
 def get_session(db_engine):
     # https://docs.sqlalchemy.org/en/13/orm/session_api.html#session-and-sessionmaker
     Session_mysql = sessionmaker(autoflush=False)

@@ -7,6 +7,7 @@ library(doParallel)
 library(iNEXT)
 library(janitor)
 library(data.table)
+library(jsonlite)
 
 # Define options
 option_list <- list(
@@ -39,6 +40,14 @@ option_list <- list(
     type = "integer",
     default = 10,
     help = "Minimum number of reads for a sample to be included in rarefaction curves"
+  ),
+  make_option(
+    c("-e", "--exclude"),
+    type = "character",
+    #default = '[{"Taxonomy_level": "Genus","Value": "Racocetra"},
+    #            {"Taxonomy_level": "Genus","Value": "Archaeospora"}]',
+    default = '',
+    help = "JSON string of taxonomy levels and values to exclude when making AMF subset"
   )
 )
 
@@ -79,8 +88,8 @@ if (num_of_controls > 0) {
   # Make phyloseq object of presence-absence in negative controls and true samples
   physeq.pa <- transform_sample_counts(physeq, function(abund) 1 * (abund > 0))
   physeq.pa.neg <- prune_samples(sample_data(physeq.pa)$Sample_or_Control == "Control", physeq.pa)
-  physeq.pa.pos <- prune_samples(sample_data(physeq.pa)$Sample_or_Control == "True sample", physeq.pa)
-
+  physeq.pa.pos <- prune_samples(sample_data(physeq.pa)$Sample_or_Control == "True sample" | sample_data(physeq.pa)$Sample_or_Control == "sample", physeq.pa)
+  
   ## Extract the taxonomic classifications of the identified contaminants
   contamdf <- isContaminant(physeq, method = "prevalence", neg = "is.neg", threshold = args$threshold)
   contaminant_otus <- contamdf %>% filter(contaminant == TRUE) %>% rownames()
@@ -157,20 +166,36 @@ ggsave(
   width = 7, height = 7, units = "in"
 )
 
+# Generate exclude expression from --exclude arg
+if (args$exclude != "") {
+  exclude_taxa_list <- fromJSON(args$exclude, simplifyDataFrame = FALSE)  # Ensures proper list format
+  
+  filter_expr <- sapply(exclude_taxa_list, function(x) {
+    tax_level <- x$Taxonomy_level  # e.g., "Family" or "Class"
+    tax_name <- x[[2]]             # e.g., "Tricholomataceae"
+    paste0("!", tax_level, " %in% '", tax_name, "'")  # Negate to exclude taxa
+  })
+  
+  # Combine expressions using "|" (logical OR) to exclude all unwanted taxa
+  filter_expr_combined <- paste(filter_expr, collapse = " & ")
+} else {
+  filter_expr_combined <- "TRUE"
+}
 
-## if SSU_dada2 then
+## if SSU_dada2 or SSU_eukaryome then
 ## Subset decontam phloseq object to include only
 ## the three classes of Mucoromycota that are AMF
 ## "Glomeromycetes", "Archaeosporomycetes" and "Paraglomeromycetes"
 
-if (str_detect(args$lotus2, "SSU_dada2")) {
+if (str_detect(args$lotus2, "SSU_dada2") | str_detect(args$lotus2, "SSU_eukaryome")) {
 
   amf_physeq <- physeq_decontam %>%
     subset_taxa(
       Class == "Glomeromycetes" |
       Class ==  "Archaeosporomycetes" |
       Class ==  "Paraglomeromycetes"
-    )
+    ) %>%
+    subset_taxa(eval(parse(text = filter_expr_combined)))
 
   # Save file. To open in R use: amf_physeq <- readRDS("amf_physeq.Rdata")
   saveRDS(amf_physeq, file = str_c(args$output, "/", "amf_physeq.Rdata"))
@@ -189,11 +214,6 @@ if (str_detect(args$lotus2, "SSU_dada2")) {
     amf_physeq
   )
 
-  otu_long <- otu_table(amf_physeq_truesamples) %>%
-    as.data.frame() %>%
-    rownames_to_column("OTU") %>%
-    pivot_longer(!OTU, names_to = "sample_id", values_to = "abundance") %>%
-    filter(abundance != 0)
 }
 
 ## if SSU_vsearch then
@@ -237,7 +257,9 @@ if (str_detect(args$lotus2, "SSU_vsearch")) {
     select(otu = qaccver, vt = saccver)
 
   # keep only those taxa that match the above criteria
-  amf_physeq <- prune_taxa(otu_vt_map$otu, physeq_decontam)
+  # and exclude all --exclude taxa
+  amf_physeq <- prune_taxa(otu_vt_map$otu, physeq_decontam) %>%
+    subset_taxa(eval(parse(text = filter_expr_combined)))
 
   # Save file. To open in R use: amf_physeq <- readRDS("amf_physeq.Rdata")
   saveRDS(amf_physeq, file = str_c(args$output, "/", "amf_physeq.Rdata"))
@@ -266,11 +288,39 @@ if (str_detect(args$lotus2, "SSU_vsearch")) {
 
   write_csv(amf_physeq_as_vt_table,
     str_c(args$output, "/SSU_vsearch_vt_abundance.csv"))
-
-  otu_long <- amf_physeq_as_vt_table %>%
-    pivot_longer(!vt, names_to = "sample_id", values_to = "abundance") %>%
-    filter(abundance != 0)
+    
 }
+
+## In both cases export the OTUs table
+
+## Work for the full otu data for importing to the database
+# Extract the OTUs
+otu_unfiltered <- otu_table(physeq_decontam) %>% # Keep the unfiltered data
+  as.data.frame() %>%
+  rownames_to_column("OTU") %>%
+  pivot_longer(!OTU, names_to = "sample_id", values_to = "abundance") %>%
+  filter(abundance != 0)    
+
+# Extract taxonomy data
+taxonomy_data <- tax_table(amf_physeq_truesamples) %>%
+  as.data.frame() %>%
+  rownames_to_column("OTU")
+
+# Combine OTU table with taxonomy data
+otu_full_data <- otu_unfiltered %>%
+  left_join(taxonomy_data, by = "OTU")
+
+# Export the combined data to a CSV file
+fwrite(otu_full_data, file = str_c(args$output, "/otu_full_data.csv"))
+
+
+# Work for the metadata_chaorichness.csv
+# Extract the OTUs from the amf_physeq_truesamples
+otu_long <- otu_table(amf_physeq_truesamples) %>%
+  as.data.frame() %>%
+  rownames_to_column("OTU") %>%
+  pivot_longer(!OTU, names_to = "sample_id", values_to = "abundance") %>%
+  filter(abundance != 0)    
 
 div.output <- foreach(i = unique(otu_long$sample_id), .final = function(i) setNames(i, unique(otu_long$sample_id))) %do% {
   freq_list <- otu_long %>%

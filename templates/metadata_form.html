@@ -86,7 +86,7 @@
               {% endif %}
             >
             <label class="form-check-label" for="using_scripps_yes">
-              We are using scripps and the data will be picked up by SPUN
+              We are using Scripps/QIB and the data will be picked up by SPUN
             </label>
           </div>
           <div class="form-check">
@@ -250,12 +250,18 @@
 
     <div class="table-container">
       <h4> Your metadata </h4>
-      <p>Please note: you don't need to (and you shouldn't) provide the first two columns. Our system will fill those in at a later stage</a></p>
+      {% if samples_data %}
+        <div>
+          <a href="download_metadata?process_id={{ process_data.id }}" class="btn btn-primary" target="_blank"> Download metadata </a>
+        </div>
+      {% endif %}      
+      <p>Please note: you don't need to (and you shouldn't) provide the first three columns. Our system will fill those in at a later stage</a></p>
       <table id="dataTable" class="table-bordered">
           <thead>
               <tr>
                   <th scope="col" class="bg-gray">DbID</th>
                   <th scope="col" class="bg-gray"><span class="grey">____</span>Sequencer_IDs<span class="grey">____</span></th>
+                  <th scope="col" class="bg-gray"><span class="grey">____</span>OTU<span class="grey">____</span></th>
                   {% for expectedColumn in expected_columns.keys() %}
                       <th scope="col">{{ expectedColumn }}</th>
                   {% endfor %}
@@ -267,13 +273,44 @@
                   <!-- Iterate over each row in samples_data -->
                   {% for row in samples_data %}
                       <tr>
-                          <td class="bg-gray">{{ row.id }}</td>
+                          <td class="bg-gray">
+                            {{ row.id }}
+                            {% if not process_data["metadata_upload_confirmed"] and (is_owner or is_admin) %}
+                              <a href="edit_sample?process_id={{ process_id }}&sample_id={{ row.id }}">Edit</a>
+                            {% endif %}                            
+                          </td>
                           <td class="bg-gray">
                             {% if sequencer_ids %}
                               {% for seq in sequencer_ids %}
                                   {% if seq.sequencingSampleId == row.id %}
                                       {{ seq.Region }} : {{ seq.SequencerID }}<br/>
                                   {% endif %}
+                              {% endfor %}
+                            {% endif %}
+                          </td>
+                          <td>
+                            {% if row.otu_counts %}
+                              {% set analysis_count = row.otu_counts | length %}
+
+                              {% if analysis_count > 1 %}
+                                <!-- Link for "All" -->
+                                <a href="/taxonomy/show_otus?sample_id={{ row.id }}&ecm_filter=0&amf_filter=0" target="_blank" class="link">
+                                  All
+                                </a> <br>
+                              {% endif %}
+
+                              <!-- Links for individual analysis types -->
+                              {% for analysis_type_id, analysis_data in row.otu_counts.items() %}
+                                {% set filter_params = '' %}
+                                {% if analysis_data.name[:3] == 'ITS' %}
+                                  {% set filter_params = '&ecm_filter=1&amf_filter=0' %}
+                                {% elif analysis_data.name[:3] == 'SSU' %}
+                                  {% set filter_params = '&ecm_filter=0&amf_filter=1' %}
+                                {% endif %}
+                                
+                                <a href="/taxonomy/show_otus?sample_id={{ row.id }}&analysis_type_id={{ analysis_type_id }}{{ filter_params }}" target="_blank" class="link">
+                                  {{ analysis_data.name }}
+                                </a>
                               {% endfor %}
                             {% endif %}
                           </td>
@@ -288,7 +325,7 @@
     </div>
 
     <div id="step_5" class="form-step-item">
-      <h3> Step 5: Confirm your locations</h3>
+      <h3> Step 5: Confirm your metadata</h3>
       <form id="step_5_form">
         <fieldset
           {% if ((not samples_data) or process_data["metadata_upload_confirmed"]) %}
@@ -301,6 +338,11 @@
           <input type="button" class="btn btn-primary" id="step_5_button" value="I confirm">
         </fieldset>
       </form>
+
+      {% if is_admin and process_data["metadata_upload_confirmed"] %}
+        (Only for admins: )<a href="/sequencing_revert_confirm_metadata?process_id={{ process_id }}" class="btn btn-primary"> Revert </a>
+      {% endif %}
+   
       <div id="step_5_msg"></div>
     </div>
 
@@ -312,12 +354,17 @@
       >
         <h3> Step 6: Provide the sequencer ID</h3>
 
+        {% if process_data["metadata_upload_confirmed"] %}
+          Sample file: <a href="get_sequencers_sample?process_id={{ process_id }}" target="_blank" class="link"> Get sequencers file template </a>
+        {% endif %}
+
         <form id="step_6_form">
           <fieldset
             {% if not process_data["metadata_upload_confirmed"] %}
              disabled="disabled"
             {% endif %}
           >
+          
           <p>
             For each sample we expect two different pairs of sequencing fastq files, on two different sequencing regions - i.e. four files in total.
           </p>
@@ -348,7 +395,7 @@
             You can either upload a .xls, .xlsx, .csv file with the following data, or you can fill it in using the form bellow.
           </p>
           <p>
-            Your .xls, .xlsx, .csv file should have three columns with <span class="fw-bold">exactly</span> those column names:
+            Your .xls, .xlsx, .csv file should have five columns with <span class="fw-bold">exactly</span> those column names:
             <ul>
               <li><span class="fw-bold">SampleID</span>, which should match the SampleID from your metadata</li>
               <li>
@@ -531,7 +578,6 @@
                                         <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                                             {{ sequencer.Index_2 if sequencer.Index_2 is not none else 'N/A' }}
                                         </td>
-
                                         <!-- Handling the first file -->
                                         <td id="F_{{ sequencer.id }}_A">
                                             {% if files|length > 0 %}
@@ -659,7 +705,6 @@
                                         <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                                             {{ sequencer.Index_2 if sequencer.Index_2 is not none else 'N/A' }}
                                         </td>
-
                                         <!-- Handling the first file -->
                                         <td id="F_{{ sequencer.id }}_A">
                                             {% if files|length > 0 %}
@@ -792,7 +837,6 @@
                                         <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                                             <span class="red">No sequencer</span>
                                         </td>
-
                                         <!-- Handling missing files -->
                                         <td id="F_{{ row.id }}_A">
                                             <span class="red">Not available</span>
@@ -834,7 +878,6 @@
                                         <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                                             <span class="red">No sequencer</span>
                                         </td>
-
                                         <!-- Handling missing files -->
                                         <td id="F_{{ row.id }}_A">
                                             <span class="red">Not available</span>
@@ -1328,9 +1371,9 @@
                           Debug: <input type="checkbox" id="debug-checkbox" name="debug"> <br>
 
                           {% if region_data.analysis_type=='SSU_dada2' %}
-                            <div>Clustering DADA2</div>                         
+                            <div>Clustering DADA2</div>
                           {% elif region_data.analysis_type=='SSU_vsearch' %}
-                            <div>Clustering VSEARCH</div>                          
+                            <div>Clustering VSEARCH</div>
                           {% elif (region_data.analysis_type=='ITS1' or region_data.analysis_type=='ITS2')%}
                             <h4> Sdmopt:</h4>
                             <div>
@@ -1476,6 +1519,8 @@
               <th scope="col" class="bg-gray">filtered_rarefaction.pdf</th>
               <th scope="col" class="bg-gray">physeq_decontam.Rdata</th>
               <th scope="col" class="bg-gray">metadata_chaorichness.csv</th>
+              <th scope="col" class="bg-gray">contaminants.csv</th>
+              <th scope="col" class="bg-gray">(ecm_/amf_)physeq_by_genus.pdf</th>
               <th scope="col" class="bg-gray">Bucket</th>
             </tr>
           </thead>
@@ -1583,7 +1628,29 @@
                   {% else %}
                     <span class="text-danger">Not Found</span>
                   {% endif %}
+                </td>
+                <td>
+                  {% if region_data.files_exist.contaminants %}
+                    <span class="text-success">
+                      <a href="show_report_outcome?type=contaminants&process_id={{ process_data.id }}&analysis_type_id={{ region_data.analysis_type_id }}" target="_blank" class="link">
+                        Exists
+                      </a>
+                    </span>
+                  {% else %}
+                    <span class="text-danger">Not Found</span>
+                  {% endif %}
                 </td>                
+                <td>
+                  {% if region_data.files_exist.physeq_by_genus %}
+                    <span class="text-success">
+                      <a href="show_report_outcome?type=physeq_by_genus&process_id={{ process_data.id }}&analysis_type_id={{ region_data.analysis_type_id }}" target="_blank" class="link">
+                        Exists
+                      </a>
+                    </span>
+                  {% else %}
+                    <span class="text-danger">Not Found</span>
+                  {% endif %}
+                </td>
                 <td>
                   {% if region_data.rscripts_status == "Finished" %}
                     {% if region_data.bucket_log_exists %}
@@ -1601,6 +1668,34 @@
       </table>
     {% endif %}
     <div id="step_13_msg" class="explanation"></div>
+
+    {% if is_admin %}
+      <div id="step_14" class="form-step-item">
+        <h3> Step 14: Admin only. Prepare pdf report</h3>
+        <a href="prepare_pdf_report?process_id={{ process_data.id }}" class="btn btn-primary">Prepare pdf report</a>
+        {% if pdf_report %}
+          <a href="download_pdf_report?process_id={{ process_data.id }}" class="btn btn-primary" target="_blank">Download pdf report</a>
+
+          <div class="pt-2">
+            <a href="start_sync_process?process_id={{ process_data.id }}" class="btn btn-primary">Start sync process</a>
+          </div>
+          <div class="pt-2">Sync completed: {{ process_data.share_sync_completed }}</div>
+          <div class="pt-2">
+            Share url: 
+            {% if process_data.share_url %}
+              <a href="{{ process_data.share_url }}" target="_blank" class="link">
+                {{ process_data.share_url }} 
+              </a>
+            {% else %}
+              <a href="create_share_link?process_id={{ process_data.id }}" class="btn btn-primary">Create share link</a>
+            {% endif %}        
+          </div>              
+        {% endif %}
+
+        
+
+      </div>
+    {% endif %}
   </div>
 
   <script type="application/javascript">
@@ -1775,8 +1870,8 @@
         $('#step_4_msg').html("<p>Sample submited. Please submit the next one.</p>").removeClass('text-danger').addClass('text-success');
         // Show the metadata form
         $('#metadataForm').show();
-    }    
-    
+    }
+
     ////// Choose upload method (form or file) ///////
     $('input[name="upload_method"]').change(function() {
       if (this.value == '1') {
@@ -1919,6 +2014,7 @@
                 var headerRow = '<tr>';
                 headerRow += '<th class="bg-gray">DbID</th>';
                 headerRow += '<th class="bg-gray"><span class="grey">____</span>Sequencer_IDs<span class="grey">____</span></th>';
+                headerRow += '<th class="bg-gray"><span class="grey">____</span>OTUs<span class="grey">____</span></th>';
                 expectedColumns.forEach(function(column) {
                     var hasIssues = result[column] && result[column].missing;
                     headerRow += '<th' + (hasIssues ? ' class="text-danger"' : '') + '>' + column + '</th>';
@@ -1944,6 +2040,14 @@
                     // Add the sequencersIDs if they have been added
                     // This only exists after step 6
                     if (row["sequencers"] == null) {
+                      tableRow += '<td class="bg-gray">-</td>';
+                    } else {
+                      tableRow += '<td class="bg-gray">' + row['sequencers'] + '</td>';
+                    }
+
+                    // Add the OTUs if they have been added
+                    // This only exists after step 13
+                    if (row["otu_count"] == null) {
                       tableRow += '<td class="bg-gray">-</td>';
                     } else {
                       tableRow += '<td class="bg-gray">' + row['sequencers'] + '</td>';
@@ -3159,19 +3263,40 @@
   ////// ############################################# /////////
   ////// ###### MAP HELPER FUNCTIONS START HERE ###### /////////
   ////// ############################################# /////////
-  function addMarker(lat, lng) {
+
+  function addMarker(lat, lng, text = "", link = "") {
       var location = { lat: parseFloat(lat), lng: parseFloat(lng) };
       if (!isNaN(location.lat) && !isNaN(location.lng)) {
           var marker = new google.maps.marker.AdvancedMarkerElement({
               position: location,
-              map: map
+              map: map,
           });
-          //var bounds = new google.maps.LatLngBounds();
-          markersArray.push(marker);
-          bounds.extend(location);
-          map.fitBounds(bounds);
 
-          var maxZoom = 14;
+          // Create the content for the info window
+          let infoContent = `<div style="max-width: 200px;">
+                                <p>${text}</p>
+                                ${link ? `<a href="${link}" target="_blank">View More</a>` : ""}
+                             </div>`;
+
+          // Create an info window
+          var infoWindow = new google.maps.InfoWindow({
+              content: infoContent,
+          });
+
+          // Add a click listener to open the info window when the marker is clicked
+          marker.addListener("click", function () {
+              infoWindow.open({
+                  anchor: marker,
+                  map,
+                  shouldFocus: false,
+              });
+          });
+
+          markersArray.push(marker); // Add marker to the array
+          bounds.extend(location); // Extend bounds to include this marker
+          map.fitBounds(bounds); // Adjust map to fit all markers
+
+          var maxZoom = 14; // Set maximum zoom level
           var listener = google.maps.event.addListener(map, "idle", function () {
               if (map.getZoom() > maxZoom) map.setZoom(maxZoom);
               google.maps.event.removeListener(listener);
@@ -3236,7 +3361,7 @@
         row.hasOwnProperty('Longitude') && row['Longitude'] !== null
       ) {
         // Call addMarker with the values
-        addMarker(row['Latitude'], row['Longitude']);
+        addMarker(row['Latitude'], row['Longitude'], row['SampleID']);
       }
     });
 

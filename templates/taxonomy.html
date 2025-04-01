@@ -1,0 +1,329 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnSuA4Ss2PkkikSOLtYs8BlYIeeIK1h99ty4YfvRPAlzr377vr3CXDb7sb7eEEBYjDtcYj+AjBH3FLv5uSJuXg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js" integrity="sha512-7Pi/otdlbbCR+LnW+F7PwFcSDJOuUJB3OxtEHbg4vSMvzvJjde4Po1v4BR9Gdc9aXNUNFVUY+SK51wWT8WF0Gg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAw6r8DeUDlEO8iZdnMmPSkzWUmIYbbOPY&libraries=marker"></script>
+    <title>Taxonomies Search</title>
+</head>
+<body>
+  <div class="app-navbar">
+    <a href="https://spun.earth" class="logo"></a>
+    <div class="menu">
+      <ul>
+        <li><a href="https://spun.earth">Spun Website</a></li>
+        <li><a href="/">App homepage</a></li>
+      </ul>
+    </div>
+  </div>
+  <h1>
+    Taxonomies search
+  </h1>
+  <div class="container-fluid mt-4">
+
+    <div id="mapWrapper">
+      <div id="map"></div>
+    </div>
+    <div id="mapCheckMessage"></div>    
+    
+    <!-- Search Form -->
+    <form id="taxonomy-search-form" method="GET" action="/search-taxonomies">
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="domain" class="form-label">Domain</label>
+          <input type="text" class="form-control" id="domain" name="domain" placeholder="Enter domain">
+        </div>
+        <div class="col-md-6">
+          <label for="phylum" class="form-label">Phylum</label>
+          <input type="text" class="form-control" id="phylum" name="phylum" placeholder="Enter phylum">
+        </div>
+      </div>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="class" class="form-label">Class</label>
+          <input type="text" class="form-control" id="class" name="class" placeholder="Enter class">
+        </div>
+        <div class="col-md-6">
+          <label for="order" class="form-label">Order</label>
+          <input type="text" class="form-control" id="order" name="order" placeholder="Enter order">
+        </div>
+      </div>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="family" class="form-label">Family</label>
+          <input type="text" class="form-control" id="family" name="family" placeholder="Enter family">
+        </div>
+        <div class="col-md-6">
+          <label for="genus" class="form-label">Genus</label>
+          <input type="text" class="form-control" id="genus" name="genus" placeholder="Enter genus">
+        </div>
+      </div>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="species" class="form-label">Species</label>
+          <input type="text" class="form-control" id="species" name="species" placeholder="Enter species">
+        </div>
+        <div class="col-md-6">
+          <label for="project" class="form-label">Project</label>
+          <input type="text" class="form-control" id="project" name="project" placeholder="Enter SPUN project">
+        </div>
+      </div>
+      <div class="row mb-3">
+        <div class="col-md-12">
+          <label for="analysis_type" class="form-label">Analysis type</label>
+          <select class="form-control" id="analysis_type" name="analysis_type">
+            <option value="" selected>All</option>
+            {% for analysis in analysis_types %}
+              <option value="{{ analysis.id }}">{{ analysis.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>        
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="amf_filter" class="form-label">Show only Glomeromycetes, Archaeosporomycetes and Paraglomeromycetes (AMF)</label>
+          <div>
+            <input type="radio" id="amf_filter_yes" name="amf_filter" value="yes" checked>
+            <label for="amf_filter_yes">Yes</label>
+            <input type="radio" id="amf_filter_no" name="amf_filter" value="no">
+            <label for="amf_filter_no">No</label>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label for="ecm_filter" class="form-label">Show only ECM</label>
+          <div>
+            <input type="radio" id="ecm_filter_yes" name="ecm_filter" value="yes">
+            <label for="ecm_filter_yes">Yes</label>
+            <input type="radio" id="ecm_filter_no" name="ecm_filter" value="no" checked>
+            <label for="ecm_filter_no">No</label>
+          </div>
+        </div>        
+      </div>
+      <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+
+    <!-- Results Section -->
+    <div id="search-results" class="mt-4">
+      <h3>Search Results</h3>
+
+      <!-- Results Count -->
+      <div id="results-count" class="mb-3">
+        <!-- The result count will be dynamically inserted here -->
+      </div>
+
+      <div id="results-container" class="table-responsive-wrapper">
+        <!-- Results Table will be dynamically inserted here -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    $(document).ready(function () {
+      $("#taxonomy-search-form").on("submit", function (event) {
+        event.preventDefault(); // Prevent default form submission
+
+        const formData = $(this).serialize(); // Serialize form data
+
+        // Make AJAX request to search endpoint
+        $.ajax({
+          url: "/taxonomy/search-results",
+          method: "GET",
+          data: formData,
+          success: function (response) {
+            // Clear previous results
+            $("#results-container").empty();
+            $("#results-count").empty();
+
+            if (response.data && response.data.length > 0) {
+              const totalResults = response.total_results;
+              clearMarkers()
+              
+              // Display the number of results
+              $("#results-count").html(
+                `<p><strong>${response.data.length}</strong> results displayed out of <strong>${totalResults}</strong>.</p>`
+              );              
+              // Build and populate the results table
+              let table = `
+                <table class="table table-bordered table-striped table-fit">
+                  <thead>
+                    <tr>
+                      <th>Project</th>
+                      <th>Sample ID</th>
+                      <th>Domain</th>
+                      <th>Phylum</th>
+                      <th>Class</th>
+                      <th>Order</th>
+                      <th>Family</th>
+                      <th>Genus</th>
+                      <th>Species</th>
+                      <th>ECM</th>
+                      <th>Count</th>
+                      <th>Analysis Type</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+              `;
+              console.log(response.data)
+              response.data.forEach(row => {
+                // Add markers if Latitude and Longitude are available
+                const lat = row.Latitude;
+                const lon = row.Longitude;
+                if (lat && lon) {
+                  addMarker(lat, lon, "Sample: " + row.sample_id + " <br> Project:  " + row.project_id, "/metadata_form?process_id=" + row.upload_id); // Add marker to the map
+                }                
+                table += `
+                  <tr>
+                    <td><a href="/metadata_form?process_id=${row.upload_id}" target="_blank">${row.project_id}</a></td>
+                    <td>
+                      <a href="/taxonomy/show_otus?sample_id=${row.sample_id}&region=${row.analysis_type || ''}" target="_blank" class="link">${row.SampleID}</a>
+                    </td>
+                    <td>${row.domain || ''}</td>
+                    <td>${row.phylum || ''}</td>
+                    <td>${row.class || ''}</td>
+                    <td>${row.order || ''}</td>
+                    <td>${row.family || ''}</td>
+                    <td>${row.genus || ''}</td>
+                    <td>${row.species || ''}</td>
+                    <td>${row.ecm_flag || ''}</td>
+                    <td>${row.abundance || ''}</td>
+                    <td>${row.analysis_type || ''}</td>
+                  </tr>
+                `;
+              });
+              table += `</tbody></table>`;
+              $("#results-container").append(table);
+            } else {
+              $("#results-container").html("<p>No results found.</p>");
+            }
+          },
+          error: function (xhr, status, error) {
+            console.error("Search failed:", error);
+            $("#results-container").html("<p>An error occurred while performing the search.</p>");
+          }
+        });
+      });
+    });
+    
+    
+
+    ////// ############################################# /////////
+    ////// ###### MAP HELPER FUNCTIONS START HERE ###### /////////
+    ////// ############################################# /////////
+    var markersArray = [];
+    let map;
+    let bounds = new google.maps.LatLngBounds();
+    
+    function addMarker(lat, lng, text = "", link = "") {
+        var location = { lat: parseFloat(lat), lng: parseFloat(lng) };
+        if (!isNaN(location.lat) && !isNaN(location.lng)) {
+            var marker = new google.maps.marker.AdvancedMarkerElement({
+                position: location,
+                map: map,
+            });
+
+            // Create the content for the info window
+            let infoContent = `<div style="max-width: 200px;">
+                                  <p>${text}</p>
+                                  ${link ? `<a href="${link}" target="_blank">View More</a>` : ""}
+                               </div>`;
+
+            // Create an info window
+            var infoWindow = new google.maps.InfoWindow({
+                content: infoContent,
+            });
+
+            // Add a click listener to open the info window when the marker is clicked
+            marker.addListener("click", function () {
+                infoWindow.open({
+                    anchor: marker,
+                    map,
+                    shouldFocus: false,
+                });
+            });
+
+            markersArray.push(marker); // Add marker to the array
+            bounds.extend(location); // Extend bounds to include this marker
+            map.fitBounds(bounds); // Adjust map to fit all markers
+
+            var maxZoom = 14; // Set maximum zoom level
+            var listener = google.maps.event.addListener(map, "idle", function () {
+                if (map.getZoom() > maxZoom) map.setZoom(maxZoom);
+                google.maps.event.removeListener(listener);
+            });
+        } else {
+            console.error("Invalid latitude or longitude values.");
+        }
+    }
+    
+    function clearMarkers() {
+        // Iterate through the markers array and remove each marker from the map
+        markersArray.forEach(marker => marker.map = null);
+        markersArray = []; // Reset the markers array
+        bounds = new google.maps.LatLngBounds(); // Reset the bounds
+        console.log("All markers cleared.");
+    }    
+
+    $(document).ready(function() {
+      // addMarker(22.5581008950154324, 88.35288699669385, "My text", "https://bbc.co.uk/");
+    });
+
+    async function initMap() {
+      const { Map } = await google.maps.importLibrary("maps");
+      const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker");
+
+      map = new Map(document.getElementById("map"), {
+        center: { lat: 22.5581008950154324, lng: 88.35288699669385 },
+        zoom: 21,
+        mapId: "SEQ_SAMPLE_POSITION",
+      });
+    }
+
+    initMap();
+    ////// ############################################# /////////
+    ////// ###### MAP HELPER FUNCTIONS END HERE ######## /////////
+    ////// ############################################# /////////
+    
+  </script>
+  <style>
+    #map {
+      height: 100%;
+    }
+    #mapWrapper {
+      padding-top: 2rem;
+    }
+    #mapWrapper {
+      height: 350px;
+      width: 700px;
+    }
+
+    /* Make sure the table container stretches across the page */
+    .table-container {
+      width: 100%;
+      overflow-x: hidden;  /* Prevent scroll inside the container */
+    }
+
+    /* Ensure the page itself has horizontal scrolling */
+    body {
+      overflow-x: auto;    /* Horizontal scroll will appear at page level */
+    }
+
+    /* Ensure the table behaves normally (no table-layout: fixed) */
+    .table {
+      width: 100%;                /* Table takes up full width of the container */
+      word-wrap: normal;          /* Prevent word wrapping */
+      word-break: break-word;     /* Force break of long words */
+      white-space: nowrap;        /* Prevent wrapping of text inside cells */
+    }
+
+    .table th, .table td {
+      white-space: nowrap;        /* Prevent wrapping of text inside cells */
+    }
+
+
+
+
+</style>
+</body>
+</html>

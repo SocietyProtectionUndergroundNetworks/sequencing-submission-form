@@ -42,51 +42,47 @@
             </a>
           {% endif %}
         {% endif %}
-        {% if (not user_should_see_v2) or current_user.admin %}
-          <h3> Version 1 </h3>
-          {% if gz_filedata %}
-            <a href="/form_resume">
-              <div class="page-menu-item">
-                <div>
-
-                    {% for filename, file_data in gz_filedata.items() %}
-                        {% if 'percent_uploaded' in file_data %}
-                            {% if file_data.percent_uploaded == 100 %}
-                                You have uploaded the file {{ filename }}<br>
-                            {% else %}
-                                {% if file_data.percent_uploaded > 0 %}
-                                    You have previously started uploading a file: {{ filename }}<br>
-                                    Already uploaded: {{ file_data.percent_uploaded }}%<br>
-                                    Enter the form and select the same file to resume uploading<br>
-                                {% endif %}
-                            {% endif %}
-                        {% endif %}
-                    {% endfor %}
-
-                </div>
-
-                <h3>Resume Upload</h3>
-              </div>
-
-            </a>
-          {% endif %}
-          <a href="/user_uploads?user_id={{ user_id }}">
-            <div class="page-menu-item">
-              <h3>Previous uploads</h3>
-            </div>
-          </a>
-          <a href="/form">
-            <div class="page-menu-item">
-              <h3>Start a new upload</h3>
-            </div>
-          </a>
-        {% endif %}
         <a href="/data">
           <div class="page-menu-item">
             <h3>My data</h3>
           </div>
         </a>
       {% endif %}
+      {% if current_user.is_authenticated and current_user.admin %}
+        <h3> SPUN Staff </h3>
+
+        <a href="/taxonomy/search">
+          <div class="page-menu-item">
+            <h3>Search for samples based on taxonomy</h3>
+          </div>
+        </a>   
+
+        <a href="/ecoregions/view_all">
+          <div class="page-menu-item">
+            <h3>View ecoregions</h3>
+          </div>
+        </a>           
+
+        <a href="/show_statistics">
+          <div class="page-menu-item">
+            <h3>Cohorts report</h3>
+          </div>
+        </a>  
+
+        <a href="/map/generate">
+          <div class="page-menu-item">
+            <h3>Generate Map</h3>
+          </div>
+        </a>  
+
+        <a href="/map/view">
+          <div class="page-menu-item">
+            <h3>View Map</h3>
+          </div>
+        </a>  
+
+      {% endif %}      
+      
       {% if current_user.is_authenticated and current_user.admin %}
         <h3> Admin </h3>
         <a href="{{ url_for('user.user_groups') }}">
@@ -97,11 +93,6 @@
         <a href="{{ url_for('user.users') }}">
           <div class="page-menu-item">
             <h3>Users</h3>
-          </div>
-        </a>
-        <a href="{{ url_for('upload.all_uploads') }}">
-          <div class="page-menu-item">
-            <h3>All v1 uploads</h3>
           </div>
         </a>
         <a href="/all_uploads_v2">
@@ -125,7 +116,15 @@
             <h3>Export all richness data</h3>
             <div>Please note: after you export them, they should be in the server on the directory "richness_exports"</div>
           </div>
-        </a>   
+        </a>
+        
+        <a href="/update_missing_geo_data" target="_blank">
+          <div class="page-menu-item">
+            <h3>{{ samples_with_missing_fields_nr }} Samples with missing geo data. </h3>
+            <div>Press button to initate update of 50 samples</div>
+          </div>
+        </a>       
+        
                 
       {% endif %}
       <a href="/logout">

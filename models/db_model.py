@@ -4,16 +4,17 @@ from sqlalchemy import (
     Column,
     Integer,
     String,
-    Text,
     Boolean,
     DateTime,
     func,
     ForeignKey,
     Float,
+    JSON,
+    Index,
 )
-from sqlalchemy.dialects.mysql import JSON, MEDIUMTEXT
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+
+from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy.dialects.mysql import MEDIUMTEXT
 import uuid
 
 Base = declarative_base()
@@ -43,7 +44,6 @@ class UserTable(Base):
     email = Column(String(255), nullable=False)
     profile_pic = Column(String(255), nullable=False)
     admin = Column(Boolean, default=False)
-    uploads = relationship("UploadTable", backref="user")
     approved = Column(Boolean, default=False)
     goodgrands_slug = Column(String(50), nullable=True)
     buckets = relationship(
@@ -86,33 +86,6 @@ class BucketTable(Base):
     cohort = Column(String(255), nullable=True)
 
 
-class UploadTable(Base):
-    __tablename__ = "uploads"
-
-    id = Column(Integer, primary_key=True)
-    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"))
-    created_at = Column(DateTime, default=func.now())
-    updated_at = Column(
-        DateTime, default=func.now(), onupdate=func.now(), nullable=True
-    )
-    metadata_filename = Column(String(255), nullable=True)
-    uploads_folder = Column(String(20), nullable=True)
-    sequencing_method = Column(Integer, default=0)
-    csv_uploaded = Column(Boolean, default=False)
-    csv_filename = Column(String(255), nullable=True)
-    gz_filedata = Column(JSON(none_as_null=True))
-    files_json = Column(JSON(none_as_null=True))
-    files_renamed = Column(Boolean, default=False)
-    renaming_skipped = Column(Boolean, default=False)
-    fastqc_run = Column(Boolean, default=False)
-    fastqc_files_progress = Column(String(255), nullable=True)
-    fastqc_process_id = Column(String(255), nullable=True, index=True)
-    fastqc_sent_to_bucket = Column(Boolean, default=False)
-    renamed_sent_to_bucket = Column(Boolean, default=False)
-    renamed_sent_to_bucket_progress = Column(Integer, default=0)
-    reviewed_by_admin = Column(Boolean, default=False)
-
-
 class SequencingUploadsTable(Base):
     __tablename__ = "sequencing_uploads"
 
@@ -148,14 +121,8 @@ class SequencingUploadsTable(Base):
     DNA_conc_instrument = Column(String(255), nullable=True)
     reviewed_by_admin = Column(Boolean, default=False)
     files_uploading_confirmed = Column(Boolean, default=False)
-    region_1_rscripts_report_task_id = Column(String(255), nullable=True)
-    region_1_rscripts_report_started_at = Column(DateTime, nullable=True)
-    region_1_rscripts_report_status = Column(String(255), nullable=True)
-    region_1_rscripts_report_result = Column(Text, nullable=True)
-    region_2_rscripts_report_task_id = Column(String(255), nullable=True)
-    region_2_rscripts_report_started_at = Column(DateTime, nullable=True)
-    region_2_rscripts_report_status = Column(String(255), nullable=True)
-    region_2_rscripts_report_result = Column(Text, nullable=True)
+    share_url = Column(String(255), nullable=True)
+    share_sync_completed = Column(Boolean, default=False)
 
 
 class SequencingAnalysisTable(Base):
@@ -188,6 +155,12 @@ class SequencingAnalysisTable(Base):
         nullable=True,
     )
     parameters = Column(JSON(none_as_null=True))
+    # Define the relationship to OTU
+    otus = relationship(
+        "OTU",
+        back_populates="sequencing_analysis",
+        cascade="all, delete-orphan",  # Enable cascading delete
+    )
 
 
 class SequencingAnalysisSampleRichnessTable(Base):
@@ -236,7 +209,11 @@ class SequencingSamplesTable(Base):
     Land_use = Column(String(255), nullable=True)
     Agricultural_land = Column(String(255), nullable=True)
     Ecosystem = Column(String(255), nullable=True)
-    ResolveEcoregion = Column(String(255), nullable=True)
+    resolve_ecoregion_id = Column(
+        Integer,
+        ForeignKey("resolve_ecoregions.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     BaileysEcoregion = Column(String(255), nullable=True)
     Grid_Size = Column(String(255), nullable=True)
     Soil_depth = Column(String(255), nullable=True)
@@ -254,6 +231,14 @@ class SequencingSamplesTable(Base):
         "SequencingSequencerIDsTable", backref="sample"
     )
     extracolumns_json = Column(JSON(none_as_null=True))
+    otus = relationship(
+        "OTU", back_populates="sample", cascade="all, delete-orphan"
+    )
+
+    # Relationship with ResolveEcoregionsTable
+    resolve_ecoregion = relationship(
+        "ResolveEcoregionsTable", back_populates="sequencing_samples"
+    )
 
 
 class SequencingSequencerIDsTable(Base):
@@ -308,3 +293,211 @@ class SequencingCompanyInputTable(Base):
     region = Column(String(50), nullable=True)
     index_1 = Column(String(50), nullable=True)
     barcode_2 = Column(String(50), nullable=True)
+
+
+# Domain Table
+class Domain(Base):
+    __tablename__ = "taxonomy_domain"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), unique=True, nullable=False)  # Max length 255
+
+    phyla = relationship(
+        "Phylum", back_populates="domain", cascade="all, delete-orphan"
+    )
+
+
+# Phylum Table
+class Phylum(Base):
+    __tablename__ = "taxonomy_phylum"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    domain_id = Column(
+        Integer, ForeignKey("taxonomy_domain.id"), nullable=False
+    )
+
+    domain = relationship("Domain", back_populates="phyla")
+    classes = relationship(
+        "Class", back_populates="phylum", cascade="all, delete-orphan"
+    )
+
+
+# Class Table
+class Class(Base):
+    __tablename__ = "taxonomy_class"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    phylum_id = Column(
+        Integer, ForeignKey("taxonomy_phylum.id"), nullable=False
+    )
+
+    phylum = relationship("Phylum", back_populates="classes")
+    orders = relationship(
+        "Order", back_populates="class_", cascade="all, delete-orphan"
+    )
+
+
+# Order Table
+class Order(Base):
+    __tablename__ = "taxonomy_order"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    class_id = Column(Integer, ForeignKey("taxonomy_class.id"), nullable=False)
+
+    class_ = relationship("Class", back_populates="orders")
+    families = relationship(
+        "Family", back_populates="order", cascade="all, delete-orphan"
+    )
+
+
+# Family Table
+class Family(Base):
+    __tablename__ = "taxonomy_family"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    order_id = Column(Integer, ForeignKey("taxonomy_order.id"), nullable=False)
+
+    order = relationship("Order", back_populates="families")
+    genera = relationship(
+        "Genus", back_populates="family", cascade="all, delete-orphan"
+    )
+
+
+# Genus Table
+class Genus(Base):
+    __tablename__ = "taxonomy_genus"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    family_id = Column(
+        Integer, ForeignKey("taxonomy_family.id"), nullable=False
+    )
+
+    family = relationship("Family", back_populates="genera")
+    species = relationship(
+        "Species", back_populates="genus", cascade="all, delete-orphan"
+    )
+
+
+# Species Table
+class Species(Base):
+    __tablename__ = "taxonomy_species"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    genus_id = Column(Integer, ForeignKey("taxonomy_genus.id"), nullable=False)
+
+    genus = relationship("Genus", back_populates="species")
+
+
+# Taxonomy Table
+class Taxonomy(Base):
+    __tablename__ = "taxonomy"
+    id = Column(Integer, primary_key=True)
+    domain_id = Column(
+        Integer, ForeignKey("taxonomy_domain.id"), nullable=False
+    )
+    phylum_id = Column(
+        Integer, ForeignKey("taxonomy_phylum.id"), nullable=True
+    )
+    class_id = Column(Integer, ForeignKey("taxonomy_class.id"), nullable=True)
+    order_id = Column(Integer, ForeignKey("taxonomy_order.id"), nullable=True)
+    family_id = Column(
+        Integer, ForeignKey("taxonomy_family.id"), nullable=True
+    )
+    genus_id = Column(Integer, ForeignKey("taxonomy_genus.id"), nullable=True)
+    species_id = Column(
+        Integer, ForeignKey("taxonomy_species.id"), nullable=True
+    )
+
+    domain = relationship("Domain")
+    phylum = relationship("Phylum")
+    class_ = relationship("Class")
+    order = relationship("Order")
+    family = relationship("Family")
+    genus = relationship("Genus")
+    species = relationship("Species")
+
+
+# OTU Table
+class OTU(Base):
+    __tablename__ = "otu"
+
+    id = Column(Integer, primary_key=True)
+    sample_id = Column(
+        Integer, ForeignKey("sequencing_samples.id"), nullable=False
+    )
+    taxonomy_id = Column(Integer, ForeignKey("taxonomy.id"), nullable=False)
+    abundance = Column(Integer, nullable=True)
+    sequencing_analysis_id = Column(
+        Integer, ForeignKey("sequencing_analysis.id"), nullable=False
+    )
+    ecm_flag = Column(Boolean, default=False, nullable=False)
+
+    sample = relationship("SequencingSamplesTable", back_populates="otus")
+    taxonomy = relationship("Taxonomy")
+    sequencing_analysis = relationship("SequencingAnalysisTable")
+
+    __table_args__ = (
+        Index("idx_ecm_flag", ecm_flag),  # Simple index for ecm_flag
+        Index(
+            "idx_ecm_sample", ecm_flag, sample_id
+        ),  # Composite index for ecm_flag + sample_id
+        Index(
+            "idx_ecm_taxonomy", ecm_flag, taxonomy_id
+        ),  # Composite index for ecm_flag + taxonomy_id
+        Index(
+            "idx_ecm_analysis", ecm_flag, sequencing_analysis_id
+        ),  # Composite index for ecm_flag + sequencing_analysis_id
+    )
+
+
+class ResolveEcoregionsTable(Base):
+    __tablename__ = "resolve_ecoregions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    FID = Column(Integer, nullable=False)
+    OBJECTID = Column(Integer, nullable=False)
+    ecoregion_name = Column(String(255), nullable=True)
+    biome_number = Column(Integer, nullable=True)
+    biome_name = Column(String(255), nullable=True)
+    realm_name = Column(String(255), nullable=True)
+    ecoregion_biome = Column(String(255), nullable=True)
+    nature_needs_half_number = Column(Integer, nullable=True)
+    ecoregion_unique_id = Column(Integer, nullable=True)
+    shape_leng = Column(Float, nullable=True)
+    nature_needs_half_description = Column(String(255), nullable=True)
+    color = Column(String(50), nullable=True)
+    biome_color = Column(String(50), nullable=True)
+    nature_needs_half_color = Column(String(50), nullable=True)
+    license = Column(String(255), nullable=True)
+    shape_area = Column(Float, nullable=True)
+    shape_length = Column(Float, nullable=True)
+
+    # Relationship to ExternalSamplingTable
+    external_samples = relationship(
+        "ExternalSamplingTable", back_populates="ecoregion"
+    )
+    # Define relationship with sequencing_samples
+    sequencing_samples = relationship(
+        "SequencingSamplesTable",
+        back_populates="resolve_ecoregion",
+        cascade="save-update",
+    )
+
+
+class ExternalSamplingTable(Base):
+    __tablename__ = "external_sampling"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    sample_id = Column(String(255), nullable=True)
+    dna_region = Column(String(3), nullable=True)
+    longitude = Column(String(255), nullable=True)
+    latitude = Column(String(255), nullable=True)
+
+    # Foreign Key Relationship
+    resolve_ecoregion_id = Column(
+        Integer, ForeignKey("resolve_ecoregions.id"), nullable=True
+    )
+    ecoregion = relationship(
+        "ResolveEcoregionsTable", back_populates="external_samples"
+    )
+
+    __table_args__ = (Index("idx_dna_region", dna_region),)

@@ -41,6 +41,9 @@ bashcelery:
 bashnginx:
 	docker-compose run --rm nginx /bin/sh
 
+bashgeopandas:
+	docker-compose run --rm geopandas bash
+
 bashdb:
 	docker-compose run --rm db /bin/sh
 
@@ -91,14 +94,19 @@ runmysql:
 	docker-compose run --rm db mysql -h${MYSQL_HOST} -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE}
 
 dbimport:
+	LC_ALL=C sed -i.bak '/\/\*!50013 DEFINER=`${MYSQL_USER_PROD}`@`%` SQL SECURITY DEFINER \*\//d' backup/backup.sql
+	LC_ALL=C sed -i.bak 's/`${MYSQL_DATABASE_PROD}`//g' backup/backup.sql
 	docker-compose run --rm -T db mysql -h${MYSQL_HOST} -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} < backup/backup.sql
 
 dbexport:
 	docker-compose run --rm db mysqldump -h${MYSQL_HOST} -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} > backup/backup.sql
 	ls -l backup/backup.sql
+	rm -f -- backup/backup.sql.gz
+	gzip backup/backup.sql
+	ls -l backup/backup.sql.gz
 
 dbbackup:
-	gsutil cp backup/backup.sql gs://${GOOGLE_STORAGE_BUCKET_NAME}/backup/
+	gsutil cp backup/backup.sql.gz gs://${GOOGLE_STORAGE_BUCKET_NAME}/backup/
 
 dbexportbackup:
 	docker-compose run --rm db mysqldump -h${MYSQL_HOST} -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} > backup/backup.sql
@@ -106,7 +114,8 @@ dbexportbackup:
 	gsutil cp backup/backup.sql gs://${GOOGLE_STORAGE_BUCKET_NAME}/backup/
 
 dbfetch:
-	scp ${SSH_KEY} ubuntu@${SERVER_IP}:${REMOTE_SERVER_APP_PATH}/backup/backup.sql backup/backup.sql
+	scp ${SSH_KEY} ubuntu@${SERVER_IP}:${REMOTE_SERVER_APP_PATH}/backup/backup.sql.gz backup/backup.sql.gz
+	gzip -dfk backup/backup.sql.gz
 
 sshvm:
 	gcloud compute ssh ${GOOGLE_VM_PROPERTY}

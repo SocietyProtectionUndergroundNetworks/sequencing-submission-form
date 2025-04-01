@@ -163,9 +163,12 @@
                     id="move_sequencing_blank_records"
                   >
                     <fieldset>
+                      Bucket folder name: <input type="input" name="bucket_folder_name"><br>
+                      Local folder with files: <input type="input" name="directory_name" value="{{ directory_name }}" /><br>
                       <input type="submit" class="btn btn-primary" value="Move">
-                      <input type="hidden" name="directory_name" value="{{ directory_name }}" />
+                      
                       <input type="hidden" name="upload_id" value="{{ upload.id }}">
+                      
                     </fieldset>
                   </form>   
                 {% elif (project['unmatched']== 0 and not project['sequencer_exists']) %}

@@ -30,7 +30,6 @@
           <th scope="col">#</th>
           <th scope="col">Email</th>
           <th scope="col">Name</th>
-          <th scope="col">Upload processes v1</th>
           <th scope="col">Upload processes v2</th>
           <th scope="col">Is Admin</th>
           <th scope="col">Is Approved</th>
@@ -43,24 +42,12 @@
         {% for user in all_users %}
           <tr>
               <td scope="row">
-                {% if (user.uploads_count == 0 and user.uploads_v2_count == 0) %}
+                {% if (user.uploads_v2_count == 0) %}
                   <a href="#" class="remove_user text-danger" data-user-id="{{ user.user.id }}">X</a>
                 {% endif %}
               </td>
               <td>{{ user.user.email }}</td>
               <td>{{ user.user.name }}</td>
-              <td>
-                {% if user.uploads_count > 0 %}
-                  <a href="/user_uploads?user_id={{ user.user.id }}">{{ user.uploads_count }}</a>
-                  {% if (user.uploads_count - user.reviewed_by_admin_count) > 0 %}
-                  <div>
-                    Not reviewed by admin: {{ (user.uploads_count - user.reviewed_by_admin_count) }}
-                  </div>
-                  {% endif %}
-                {% else %}
-                  {{ user.uploads_count }}
-                {% endif %}
-              </td>
               <td>
                 {% if user.uploads_v2_count > 0 %}
                   <a href="/user_uploads_v2?user_id={{ user.user.id }}">{{ user.uploads_v2_count }}</a>

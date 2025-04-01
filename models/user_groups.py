@@ -1,8 +1,7 @@
 from flask_login import UserMixin
-from helpers.dbm import connect_db, get_session
+from helpers.dbm import session_scope
 from models.db_model import UserGroupsTable, UserTable
 from models.db_model import user_groups_association
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import func
 import logging
 
@@ -17,10 +16,7 @@ class UserGroups(UserMixin):
 
     @classmethod
     def get(cls, group_id):
-        try:
-            # Establish a database connection
-            db_engine = connect_db()
-            session = get_session(db_engine)
+        with session_scope() as session:
 
             # Query the database for the group by id
             group = (
@@ -31,18 +27,10 @@ class UserGroups(UserMixin):
                 return cls(group.id, group.name, group.version)
             else:
                 return None
-        except SQLAlchemyError as e:
-            logger.error(f"Error getting user group with id {group_id}: {e}")
-            return None
-        finally:
-            session.close()
 
     @classmethod
     def create(cls, name, version):
-        try:
-            # Establish a database connection
-            db_engine = connect_db()
-            session = get_session(db_engine)
+        with session_scope() as session:
             # logger.info(name)
             # Create a new UserGroupsTable record
             new_group = UserGroupsTable(name=name, version=version)
@@ -51,19 +39,10 @@ class UserGroups(UserMixin):
 
             # Return the created UserGroups instance
             return cls(new_group.id, new_group.name, new_group.version)
-        except SQLAlchemyError as e:
-            logger.error(f"Error creating user group with name {name}: {e}")
-            session.rollback()
-            return None
-        finally:
-            session.close()
 
     @classmethod
     def get_all_with_user_count(cls):
-        try:
-            # Establish a database connection
-            db_engine = connect_db()
-            session = get_session(db_engine)
+        with session_scope() as session:
 
             # Query to get all groups with user count
             result = (
@@ -97,8 +76,3 @@ class UserGroups(UserMixin):
             ]
 
             return all_groups
-        except SQLAlchemyError as e:
-            logger.error(f"Error fetching groups with user count: {e}")
-            return []
-        finally:
-            session.close()

@@ -4,6 +4,7 @@ import math
 import logging
 import json
 import pandas as pd
+from unidecode import unidecode
 from flask_login import current_user
 
 logger = logging.getLogger("my_app_logger")
@@ -84,33 +85,6 @@ def get_project_common_data():
     return data
 
 
-def check_expected_columns(df, expected_columns_data):
-    """
-    Check for missing and extra columns in the DataFrame.
-    """
-
-    expected_columns = list(expected_columns_data.keys())
-    uploaded_columns = df.columns.tolist()
-    missing_columns = list(set(expected_columns) - set(uploaded_columns))
-    extra_columns = list(set(uploaded_columns) - set(expected_columns))
-    issues = []
-
-    if missing_columns:
-        issues.append(
-            {
-                "invalid": missing_columns,
-                "message": "Missing columns",
-                "status": 0,
-            }
-        )
-
-    if extra_columns:
-        issues.append(
-            {"invalid": extra_columns, "message": "Extra columns", "status": 0}
-        )
-    return issues
-
-
 def check_sample_id(sample_id):
     """
     Check if a given SampleID follows the format:
@@ -136,45 +110,7 @@ def check_sample_id(sample_id):
             ),
         }
 
-    # Updated pattern to allow any combination of letters, numbers, and
-    # underscores before the last underscore
-    if current_user.admin:
-        return {"status": 1, "message": "Valid value"}
-    else:
-        pattern = re.compile(r"^[A-Za-z0-9_]+_[0-9]+$")
-        if not pattern.match(sample_id_str):
-            return {
-                "status": 0,
-                "message": (
-                    "Invalid format: must end with "
-                    " an underscore followed by digits"
-                ),
-            }
-
-        # Split into base part and number
-        match = re.match(r"^(.*)_(\d+)$", sample_id_str)
-        if match:
-            base_part, unique_number = match.groups()
-
-            # Ensure the base part does not end with an underscore
-            if base_part.endswith("_"):
-                return {
-                    "status": 0,
-                    "message": "Base part must not end with an underscore",
-                }
-
-            # Ensure the unique number is a positive integer
-            if not unique_number.isdigit() or int(unique_number) <= 0:
-                return {
-                    "status": 0,
-                    "message": (
-                        "Unique number must be one or more positive digits"
-                    ),
-                }
-
-            return {"status": 1, "message": "Valid value"}
-
-    return {"status": 0, "message": "Invalid format: general issue"}
+    return {"status": 1, "message": "Valid value"}
 
 
 def check_sequencing_facility(value):
@@ -388,7 +324,7 @@ def check_latitude_longitude(value):
         return {"status": 0, "message": "Invalid value: not a valid number"}
 
 
-def check_metadata(df, using_scripps, multiple_sequencing_runs=False):
+def check_metadata(df, using_scripps):
     """
     Check metadata including columns, and validity of fields.
     """
@@ -407,24 +343,6 @@ def check_metadata(df, using_scripps, multiple_sequencing_runs=False):
             messages.append(
                 "Please note: There is no control in your samples."
             )
-
-    if multiple_sequencing_runs == "Yes":
-        if "SequencingRun" in expected_columns_data:
-            expected_columns_data["SequencingRun"]["required"] = True
-
-            # Check if there is more than one unique value in
-            # the SequencingRun field
-            unique_sequencing_runs = df["SequencingRun"].nunique()
-            if unique_sequencing_runs <= 1:
-                issues["SequencingRun"] = {
-                    "status": 0,
-                    "message": (
-                        "Multiple sequencing runs indicated but "
-                        "only one unique value found in SequencingRun field"
-                    ),
-                    "invalid": [],
-                }
-                overall_status = 0
 
     for column_key, column_values in expected_columns_data.items():
         if column_key not in df.columns:
@@ -605,3 +523,60 @@ def check_row(row, expected_columns_data):
     row_result.update(row_issues)
 
     return row_result
+
+
+def get_sequences_based_on_primers(forward_primer, reverse_primer):
+    current_dir = os.path.dirname(__file__)
+    base_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
+    regions_file_path = os.path.join(
+        base_dir, "metadataconfig", "primer_set_regions.json"
+    )
+
+    # Load the JSON file
+    with open(regions_file_path, "r") as f:
+        primer_set_region = json.load(f)
+
+    # Construct the key to search in the JSON
+    search_key = f"{forward_primer}/{reverse_primer}"
+
+    # Check if the key exists in the JSON
+    if search_key in primer_set_region:
+        region_data = primer_set_region[search_key]
+        return {
+            "Region": region_data.get("Region"),
+            "Forward Primer": region_data.get("Forward Primer"),
+            "Reverse Primer": region_data.get("Reverse Primer"),
+        }
+    else:
+        return None
+
+
+def sanitize_string(s):
+    # Escape quotes, special characters,
+    # and transliterate non-Latin characters.
+    if isinstance(s, str):
+        # Transliterate non-Latin characters to Latin equivalents
+        s = unidecode(s)
+        # Escape double quotes
+        s = s.replace('"', '\\"')
+        # Escape newline characters
+        s = s.replace("\n", "\\n")
+        # Escape backslashes
+        s = s.replace("\\", "\\\\")
+    return s
+
+
+def sanitize_data(data):
+    """Recursively sanitize the input data."""
+    if isinstance(data, list):
+        return [
+            sanitize_data(item) for item in data
+        ]  # Sanitize each item in the list
+    elif isinstance(data, dict):
+        return {
+            key: sanitize_data(value) for key, value in data.items()
+        }  # Sanitize each value in the dict
+    else:
+        return sanitize_string(
+            data
+        )  # Escape string if it's not a list or dict

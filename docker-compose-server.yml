@@ -26,6 +26,8 @@ services:
       - PORT=56733
       - DOCKER_HOST=tcp://socat:2375  # Set Docker host to socat
       - REDIS_URL=redis://redis:6379/0
+      - GUNICORN_RELOAD=
+      - GUNICORN_WORKERS=4
     expose:
       - 56733
     volumes:
@@ -96,6 +98,8 @@ services:
       - PORT=56734
       - DOCKER_HOST=tcp://socat:2375  # Set Docker host to socat
       - CELERY_BROKER_URL=redis://redis:6379/0
+      - GUNICORN_RELOAD=
+      - GUNICORN_WORKERS=1
     networks:
       - flask
     entrypoint: celery -A app.celery worker --loglevel=info  # Celery worker command
@@ -114,6 +118,8 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - ./certs:/etc/nginx/certs
+      - /etc/letsencrypt/archive/${APP_DOMAIN}:/etc/letsencrypt/archive/${APP_DOMAIN}:ro
+      - /etc/letsencrypt/live/${APP_DOMAIN}:/etc/letsencrypt/live/${APP_DOMAIN}:ro
     networks:
       - flask
 
@@ -121,6 +127,7 @@ services:
     image: mysql:5.7
     volumes:
       - ./mysql:/var/lib/mysql
+      - ./config/docker/db/my.cnf:/etc/mysql/conf.d/my.cnf 
     environment:
       - flask
     env_file:
@@ -137,6 +144,20 @@ services:
     networks:
       - flask
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+
+  geopandas:
+    build:
+      context: .
+      dockerfile: Dockerfile-geopandas
+    container_name: spun-geopandas
+    volumes:
+      - ./geopandasapp:/geopandasapp
+    networks:
+      - flask
+    ports:
+      - "5002:5001"
+    working_dir: /geopandasapp
+    command: ["tail", "-f", "/dev/null"]
 
 networks:
   default:

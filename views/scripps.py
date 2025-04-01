@@ -2,48 +2,20 @@ import logging
 import os
 import pandas as pd
 from collections import defaultdict
-from flask import redirect, Blueprint, render_template, request, url_for
-from flask_login import current_user, login_required
+from flask import Blueprint, render_template, request
+from flask_login import login_required
 from models.sequencing_company_upload import SequencingCompanyUpload
 from models.sequencing_company_input import SequencingCompanyInput
 from pathlib import Path
+from helpers.decorators import (
+    approved_required,
+    admin_required,
+)
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
 scripps_bp = Blueprint("scripps", __name__)
-
-
-# Custom admin_required decorator
-def admin_required(view_func):
-    def decorated_view(*args, **kwargs):
-        if not current_user.is_authenticated:
-            # Redirect unauthenticated users to the login page
-            return redirect(
-                url_for("user.login")
-            )  # Adjust 'login' to your actual login route
-        elif not current_user.admin:
-            # Redirect non-admin users to some unauthorized page
-            return redirect(url_for("user.only_admins"))
-        return view_func(*args, **kwargs)
-
-    return decorated_view
-
-
-# Custom approved_required decorator
-def approved_required(view_func):
-    def decorated_approved_view(*args, **kwargs):
-        if not current_user.is_authenticated:
-            # Redirect unauthenticated users to the login page
-            return redirect(
-                url_for("user.login")
-            )  # Adjust 'login' to your actual login route
-        elif not current_user.approved:
-            # Redirect non-approved users to some unauthorized page
-            return redirect(url_for("user.only_approved"))
-        return view_func(*args, **kwargs)
-
-    return decorated_approved_view
 
 
 @scripps_bp.route("/scripps_form", methods=["GET"], endpoint="scripps_form")
@@ -250,6 +222,29 @@ def move_sequencer_ids_to_project():
 
     logger.info("upload_id: " + str(upload_id))
     logger.info("metadata_upload_id: " + str(metadata_upload_id))
+    return (
+        {"result": 1},
+        200,
+    )
+
+
+@scripps_bp.route(
+    "/move_sequencing_blank_records",
+    methods=["POST"],
+    endpoint="move_sequencing_blank_records",
+)
+@admin_required
+@login_required
+def move_sequencing_blank_records():
+    upload_id = request.form.get("upload_id")
+    directory_name = request.form.get("directory_name")
+    bucket_folder_name = request.form.get("bucket_folder_name")
+
+    if bucket_folder_name and directory_name and upload_id:
+        SequencingCompanyInput.move_sequencing_blanks(
+            upload_id, directory_name, bucket_folder_name
+        )
+
     return (
         {"result": 1},
         200,

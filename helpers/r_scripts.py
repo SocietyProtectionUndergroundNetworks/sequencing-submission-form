@@ -2,10 +2,89 @@ import docker
 import logging
 import shutil
 import os
+import json
+import shlex
 from datetime import datetime
 
 # PROCESS_DIR =
 logger = logging.getLogger("my_app_logger")
+
+
+def create_pdf_report(process_id):
+    from models.sequencing_upload import SequencingUpload
+
+    # check if we have ITS2, ITS1, SSU_DADA analysis ready.
+    process_data = SequencingUpload.get(process_id)
+    uploads_folder = process_data["uploads_folder"]
+    project_id = process_data["project_id"]
+
+    rscripts_reports = SequencingUpload.check_rscripts_reports_exist(
+        process_id
+    )
+    # lets find out if we have an ITS
+    its_report = None
+    ssu_report = None
+    missing_ssu_json_output = None
+    missing_its_json_output = None
+
+    for r_report in rscripts_reports:
+        logger.info(r_report["analysis_type"])
+        if "ITS2" == r_report["analysis_type"]:
+            its_report = r_report["analysis_type"]
+            missing_samples_its = SequencingUpload.get_missing_its_files(
+                process_id
+            )
+            missing_its_json_data = [
+                {"sample": sample[1]} for sample in missing_samples_its
+            ]
+            missing_its_json_output = json.dumps(
+                missing_its_json_data, separators=(",", ":")
+            )
+
+        elif "SSU_dada2" == r_report["analysis_type"]:
+            ssu_report = r_report["analysis_type"]
+            missing_samples_ssu = SequencingUpload.get_missing_ssu_files(
+                process_id
+            )
+            missing_ssu_json_data = [
+                {"sample": sample[1]} for sample in missing_samples_ssu
+            ]
+            missing_ssu_json_output = json.dumps(
+                missing_ssu_json_data, separators=(",", ":")
+            )
+
+    # constract the r command
+    command = [
+        "Rscript",
+        "generate_pdf_report.R",
+        "-p",
+        "/seq_processed/" + str(uploads_folder),
+        "-n",
+        str(project_id),
+    ]
+    if its_report:
+        command.extend(["-i", str(its_report)])
+
+    if ssu_report:
+        command.extend(["-s", str(ssu_report)])
+
+    if missing_ssu_json_output:
+        command.extend(["--missing-ssu", str(missing_ssu_json_output)])
+
+    if missing_its_json_output:
+        command.extend(["--missing-its", str(missing_its_json_output)])
+
+    command_str = " ".join(shlex.quote(arg) for arg in command)
+    logger.info(command_str)
+    # run it
+    client = docker.from_env()
+    container = client.containers.get("spun-r-service")
+    # Run the command inside the container
+    result = container.exec_run(["bash", "-c", command_str])
+    logger.info(result.output)
+
+    # create the symlinks
+    SequencingUpload.create_symlinks(process_id)
 
 
 def init_generate_rscripts_report(
@@ -65,8 +144,26 @@ def init_generate_rscripts_report(
 
 def generate_rscripts_report(process_id, input_dir, region, analysis_type_id):
     client = docker.from_env()
+    from models.sequencing_upload import SequencingUpload
     from models.sequencing_analysis import SequencingAnalysis
     from models.sequencing_analysis_type import SequencingAnalysisType
+
+    process_data = SequencingUpload.get(process_id)
+    project_id = process_data["project_id"]
+
+    # Load the excluded_otus JSON file
+    with open("metadataconfig/excluded_otus.json", "r") as f:
+        excluded_otus = json.load(f)
+
+    # Filter relevant exclusions
+    filtered_exclusions = [
+        {"Taxonomy_level": entry["Taxonomy_level"], "Value": entry["Value"]}
+        for entry in excluded_otus
+        if entry["project_id"] == project_id
+    ]
+
+    # Convert to JSON string (ensure it's properly escaped for shell use)
+    exclude_json = json.dumps(filtered_exclusions)
 
     analysis_id = SequencingAnalysis.get_by_upload_and_type(
         process_id, analysis_type_id
@@ -82,6 +179,7 @@ def generate_rscripts_report(process_id, input_dir, region, analysis_type_id):
     logger.info(" - process_id : " + str(process_id))
     logger.info(" - input_dir : " + str(input_dir))
     logger.info(" - region : " + str(region))
+    logger.info(" - exclude : " + str(exclude_json))
 
     try:
         # Run rscripts inside the 'spun-r_service' container
@@ -98,6 +196,7 @@ def generate_rscripts_report(process_id, input_dir, region, analysis_type_id):
                 input_dir + "/r_output/" + analysis_type.name, exist_ok=True
             )
 
+            # Construct the Rscript command
             command = [
                 "Rscript",
                 r_script,
@@ -106,7 +205,14 @@ def generate_rscripts_report(process_id, input_dir, region, analysis_type_id):
                 "-o",
                 output_dir,
             ]
-            command_str = " ".join(command)
+
+            # Only add -exclude parameter if there are exclusions
+            if filtered_exclusions:
+                exclude_json = json.dumps(filtered_exclusions)
+                command.extend(["--exclude", exclude_json])
+
+            # Escape the command for safe execution
+            command_str = " ".join(shlex.quote(arg) for arg in command)
             logger.info(" - Here we will try the command")
             logger.info(command_str)
             # Run the command inside the container
@@ -120,6 +226,17 @@ def generate_rscripts_report(process_id, input_dir, region, analysis_type_id):
                 analysis_id, "rscripts_result", result.output
             )
             SequencingAnalysis.import_richness(analysis_id)
+
+            logger.info("And now we should import the OTUs")
+            otu_full_data = (
+                input_dir
+                + "/r_output/"
+                + analysis_type.name
+                + "/otu_full_data.csv"
+            )
+            SequencingUpload.process_otu_data(
+                otu_full_data, process_id, analysis_id
+            )
 
         else:
             logger.info(
@@ -172,6 +289,7 @@ def delete_generated_rscripts_report(
                 analysis_id, "rscripts_result", None
             )
             SequencingAnalysis.delete_richness_data(analysis_id)
+            SequencingAnalysis.delete_otu_data(analysis_id)
 
             output_path = input_dir + "/r_output/" + analysis_type.name
             if os.path.exists(output_path):

@@ -23,7 +23,7 @@
     "Region": "ITS2",
     "Forward Primer": "TCCTCCGCTTATTGATATGC",
     "Reverse Primer": "GTGARTCATCGAATCTTTG"
-  },  
+  },
   "ITS9/ITS4": {
     "Region": "Full ITS",
     "Forward Primer": "GAACGCAGCRAAIIGCGATA",
@@ -36,7 +36,7 @@
   },
   "ITS1/ITS2": {
     "Region": "ITS1",
-    "Forward Primer": "TCCGTAGGTGAACCTGCGG",
+    "Forward Primer": "CTTGGTCATTTAGAGGAAGTAA",
     "Reverse Primer": "GCTGCGTTCTTCATCGATGC"
   },
   "ITS1/ITS3": {
@@ -78,11 +78,25 @@
     "Region": "ITS2",
     "Forward Primer": "GTGARTCATCRARTYTTTG",
     "Reverse Primer": "TCCTSCGCTTATTGATATGC"
-  },    
+  },
+  "ITS5/ITS4": {
+    "Region": "Full ITS",
+    "Forward Primer": "TCCTCCGCTTATTGATATGC",
+    "Reverse Primer": "ACCCGCTGAACTTAAGC"
+  },
+  "LROR/LR5": {
+    "Region": "LSU",
+    "Forward Primer": "ACCCGCTGAACTTAAGC",
+    "Reverse Primer": "TCCTGAGGGAAACTTCG"
+  },
+  "FULFN1ngs/FULRNngs": {
+    "Region": "LSU",
+    "Forward Primer": "AGGGAAACGATTGAAGCCAGTC",
+    "Reverse Primer": "CGTGTTTCAAGACGGGTCGT"
+  },
   "Other": {
     "Region": "Other",
     "Forward Primer": "",
     "Reverse Primer": ""
   }
 }
-

@@ -43,15 +43,6 @@ def init_generate_lotus2_report(
                     SequencingAnalysis.update_field(
                         analysis_id, "lotus2_celery_task_id", result.id
                     )
-                    SequencingAnalysis.update_field(
-                        analysis_id, "lotus2_started_at", datetime.utcnow()
-                    )
-                    SequencingAnalysis.update_field(
-                        analysis_id, "lotus2_status", "Started"
-                    )
-                    SequencingAnalysis.update_field(
-                        analysis_id, "parameters", parameters
-                    )
 
             except Exception as e:
                 logger.error(
@@ -61,7 +52,7 @@ def init_generate_lotus2_report(
                 logger.error(e)
                 return {
                     "error": (
-                        "This is an error message from helpers/bucket.py "
+                        "This is an error message from helpers/lotus2.py "
                         " while trying to generate_lotus2_report_async"
                     ),
                     "e": (e),
@@ -91,6 +82,12 @@ def generate_lotus2_report(
         process_id, analysis_type_id
     )
 
+    SequencingAnalysis.update_field(
+        analysis_id, "lotus2_started_at", datetime.utcnow()
+    )
+    SequencingAnalysis.update_field(analysis_id, "lotus2_status", "Started")
+    SequencingAnalysis.update_field(analysis_id, "parameters", parameters)
+
     analysis_type = SequencingAnalysisType.get(analysis_type_id)
     input_dir = "/" + input_dir
     output_path = input_dir + "/lotus2_report/" + analysis_type.name
@@ -98,6 +95,7 @@ def generate_lotus2_report(
     logger.info("Trying for:")
     logger.info(" - process_id : " + str(process_id))
     logger.info(" - analysis_type_id : " + str(analysis_type_id))
+    logger.info(" - analysis_id : " + str(analysis_id))
     logger.info(" - input_dir : " + str(input_dir))
     logger.info(" - output_path : " + str(output_path))
     logger.info(" - region : " + str(region))
@@ -126,6 +124,13 @@ def generate_lotus2_report(
                 input_dir + "/mapping_files/" + region + "_Mapping.txt"
             )
 
+            if analysis_type.name in ["ITS1", "ITS2"]:
+                refDB = "UNITE"
+                tax4refDB = ""
+            if analysis_type.name in ["ITS1_eukaryome", "ITS2_eukaryome"]:
+                refDB = "/lotus2_files/mothur_EUK_ITS_v1.9.3.fasta"
+                tax4refDB = "/lotus2_files/mothur_EUK_ITS_v1.9.3_lotus.tax"
+
             command = [
                 "lotus2",
                 debug_command,
@@ -136,7 +141,7 @@ def generate_lotus2_report(
                 "-m",
                 mapping_file,
                 "-refDB",
-                "UNITE",
+                refDB,
                 "-amplicon_type",
                 region,
                 "-LCA_idthresh",
@@ -154,6 +159,9 @@ def generate_lotus2_report(
                 "-id",
                 "0.97",
             ]
+            # Conditionally add -tax4refDB argument
+            if tax4refDB:
+                command.extend(["-tax4refDB", tax4refDB])
             command_str = "source activate lotus2_env && " + " ".join(command)
             logger.info(" - the command is: ")
             logger.info(command_str)
@@ -177,31 +185,44 @@ def generate_lotus2_report(
             parameters = parameters | analysis_type.parameters
             clustering = parameters["clustering"]
 
-            # The following two is if we want to use
-            # The FULL SILVA database
-            refDB = (
-                "/lotus2_files/vt_types_fasta_from_05-06-2019.qiime.fasta,SLV"
-            )
+            sdmopt = "/lotus2_files/sdm_miSeq2_SSU_Spun.txt"
 
-            tax4refDB = "/lotus2_files/vt_types_GF.txt"
-
-            # The following two is if we want to use
-            # The reduced SILVA database
-            refDB = (
-                "/lotus2_files/vt_types_fasta_from_05-06-2019.qiime.fasta,"
-                "/lotus2_files/SLV_138.1_SSU_NO_AMF.fasta"
-            )
-
-            tax4refDB = (
-                "/lotus2_files/vt_types_GF.txt,"
-                "/lotus2_files/SLV_138.1_SSU_NO_AMF.tax"
-            )
-
-            sdmopt = (
-                "/home/condauser/miniconda/envs/lotus2_env/share/"
-                "lotus2-2.34.1-0/configs/sdm_miSeq2.txt"
-            )
             mapping_file = input_dir + "/mapping_files/SSU_Mapping.txt"
+
+            if analysis_type.name in ["SSU_dada2", "SSU_vsearch"]:
+
+                # The following two is if we want to use
+                # The FULL SILVA database
+                refDB = (
+                    "/lotus2_files"
+                    "/vt_types_fasta_from_05-06-2019.qiime.fasta,SLV"
+                )
+
+                tax4refDB = "/lotus2_files/vt_types_GF.txt"
+
+                # The following two is if we want to use
+                # The reduced SILVA database
+                refDB = (
+                    "/lotus2_files/vt_types_fasta_from_05-06-2019.qiime.fasta,"
+                    "/lotus2_files/SLV_138.1_SSU_NO_AMF.fasta"
+                )
+
+                tax4refDB = (
+                    "/lotus2_files/vt_types_GF.txt,"
+                    "/lotus2_files/SLV_138.1_SSU_NO_AMF.tax"
+                )
+
+            elif analysis_type.name in ["SSU_eukaryome"]:
+
+                # eukaryome database
+                refDB = "/lotus2_files/mothur_EUK_SSU_v1.9.3.fasta"
+
+                # Special version of the .tax file for this database
+                # We had to add a space after the first tab
+                # and after each ; (field seperator) so that
+                # the taxonomy that gets produced doesnt have the first
+                # letter of each category cut out
+                tax4refDB = "/lotus2_files/mothur_EUK_SSU_v1.9.3_lotus.tax"
 
             command = [
                 "lotus2",
@@ -233,6 +254,7 @@ def generate_lotus2_report(
                 "-sdmopt",
                 sdmopt,
             ]
+
             command_str = "source activate lotus2_env && " + " ".join(command)
             logger.info(" - the command is: ")
             logger.info(command_str)
@@ -274,9 +296,7 @@ def generate_lotus2_report(
         SequencingAnalysis.update_field(analysis_id, "lotus2_result", str(e))
 
 
-def delete_generated_lotus2_report(
-    process_id, input_dir, region, analysis_type_id
-):
+def delete_generated_lotus2_report(process_id, input_dir, analysis_type_id):
 
     if analysis_type_id != 0:
         from models.sequencing_analysis import SequencingAnalysis
@@ -318,3 +338,65 @@ def get_analysis_type(region):
     elif region == "ITS1":
         sequencing_analysis_type = 4
     return sequencing_analysis_type
+
+
+def init_generate_all_lotus2_reports(analysis_type_id, from_id, to_id):
+    from tasks import generate_all_lotus2_reports_async
+
+    generate_all_lotus2_reports_async.delay(analysis_type_id, from_id, to_id)
+
+
+def generate_all_lotus2_reports(analysis_type_id, from_id, to_id):
+    from models.sequencing_upload import SequencingUpload
+    from models.sequencing_analysis import SequencingAnalysis
+
+    processes_data = SequencingUpload.get_all()
+    from_id = int(from_id)
+    to_id = int(to_id)
+
+    for process_data in processes_data:
+        process_id = process_data["id"]
+        # Check if the process_id satisfies the given conditions
+        if (
+            (from_id is None and to_id is None)
+            or (
+                from_id is not None and to_id is None and process_id >= from_id
+            )
+            or (from_id is None and to_id is not None and process_id <= to_id)
+            or (
+                from_id is not None
+                and to_id is not None
+                and from_id <= process_id <= to_id
+            )
+        ):
+            for region_type, analysis_list in process_data["analysis"].items():
+                for analysis in analysis_list:
+                    if str(analysis_type_id) == str(
+                        analysis["analysis_type_id"]
+                    ):
+                        # Get the fresh status from the database
+                        analysis_id = SequencingAnalysis.create(
+                            process_id, analysis_type_id
+                        )
+                        analysis = SequencingAnalysis.get(analysis_id)
+                        status = analysis.lotus2_status
+
+                        # Only proceed if the status is None
+                        if status is None:
+                            input_dir = (
+                                "seq_processed/"
+                                + process_data["uploads_folder"]
+                            )
+                            generate_lotus2_report(
+                                process_id=process_data["id"],
+                                input_dir=input_dir,
+                                region=region_type,
+                                debug=False,
+                                analysis_type_id=analysis_type_id,
+                                parameters={},
+                            )
+                            logger.info(
+                                "inside generate_all_lotus2_reports . "
+                                + " The analysis_id is "
+                                + str(analysis_id)
+                            )

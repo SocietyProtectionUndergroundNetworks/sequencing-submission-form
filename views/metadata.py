@@ -2,6 +2,7 @@ import logging
 import pandas as pd
 import os
 import json
+import csv
 import shutil
 from flask import (
     redirect,
@@ -11,6 +12,7 @@ from flask import (
     url_for,
     jsonify,
     send_file,
+    Response,
 )
 from flask_login import current_user, login_required
 from models.bucket import Bucket
@@ -24,26 +26,36 @@ from helpers.metadata_check import (
     check_metadata,
     get_columns_data,
     get_project_common_data,
+    sanitize_data,
 )
 from helpers.create_xls_template import (
     create_template_one_drive_and_excel,
 )
-from helpers.bucket import delete_bucket_folder, init_bucket_chunked_upload_v2
+from helpers.bucket import (
+    delete_bucket_folder,
+    init_bucket_chunked_upload_v2,
+    calculate_md5,
+)
 from helpers.fastqc import (
     init_create_fastqc_report,
     init_create_multiqc_report,
     check_multiqc_report,
 )
-from helpers.csv import sanitize_data
 import numpy as np
-from helpers.file_renaming import calculate_md5
 from helpers.lotus2 import (
     init_generate_lotus2_report,
     delete_generated_lotus2_report,
+    init_generate_all_lotus2_reports,
 )
 from helpers.r_scripts import (
     init_generate_rscripts_report,
     delete_generated_rscripts_report,
+    create_pdf_report,
+)
+from helpers.decorators import (
+    admin_or_owner_required,
+    approved_required,
+    admin_required,
 )
 
 
@@ -52,38 +64,6 @@ from pathlib import Path
 metadata_bp = Blueprint("metadata", __name__)
 
 logger = logging.getLogger("my_app_logger")
-
-
-# Custom admin_required decorator
-def admin_required(view_func):
-    def decorated_view(*args, **kwargs):
-        if not current_user.is_authenticated:
-            # Redirect unauthenticated users to the login page
-            return redirect(
-                url_for("user.login")
-            )  # Adjust 'login' to your actual login route
-        elif not current_user.admin:
-            # Redirect non-admin users to some unauthorized page
-            return redirect(url_for("user.only_admins"))
-        return view_func(*args, **kwargs)
-
-    return decorated_view
-
-
-# Custom approved_required decorator
-def approved_required(view_func):
-    def decorated_approved_view(*args, **kwargs):
-        if not current_user.is_authenticated:
-            # Redirect unauthenticated users to the login page
-            return redirect(
-                url_for("user.login")
-            )  # Adjust 'login' to your actual login route
-        elif not current_user.approved:
-            # Redirect non-approved users to some unauthorized page
-            return redirect(url_for("user.only_approved"))
-        return view_func(*args, **kwargs)
-
-    return decorated_approved_view
 
 
 def process_uploaded_file(
@@ -163,6 +143,7 @@ def process_uploaded_file(
 @metadata_bp.route("/metadata_form", endpoint="metadata_form")
 @login_required
 @approved_required
+@admin_or_owner_required
 def metadata_form():
     my_buckets = {}
     map_key = os.environ.get("GOOGLE_MAP_API_KEY")
@@ -187,62 +168,83 @@ def metadata_form():
     has_empty_fastqc_report = False
     lotus2_report = []
     rscripts_report = []
+    pdf_report = False
+    is_owner = False
 
     if process_id:
         process_data = SequencingUpload.get(process_id)
+        if process_data is not None:
+            is_owner = current_user.id == process_data["user_id"]
 
-        nr_files_per_sequence = process_data["nr_files_per_sequence"]
-        regions = process_data["regions"]
+            nr_files_per_sequence = process_data["nr_files_per_sequence"]
+            regions = process_data["regions"]
 
-        samples_data = SequencingUpload.get_samples(process_id)
+            samples_data = SequencingUpload.get_samples(process_id)
 
-        samples_data = sanitize_data(samples_data)
+            samples_data = sanitize_data(samples_data)
 
-        # lets create the extra data dictionary
-        # Iterate through each sample in samples_data
-        for sample in samples_data:
-            # Ensure that both 'SampleID' and 'extracolumns_json'
-            # exist in the sample
-            if "SampleID" in sample:
-                extracolumns_json = sample.get("extracolumns_json")
+            # lets create the extra data dictionary
+            # Iterate through each sample in samples_data
+            for sample in samples_data:
+                # Ensure that both 'SampleID' and 'extracolumns_json'
+                # exist in the sample
+                if "SampleID" in sample:
+                    extracolumns_json = sample.get("extracolumns_json")
 
-                if extracolumns_json:  # Check if extracolumns_json is not None
-                    # Add to extra_data dictionary
-                    extra_data[sample["SampleID"]] = extracolumns_json
+                    if (
+                        extracolumns_json
+                    ):  # Check if extracolumns_json is not None
+                        # Add to extra_data dictionary
+                        extra_data[sample["SampleID"]] = extracolumns_json
 
-                    # Update the set of unique keys with keys from the
-                    # extracolumns_json dictionary
-                    extra_data_keys.update(extracolumns_json.keys())
-        # lets delete the extracolumns_json from the samples_data
-        for sample in samples_data:
-            if "extracolumns_json" in sample:
-                del sample["extracolumns_json"]
-        sequencer_ids = SequencingUpload.get_sequencer_ids(process_id)
-        valid_samples = SequencingUpload.validate_samples(process_id)
-        missing_sequencing_ids = SequencingUpload.check_missing_sequencer_ids(
-            process_id
-        )
-        samples_data_complete = (
-            SequencingUpload.get_samples_with_sequencers_and_files(process_id)
-        )
+                        # Update the set of unique keys with keys from the
+                        # extracolumns_json dictionary
+                        extra_data_keys.update(extracolumns_json.keys())
+            # lets delete the extracolumns_json from the samples_data
+            for sample in samples_data:
+                if "extracolumns_json" in sample:
+                    del sample["extracolumns_json"]
+            sequencer_ids = SequencingUpload.get_sequencer_ids(process_id)
+            valid_samples = SequencingUpload.validate_samples(process_id)
+            missing_sequencing_ids = (
+                SequencingUpload.check_missing_sequencer_ids(process_id)
+            )
+            samples_data_complete = (
+                SequencingUpload.get_samples_with_sequencers_and_files(
+                    process_id
+                )
+            )
 
-        # check if we have files without fastq report
-        has_empty_fastqc_report = any(
-            not file.get("fastqc_report")
-            for entry in samples_data_complete
-            for sequencer in entry.get("sequencer_ids", [])
-            for file in sequencer.get("uploaded_files", [])
-        )
+            # check if we have files without fastq report
+            has_empty_fastqc_report = any(
+                not file.get("fastqc_report")
+                for entry in samples_data_complete
+                for sequencer in entry.get("sequencer_ids", [])
+                for file in sequencer.get("uploaded_files", [])
+            )
 
-        multiqc_report_exists = check_multiqc_report(process_id)
-        mapping_files_exist = SequencingUpload.check_mapping_files_exist(
-            process_id
-        )
+            multiqc_report_exists = check_multiqc_report(process_id)
+            mapping_files_exist = SequencingUpload.check_mapping_files_exist(
+                process_id
+            )
 
-        lotus2_report = SequencingUpload.check_lotus2_reports_exist(process_id)
-        rscripts_report = SequencingUpload.check_rscripts_reports_exist(
-            process_id
-        )
+            lotus2_report = SequencingUpload.check_lotus2_reports_exist(
+                process_id
+            )
+            rscripts_report = SequencingUpload.check_rscripts_reports_exist(
+                process_id
+            )
+            # check if pdf report exists
+            r_scripts_report = os.path.join(
+                "seq_processed",
+                process_data["uploads_folder"],
+                "r_output",
+                "report.pdf",
+            )
+            if os.path.isfile(r_scripts_report):
+                pdf_report = True
+        else:
+            return redirect(url_for("metadata.metadata_form"))
 
     return render_template(
         "metadata_form.html",
@@ -268,6 +270,8 @@ def metadata_form():
         lotus2_report=lotus2_report,
         has_empty_fastqc_report=has_empty_fastqc_report,
         rscripts_report=rscripts_report,
+        pdf_report=pdf_report,
+        is_owner=is_owner,
     )
 
 
@@ -278,6 +282,7 @@ def metadata_form():
 )
 @login_required
 @approved_required
+@admin_or_owner_required
 def metadata_validate_row():
     # we have panda available, and because we want to reuse the same
     # existing functions, we want to put all the data from the form
@@ -333,11 +338,11 @@ def metadata_validate_row():
 )
 @login_required
 @approved_required
+@admin_or_owner_required
 def upload_metadata_file():
     file = request.files.get("file")
     using_scripps = request.form.get("using_scripps")
     process_id = request.form.get("process_id")
-    multiple_sequencing_runs = request.form.get("Multiple_sequencing_runs")
     if not file:
         return jsonify({"error": "No file uploaded"}), 400
 
@@ -346,7 +351,8 @@ def upload_metadata_file():
     file_extension = os.path.splitext(filename)[1].lower()
 
     if file_extension == ".csv":
-        df = pd.read_csv(file)
+        df = pd.read_csv(file, sep=None, engine="python")
+        logger.info(df)
     elif file_extension in [".xls", ".xlsx"]:
         df = pd.read_excel(file, engine="openpyxl")
     else:
@@ -371,7 +377,7 @@ def upload_metadata_file():
         df["Longitude"] = df["Longitude"].astype(str).str.rstrip("°")
 
     # Check metadata using the helper function
-    result = check_metadata(df, using_scripps, multiple_sequencing_runs)
+    result = check_metadata(df, using_scripps)
 
     expected_columns_data = get_columns_data(exclude=True)
     expected_columns = list(expected_columns_data.keys())
@@ -490,6 +496,7 @@ def add_sequencer_id():
 )
 @login_required
 @approved_required
+@admin_or_owner_required
 def upload_sequencer_ids_file():
     file = request.files.get("file")
     process_id = request.form.get("process_id")
@@ -529,12 +536,31 @@ def upload_sequencer_ids_file():
 )
 @login_required
 @approved_required
+@admin_or_owner_required
 def sequencing_confirm_metadata():
     process_id = request.form.get("process_id")
 
     SequencingUpload.mark_upload_confirmed_as_true(process_id)
 
     return (jsonify({"result": 1}), 200)
+
+
+@metadata_bp.route(
+    "/sequencing_revert_confirm_metadata",
+    methods=["GET"],
+    endpoint="sequencing_revert_confirm_metadata",
+)
+@login_required
+@approved_required
+@admin_required
+def sequencing_revert_confirm_metadata():
+    process_id = request.args.get("process_id")
+    logger.info("here")
+    SequencingUpload.mark_upload_confirmed_as_false(process_id)
+
+    return redirect(
+        url_for("metadata.metadata_form", process_id=process_id) + "#step_5"
+    )
 
 
 @metadata_bp.route(
@@ -580,6 +606,7 @@ def create_xls_template():
 )
 @login_required
 @approved_required
+@admin_or_owner_required
 def check_filename_matching():
     process_id = request.form.get("process_id")
     filename = request.form.get("filename")
@@ -710,6 +737,7 @@ def sequencing_upload_chunk():
 )
 @login_required
 @approved_required
+@admin_or_owner_required
 def sequencing_upload_chunk_check():
     process_id = request.args.get("process_id")
     chunk_number = request.args.get("resumableChunkNumber")
@@ -746,6 +774,7 @@ def sequencing_upload_chunk_check():
 )
 @login_required
 @approved_required
+@admin_or_owner_required
 def sequencing_file_upload_completed():
     process_id = request.form.get("process_id")
     if process_id:
@@ -809,19 +838,6 @@ def sequencing_file_upload_completed():
 
 
 @metadata_bp.route(
-    "/metadata_uploads",
-    endpoint="metadata_uploads",
-)
-@login_required
-@approved_required
-def metadata_uploads():
-
-    return render_template(
-        "metadata_uploads.html", metadata_uploads=metadata_uploads
-    )
-
-
-@metadata_bp.route(
     "/user_uploads_v2", methods=["GET"], endpoint="user_uploads_v2"
 )
 @login_required
@@ -873,7 +889,7 @@ def delete_upload_process_v2():
     process_id = request.args.get("process_id")
     return_to = request.args.get("return_to")
     process_data = SequencingUpload.get(process_id)
-    uploads_folder = process_data["uploads_folder"]
+    uploads_folder = process_data["user_id"]
     if uploads_folder:
         delete_bucket_folder("uploads/" + uploads_folder)
     SequencingUpload.delete_upload_and_files(process_id)
@@ -905,6 +921,7 @@ def show_fastqc_report():
 )
 @login_required
 @approved_required
+@admin_or_owner_required
 def show_multiqc_report():
     process_id = request.args.get("process_id")
     region = request.args.get("region")
@@ -994,6 +1011,7 @@ def delete_multiqc_report():
 )
 @login_required
 @approved_required
+@admin_or_owner_required
 def confirm_files_uploading_finished():
     process_id = request.form.get("process_id")
     SequencingUpload.update_field(
@@ -1015,6 +1033,49 @@ def confirm_files_uploading_finished():
 def generate_multiqc_report():
     process_id = request.form.get("process_id")
     init_create_multiqc_report(process_id)
+    return []
+
+
+@metadata_bp.route(
+    "/prepare_pdf_report",
+    methods=["GET"],
+    endpoint="prepare_pdf_report",
+)
+@login_required
+@admin_required
+@approved_required
+def prepare_pdf_report():
+    process_id = request.args.get("process_id")
+    create_pdf_report(process_id)
+    return redirect(
+        url_for("metadata.metadata_form", process_id=process_id) + "#step_14"
+    )
+
+
+@metadata_bp.route(
+    "/download_pdf_report",
+    methods=["GET"],
+    endpoint="download_pdf_report",
+)
+@login_required
+@admin_required
+@approved_required
+def download_pdf_report():
+    process_id = request.args.get("process_id")
+    process_data = SequencingUpload.get(process_id)
+    uploads_folder = process_data["uploads_folder"]
+
+    pdf_report = os.path.join(
+        "seq_processed",
+        uploads_folder,
+        "r_output",
+        "report.pdf",
+    )
+    abs_pdf_report = os.path.abspath(pdf_report)
+
+    if os.path.isfile(abs_pdf_report):
+        return send_file(abs_pdf_report, as_attachment=True)
+
     return []
 
 
@@ -1071,6 +1132,7 @@ def generate_mapping_files():
 )
 @login_required
 @approved_required
+@admin_or_owner_required
 def show_mapping_file():
     process_id = request.args.get("process_id")
     region = request.args.get("region")
@@ -1246,14 +1308,11 @@ def generate_lotus2_report():
 @admin_required
 def delete_lotus2_report():
     process_id = request.form.get("process_id")
-    region = request.form.get("region")
     analysis_type_id = request.form.get("analysis_type_id")
     process_data = SequencingUpload.get(process_id)
 
     input_dir = "seq_processed/" + process_data["uploads_folder"]
-    delete_generated_lotus2_report(
-        process_id, input_dir, region, analysis_type_id
-    )
+    delete_generated_lotus2_report(process_id, input_dir, analysis_type_id)
 
     return jsonify({"result": 1})
 
@@ -1386,6 +1445,7 @@ def generate_all_region_rscripts_reports():
 )
 @login_required
 @approved_required
+@admin_or_owner_required
 def show_report_outcome():
     process_id = request.args.get("process_id")
     analysis_type_id = request.args.get("analysis_type_id")
@@ -1403,6 +1463,8 @@ def show_report_outcome():
         "filtered_rarefaction",
         "physeq_decontam",
         "metadata_chaorichness",
+        "physeq_by_genus",
+        "contaminants",
     ]:
         # Fetch process data from SequencingUpload model
         process_data = SequencingUpload.get(process_id)
@@ -1486,6 +1548,8 @@ def show_report_outcome():
             "filtered_rarefaction",
             "physeq_decontam",
             "metadata_chaorichness",
+            "physeq_by_genus",
+            "contaminants",
         ]:
 
             # Check the rscripts report details
@@ -1521,6 +1585,9 @@ def show_report_outcome():
                         report_folder, "control_vs_sample.pdf"
                     )
                     return send_file(file_path)
+                elif file_type == "contaminants":
+                    file_path = os.path.join(report_folder, "contaminants.csv")
+                    return send_file(file_path)
                 elif file_type == "filtered_rarefaction":
                     file_path = os.path.join(
                         report_folder, "filtered_rarefaction.pdf"
@@ -1536,6 +1603,20 @@ def show_report_outcome():
                         report_folder, "metadata_chaorichness.csv"
                     )
                     return send_file(file_path, as_attachment=True)
+                elif file_type == "physeq_by_genus":
+                    file_path = os.path.join(
+                        report_folder, "ecm_physeq_by_genus.pdf"
+                    )
+                    if rscipts_region_data["analysis_type"] in [
+                        "SSU_dada2",
+                        "SSU_vsearch",
+                        "SSU_eukaryome",
+                    ]:
+                        file_path = os.path.join(
+                            report_folder, "amf_physeq_by_genus.pdf"
+                        )
+                    return send_file(file_path, as_attachment=True)
+
                 elif file_type == "rscripts_command_outcome":
                     # fix this !!!
                     command_output = rscipts_region_data[
@@ -1825,3 +1906,391 @@ def export_all_richness_data():
         4, export_path + "/richness_ITS1.csv"
     )
     return jsonify({"done": 1}), 200
+
+
+@metadata_bp.route(
+    "/generate_all_lotus2_reports",
+    methods=["GET"],
+    endpoint="generate_all_lotus2_reports",
+)
+@login_required
+@approved_required
+@admin_required
+def generate_all_lotus2_reports():
+    anti_nuke_env = os.environ.get("ANTI_NUKE_STRING")
+    # process_id = request.form.get("process_id")
+    analysis_type_id = request.args.get("analysis_type_id")
+    anti_nuke = request.args.get("anti_nuke")
+    from_id = request.args.get("from_id", default=None)
+    to_id = request.args.get("to_id", default=None)
+    # Convert to integers only if the parameters are provided
+    if from_id is not None:
+        try:
+            from_id = int(from_id)
+        except ValueError:
+            raise ValueError(
+                "Invalid 'from_id' parameter. Must be an integer."
+            )
+
+    if to_id is not None:
+        try:
+            to_id = int(to_id)
+        except ValueError:
+            raise ValueError("Invalid 'to_id' parameter. Must be an integer.")
+
+    if (
+        anti_nuke_env is not None
+        and anti_nuke_env != ""
+        and anti_nuke_env == anti_nuke
+    ):
+        if analysis_type_id is not None:
+            init_generate_all_lotus2_reports(analysis_type_id, from_id, to_id)
+        else:
+            return jsonify({"result": "Something wrong with your input"})
+    else:
+        return jsonify({"result": "Not passing antinuke"})
+
+    return jsonify({"done": 1}), 200
+
+
+@metadata_bp.route(
+    "/delete_all_lotus2_reports",
+    methods=["GET"],
+    endpoint="delete_all_lotus2_reports",
+)
+@login_required
+@approved_required
+@admin_required
+def delete_all_lotus2_reports():
+    anti_nuke_env = os.environ.get("ANTI_NUKE_STRING")
+    analysis_type_id = request.args.get("analysis_type_id")
+    anti_nuke = request.args.get("anti_nuke")
+    from_id = request.args.get("from_id", default=None)
+    to_id = request.args.get("to_id", default=None)
+    # Convert to integers only if the parameters are provided
+    if from_id is not None:
+        try:
+            from_id = int(from_id)
+        except ValueError:
+            raise ValueError(
+                "Invalid 'from_id' parameter. Must be an integer."
+            )
+
+    if to_id is not None:
+        try:
+            to_id = int(to_id)
+        except ValueError:
+            raise ValueError("Invalid 'to_id' parameter. Must be an integer.")
+
+    if (
+        anti_nuke_env is not None
+        and anti_nuke_env != ""
+        and anti_nuke_env == anti_nuke
+        and analysis_type_id is not None
+    ):
+        processes_data = SequencingUpload.get_all()
+
+        for process_data in processes_data:
+
+            process_id = process_data["id"]
+            # Check if the process_id satisfies the given conditions
+            from_id = int(from_id)
+            to_id = int(to_id)
+            if (
+                (from_id is None and to_id is None)
+                or (
+                    from_id is not None
+                    and to_id is None
+                    and process_id >= from_id
+                )
+                or (
+                    from_id is None
+                    and to_id is not None
+                    and process_id <= to_id
+                )
+                or (
+                    from_id is not None
+                    and to_id is not None
+                    and from_id <= process_id <= to_id
+                )
+            ):
+                logger.info("The process id is " + str(process_id))
+
+                for region_type, analysis_list in process_data[
+                    "analysis"
+                ].items():
+                    for analysis in analysis_list:
+                        logger.info(
+                            "The analysis id is "
+                            + str(analysis["analysis_id"])
+                        )
+                        logger.info(
+                            "The analysis type id is "
+                            + str(analysis["analysis_type_id"])
+                        )
+                        if (
+                            analysis["analysis_id"] is not None
+                            and analysis["lotus2_status"] == "Finished"
+                            and str(analysis_type_id)
+                            == str(analysis["analysis_type_id"])
+                        ):
+                            logger.info("And we will delete it")
+                            input_dir = (
+                                "seq_processed/"
+                                + process_data["uploads_folder"]
+                            )
+                            delete_generated_lotus2_report(
+                                process_data["id"], input_dir, analysis_type_id
+                            )
+    else:
+        return jsonify({"result": "Not passing antinuke"})
+    return jsonify({"result": 1})
+
+
+@metadata_bp.route(
+    "/get_sequencers_sample", methods=["GET"], endpoint="get_sequencers_sample"
+)
+@login_required
+@approved_required
+def get_sequencers_sample():
+    process_data = None
+    process_id = request.args.get("process_id", "")
+    if process_id:
+        process_data = SequencingUpload.get(process_id)
+        # logger.info(process_data)
+        if process_data is not None:
+            samples_data = SequencingUpload.get_samples(process_id)
+            # logger.info(samples_data)
+
+    # Define CSV headers
+    fieldnames = ["SampleID", "Region", "SequencerID", "Index_1", "Index_2"]
+
+    # Create CSV data
+    csv_data = []
+    for sample in samples_data:
+        for region in process_data["regions"]:
+            csv_data.append(
+                {
+                    "SampleID": sample["SampleID"],
+                    "Region": region,
+                    "SequencerID": "",  # Empty field
+                    "Index_1": "",  # Empty field
+                    "Index_2": "",  # Empty field
+                }
+            )
+
+    # Generate CSV response
+    def generate():
+        yield ",".join(fieldnames) + "\n"  # Header row
+        for row in csv_data:
+            yield ",".join([str(row[field]) for field in fieldnames]) + "\n"
+
+    return Response(
+        generate(),
+        mimetype="text/csv",
+        headers={
+            "Content-Disposition": "attachment; filename=sequencer_ids.csv"
+        },
+    )
+
+
+@metadata_bp.route(
+    "/download_metadata",
+    methods=["GET"],
+    endpoint="download_metadata",
+)
+@login_required
+@approved_required
+@admin_or_owner_required
+def download_metadata():
+    process_id = request.args.get("process_id")
+    process_data = SequencingUpload.get(process_id)
+
+    if process_data is None:
+        return "Process data not found", 404
+
+    samples_data = SequencingUpload.get_samples(process_id)
+
+    # Define CSV headers (Sample columns first, Process columns last)
+    sample_columns = [
+        "SampleID",
+        "Site_name",
+        "Latitude",
+        "Longitude",
+        "Vegetation",
+        "Land_use",
+        "Agricultural_land",
+        "Ecosystem",
+        "ResolveEcoregion",
+        "BaileysEcoregion",
+        "Grid_Size",
+        "Soil_depth",
+        "Transport_refrigeration",
+        "Drying",
+        "Date_collected",
+        "DNA_concentration_ng_ul",
+        "Elevation",
+        "Sample_type",
+        "Sample_or_Control",
+        "IndigenousPartnership",
+        "Notes",
+    ]
+
+    process_columns = [
+        "Country",
+        "Expedition_lead",
+        "Collaborators",
+    ]
+
+    fieldnames = (
+        sample_columns + process_columns
+    )  # Order: Sample first, Process last
+
+    def safe_get(data_dict, key):
+        # Ensures missing keys or None values are
+        # # replaced with an empty string."""
+        return str(data_dict.get(key, "") or "")
+
+    def generate():
+        # Use csv.writer to handle quoting
+        import io
+
+        output = io.StringIO()
+        writer = csv.writer(
+            output, quoting=csv.QUOTE_MINIMAL
+        )  # Ensures proper quoting
+
+        # Write header row
+        writer.writerow(fieldnames)
+        yield output.getvalue()
+        output.seek(0)
+        output.truncate(0)
+
+        for sample in samples_data:
+            row = [safe_get(sample, col) for col in sample_columns] + [
+                safe_get(process_data, col) for col in process_columns
+            ]
+
+            writer.writerow(row)
+            yield output.getvalue()
+            output.seek(0)
+            output.truncate(0)
+
+    filename = f"metadata_{process_data.get('project_id', 'unknown')}.csv"
+    return Response(
+        generate(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@metadata_bp.route(
+    "/edit_sample",
+    methods=["GET"],
+    endpoint="edit_sample",
+)
+@login_required
+@approved_required
+@admin_or_owner_required
+def edit_sample():
+    process_id = request.args.get("process_id")
+    sample_id = request.args.get("sample_id")
+
+    # Retreive the data for the sample
+    expected_columns = get_columns_data(exclude=False)
+    sample = SequencingSample.get(sample_id)
+
+    # Check that sample_id is part of this process_id
+    if int(sample.sequencingUploadId) != int(process_id):
+        logger.info(sample.sequencingUploadId)
+        return jsonify({"result": "Incorrect sample or process_id"})
+
+    logger.info(process_id)
+    logger.info(sample)
+
+    return render_template(
+        "metadata_edit_sample.html",
+        expected_columns=expected_columns,
+        sample=sample,
+    )
+
+
+@metadata_bp.route(
+    "/update_sample",
+    methods=["POST"],
+    endpoint="update_sample",
+)
+@login_required
+@approved_required
+@admin_or_owner_required
+def update_sample():
+    process_id = request.form.get("process_id")
+    sample_id = request.form.get("sample_id")
+
+    sample = SequencingSample.get(sample_id)
+
+    if not sample:
+        return jsonify({"result": "Sample not found"}), 404
+
+    if int(sample.sequencingUploadId) != int(process_id):
+        return jsonify({"result": "Incorrect sample or process_id"}), 400
+
+    # Collect the data from the form
+    datadict = request.form.to_dict()
+
+    # Update the sample
+    if SequencingSample.update(sample_id, datadict):
+        return jsonify({"success": True}), 200
+    else:
+        return jsonify({"result": "Failed to update sample"}), 500
+
+
+@metadata_bp.route(
+    "/start_sync_process",
+    methods=["GET"],
+    endpoint="start_sync_process",
+)
+@login_required
+@approved_required
+@admin_required
+def start_sync_process():
+    process_id = request.args.get("process_id")
+    # sync to the external share service
+    from helpers.share_directory import init_sync_project
+
+    init_sync_project(process_id)
+    return redirect(
+        url_for("metadata.metadata_form", process_id=process_id) + "#step_14"
+    )
+
+
+@metadata_bp.route(
+    "/create_share_link",
+    methods=["GET"],
+    endpoint="create_share_link",
+)
+@login_required
+@approved_required
+@admin_required
+def create_share_link():
+    process_id = request.args.get("process_id")
+    process_data = SequencingUpload.get(process_id)
+    project_id = process_data["project_id"]
+
+    # sync to the external share service
+    from helpers.share_directory import create_share
+
+    # create the share link
+    share_url = create_share(
+        "seq_processed/" + process_data["uploads_folder"] + "/share",
+        project_id,
+    )
+    if share_url:
+        logger.info("The share url is " + share_url)
+        SequencingUpload.update_field(process_id, "share_url", share_url)
+    else:
+        logger.info("The share url could not be returned")
+
+    return redirect(
+        url_for("metadata.metadata_form", process_id=process_id) + "#step_14"
+    )
