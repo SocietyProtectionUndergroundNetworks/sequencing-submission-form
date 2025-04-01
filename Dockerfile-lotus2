@@ -81,13 +81,16 @@ RUN /home/condauser/miniconda/bin/conda install -n lotus2_env -y gcc make
 RUN /home/condauser/miniconda/bin/mamba install -n lotus2_env -c bioconda sdm=2.18 -y
 
 # Copy the autoInstall.pl script from the local file system to the Docker image
-COPY config/docker/lotus2/autoInstall.pl /home/condauser/miniconda/envs/lotus2_env/share/lotus2-2.34.1-0/autoInstall2.pl
+COPY config/docker/lotus2/autoInstall.pl /home/condauser/miniconda/envs/lotus2_env/share/lotus2-2.34.1-1/autoInstall2.pl
 
 # Make the autoInstall.pl script executable
-# RUN chmod +x /home/condauser/miniconda/envs/lotus2_env/share/lotus2-2.34.1-0/autoInstall2.pl
+USER root
+RUN chown condauser:condauser /home/condauser/miniconda/envs/lotus2_env/share/lotus2-2.34.1-1/autoInstall2.pl
+RUN chmod +x /home/condauser/miniconda/envs/lotus2_env/share/lotus2-2.34.1-1/autoInstall2.pl
+USER condauser
 
 # Run the autoInstall.pl script directly
-RUN /home/condauser/miniconda/envs/lotus2_env/share/lotus2-2.34.1-1/autoInstall3.pl --overidePrevious=2 --install_ITS=1 --accept_silva --get_UTAX=1 --refDBinstall=2 > /home/condauser/autoInstall.log 2>&1
+RUN /home/condauser/miniconda/envs/lotus2_env/share/lotus2-2.34.1-1/autoInstall2.pl --overidePrevious=2 --install_ITS=1 --accept_silva --get_UTAX=1 --refDBinstall=2 > /home/condauser/autoInstall.log 2>&1
 
 # Clean up conda packages to reduce image size
 RUN conda clean -afy
