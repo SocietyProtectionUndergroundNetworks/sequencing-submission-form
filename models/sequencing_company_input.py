@@ -157,8 +157,6 @@ class SequencingCompanyInput:
                     problem_messages.append(
                         "Project cannot be found in known buckets"
                     )
-            if pd.isna(row.get("sample_number")):
-                problem_messages.append("Missing Sample Number")
             if pd.isna(row.get("sample_id")):
                 problem_messages.append("Missing Sample_ID")
             if pd.isna(row.get("sequencer_id")):
