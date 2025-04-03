@@ -4,7 +4,6 @@ from redis import Redis
 from redis.exceptions import LockError
 from contextlib import contextmanager
 from helpers.bucket import (
-    download_bucket_contents,
     bucket_chunked_upload_v2,
     bucket_upload_folder_v2,
 )
@@ -122,11 +121,6 @@ def bucket_upload_folder_v2_async(
 @celery_app.task
 def create_fastqc_report_async(fastq_file, input_folder, bucket, region):
     create_fastqc_report(fastq_file, input_folder, bucket, region)
-
-
-@celery_app.task
-def download_bucket_contents_async(bucket):
-    download_bucket_contents(bucket)
 
 
 @celery_app.task

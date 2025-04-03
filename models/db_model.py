@@ -80,9 +80,6 @@ class BucketTable(Base):
     __tablename__ = "buckets"
 
     id = Column(String(250), primary_key=True)
-    archive_file = Column(String(255), nullable=True)
-    archive_file_created_at = Column(DateTime, nullable=True)
-    archive_file_creation_progress = Column(Integer, nullable=True)
     cohort = Column(String(255), nullable=True)
 
 

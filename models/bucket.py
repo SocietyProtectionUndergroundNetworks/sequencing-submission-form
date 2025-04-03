@@ -71,31 +71,6 @@ class Bucket:
             ]
 
     @classmethod
-    def update_progress(cls, id, progress):
-        with session_scope() as session:
-            bucket = session.query(BucketTable).filter_by(id=id).first()
-
-            if not bucket:
-                return False
-
-            bucket.archive_file_creation_progress = progress
-            session.commit()
-
-            return True
-
-    @classmethod
-    def update_archive_filename(cls, id, filename):
-        with session_scope() as session:
-            bucket = session.query(BucketTable).filter_by(id=id).first()
-
-            if bucket:
-                bucket.archive_file = filename
-                session.commit()
-                return True
-            else:
-                return False
-
-    @classmethod
     def update_cohort(cls, id, cohort):
         with session_scope() as session:
             bucket = session.query(BucketTable).filter_by(id=id).first()
