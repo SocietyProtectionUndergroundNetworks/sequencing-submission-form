@@ -247,49 +247,53 @@ class SequencingSequencerId:
         with session_scope() as session:
             matching_ids = []
 
-            # Ensure the filename ends with .fastq.gz and strip it off
+            # Ensure the filename ends
+            # with .fastq.gz or .fq.gz and strip it off
             if filename.endswith(".fastq.gz"):
                 filename_no_ext = filename[:-9]  # Remove the .fastq.gz suffix
+            elif filename.endswith(".fq.gz"):
+                filename_no_ext = filename[:-6]  # Remove the .fq.gz suffix
+            else:
+                # Return empty list if filename
+                # doesn't match expected extensions
+                return matching_ids
 
-                # Query to get all ids and SequencerIDs
-                # Start building the query
-                query = (
-                    session.query(
-                        SequencingSequencerIDsTable.id,
-                        SequencingSequencerIDsTable.SequencerID,
-                    )
-                    .join(SequencingSamplesTable)
-                    .filter(
-                        SequencingSamplesTable.sequencingUploadId == process_id
-                    )
+            # Start building the query
+            query = (
+                session.query(
+                    SequencingSequencerIDsTable.id,
+                    SequencingSequencerIDsTable.SequencerID,
                 )
+                .join(SequencingSamplesTable)
+                .filter(
+                    SequencingSamplesTable.sequencingUploadId == process_id
+                )
+            )
 
-                # Apply additional filter if sequencing_run is not None
-                if sequencing_run is not None:
-                    query = query.filter(
-                        SequencingSamplesTable.SequencingRun == sequencing_run
-                    )
+            # Execute the query and retrieve results
+            sequencer_ids = query.all()
 
-                # Execute the query and retrieve results
-                sequencer_ids = query.all()
+            # Extract id and SequencerID pairs from the query result
+            sequencer_ids = [(id, seq_id) for id, seq_id in sequencer_ids]
 
-                # Extract id and SequencerID pairs from the query result
-                sequencer_ids = [(id, seq_id) for id, seq_id in sequencer_ids]
-
-                # Find matching sequencer IDs and return the corresponding ids
-                for id, seq_id in sequencer_ids:
-                    if filename_no_ext.startswith(seq_id):
-                        matching_ids.append(id)
+            # Find matching sequencer IDs and return the corresponding ids
+            for id, seq_id in sequencer_ids:
+                if filename_no_ext.startswith(seq_id):
+                    matching_ids.append(id)
 
             return matching_ids
 
     @classmethod
     def generate_new_filename(cls, process_id, filename):
         with session_scope() as session:
-
-            # Ensure the filename ends with .fastq.gz and strip it off
+            # Ensure the filename ends
+            # with .fastq.gz or .fq.gz and strip it off
             if filename.endswith(".fastq.gz"):
                 filename_no_ext = filename[:-9]  # Remove the .fastq.gz suffix
+                extension = ".fastq.gz"
+            elif filename.endswith(".fq.gz"):
+                filename_no_ext = filename[:-6]  # Remove the .fq.gz suffix
+                extension = ".fq.gz"
             else:
                 # Return None if the filename doesn't have the correct suffix
                 return None
@@ -310,13 +314,14 @@ class SequencingSequencerId:
 
             # Iterate through the results to find the matching record
             for sample_id, sequencer_id, region in sequencer_records:
-                if filename_no_ext.startswith(
-                    sequencer_id
-                ):  # Match against the full name without the extension
+                if filename_no_ext.startswith(sequencer_id):
                     # Generate the new filename
                     region = region.replace(" ", "_")
-                    new_filename = filename.replace(
-                        sequencer_id, f"{sample_id}_{region}_"
+                    new_filename = (
+                        filename_no_ext.replace(
+                            sequencer_id, f"{sample_id}_{region}_"
+                        )
+                        + extension
                     )
                     return new_filename
 

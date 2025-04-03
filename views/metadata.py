@@ -81,7 +81,6 @@ def process_uploaded_file(
     matching_sequencer_ids = SequencingSequencerId.get_matching_sequencer_ids(
         process_id, filename, sequencing_run
     )
-
     # Assign the file to the correct sequencer in
     # the database and process it further
     if len(matching_sequencer_ids) == 1:
@@ -1231,7 +1230,10 @@ def sequencing_process_server_file():
                 break
 
             # Check if the file ends with '.fastq.gz'
-            if file_path.is_file() and file_path.name.endswith(".fastq.gz"):
+            if file_path.is_file() and (
+                file_path.name.endswith(".fastq.gz")
+                or file_path.name.endswith(".fq.gz")
+            ):
 
                 actual_md5 = calculate_md5(file_path)
 

@@ -48,14 +48,16 @@ def check_fastqc_report(filename, region, upload_folder, return_format="html"):
     logger = logging.getLogger(__name__)
 
     if filename:
-        # Only process files that end with fastq.gz
-        if not filename.endswith("fastq.gz"):
-            logger.info("File does not end with fastq.gz, returning False.")
+        # Only process files that end with fastq.gz or fq.gz
+        if not (filename.endswith("fastq.gz") or filename.endswith("fq.gz")):
+            logger.info(
+                "File does not end with fastq.gz or fq.gz, returning False."
+            )
             return False
 
         # Sanitize the filename by removing the .gz extension
         # and replacing other unwanted characters
-        base_filename = filename.rsplit(".fastq.gz", 1)[0] + "_fastqc"
+        base_filename = filename.rsplit(".gz", 1)[0] + "_fastqc"
 
         # Define the paths for the FastQC report files
         html_file = (
