@@ -357,17 +357,19 @@ class SequencingUpload:
     ):
         # Initialize a list to keep regions in order
         regions = []
-
-        # Get region for the first pair of primers if provided
-        if region_1_forward_primer and region_1_reverse_primer:
+        # Check for empty string primers and return "Other" region
+        if region_1_forward_primer == "" and region_1_reverse_primer == "":
+            regions.append("Other")
+        elif region_1_forward_primer and region_1_reverse_primer:
             region_1 = cls.get_region(
                 region_1_forward_primer, region_1_reverse_primer
             )
             if region_1:
                 regions.append(region_1)
 
-        # Get region for the second pair of primers if provided
-        if region_2_forward_primer and region_2_reverse_primer:
+        if region_2_forward_primer == "" and region_2_reverse_primer == "":
+            regions.append("Other")
+        elif region_2_forward_primer and region_2_reverse_primer:
             region_2 = cls.get_region(
                 region_2_forward_primer, region_2_reverse_primer
             )
