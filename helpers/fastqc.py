@@ -56,8 +56,22 @@ def check_fastqc_report(filename, region, upload_folder, return_format="html"):
             return False
 
         # Sanitize the filename by removing the .gz extension
-        # and replacing other unwanted characters
-        base_filename = filename.rsplit(".gz", 1)[0] + "_fastqc"
+        if filename.endswith(".fastq.gz"):
+            base_filename = filename.rsplit(".fastq.gz", 1)[
+                0
+            ]  # Remove the .fastq.gz suffix
+        elif filename.endswith(".fq.gz"):
+            base_filename = filename.rsplit(".fq.gz", 1)[
+                0
+            ]  # Remove the .fq.gz suffix
+        else:
+            # If the filename doesn't match expected extensions, return False
+            return False
+
+        # Avoid appending extra underscores by
+        # checking if the filename already has '_fastqc'
+        if not base_filename.endswith("_fastqc"):
+            base_filename += "_fastqc"
 
         # Define the paths for the FastQC report files
         html_file = (
