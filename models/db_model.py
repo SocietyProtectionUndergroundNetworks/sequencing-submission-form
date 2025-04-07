@@ -221,7 +221,6 @@ class SequencingSamplesTable(Base):
     Elevation = Column(String(255), nullable=True)
     Sample_type = Column(String(255), nullable=True)
     Sample_or_Control = Column(String(255), nullable=True)
-    SequencingRun = Column(String(255), nullable=True)
     IndigenousPartnership = Column(Boolean, default=False)
     Notes = Column(String(255), nullable=True)
     sequencer_ids = relationship(
@@ -246,6 +245,7 @@ class SequencingSequencerIDsTable(Base):
     )
     SequencerID = Column(String(255), nullable=True)
     Region = Column(String(25), nullable=True)
+    sequencing_run = Column(String(255), nullable=True)
     Index_1 = Column(String(100), nullable=True)
     Index_2 = Column(String(100), nullable=True)
 

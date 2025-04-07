@@ -98,9 +98,6 @@
     "help_tip": "Required. Indicate ‘True sample' if the sample is a collected sample, 'Control' if sample is a negative control",
     "required": "True"
   },
-  "SequencingRun": {
-    "help_tip": "Leave blank unless project samples run across multiple different sequencing runs."
-  },
   "Notes": {
     "help_tip": "Any additional notes about the sample.",
     "check_function": "check_notes"
