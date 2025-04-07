@@ -538,6 +538,7 @@
                       <th scope="col" class="bg-gray">SampleID</th>
                       <th scope="col" class="bg-gray"><span class="grey">____</span>Sequencer<span class="grey">_</span>ID<span class="grey">____</span></th>
                       <th scope="col" class="bg-gray"><span class="grey">____</span>Region<span class="grey">____</span></th>
+                      <th scope="col" class="bg-gray"><span class="grey">____</span>SequencingRun<span class="grey">____</span></th>
                       <th scope="col" class="bg-gray"><span class="grey">____</span>Index_1<span class="grey">____</span></th>
                       <th scope="col" class="bg-gray"><span class="grey">____</span>Index_2<span class="grey">____</span></th>
                       <th scope="col" class="bg-gray">Files</th>
@@ -571,6 +572,9 @@
                                         </td>
                                         <td id="R_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                                             {{ sequencer.Region }}
+                                        </td>
+                                        <td id="SR_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                                          {{ sequencer.sequencing_run }}
                                         </td>
                                         <td id="I1_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                                             {{ sequencer.Index_1 if sequencer.Index_1 is not none else 'N/A' }}
@@ -699,6 +703,9 @@
                                         <td id="R_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                                             {{ sequencer.Region }}
                                         </td>
+                                        <td id="SR_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                                          {{ sequencer.sequencing_run }}
+                                        </td>                                        
                                         <td id="I1_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                                             {{ sequencer.Index_1 if sequencer.Index_1 is not none else 'N/A' }}
                                         </td>
@@ -931,6 +938,9 @@
                             <td id="R_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                               {{ sequencer.Region }}
                             </td>
+                            <td id="SR_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                              {{ sequencer.sequencing_run }}
+                            </td>
                             <td id="I1_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                               {{ sequencer.Index_1 if sequencer.Index_1 is not none else 'N/A' }}
                             </td>
@@ -999,6 +1009,9 @@
                             </td>
                             <td id="R_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                               {{ sequencer.Region }}
+                            </td>
+                            <td id="SR_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
+                              {{ sequencer.sequencing_run }}
                             </td>
                             <td id="I1_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                               {{ sequencer.Index_1 if sequencer.Index_1 is not none else 'N/A' }}
