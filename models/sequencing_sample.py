@@ -166,7 +166,6 @@ class SequencingSample:
                         SequencingSamplesTable.Elevation == "",
                         SequencingSamplesTable.Land_use.is_(None),
                         SequencingSamplesTable.Land_use == "",
-                        SequencingSamplesTable.resolve_ecoregion_id.is_(None),
                         SequencingSamplesTable.BaileysEcoregion.is_(None),
                         SequencingSamplesTable.BaileysEcoregion == "",
                     ),
@@ -184,6 +183,10 @@ class SequencingSample:
                     or_(
                         SequencingSamplesTable.BaileysEcoregion != "-",
                         SequencingSamplesTable.BaileysEcoregion.is_(None),
+                    ),
+                    or_(
+                        SequencingSamplesTable.Agricultural_land != "Yes",
+                        SequencingSamplesTable.resolve_ecoregion_id.is_(None),
                     ),
                 )
                 .limit(50)
@@ -336,7 +339,6 @@ class SequencingSample:
                     SequencingSamplesTable.Elevation == "",
                     SequencingSamplesTable.Land_use.is_(None),
                     SequencingSamplesTable.Land_use == "",
-                    SequencingSamplesTable.resolve_ecoregion_id.is_(None),
                     SequencingSamplesTable.BaileysEcoregion.is_(None),
                     SequencingSamplesTable.BaileysEcoregion == "",
                 ),
@@ -350,6 +352,10 @@ class SequencingSample:
                 or_(
                     SequencingSamplesTable.BaileysEcoregion != "-",
                     SequencingSamplesTable.BaileysEcoregion.is_(None),
+                ),
+                or_(
+                    SequencingSamplesTable.Agricultural_land != "Yes",
+                    SequencingSamplesTable.resolve_ecoregion_id.is_(None),
                 ),
             )
 
