@@ -1185,7 +1185,7 @@ class SequencingUpload:
         process_data = self.get(process_id)
         uploads_folder = process_data["uploads_folder"]
         bucket = process_data["project_id"]
-        country = process_data["Country"]
+        sample_country = sanitize_mapping_string(process_data["Country"])
 
         # Dictionary to hold data organized by region
         region_data = defaultdict(list)
@@ -1224,9 +1224,6 @@ class SequencingUpload:
             land_use = sanitize_mapping_string(sample_data["Land_use"])
             ecosystem = sanitize_mapping_string(sample_data["Ecosystem"])
             sample_or_control = sample_data["Sample_or_Control"]
-            sequencing_run = sanitize_mapping_string(
-                sample_data["SequencingRun"]
-            )
 
             # Initialize sample_info dictionary if not already
             if sample_id not in sample_info:
@@ -1238,7 +1235,6 @@ class SequencingUpload:
                     "land_use": land_use,
                     "ecosystem": ecosystem,
                     "sample_or_control": sample_or_control,
-                    "sequencing_run": sequencing_run,
                     "files": defaultdict(list),  # Accumulate files by region
                 }
 
@@ -1246,6 +1242,10 @@ class SequencingUpload:
             if "sequencer_ids" in sample_data:
                 for sequencer in sample_data["sequencer_ids"]:
                     region = sequencer["Region"]
+                    sequencing_run = sanitize_mapping_string(
+                        sequencer.get("sequencing_run", "Run_1")
+                    )
+
                     if "uploaded_files" in sequencer:
                         paired_files = []
                         for file_data in sequencer["uploaded_files"]:
@@ -1290,10 +1290,8 @@ class SequencingUpload:
             sample_or_control = info["sample_or_control"]
             if sample_or_control in ["True sample", "True Sample"]:
                 sample_or_control = "sample"
-            sequencing_run = (
-                info["sequencing_run"] if info["sequencing_run"] else "Run_1"
-            )
 
+            # Process files for each region
             for region, files in info["files"].items():
                 # Sort filenames alphabetically and join with commas
                 sorted_files = sorted(files)
@@ -1303,7 +1301,6 @@ class SequencingUpload:
                 forward_primer = region_dict[region]["Forward Primer"]
                 reverse_primer = region_dict[region]["Reverse Primer"]
 
-                sample_country = country
                 # If Sample_or_Control is "Control"
                 # set the relevant fields to empty strings
                 if sample_or_control == "Control":
@@ -1324,10 +1321,10 @@ class SequencingUpload:
                         site_name,
                         latitude,
                         longitude,
-                        sanitize_mapping_string(sample_country),
-                        sanitize_mapping_string(vegetation),
-                        sanitize_mapping_string(land_use),
-                        sanitize_mapping_string(ecosystem),
+                        sample_country,
+                        vegetation,
+                        land_use,
+                        ecosystem,
                         sample_or_control,
                         sequencing_run,
                     ]
@@ -1367,6 +1364,7 @@ class SequencingUpload:
                 bucket_name=bucket,
                 known_md5=None,
             )
+
         return []
 
     @classmethod
