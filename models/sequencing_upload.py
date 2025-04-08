@@ -1242,9 +1242,10 @@ class SequencingUpload:
             if "sequencer_ids" in sample_data:
                 for sequencer in sample_data["sequencer_ids"]:
                     region = sequencer["Region"]
-                    sequencing_run = sanitize_mapping_string(
-                        sequencer.get("sequencing_run", "Run_1")
-                    )
+
+                    sequencing_run = sequencer.get("sequencing_run")
+                    if not sequencing_run:
+                        sequencing_run = "Run_1"
 
                     if "uploaded_files" in sequencer:
                         paired_files = []
