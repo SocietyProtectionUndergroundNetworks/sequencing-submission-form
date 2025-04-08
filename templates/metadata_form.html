@@ -111,12 +111,16 @@
     <div id="step_3" class="form-step-item">
       <h3> Step 3: Give us the common data for your project</h3>
       <form id="step_3_form">
-        <fieldset disabled="disabled">
+        <fieldset {% if not is_admin %}disabled="disabled"{% endif %}>
           {% if my_buckets|length == 1 %}
             <input type="hidden" id="step_3_sequenceProjectId" name="project_id" value="{{ my_buckets|list|first }}"/>
           {% else %}
             <input type="hidden" id="step_3_sequenceProjectId" name="project_id" value=""/>
           {% endif %}
+          <div class="form-group">
+            <input type="hidden" name="process_id" value="{{ process_id }}">
+          </div>
+
           {% for column_key, column_values in project_common_data.items() %}
             <div class="form-group row mb-3" data-condition="{{ column_values.get('required', '') }}">
               <small class="form-text text-danger error-message" style="display: none;"></small>
@@ -1783,7 +1787,6 @@
           var usingScrippsValue = $('input[name="using_scripps"]:checked').val();
           var usingScrippsText = usingScrippsValue == "1" ? "yes" : "no";
           formData.append('using_scripps', usingScrippsText);
-          console.log(formData)
 
           if ($('#sequence-project-id').is('input')) {
               var project_id = $('#sequence-project-id').val();

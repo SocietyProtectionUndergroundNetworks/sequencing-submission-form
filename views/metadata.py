@@ -15,6 +15,7 @@ from flask import (
     Response,
 )
 from flask_login import current_user, login_required
+from sqlalchemy.inspection import inspect
 from models.bucket import Bucket
 from models.sequencing_upload import SequencingUpload
 from models.sequencing_sample import SequencingSample
@@ -435,17 +436,40 @@ def upload_process_common_fields():
 
     # Parse form data from the request
     form_data = request.form.to_dict()
+    if form_data["process_id"]:
+        process_id = form_data["process_id"]
+        if current_user.admin:
+            from models.db_model import SequencingUploadsTable
 
-    process_id = SequencingUpload.create(datadict=form_data)
-    send_message_to_slack(
-        "STARTING: A v2 upload was initiated by filling "
-        + "in project common data by the user "
-        + current_user.name
-        + ". The project is: "
-        + str(form_data["project_id"])
-        + ". The id of the upload is: "
-        + str(process_id)
-    )
+            # Get the valid columns of the SequencingUploadsTable
+            valid_fields = {
+                column.key
+                for column in inspect(SequencingUploadsTable).columns
+            }
+            # Loop through form_data keys and update fields that are valid
+            for key, value in form_data.items():
+                logger.info(
+                    "The key is " + str(key) + " and the value " + str(value)
+                )
+                if key in valid_fields and key not in [
+                    "using_scripps",
+                    "project_id",
+                ]:
+                    SequencingUpload.update_field(
+                        id=process_id, fieldname=key, value=value
+                    )
+
+    else:
+        process_id = SequencingUpload.create(datadict=form_data)
+        send_message_to_slack(
+            "STARTING: A v2 upload was initiated by filling "
+            + "in project common data by the user "
+            + current_user.name
+            + ". The project is: "
+            + str(form_data["project_id"])
+            + ". The id of the upload is: "
+            + str(process_id)
+        )
 
     # Return the result as JSON
     return (
