@@ -163,7 +163,7 @@ p <- p +
 plot(p)
 ggsave(
   str_c(args$output, "/", "filtered_rarefaction.pdf"), p,
-  width = 7, height = 7, units = "in"
+  width = 14, height = 14, units = "in"
 )
 
 # Generate exclude expression from --exclude arg
