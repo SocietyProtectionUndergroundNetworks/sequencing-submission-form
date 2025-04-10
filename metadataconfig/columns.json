@@ -60,6 +60,7 @@
   },
   "Soil_depth": {
     "lookup_file": "soil_depth.json",
+    "check_function": "check_soil_depth",
     "help_tip": "Required. Depth of soil core. 5-10cm is the SPUN standard",
     "required": "True"
   },

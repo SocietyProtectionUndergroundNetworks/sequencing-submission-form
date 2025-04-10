@@ -121,6 +121,32 @@ def check_vegetation(value):
     return check_field_length_value(value, 200)
 
 
+def check_soil_depth(value):
+    # in 2025-04-10 we changed the accepted values
+    # but because templates were out in the world
+    # and data would keep coming in with the old values
+    # we would have to continue accepting them
+    # So for this field we overide the json of the values
+    # and we check the validity with a function
+    # accepting both old and new values
+    if value in [
+        "0-20cm",
+        "20cm-40cm",
+        "40cm-60cm",
+        "60cm-80cm",
+        "80cm-1m",
+        "1m+",
+        "0-10cm",
+        "10-20cm",
+        "20cm-30cm",
+        "30cm-1m",
+        "1m+",
+    ]:
+        return {"status": 1, "message": "Valid value"}
+    else:
+        return {"status": 0, "message": "Not an accepted soil depth"}
+
+
 def check_expedition_lead(value):
     return check_field_length_value(value, 150)
 
@@ -452,27 +478,7 @@ def check_row(row, expected_columns_data):
                     continue
 
         # Perform specific checks based on the type of validation
-        if "options" in column_values:
-            options_check_result = check_field_values_lookup(
-                pd.DataFrame([row]),
-                column_values["options"],
-                column_key,
-                allow_admin_na,
-            )
-            if options_check_result["status"] == 0:
-                row_status = 0
-                row_issues[column_key] = {
-                    "status": 0,
-                    "invalid": [
-                        {
-                            "row": row.name,
-                            "value": column_data,
-                            "message": options_check_result["message"],
-                        }
-                    ],
-                    "message": options_check_result["message"],
-                }
-        elif "check_function" in column_values:
+        if "check_function" in column_values:
             check_function_name = column_values["check_function"]
             if check_function_name in globals():
                 check_function = globals()[check_function_name]
@@ -517,6 +523,26 @@ def check_row(row, expected_columns_data):
                     "message": (
                         f"Check function {check_function_name} not found"
                     ),
+                }
+        elif "options" in column_values:
+            options_check_result = check_field_values_lookup(
+                pd.DataFrame([row]),
+                column_values["options"],
+                column_key,
+                allow_admin_na,
+            )
+            if options_check_result["status"] == 0:
+                row_status = 0
+                row_issues[column_key] = {
+                    "status": 0,
+                    "invalid": [
+                        {
+                            "row": row.name,
+                            "value": column_data,
+                            "message": options_check_result["message"],
+                        }
+                    ],
+                    "message": options_check_result["message"],
                 }
 
     row_result = {"status": row_status}
