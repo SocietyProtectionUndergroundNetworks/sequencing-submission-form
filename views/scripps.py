@@ -129,6 +129,7 @@ def scripps_upload_sequencing_file():
 
     if file_extension == ".csv":
         df = pd.read_csv(file)
+        df = df.astype(object).where(pd.notnull(df), None)
 
         # Define the expected columns and their mapping
         expected_columns = {
