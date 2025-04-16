@@ -14,7 +14,7 @@
     "label": "Sequencing facility",
     "help_tip": "Company or core facility name",
     "check_function": "check_sequencing_facility",
-    "required": "IfNotScripps"
+    "required": "True"
   },
   "Expedition_lead": {
     "label": "Expedition lead",

@@ -482,7 +482,6 @@ class SequencingUpload:
                 datadict["region_1"] = "ITS2"
                 datadict["region_2"] = "SSU"
                 datadict["Sequencing_platform"] = "Element Biosciences AVITI"
-                datadict["Sequencing_facility"] = "Scripps Research"
             else:
                 datadict["region_1"] = cls.get_region(
                     datadict["region_1_forward_primer"],

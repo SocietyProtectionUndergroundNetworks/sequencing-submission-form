@@ -22,7 +22,7 @@
       </ul>
     </div>
   </div>
-  <div class="content" style="p-4">
+  <div class="content" class="p-4">
     <h1> Metadata Submission Form </h1>
     <div id="msg" class="text-info">{{ msg }}</div>
 
@@ -133,10 +133,11 @@
               </label>
               <div class="col-sm-9">
                 <small id="{{ column_key }}Help" class="form-text">{{ column_values['help_tip'] }}</small>
-                {% if 'options' in column_values %}
-                  <select class="form-control" id="{{ column_key }}" name="{{ column_key }}">
-                    <option value="0">------</option>
-                    {% for option in column_values['options'] %}
+                {% if column_key == "Sequencing_facility" %}
+                  <!-- Dropdown: hidden by default -->
+                  <select class="form-control" id="{{ column_key }}_dropdown" name="{{ column_key }}" style="display: none;">
+                    <option value="">------</option>
+                    {% for option in ['Scripps Research', 'QIB', 'Oregon'] %}
                       <option value="{{ option }}"
                         {% if process_data and process_data[column_key]|string == option %}
                           selected
@@ -144,19 +145,41 @@
                       >{{ option }}</option>
                     {% endfor %}
                   </select>
-                {% elif column_values.get('field_type') == 'date' %}
-                  <input type="date" class="form-control" id="{{ column_key }}" name="{{ column_key }}"
-                    {% if process_data and process_data[column_key] %}
-                      value="{{ process_data[column_key] }}"
-                    {% endif %}
-                  >
-                {% else %}
-                  <input type="text" class="form-control" id="{{ column_key }}" name="{{ column_key }}"
+                
+                  <!-- Text input: visible by default -->
+                  <input type="text" class="form-control" id="{{ column_key }}_text" name="{{ column_key }}"
                     placeholder="{{ column_key }}"
                     {% if process_data and process_data[column_key] %}
                       value="{{ process_data[column_key] }}"
                     {% endif %}
                   >
+                {% else %}
+
+                  {% if 'options' in column_values %}
+                    <select class="form-control" id="{{ column_key }}" name="{{ column_key }}">
+                      <option value="0">------</option>
+                      {% for option in column_values['options'] %}
+                        <option value="{{ option }}"
+                          {% if process_data and process_data[column_key]|string == option %}
+                            selected
+                          {% endif %}
+                        >{{ option }}</option>
+                      {% endfor %}
+                    </select>
+                  {% elif column_values.get('field_type') == 'date' %}
+                    <input type="date" class="form-control" id="{{ column_key }}" name="{{ column_key }}"
+                      {% if process_data and process_data[column_key] %}
+                        value="{{ process_data[column_key] }}"
+                      {% endif %}
+                    >
+                  {% else %}
+                    <input type="text" class="form-control" id="{{ column_key }}" name="{{ column_key }}"
+                      placeholder="{{ column_key }}"
+                      {% if process_data and process_data[column_key] %}
+                        value="{{ process_data[column_key] }}"
+                      {% endif %}
+                    >
+                  {% endif %}
                 {% endif %}
               </div>
             </div>
@@ -1728,9 +1751,23 @@
       $('#step_2_form fieldset').removeAttr('disabled');
       $('#step_1_form fieldset').attr('disabled', 'disabled');
   }
+
+  function updateSequencingFacilityField() {
+    var isScripps = $('#using_scripps_yes').is(':checked');
+    if (isScripps) {
+      $('#Sequencing_facility_text').hide().prop('disabled', true);
+      $('#Sequencing_facility_dropdown').show().prop('disabled', false);
+    } else {
+      $('#Sequencing_facility_dropdown').hide().prop('disabled', true);
+      $('#Sequencing_facility_text').show().prop('disabled', false);
+    }
+  }
+
   $(document).ready(function() {
     // Listen for changes in the radio buttons using_scripps
     $('input[name="using_scripps"]').change(function() {
+        console.log('inside function')
+        updateSequencingFacilityField(); 
         // Check if any radio button is checked
         if ($('input[name="using_scripps"]:checked').length > 0) {
             enableForm_step_3(); // Enable the next form
