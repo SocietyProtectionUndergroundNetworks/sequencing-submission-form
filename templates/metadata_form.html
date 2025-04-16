@@ -134,18 +134,19 @@
               <div class="col-sm-9">
                 <small id="{{ column_key }}Help" class="form-text">{{ column_values['help_tip'] }}</small>
                 {% if column_key == "Sequencing_facility" %}
-                  <!-- Dropdown: hidden by default -->
-                  <select class="form-control" id="{{ column_key }}_dropdown" name="{{ column_key }}" style="display: none;">
-                    <option value="">------</option>
-                    {% for option in ['Scripps Research', 'QIB', 'Oregon'] %}
-                      <option value="{{ option }}"
-                        {% if process_data and process_data[column_key]|string == option %}
-                          selected
-                        {% endif %}
-                      >{{ option }}</option>
-                    {% endfor %}
-                  </select>
-                
+                  {% if not process_data %}
+                    <!-- Dropdown: hidden by default -->
+                    <select class="form-control" id="{{ column_key }}_dropdown" name="{{ column_key }}" style="display: none;">
+                      <option value="">------</option>
+                      {% for option in ['Scripps Research', 'QIB', 'Oregon'] %}
+                        <option value="{{ option }}"
+                          {% if process_data and process_data[column_key]|string == option %}
+                            selected
+                          {% endif %}
+                        >{{ option }}</option>
+                      {% endfor %}
+                    </select>
+                  {% endif %}
                   <!-- Text input: visible by default -->
                   <input type="text" class="form-control" id="{{ column_key }}_text" name="{{ column_key }}"
                     placeholder="{{ column_key }}"
