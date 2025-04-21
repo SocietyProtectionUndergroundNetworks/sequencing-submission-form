@@ -620,18 +620,12 @@ class SequencingUpload:
 
             upload = cls.get(id)
 
-            nr_files_per_sequence = cls.determine_nr_files_per_sequence(
-                upload["Sequencing_platform"]
-            )
-
             regions = [upload["region_1"], upload["region_2"]]
 
             for sample in samples:
                 sequencer_ids = (
                     sample.sequencer_ids
                 )  # Assuming `sequencer_ids` is a relationship
-                if len(sequencer_ids) != nr_files_per_sequence:
-                    return False  # Incorrect number of sequencer IDs
 
                 sample_regions = {
                     sid.Region for sid in sequencer_ids if sid.Region
