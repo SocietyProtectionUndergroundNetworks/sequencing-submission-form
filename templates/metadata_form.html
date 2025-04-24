@@ -393,34 +393,48 @@
              disabled="disabled"
             {% endif %}
           >
-          
           <p>
-            For each sample we expect two different pairs of sequencing fastq files, on two different sequencing regions - i.e. four files in total.
+            Based on the information you provided on step 3 (sequencing platform and primers)
+            you have {{ process_data["Sequencing_regions_number"] }} regions, and we expect {{ nr_files_per_sequence }} files per region. 
           </p>
-          <p>
-            Your sequencing provider should generate two files (one forward and one reverse) for each region.
-          </p>
-          <p>
-            For each region, the pair of files should have in their filename, a common first part, and then the number 1 or 2 followed by some more text and an ending of .fastq.gz
-          </p>
-          <p>
-            For example, in a previous sequencing process, the for the sample Greece22_1 , there were 4 files produced:
-            <ul>
-              <li>Forward file for region ITS2: <span class="blue">071id071_R</span><span class="red">1</span><span class="green">_001</span><span class="orange">.fastq.gz</span> </li>
-              <li>Reverse file for region ITS2: <span class="blue">071id071_R</span><span class="red">2</span><span class="green">_001</span><span class="orange">.fastq.gz</span></li>
-              <li>Forward file for region SSU: <span class="blue">194id194_R</span><span class="red">1</span><span class="green">_001</span><span class="orange">.fastq.gz</span></li>
-              <li>Reverse file for region SSU: <span class="blue">194id194_R</span><span class="red">2</span><span class="green">_001</span><span class="orange">.fastq.gz</span></li>
-            </ul>
-            In the example of the first two files<br/>
-            <ul>
-              <li>A) <span class="blue">071id071_R</span> was the common part of the filename for a sequencing region</li>
-              <li>B) <span class="red">1</span> and <span class="red">2</span> was the part that was indicating the forward and reverse reads</li>
-              <li>C) <span class="green">_001</span> was another part of the name that we are not interested in at this moment</li>
-              <li>D) <span class="orange">.fastq.gz</span> was the file type</li>
-            </ul>
-            We will call <span class="fw-bold">SequencerID</span> the <span class="blue">part (A) of the filename</span>, 
-            (which includes <span class="fw-bold">everything</span> before the <span class="red">1</span> or <span class="red">2</span>, including special characters) and we will need you to provide us this information so that we can match the files to your samples
-          </p>
+          {% if nr_files_per_sequence==2 %}
+            <p>
+                Your sequencing provider should generate two files (one forward and one reverse) for each region.
+            </p>
+            {% if process_data["Sequencing_regions_number"]==2 %}
+              <p>
+                For each region, the pair of files should have in their filename a common first part and then the number 1 or 2 followed by some more text and an ending of .fastq.gz
+              </p>
+            {% else %}
+              <p>
+                The pair of files should have in their filename a common first part and then the number 1 or 2 followed by some more text and an ending of .fastq.gz
+              </p>
+            {% endif %}
+
+            <p>
+              For example, in a previous sequencing process, the for the sample Greece22_1 , we had 2 regions and there were 4 files produced:
+              <ul>
+                <li>Forward file for region ITS2: <span class="blue">071id071_R</span><span class="red">1</span><span class="green">_001</span><span class="orange">.fastq.gz</span> </li>
+                <li>Reverse file for region ITS2: <span class="blue">071id071_R</span><span class="red">2</span><span class="green">_001</span><span class="orange">.fastq.gz</span></li>
+                <li>Forward file for region SSU: <span class="blue">194id194_R</span><span class="red">1</span><span class="green">_001</span><span class="orange">.fastq.gz</span></li>
+                <li>Reverse file for region SSU: <span class="blue">194id194_R</span><span class="red">2</span><span class="green">_001</span><span class="orange">.fastq.gz</span></li>
+              </ul>
+              In the example of the first two files<br/>
+              <ul>
+                <li>A) <span class="blue">071id071_R</span> was the common part of the filename for a sequencing region</li>
+                <li>B) <span class="red">1</span> and <span class="red">2</span> was the part that was indicating the forward and reverse reads</li>
+                <li>C) <span class="green">_001</span> was another part of the name that we are not interested in at this moment</li>
+                <li>D) <span class="orange">.fastq.gz</span> was the file type</li>
+              </ul>
+              We will call <span class="fw-bold">SequencerID</span> the <span class="blue">part (A) of the filename</span>, 
+              (which includes <span class="fw-bold">everything</span> before the <span class="red">1</span> or <span class="red">2</span>, including special characters) and we will need you to provide us this information so that we can match the files to your samples
+            </p>
+          {% else %}
+            <p>
+              Your sequencing provider must have provided you a single file for each sample. Please provide in the field <span class="fw-bold">SequencerID</span> the filename without its .fastq.gz part
+            </p>
+          {% endif %}
+
           <p>
             You can either upload a .xls, .xlsx, .csv file with the following data, or you can fill it in using the form bellow.
           </p>
@@ -440,7 +454,14 @@
                   </ul>
                 {% endif %}
               </li>
-              <li><span class="fw-bold">SequencerID</span>, which should be the part (A) (the blue part, the common part) of the filenames as the example above</li>
+              <li>
+                <span class="fw-bold">SequencerID</span>, 
+                  {% if nr_files_per_sequence==2 %}
+                    which should be the part (A) (the blue part, the common part) of the filenames as the example above
+                  {% else %}
+                    which should be the part we defined above
+                  {% endif %}
+              </li>
               <li><span class="fw-bold">Index_1</span>, which should be the DNA sequencing index 1 (if you know it)</li>
               <li><span class="fw-bold">Index_2</span>, which should be the DNA sequencing index 2 (if you know it)</li>
             </ul>
