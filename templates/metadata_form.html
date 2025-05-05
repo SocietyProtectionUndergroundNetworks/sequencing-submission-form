@@ -1070,14 +1070,49 @@
                             <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                               {{ sequencer.Index_2 if sequencer.Index_2 is not none else 'N/A' }}
                             </td>
-                            <td id="F_{{ sequencer.id }}_A">
+                            <td id="F_{{ sequencer.id }}_A" rowspan="{{ nr_files_per_sequence }}">
                               {% if files|length > 0 %}
                                 {{ files[0].original_filename }}
                               {% else %}
                                 <span class="red">Not uploaded</span>
                               {% endif %}
                             </td>
-                            <td>
+                            <td id="FNN_{{ sequencer.id }}_A" rowspan="{{ nr_files_per_sequence }}">
+                              {% if files|length > 0 %}
+                                  {{ files[0].new_name }}
+                              {% else %}
+                                  <span class="red">Not uploaded</span>
+                              {% endif %}
+                            </td>
+                            <td id="FCQ_{{ sequencer.id }}_A" rowspan="{{ nr_files_per_sequence }}">
+                              {% if files|length > 0 %}
+                                  {% if files[0].fastqc_report %}
+                                      <a href="show_fastqc_report?file_id={{ files[0].id }}" target="_blank" class="link">Done</a>
+                                  {% endif %}
+                              {% endif %}
+                            </td>
+                            <td id="FBP_{{ sequencer.id }}_A" rowspan="{{ nr_files_per_sequence }}">
+                              {% if files|length > 0 %}
+                                  {% if files[0].bucket_upload_progress %}
+                                      {{ files[0].bucket_upload_progress }}%
+                                  {% endif %}
+                              {% endif %}
+                            </td>
+                            <td rowspan="{{ nr_files_per_sequence }}">
+                              {% if files|length > 0 %}
+                                  {% if files[0].total_sequences_number %}
+                                      {{ files[0].total_sequences_number }}
+                                  {% endif %}
+                              {% endif %}
+                            </td>
+                            <td rowspan="{{ nr_files_per_sequence }}">
+                                {% if files|length > 0 %}
+                                    {% if files[0].primer_occurrences_count %}
+                                        {{ files[0].primer_occurrences_count }}
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                            <td rowspan="{{ nr_files_per_sequence }}">
                               {% if files|length > 0 %}
                                 {% if is_admin %}
                                   <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
@@ -1088,10 +1123,6 @@
                                 {% endif %}
                               {% endif %}
                             </td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
                           </tr>
                         {% endif %}
                       {% else %}
