@@ -21,6 +21,7 @@ def create_fastqc_report(fastq_file, input_folder, bucket, region):
     input_file = os.path.join(input_folder, fastq_file)
     fastqc_cmd = (
         f"/usr/local/bin/FastQC/fastqc "
+        f"--memory 2048 "
         f"-o '{output_folder_of_file}' "
         f"'{input_file}'"
     )

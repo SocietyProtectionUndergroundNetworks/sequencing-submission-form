@@ -25,7 +25,7 @@ ENV JAVA_HOME=/usr/lib/jvm/default-jvm
 
 # Download and install fastqc
 WORKDIR /usr/local/bin
-RUN wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.9.zip -O fastqc.zip && \
+RUN wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.12.1.zip -O fastqc.zip && \
     unzip fastqc.zip && \
     chmod +x FastQC/fastqc && \
     ln -s /usr/local/bin/FastQC/fastqc /usr/local/bin/fastqc
