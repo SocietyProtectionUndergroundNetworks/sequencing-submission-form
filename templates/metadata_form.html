@@ -1890,10 +1890,21 @@
 
           $('#step_3_form .form-group').each(function() {
               var condition = $(this).data('condition');
-              var input = $(this).find(':input');
+              var inputs = $(this).find(':input');
+              var input = inputs.first();  // fallback
+
+              if (inputs.length > 1) {
+                  // specifically handle Sequencing_facility case
+                  inputs.each(function() {
+                      if ($(this).is(':visible')) {
+                          input = $(this);
+                      }
+                  });
+              }
               var fieldName = input.attr('name');
               var fieldValue = input.val();
               formData.append(fieldName, fieldValue);
+              
               var errorMessage = $(this).find('.error-message');
 
               if ((condition === "True") || (condition === "IfNotScripps" && $('#using_scripps_no').is(':checked'))) {
