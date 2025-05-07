@@ -94,7 +94,7 @@
     "Forward Primer": "AGGGAAACGATTGAAGCCAGTC",
     "Reverse Primer": "CGTGTTTCAAGACGGGTCGT"
   },
-  "Other": {
+  "Other/Other": {
     "Region": "Other",
     "Forward Primer": "",
     "Reverse Primer": ""

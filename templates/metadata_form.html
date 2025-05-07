@@ -154,6 +154,56 @@
                       value="{{ process_data[column_key] }}"
                     {% endif %}
                   >
+                {% elif column_key == "region_1_forward_primer" %}
+                    <select class="form-control forward-primer" id="region_1_forward_primer" name="region_1_forward_primer" data-region="1">
+                      <option value="">------</option>
+                      {% for fwd in forward_primers %}
+                        <option value="{{ fwd }}"
+                            {% if process_data and process_data['region_1_forward_primer'] == fwd %}
+                                selected
+                            {% endif %}
+                        >{{ fwd }}</option>
+                      {% endfor %}
+                    </select>
+                {% elif column_key == "region_1_reverse_primer" %}
+                    <select class="form-control reverse-primer" id="region_1_reverse_primer" name="region_1_reverse_primer" data-region="1">
+                      <option value="">------</option>
+                      {% if process_data and process_data['region_1_forward_primer'] %}
+                        {% set forward_primer = process_data['region_1_forward_primer'] %}
+                        {% for reverse in forward_to_reverse[forward_primer] %}
+                            <option value="{{ reverse }}"
+                                {% if process_data and process_data['region_1_reverse_primer'] == reverse %}
+                                    selected
+                                {% endif %}
+                            >{{ reverse }}</option>
+                        {% endfor %}
+                    {% endif %}
+                    </select>                        
+                {% elif column_key == "region_2_forward_primer" %}
+                    <select class="form-control forward-primer" id="region_2_forward_primer" name="region_2_forward_primer" data-region="2">
+                      <option value="">------</option>
+                      {% for fwd in forward_primers %}
+                        <option value="{{ fwd }}"
+                            {% if process_data and process_data['region_2_forward_primer'] == fwd %}
+                                selected
+                            {% endif %}
+                        >{{ fwd }}</option>
+                      {% endfor %}                      
+                    </select>
+                {% elif column_key == "region_2_reverse_primer" %}
+                    <select class="form-control reverse-primer" id="region_2_reverse_primer" name="region_2_reverse_primer" data-region="2">
+                      <option value="">------</option>
+                      {% if process_data and process_data['region_2_forward_primer'] %}
+                        {% set forward_primer = process_data['region_2_forward_primer'] %}
+                        {% for reverse in forward_to_reverse[forward_primer] %}
+                            <option value="{{ reverse }}"
+                                {% if process_data and process_data['region_2_reverse_primer'] == reverse %}
+                                    selected
+                                {% endif %}
+                            >{{ reverse }}</option>
+                        {% endfor %}
+                      {% endif %}
+                    </select>              
                 {% else %}
 
                   {% if 'options' in column_values %}
@@ -1842,6 +1892,52 @@
   ////// ############################################# /////////
   ////// ############ STEP 3 STARTS HERE ############# /////////
   ////// ############################################# /////////
+  const forwardToReverse = {{ forward_to_reverse | tojson }};
+
+  $(document).ready(function() {
+    $(".forward-primer").change(function() {
+        var region = $(this).data("region");
+        var forwardPrimer = $(this).val();
+        var reverseSelect = $("#region_" + region + "_reverse_primer");
+
+        // Clear reverse options
+        reverseSelect.empty().append('<option value="">------</option>');
+
+        // Populate reverse options based on the selected forward primer
+        if (forwardPrimer && forwardToReverse[forwardPrimer]) {
+            forwardToReverse[forwardPrimer].forEach(function(reversePrimer) {
+                reverseSelect.append('<option value="' + reversePrimer + '">' + reversePrimer + '</option>');
+            });
+        }
+
+        // If a reverse primer was already selected in process_data, set it
+        var selectedReverse = process_data["region_" + region + "_reverse_primer"];
+        if (selectedReverse) {
+            reverseSelect.val(selectedReverse);
+        }
+    });
+
+    // Trigger change event to populate reverse primers on page load
+    $(".forward-primer").each(function() {
+        var region = $(this).data("region");
+        var forwardPrimer = $(this).val();
+        var reverseSelect = $("#region_" + region + "_reverse_primer");
+
+        // If a forward primer is selected, populate reverse primers
+        if (forwardPrimer && forwardToReverse[forwardPrimer]) {
+            forwardToReverse[forwardPrimer].forEach(function(reversePrimer) {
+                reverseSelect.append('<option value="' + reversePrimer + '">' + reversePrimer + '</option>');
+            });
+
+            // If a reverse primer was already selected, set it
+            var selectedReverse = process_data["region_" + region + "_reverse_primer"];
+            if (selectedReverse) {
+                reverseSelect.val(selectedReverse);
+            }
+        }
+    });
+  });
+
   function enableForm_step_3() {
       $('#step_3_form fieldset').removeAttr('disabled');
       $('#step_2_form fieldset').attr('disabled', 'disabled');

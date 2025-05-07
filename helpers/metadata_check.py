@@ -5,6 +5,7 @@ import logging
 import json
 import pandas as pd
 from unidecode import unidecode
+from collections import defaultdict
 from flask_login import current_user
 
 logger = logging.getLogger("my_app_logger")
@@ -551,7 +552,7 @@ def check_row(row, expected_columns_data):
     return row_result
 
 
-def get_sequences_based_on_primers(forward_primer, reverse_primer):
+def get_primer_sets_regions():
     current_dir = os.path.dirname(__file__)
     base_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
     regions_file_path = os.path.join(
@@ -560,7 +561,24 @@ def get_sequences_based_on_primers(forward_primer, reverse_primer):
 
     # Load the JSON file
     with open(regions_file_path, "r") as f:
-        primer_set_region = json.load(f)
+        primer_set_regions = json.load(f)
+
+    return primer_set_regions
+
+
+def primers_forward_to_reverse(primer_set_regions):
+
+    forward_to_reverse = defaultdict(list)
+
+    for key in primer_set_regions:
+        forward, reverse = key.split("/")
+        if reverse not in forward_to_reverse[forward]:
+            forward_to_reverse[forward].append(reverse)
+    return forward_to_reverse
+
+
+def get_sequences_based_on_primers(forward_primer, reverse_primer):
+    primer_set_region = get_primer_sets_regions()
 
     # Construct the key to search in the JSON
     search_key = f"{forward_primer}/{reverse_primer}"

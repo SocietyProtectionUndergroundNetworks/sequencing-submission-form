@@ -28,6 +28,8 @@ from helpers.metadata_check import (
     get_columns_data,
     get_project_common_data,
     sanitize_data,
+    get_primer_sets_regions,
+    primers_forward_to_reverse,
 )
 from helpers.create_xls_template import (
     create_template_one_drive_and_excel,
@@ -154,6 +156,11 @@ def metadata_form():
     project_common_data = get_project_common_data()
     process_data = None
     process_id = request.args.get("process_id", "")
+    primer_set_regions = get_primer_sets_regions()
+    forward_primers = list(
+        {key.split("/")[0]: None for key in primer_set_regions}.keys()
+    )
+    forward_to_reverse = primers_forward_to_reverse(primer_set_regions)
     samples_data = []
     sequencer_ids = []
     regions = SequencingUpload.get_regions()
@@ -257,6 +264,8 @@ def metadata_form():
         samples_data=samples_data,
         regions=regions,
         sequencer_ids=sequencer_ids,
+        forward_primers=forward_primers,
+        forward_to_reverse=forward_to_reverse,
         nr_files_per_sequence=nr_files_per_sequence,
         google_sheets_template_url=google_sheets_template_url,
         valid_samples=valid_samples,
