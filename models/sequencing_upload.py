@@ -2049,17 +2049,11 @@ class SequencingUpload:
             if region == "SSU":
                 file_mappings["amf_physeq.Rdata"] = {
                     "source": os.path.join(
-                        base_path,
-                        r_output_folder,
-                        "SSU_dada2",
+                        base_r_output_path,
                         "amf_physeq.Rdata",
                     ),
                     "symlink": os.path.join(
-                        "..",
-                        "..",
-                        "..",
-                        r_output_folder,
-                        "SSU_dada2",
+                        relative_r_output_path_three_back,
                         "amf_physeq.Rdata",
                     ),
                 }
@@ -2075,17 +2069,11 @@ class SequencingUpload:
             elif region in ["ITS1", "ITS2"]:
                 file_mappings["ecm_physeq.Rdata"] = {
                     "source": os.path.join(
-                        base_path,
-                        r_output_folder,
-                        "SSU_dada2",
+                        base_r_output_path,
                         "ecm_physeq.Rdata",
                     ),
                     "symlink": os.path.join(
-                        "..",
-                        "..",
-                        "..",
-                        r_output_folder,
-                        "SSU_dada2",
+                        relative_r_output_path_three_back,
                         "ecm_physeq.Rdata",
                     ),
                 }
