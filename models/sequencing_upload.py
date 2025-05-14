@@ -1887,12 +1887,16 @@ class SequencingUpload:
             region_folder = os.path.join(share_folder, region)
             raw_folder = os.path.join(region_folder, "raw")
             results_folder = os.path.join(region_folder, "results")
+            report_images_folder = os.path.join(
+                results_folder, "report_images"
+            )
             predecontam_folder = os.path.join(results_folder, "predecontam")
 
             # Ensure directories exist
             os.makedirs(raw_folder, exist_ok=True)
             os.makedirs(results_folder, exist_ok=True)
             os.makedirs(predecontam_folder, exist_ok=True)
+            os.makedirs(report_images_folder, exist_ok=True)
 
             # Create relative symlinks for raw files
             for file in upload_files:
@@ -1926,6 +1930,9 @@ class SequencingUpload:
             )
             relative_r_output_path_three_back = os.path.join(
                 "..", "..", "..", r_output_folder, region_path
+            )
+            relative_r_output_path_four_back = os.path.join(
+                "..", "..", "..", "..", r_output_folder, region_path
             )
 
             # Define all file mappings in a structured dictionary
@@ -1968,26 +1975,28 @@ class SequencingUpload:
                 },
                 "report_images/control_vs_sample.pdf": {
                     "source": os.path.join(
-                        base_lotus_path, "control_vs_sample.pdf"
+                        base_r_output_path, "control_vs_sample.pdf"
                     ),
                     "symlink": os.path.join(
-                        relative_r_output_path_three_back,
+                        relative_r_output_path_four_back,
                         "control_vs_sample.pdf",
                     ),
                 },
                 "report_images/filtered_rarefaction.pdf": {
                     "source": os.path.join(
-                        base_lotus_path, "filtered_rarefaction.pdf"
+                        base_r_output_path, "filtered_rarefaction.pdf"
                     ),
                     "symlink": os.path.join(
-                        relative_lotus2_path_four_back,
+                        relative_r_output_path_four_back,
                         "filtered_rarefaction.pdf",
                     ),
                 },
                 "report_images/LibrarySize.pdf": {
-                    "source": os.path.join(base_lotus_path, "LibrarySize.pdf"),
+                    "source": os.path.join(
+                        base_r_output_path, "LibrarySize.pdf"
+                    ),
                     "symlink": os.path.join(
-                        relative_lotus2_path_four_back, "LibrarySize.pdf"
+                        relative_r_output_path_four_back, "LibrarySize.pdf"
                     ),
                 },
                 "ExtraFiles": {
@@ -2060,10 +2069,10 @@ class SequencingUpload:
                 }
                 file_mappings["report_images/amf_physeq_by_genus.pdf"] = {
                     "source": os.path.join(
-                        base_lotus_path, "amf_physeq_by_genus.pdf"
+                        base_r_output_path, "amf_physeq_by_genus.pdf"
                     ),
                     "symlink": os.path.join(
-                        relative_lotus2_path_four_back,
+                        relative_r_output_path_four_back,
                         "amf_physeq_by_genus.pdf",
                     ),
                 }
@@ -2080,10 +2089,10 @@ class SequencingUpload:
                 }
                 file_mappings["report_images/ecm_physeq_by_genus.pdf"] = {
                     "source": os.path.join(
-                        base_lotus_path, "ecm_physeq_by_genus.pdf"
+                        base_r_output_path, "ecm_physeq_by_genus.pdf"
                     ),
                     "symlink": os.path.join(
-                        relative_lotus2_path_four_back,
+                        relative_r_output_path_four_back,
                         "ecm_physeq_by_genus.pdf",
                     ),
                 }
@@ -2092,7 +2101,14 @@ class SequencingUpload:
             for file_name, paths in file_mappings.items():
                 symlink_path = os.path.join(results_folder, file_name)
                 full_source_path = paths["source"]
-                if os.path.exists(full_source_path) and not os.path.islink(
-                    symlink_path
-                ):
-                    os.symlink(paths["symlink"], symlink_path)
+
+                if os.path.exists(full_source_path):
+                    # If the symlink exists but is broken, remove it
+                    if os.path.islink(symlink_path) and not os.path.exists(
+                        symlink_path
+                    ):
+                        os.unlink(symlink_path)
+
+                    # If there is no valid symlink, create one
+                    if not os.path.islink(symlink_path):
+                        os.symlink(paths["symlink"], symlink_path)
