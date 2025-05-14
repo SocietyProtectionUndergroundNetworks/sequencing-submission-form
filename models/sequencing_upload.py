@@ -1971,7 +1971,8 @@ class SequencingUpload:
                         base_lotus_path, "control_vs_sample.pdf"
                     ),
                     "symlink": os.path.join(
-                        relative_lotus2_path_four_back, "control_vs_sample.pdf"
+                        relative_r_output_path_three_back,
+                        "control_vs_sample.pdf",
                     ),
                 },
                 "report_images/filtered_rarefaction.pdf": {
