@@ -64,7 +64,8 @@
                 <th scope="col" class="bg-gray">Barcode_2</th>
                 <th scope="col" class="bg-gray">Metadata Upload ID</th>
                 <th scope="col" class="bg-gray">Metadata uploaded SampleID</th>
-                <th scope="col" class="bg-gray">Sequencer ID exists</th>
+                <th scope="col" class="bg-gray">Sample/Region already assigned</th>
+                <th scope="col" class="bg-gray">Sequencer_id already exists</th>
                 <th scope="col" class="bg-gray">Filename Identified</th>
                 <th scope="col" class="bg-gray">Problems</th>
             </tr>
@@ -84,19 +85,26 @@
               <td>{{ input_line["barcode_2"] }}</td>
               <td>{{ input_line["metadata_upload_id"] }}</td>
               <td>{{ input_line["SampleID"] }}</td>
+              <td 
+                {% if input_line["sample_region_taken"] %}
+                  class="text-danger"
+                {% endif %}
+              >
+                {{ input_line["sample_region_taken"] }}
+              </td>
+              <td 
+                {% if input_line["sequencer_id_exists_in_project"] %}
+                  class="text-danger"
+                {% endif %}
+              >
+                {{ input_line["sequencer_id_exists_in_project"] }}
+              </td>
               <td>
                 {% if input_line["matching_files"] %}
                   {% for filename in input_line["matching_files"] %}
                     {{ filename }}<br>
                   {% endfor %}
                 {% endif %}  
-              </td>
-              <td 
-                {% if input_line["sequencer_exists"] %}
-                  class="text-danger"
-                {% endif %}
-              >
-                {{ input_line["sequencer_exists"] }}
               </td>
               <td class="text-danger">{{ input_line["problems"] }}</td>
             </tr>
@@ -133,10 +141,11 @@
                 <th scope="col" class="bg-gray">Total records</th>
                 <th scope="col" class="bg-gray">Matched</th>
                 <th scope="col" class="bg-gray">Unmatched</th>
-                <th scope="col" class="bg-gray">Sequencer Exists</th>
+                <th scope="col" class="bg-gray">Sample/Region already assigned</th>
+                <th scope="col" class="bg-gray">Sequencer id exists in project</th>
                 <th scope="col" class="bg-gray">Task</th>
             </tr>
-        </thead>      
+        </thead>
         <tbody>
           {% for project in report %}
             <tr>
@@ -153,7 +162,8 @@
               <td>{{ project['total'] }}</td>
               <td>{{ project['matched'] }}</td>
               <td>{{ project['unmatched'] }}</td>
-              <td>{{ project['sequencer_exists'] }}</td>  
+              <td>{{ project['sample_region_taken'] }}</td>
+              <td>{{ project['sequencer_id_exists_in_project'] }}</td>  
               <td>
                 {% if (project['project'] in ['sequencing_blanks', 'sequencing_blanks_dev']) %}
                   Sequencing blanks lines.
@@ -171,7 +181,7 @@
                       
                     </fieldset>
                   </form>   
-                {% elif (project['unmatched']== 0 and not project['sequencer_exists']) %}
+                {% elif (project['unmatched']== 0 and not project['sample_region_taken'] and not project['sequencer_id_exists_in_project']) %}
                   Move sequencer ids to project
                   <form
                     method="POST"
@@ -179,6 +189,7 @@
                     class="move_sequencer_ids_to_project"
                   >
                     <fieldset>
+                      Sequencing run: <input type="input" name="sequencing_run"><br>
                       <input type="submit" class="btn btn-primary" value="Move">
                       <input type="hidden" name="upload_id" value="{{ upload.id }}">
                       <input type="hidden" name="directory_name" value="{{ directory_name }}" />
@@ -283,9 +294,11 @@
           var formData = new FormData();
           var form = $(this); // Target the current form instance
           var upload_id = form.find('input[name="upload_id"]').val();
+          var sequencing_run = form.find('input[name="sequencing_run"]').val();
           var metadata_upload_id = form.find('input[name="metadata_upload_id"]').val();
           formData.append('upload_id', upload_id);
           formData.append('metadata_upload_id', metadata_upload_id);
+          formData.append('sequencing_run', sequencing_run);
 
           $.ajax({
               url: '/move_sequencer_ids_to_project',

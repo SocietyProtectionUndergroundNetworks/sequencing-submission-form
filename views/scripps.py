@@ -59,11 +59,15 @@ def scripps_form():
         # Existing logic for grouping the records and generating the report
         grouped_data = defaultdict(list)
         for line in input_lines:
-            sequencer_exists = line.get("sequencer_exists", False)
+            sample_region_taken = line.get("sample_region_taken", False)
+            sequencer_id_exists_in_project = line.get(
+                "sequencer_id_exists_in_project", False
+            )
             group_key = (
                 line["project"],
                 line["metadata_upload_id"],
-                sequencer_exists,
+                sample_region_taken,
+                sequencer_id_exists_in_project,
             )
             grouped_data[group_key].append(line)
 
@@ -71,7 +75,8 @@ def scripps_form():
         for (
             project,
             metadata_upload_id,
-            sequencer_exists,
+            sample_region_taken,
+            sequencer_id_exists_in_project,
         ), records in grouped_data.items():
             total_records = len(records)
             matched_records = sum(
@@ -82,7 +87,10 @@ def scripps_form():
                 {
                     "project": project,
                     "metadata_upload_id": metadata_upload_id,
-                    "sequencer_exists": sequencer_exists,
+                    "sample_region_taken": sample_region_taken,
+                    "sequencer_id_exists_in_project": (
+                        sequencer_id_exists_in_project
+                    ),
                     "total": total_records,
                     "matched": matched_records,
                     "unmatched": unmatched_records,
@@ -215,13 +223,15 @@ def scripps_upload_sequencing_file():
 @login_required
 def move_sequencer_ids_to_project():
     upload_id = request.form.get("upload_id")
+    sequencing_run = request.form.get("sequencing_run")
     metadata_upload_id = request.form.get("metadata_upload_id")
 
     SequencingCompanyInput.copy_sequencer_ids_to_metadata_upload(
-        upload_id, metadata_upload_id
+        upload_id, metadata_upload_id, sequencing_run
     )
 
     logger.info("upload_id: " + str(upload_id))
+    logger.info("sequencing_run: " + str(sequencing_run))
     logger.info("metadata_upload_id: " + str(metadata_upload_id))
     return (
         {"result": 1},

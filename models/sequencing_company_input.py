@@ -130,11 +130,28 @@ class SequencingCompanyInput:
 
                 # Check if SequencingSequencerIDsTable has a record
                 # for this sample_id and region
-                sequencer_info = cls.check_sequencer_exists(
-                    record_dict.get("SampleID"), record_dict.get("region")
+                sequencer_info = (
+                    cls.check_if_sequencer_entry_exists_for_sample_and_region(
+                        record_dict.get("SampleID"), record_dict.get("region")
+                    )
                 )
-                record_dict["sequencer_exists"] = bool(sequencer_info)
+                record_dict["sample_region_taken"] = bool(sequencer_info)
                 record_dict["sequencer_info"] = sequencer_info
+
+                # Check if this sequencer id already exists in this project
+                # This could happen because some sequencing providers
+                # use the same filenames in all their runs. If a project
+                # has been run in multiple runs, we may receive the same
+                # filename but attributed to different files
+                sequencer_id = record_dict.get("sequencer_id")
+                sequencer_id_exists_in_project = (
+                    cls.check_if_sequencer_id_exists_in_project(
+                        sequencer_id, project_id
+                    )
+                )
+                record_dict["sequencer_id_exists_in_project"] = None
+                if sequencer_id_exists_in_project:
+                    record_dict["sequencer_id_exists_in_project"] = True
 
                 all_records.append(record_dict)
 
@@ -207,7 +224,9 @@ class SequencingCompanyInput:
             )
 
     @classmethod
-    def check_sequencer_exists(cls, sample_id, region):
+    def check_if_sequencer_entry_exists_for_sample_and_region(
+        cls, sample_id, region
+    ):
         if not sample_id or not region:
             return None
 
@@ -220,7 +239,6 @@ class SequencingCompanyInput:
                 .filter_by(sequencingSampleId=sample_id, Region=region)
                 .first()
             )
-
             return (
                 {
                     "SequencerID": sequencer_entry.SequencerID,
@@ -232,8 +250,38 @@ class SequencingCompanyInput:
             )
 
     @classmethod
+    def check_if_sequencer_id_exists_in_project(cls, SequencerID, project_id):
+        if not SequencerID or not project_id:
+            return None
+
+        with session_scope() as session:
+
+            result = (
+                session.query(SequencingSequencerIDsTable.id)
+                .join(
+                    SequencingSamplesTable,
+                    SequencingSequencerIDsTable.sequencingSampleId
+                    == SequencingSamplesTable.id,
+                )
+                .join(
+                    SequencingUploadsTable,
+                    SequencingSamplesTable.sequencingUploadId
+                    == SequencingUploadsTable.id,
+                )
+                .filter(
+                    SequencingSequencerIDsTable.SequencerID == SequencerID,
+                    SequencingUploadsTable.project_id == project_id,
+                )
+                .first()
+            )
+
+            if result:
+                return result.id
+            return None
+
+    @classmethod
     def copy_sequencer_ids_to_metadata_upload(
-        cls, upload_id, metadata_upload_id
+        cls, upload_id, metadata_upload_id, sequencing_run
     ):
         with session_scope() as session:
 
@@ -269,6 +317,18 @@ class SequencingCompanyInput:
                     # If the record already exists, skip this record
                     continue
 
+                # Additional check: Is this sequencer
+                # ID already used in the project?
+                sequencer_id_used = (
+                    cls.check_if_sequencer_id_exists_in_project(
+                        record.sequencer_id, record.project
+                    )
+                )
+
+                if sequencer_id_used:
+                    # Sequencer ID found in the project, so skip
+                    continue
+
                 if int(metadata_upload_id) == int(sequencingUploadId):
                     # If the record doesn't exist, create a new entry
                     # in SequencingSequencerIDsTable
@@ -278,6 +338,7 @@ class SequencingCompanyInput:
                         Region=record.region,
                         Index_1=record.index_1,
                         Index_2=record.barcode_2,
+                        sequencing_run=sequencing_run,
                     )
 
                     session.add(new_sequencer_entry)
