@@ -58,6 +58,11 @@ args <- parse_args(parser)
 # Load phyloseq object
 load(str_c(args$lotus2, "/", "phyloseq.Rdata"))
 
+# write csv from physeq
+sample_data(physeq) %>% write_csv(str_c(args$output, "/sample_data.csv"))
+tax_table(physeq) %>% as.data.frame() %>% rownames_to_column(var = "otu") %>% write_csv(str_c(args$output, "/tax_table.csv"))
+otu_table(physeq) %>% as.data.frame() %>% rownames_to_column(var = "otu") %>% write_csv(str_c(args$output, "/otu_table.csv"))
+
 ## Inspect library sizes
 df <- sample_data(physeq)
 df$LibrarySize <- sample_sums(physeq)
@@ -352,5 +357,7 @@ if (exists("amf_physeq_truesamples")) {
     rownames_to_column("sample_id") %>%
     clean_names() %>%
     fwrite(str_c(args$output, "/metadata_chaorichness.csv"))
+} else {
+  writeLines("sample_id,observed,estimator,est_s_e,x95_percent_lower,x95_percent_upper,seq_depth", str_c(args$output, "/metadata_chaorichness.csv"))
 }
 
