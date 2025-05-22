@@ -192,8 +192,8 @@ if (str_detect(args$lotus2, "SSU_dada2") | str_detect(args$lotus2, "SSU_eukaryom
   amf_physeq <- physeq_decontam %>%
     subset_taxa(
       Class == "Glomeromycetes" |
-      Class ==  "Archaeosporomycetes" |
-      Class ==  "Paraglomeromycetes"
+        Class ==  "Archaeosporomycetes" |
+        Class ==  "Paraglomeromycetes"
     ) %>%
     subset_taxa(eval(parse(text = filter_expr_combined)))
 
@@ -230,10 +230,10 @@ if (str_detect(args$lotus2, "SSU_vsearch")) {
 
   # read lotus2 tax.1.blast to SILVA without AMF
   lotus2_blast_columns = c("qaccver","saccver","pident",
-    "length","mismatch","gapopen","qstart","qend","sstart","send","qlen")
+                           "length","mismatch","gapopen","qstart","qend","sstart","send","qlen")
 
   otu_blast_silva <- read_tsv(str_c(args$lotus2, "/ExtraFiles/tax.1.blast"),
-    col_names = lotus2_blast_columns)
+                              col_names = lotus2_blast_columns)
 
   # filter SILVA blast id 97 cov 98 - these OTUs are to be removed
   otu_to_remove <- otu_blast_silva %>%
@@ -244,7 +244,7 @@ if (str_detect(args$lotus2, "SSU_vsearch")) {
   # get maarjAM blast - tax.0.blast
   # if lotus2 is run with 
   otu_blast_maarjam <- read_tsv(str_c(args$lotus2, "/ExtraFiles/tax.0.blast"),
-    col_names = lotus2_blast_columns)
+                                col_names = lotus2_blast_columns)
 
   # remove the SILVA OTUs from maarjam
   otu_amf_matches <- otu_blast_maarjam %>%
@@ -256,39 +256,47 @@ if (str_detect(args$lotus2, "SSU_vsearch")) {
     distinct(qaccver, .keep_all = TRUE) %>%
     select(otu = qaccver, vt = saccver)
 
-  # keep only those taxa that match the above criteria
-  # and exclude all --exclude taxa
-  amf_physeq <- prune_taxa(otu_vt_map$otu, physeq_decontam) %>%
-    subset_taxa(eval(parse(text = filter_expr_combined)))
+  # if there are no rows in otu_vt_map (ie no amf found)
+  # then print a message and do nothing, else extract info about AMFs
 
-  # Save file. To open in R use: amf_physeq <- readRDS("amf_physeq.Rdata")
-  saveRDS(amf_physeq, file = str_c(args$output, "/", "amf_physeq.Rdata"))
-
-  p <- plot_bar(amf_physeq, fill = "Genus")
-  plot(p)
-  ggsave(
-    str_c(args$output, "/", "amf_physeq_by_genus.pdf"), p,
-    width = 14, height = 14, units = "in"
-  )
-
-  # ChaoRichness
-  amf_physeq_truesamples <- prune_samples(
-    !sample_data(amf_physeq)$is.neg,
-    amf_physeq
-  )
-
-  amf_physeq_as_vt_table <- otu_table(amf_physeq_truesamples) %>%
-    as.data.frame() %>%
-    rownames_to_column("otu") %>%
-    left_join(otu_vt_map) %>%
-    group_by(vt) %>%
-    select(-otu) %>%
-    summarize(across(where(is.numeric), ~ sum(.x, na.rm = TRUE)),
-      .groups = "drop")
-
-  write_csv(amf_physeq_as_vt_table,
-    str_c(args$output, "/SSU_vsearch_vt_abundance.csv"))
+  if (count(otu_vt_map) == 0) {
+    print("Zero AMFs found in SSU_vsearch using lotus2 tax.0.blast files against MaarjAM")
+  } else {
+      
+    # keep only those taxa that match the above criteria
+    # and exclude all --exclude taxa
     
+    amf_physeq <- prune_taxa(otu_vt_map$otu, physeq_decontam) %>%
+      subset_taxa(eval(parse(text = filter_expr_combined)))
+    
+    # Save file. To open in R use: amf_physeq <- readRDS("amf_physeq.Rdata")
+    saveRDS(amf_physeq, file = str_c(args$output, "/", "amf_physeq.Rdata"))
+    
+    p <- plot_bar(amf_physeq, fill = "Genus")
+    plot(p)
+    ggsave(
+      str_c(args$output, "/", "amf_physeq_by_genus.pdf"), p,
+      width = 14, height = 14, units = "in"
+    )
+    
+    # ChaoRichness
+    amf_physeq_truesamples <- prune_samples(
+      !sample_data(amf_physeq)$is.neg,
+      amf_physeq
+    )
+    
+    amf_physeq_as_vt_table <- otu_table(amf_physeq_truesamples) %>%
+      as.data.frame() %>%
+      rownames_to_column("otu") %>%
+      left_join(otu_vt_map) %>%
+      group_by(vt) %>%
+      select(-otu) %>%
+      summarize(across(where(is.numeric), ~ sum(.x, na.rm = TRUE)),
+                .groups = "drop")
+    
+    write_csv(amf_physeq_as_vt_table,
+              str_c(args$output, "/SSU_vsearch_vt_abundance.csv"))
+  }  
 }
 
 ## In both cases export the OTUs table
@@ -302,7 +310,7 @@ otu_unfiltered <- otu_table(physeq_decontam) %>% # Keep the unfiltered data
   filter(abundance != 0)    
 
 # Extract taxonomy data
-taxonomy_data <- tax_table(amf_physeq_truesamples) %>%
+taxonomy_data <- tax_table(physeq_decontam) %>%
   as.data.frame() %>%
   rownames_to_column("OTU")
 
@@ -316,28 +324,33 @@ fwrite(otu_full_data, file = str_c(args$output, "/otu_full_data.csv"))
 
 # Work for the metadata_chaorichness.csv
 # Extract the OTUs from the amf_physeq_truesamples
-otu_long <- otu_table(amf_physeq_truesamples) %>%
-  as.data.frame() %>%
-  rownames_to_column("OTU") %>%
-  pivot_longer(!OTU, names_to = "sample_id", values_to = "abundance") %>%
-  filter(abundance != 0)    
+# only if there are AMFs
 
-div.output <- foreach(i = unique(otu_long$sample_id), .final = function(i) setNames(i, unique(otu_long$sample_id))) %do% {
-  freq_list <- otu_long %>%
-    filter(sample_id == i) %>%
-    select(-sample_id) %>%
-    pull(abundance)
-
-  if (length(freq_list) > 0) {
-    seq_depth <- sample_data(physeq)[i]$LibrarySize
-
-    # Calculate diversity metrics
-    calc <- ChaoRichness(x = freq_list, datatype = "abundance", conf = 0.95)
-    div <- c(calc, seq_depth = seq_depth)
+if (exists("amf_physeq_truesamples")) {
+  otu_long <- otu_table(amf_physeq_truesamples) %>%
+    as.data.frame() %>%
+    rownames_to_column("OTU") %>%
+    pivot_longer(!OTU, names_to = "sample_id", values_to = "abundance") %>%
+    filter(abundance != 0)    
+  
+  div.output <- foreach(i = unique(otu_long$sample_id), .final = function(i) setNames(i, unique(otu_long$sample_id))) %do% {
+    freq_list <- otu_long %>%
+      filter(sample_id == i) %>%
+      select(-sample_id) %>%
+      pull(abundance)
+    
+    if (length(freq_list) > 0) {
+      seq_depth <- sample_data(physeq)[i]$LibrarySize
+      
+      # Calculate diversity metrics
+      calc <- ChaoRichness(x = freq_list, datatype = "abundance", conf = 0.95)
+      div <- c(calc, seq_depth = seq_depth)
+    }
   }
+  
+  as.data.frame(do.call(rbind, div.output)) %>%
+    rownames_to_column("sample_id") %>%
+    clean_names() %>%
+    fwrite(str_c(args$output, "/metadata_chaorichness.csv"))
 }
 
-as.data.frame(do.call(rbind, div.output)) %>%
-  rownames_to_column("sample_id") %>%
-  clean_names() %>%
-  fwrite(str_c(args$output, "/metadata_chaorichness.csv"))
