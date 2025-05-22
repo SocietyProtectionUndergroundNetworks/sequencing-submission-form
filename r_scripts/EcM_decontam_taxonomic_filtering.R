@@ -58,10 +58,18 @@ args <- parse_args(parser)
 # Load phyloseq object
 load(str_c(args$lotus2, "/", "phyloseq.Rdata"))
 
-# write csv from physeq
-sample_data(physeq) %>% write_csv(str_c(args$output, "/sample_data.csv"))
-tax_table(physeq) %>% as.data.frame() %>% rownames_to_column(var = "otu") %>% write_csv(str_c(args$output, "/tax_table.csv"))
-otu_table(physeq) %>% as.data.frame() %>% rownames_to_column(var = "otu") %>% write_csv(str_c(args$output, "/otu_table.csv"))
+# export physeq object as 3 csv files
+export_phyloseq_as_csv <- function  (ps, prefix = "") {
+  if (!inherits(ps, "phyloseq")) {
+    stop("Error: The input object must be of class 'phyloseq'.")
+  }
+
+  sample_data(ps) %>% write_csv(str_c(args$output, "/", prefix, "sample_data.csv"))
+  tax_table(ps) %>% as.data.frame() %>% rownames_to_column(var = "otu") %>% write_csv(str_c(args$output, "/", prefix, "tax_table.csv"))
+  otu_table(ps) %>% as.data.frame() %>% rownames_to_column(var = "otu") %>% write_csv(str_c(args$output, "/", prefix, "otu_table.csv"))
+}
+
+export_phyloseq_as_csv(physeq, "phyloseq_predecontam_")
 
 ## Inspect library sizes
 df <- sample_data(physeq)
@@ -123,6 +131,7 @@ if (num_of_controls > 0) {
   # physeq_decontam <- readRDS("physeq_decontam.Rdata")
 
   saveRDS(physeq_decontam, file = str_c(args$output, "/", "physeq_decontam.Rdata"))
+  export_phyloseq_as_csv(physeq_decontam, "physeq_decontam_")
 
   percentile_of_control <- df %>%
     as_tibble %>%
@@ -207,6 +216,7 @@ if (num_ecm_genera > 0) {
 
   # Save file. To open in R use: ecm_physeq <- readRDS("ecm_physeq.Rdata")
   saveRDS(ecm_physeq, file = str_c(args$output, "/", "ecm_physeq.Rdata"))
+  export_phyloseq_as_csv(ecm_physeq, "ecm_physeq_")
 
   p <- plot_bar(ecm_physeq, fill = "Genus")
   ggsave(
