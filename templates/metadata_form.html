@@ -632,6 +632,7 @@
         <div id="next_to_step_6" class="next-to-step">
           <h4> Expected number of files per sequence is {{ nr_files_per_sequence }} </h4>
           <h4> Number of sequencing regions is {{ process_data["Sequencing_regions_number"] }} </h4>
+          <h4> Total uploaded files {{ total_uploaded_files }}</h4>
           <table id="samplesTable" class="table-bordered">
               <thead>
                   <tr>
@@ -651,7 +652,7 @@
                       <th scope="col" class="bg-gray">Exclude from mapping</th>
                   </tr>
               </thead>
-
+              
               <tbody>
                 {% if nr_files_per_sequence == 2 %}
                     <!-- Iterate over each sample in samples_data_complete -->
@@ -1253,6 +1254,7 @@
               {% endif %}
             {% endfor %}
             </ul>
+            <p>I confirm that we will not have sequencing files for the samples above.</p>
           {% endif %}
         </div>
         <form id="step_7_form">
@@ -1262,11 +1264,16 @@
             {% endif %}
 
           >
-            <p>I confirm that we will not have sequencing files for the samples above.</p>
             <input type="hidden" name="process_id" value="{{ process_id }}">
             <input type="button" id="step_7_button" class="btn btn-primary" value="I confirm">
           </fieldset>
         </form>
+        {% if total_uploaded_files == 0 or is_admin %}
+          <br/><a href="#" id="step_7_delete_sequencer_ids_btn" class="btn btn-danger">
+            Delete all sequencer IDs
+          </a>
+        {% endif %}
+        
       </div>
     {% endif %}
 
@@ -2767,6 +2774,16 @@
   function disableForm_step_7() {
       $('#step_7_form fieldset').attr('disabled', 'disabled');
   }
+  $(document).ready(function () {
+    $('#step_7_delete_sequencer_ids_btn').on('click', function (e) {
+      e.preventDefault();
+
+      if (confirm("Are you absolutely certain? This will delete your sequencer IDs and you will have to upload them again")) {
+        window.location.href = "/delete_sequencer_ids?process_id={{ process_data.id }}";
+      }
+    });
+  });
+
   function update_step7_missing_ids_div(missingSequencingIds) {
       if (missingSequencingIds && missingSequencingIds.length > 0) {
           var newContent = '<h4>The following samples are missing one or more of their expected regions</h4>';
@@ -2906,11 +2923,20 @@
                                         .addClass('text-info').removeClass('text-danger').removeClass('text-success');
                                 });
                             } else {
-                                $("#" + file_msg_id).append("<p>" + response.message + "</p>")
+                                extra_message = ''
+                                if (response.message=='No matching sequencer IDs found') {
+                                  extra_message = '<br/> We use the sequencer IDs you provided on step 6 ' + 
+                                                  'to match the file to the samples.<br/>' +
+                                                  'Your filename does not match any of the sequencer Ids.<br/>' +
+                                                  'Please read the instructions on step 6 very carefully.<br/>' + 
+                                                  'If you have provided wrong sequencer IDs please delete them and provide the correct ones<br/>'
+
+                                }
+                                $("#" + file_msg_id).append("<p>" + response.message + extra_message + "</p>")
                                     .removeClass('text-success').addClass('text-danger');
                             }
                         } else {
-                            $("#" + file_msg_id).append("<p>" + response.message + "</p>")
+                            $("#" + file_msg_id).append("<p>" + response.message + " 222</p>")
                                 .removeClass('text-success').addClass('text-danger');
                         }
                     },

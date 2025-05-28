@@ -566,6 +566,27 @@ class SequencingUpload:
             return sequencer_ids_list
 
     @classmethod
+    def delete_sequencer_ids_for_upload(self, upload_id: int):
+        with session_scope() as session:
+            # Get all sequencer IDs linked to the upload
+            sequencer_ids_subquery = (
+                session.query(SequencingSequencerIDsTable.id)
+                .join(
+                    SequencingSamplesTable,
+                    SequencingSamplesTable.id
+                    == SequencingSequencerIDsTable.sequencingSampleId,
+                )
+                .filter(SequencingSamplesTable.sequencingUploadId == upload_id)
+                .subquery()
+            )
+
+            # Delete from sequencing_sequencer_ids; cascade
+            # will delete related uploaded_files
+            session.query(SequencingSequencerIDsTable).filter(
+                SequencingSequencerIDsTable.id.in_(sequencer_ids_subquery)
+            ).delete(synchronize_session=False)
+
+    @classmethod
     def mark_upload_confirmed_as_true(cls, process_id):
         with session_scope() as session:
 

@@ -177,6 +177,7 @@ def metadata_form():
     rscripts_report = []
     pdf_report = False
     is_owner = False
+    total_uploaded_files = 0
 
     if process_id:
         process_data = SequencingUpload.get(process_id)
@@ -230,6 +231,12 @@ def metadata_form():
                 for file in sequencer.get("uploaded_files", [])
             )
 
+            total_uploaded_files = sum(
+                len(sequencer["uploaded_files"])
+                for sample in samples_data_complete
+                for sequencer in sample.get("sequencer_ids", [])
+            )
+
             multiqc_report_exists = check_multiqc_report(process_id)
             mapping_files_exist = SequencingUpload.check_mapping_files_exist(
                 process_id
@@ -281,6 +288,7 @@ def metadata_form():
         rscripts_report=rscripts_report,
         pdf_report=pdf_report,
         is_owner=is_owner,
+        total_uploaded_files=total_uploaded_files,
     )
 
 
@@ -576,6 +584,23 @@ def sequencing_confirm_metadata():
     SequencingUpload.mark_upload_confirmed_as_true(process_id)
 
     return (jsonify({"result": 1}), 200)
+
+
+@metadata_bp.route(
+    "/delete_sequencer_ids",
+    methods=["GET"],
+    endpoint="delete_sequencer_ids",
+)
+@login_required
+@approved_required
+@admin_required
+def delete_sequencer_ids():
+    process_id = request.args.get("process_id")
+    SequencingUpload.delete_sequencer_ids_for_upload(process_id)
+
+    return redirect(
+        url_for("metadata.metadata_form", process_id=process_id) + "#step_7"
+    )
 
 
 @metadata_bp.route(
