@@ -168,6 +168,12 @@ def generate_lotus2_report(
             # Run the command inside the container
             result = container.exec_run(["bash", "-c", command_str])
             logger.info(result.output)
+            logger.info(
+                "Finished process_id : "
+                + str(process_id)
+                + " - analysis_type_id : "
+                + str(analysis_type_id)
+            )
 
             SequencingAnalysis.update_field(
                 analysis_id, "lotus2_status", "Finished"
