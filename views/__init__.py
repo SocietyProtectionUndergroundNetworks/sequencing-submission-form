@@ -1,5 +1,9 @@
+# views/__init__.py
+
 import logging
 from flask import Flask
+
+# Import your blueprints
 from .user import user_bp
 from .upload import upload_bp
 from .data import data_bp
@@ -10,14 +14,18 @@ from .buckets import bucket_bp
 from .taxonomy import taxonomy_bp
 
 
-def create_app():
+def create_base_app():  # Renamed from create_app
+    """
+    Creates a basic Flask app instance and registers blueprints.
+    This function does NOT handle database, sessions, or other extensions.
+    """
     app = Flask(
         __name__, static_folder="../static", template_folder="../templates"
     )
 
-    # Configure logging
+    # Configure logging (this will still happen, but the main app factory can override/augment it)
     logging.basicConfig(
-        level=logging.DEBUG,  # Set the logging level as per your need
+        level=logging.DEBUG,
         format="%(asctime)s 1 [%(levelname)s] %(message)s",
         handlers=[
             logging.FileHandler("app.log"),  # Log to a file
@@ -25,6 +33,7 @@ def create_app():
         ],
     )
     logger = logging.getLogger("my_app_logger")  # noqa: F841
+
     # Register Blueprints
     app.register_blueprint(user_bp)
     app.register_blueprint(upload_bp)

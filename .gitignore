@@ -78,3 +78,5 @@ static/map.html
 static/map_full.html
 
 static/data.geojson
+
+flask_session/
