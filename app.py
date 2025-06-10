@@ -11,7 +11,5 @@ from flask_app import create_app
 app = create_app()
 
 if __name__ == "__main__":
-    server_port = os.environ.get(
-        "PORT", "56733"
-    )
+    server_port = os.environ.get("PORT", "56733")
     app.run(debug=True, host="0.0.0.0", port=int(server_port))

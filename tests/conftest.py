@@ -3,6 +3,9 @@ import pytest
 from sqlalchemy.orm import sessionmaker
 from contextlib import contextmanager
 
+# IMPORTANT: Import the actual module containing connect_db
+import helpers.dbm as original_dbm_module
+
 # Import your Base from where it's defined
 from models.db_model import Base
 
@@ -52,25 +55,39 @@ def client(app):
 
 
 @pytest.fixture(scope="function")
-def db_session(app):
+def db_session(app, mocker):  # Keep 'mocker' in fixture arguments
     """
     Provides a SQLAlchemy session bound to the in-memory SQLite database
     for each test function. It handles schema creation and teardown.
+    Crucially, it now mocks helpers.dbm.connect_db to return the in-memory engine.
     """
-    engine = flask_db_instance.engine
-    TestingSessionLocal = sessionmaker(
-        autocommit=False, autoflush=False, bind=engine
+    # Get the in-memory SQLite engine that Flask-SQLAlchemy has already initialized
+    # through the app fixture's configuration.
+    test_engine = flask_db_instance.engine
+
+    # 1. Mock helpers.dbm.connect_db to return our in-memory test engine.
+    # This ensures that any call to connect_db() in your app (including via session_scope)
+    # gets the test engine.
+    mocker.patch.object(
+        original_dbm_module, "connect_db", return_value=test_engine
     )
 
+    # Now, if session_scope and get_session correctly call connect_db internally,
+    # they will automatically use the mocked in-memory engine.
+    # You no longer need these direct patches:
+    # mocker.patch.object(original_dbm_module, 'session_scope', side_effect=mock_session_scope)
+    # mocker.patch.object(original_dbm_module, 'get_session', side_effect=TestingSessionLocal)
+
+    # Define the session class for direct use in the test if needed
+    TestingSessionLocal = sessionmaker(
+        autocommit=False, autoflush=False, bind=test_engine
+    )
+
+    # 2. Set up the in-memory database schema for the test
     with app.app_context():
-        Base.metadata.create_all(bind=engine)
-        session = TestingSessionLocal()
-        try:
-            yield session
-            session.commit()
-        except Exception:
-            session.rollback()
-            raise
-        finally:
-            session.close()
-            Base.metadata.drop_all(bind=engine)
+        Base.metadata.create_all(bind=test_engine)
+        # Yield a session for the test itself, allowing direct interaction
+        # with the test database if needed within the test function.
+        yield TestingSessionLocal()
+        # 3. Teardown the schema after the test
+        Base.metadata.drop_all(bind=test_engine)

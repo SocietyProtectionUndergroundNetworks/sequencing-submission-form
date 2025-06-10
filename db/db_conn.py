@@ -2,7 +2,10 @@ import os
 
 
 def get_database_uri():
-    # You can set the URL directly here using the environment variables
+    # Allow full override using DATABASE_URL
+    if "DATABASE_URL" in os.environ:
+        return os.environ["DATABASE_URL"]
+
     DB_USER = os.environ["MYSQL_USER"]
     DB_PASSWORD = os.environ["MYSQL_PASSWORD"]
     DB_HOST = os.environ["MYSQL_HOST"]
@@ -13,5 +16,4 @@ def get_database_uri():
         f"mysql+mysqldb://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:"
         f"{DB_PORT}/{DB_NAME}?charset=utf8mb4"
     )
-
     return SQLALCHEMY_DATABASE_URI
