@@ -203,10 +203,19 @@ def taxonomy_download_otus_csv():
     analysis_type_id = request.args.get("analysis_type_id", "").strip()
     sample = SequencingSample.get(sample_id)
     upload = SequencingUpload.get(sample.sequencingUploadId)
+    amf_filter = request.args.get("amf_filter", 1)
+    amf_filter = int(amf_filter) if amf_filter else 0
+
+    ecm_filter = request.args.get("ecm_filter", 1)
+    ecm_filter = int(ecm_filter) if ecm_filter else 0
 
     # Query the OTUs for the sample and region
     otus = TaxonomyManager.get_otus(
-        sample_id=sample_id, region=region, analysis_type_id=analysis_type_id
+        sample_id=sample_id,
+        region=region,
+        analysis_type_id=analysis_type_id,
+        amf_filter=amf_filter,
+        ecm_filter=ecm_filter,
     )
 
     # Create an in-memory string buffer
