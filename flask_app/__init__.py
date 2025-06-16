@@ -1,9 +1,7 @@
 # flask_app/__init__.py
 
-import os
 import secrets
 import logging
-from flask import Flask
 
 # Import extensions without initializing them with an app yet
 from flask_sqlalchemy import SQLAlchemy
@@ -12,11 +10,10 @@ from flask_session import Session
 # Import your helpers and modules
 from db.db_conn import (
     get_database_uri,
-)  # Your function to get the default MySQL URI
-from models.db_model import Base  # Your SQLAlchemy declarative_base
-from views import create_base_app  # Import the function from views/__init__.py
-from extensions import login_manager  # Your Flask-Login manager
-from celery_config import make_celery  # Your Celery factory/instance
+)
+from views import create_base_app
+from extensions import login_manager
+from celery_config import make_celery
 
 # Initialize extensions as objects, to be bound to an app later
 db = SQLAlchemy()
@@ -35,8 +32,8 @@ def create_app(test_config=None):
     Returns:
         Flask.app: The fully configured Flask application instance.
     """
-    # 1. Create the basic Flask app and register blueprints using your existing function
-    app = create_base_app()  # Calls the create_app() from views/__init__.py
+    # 1. Create the basic Flask app and register blueprints
+    app = create_base_app()
 
     # 2. Apply configuration based on environment or test_config
     # Default configuration (for development/production)
@@ -46,11 +43,9 @@ def create_app(test_config=None):
         # Load default database and session config
         app.config["SQLALCHEMY_DATABASE_URI"] = get_database_uri()
         app.config["SESSION_TYPE"] = "sqlalchemy"
-        app.config["SESSION_SQLALCHEMY"] = (
-            db  # This will be bound after db.init_app(app)
-        )
+        app.config["SESSION_SQLALCHEMY"] = db
 
-        # Celery configuration for non-testing environments (matches your original app.py)
+        # Celery configuration for non-testing environments
         app.config.update(
             CELERY_BROKER_URL="redis://redis:6379/0",
             CELERY_RESULT_BACKEND="redis://redis:6379/0",
@@ -61,7 +56,7 @@ def create_app(test_config=None):
             CELERY_WORKER_PREFETCH_MULTIPLIER=1,
             CELERY_TASK_TIME_LIMIT=86400,  # 24 hours
             CELERY_BROKER_TRANSPORT_OPTIONS={"visibility_timeout": 86400},
-            CELERY_ALWAYS_EAGER=False,  # Default for production/dev
+            CELERY_ALWAYS_EAGER=False,
         )
         # Secret key generation
         app.secret_key = secrets.token_urlsafe(
@@ -71,7 +66,6 @@ def create_app(test_config=None):
     else:
         # Load the test configuration if passed in (e.g., from pytest)
         app.config.from_mapping(test_config)
-        # For testing, ensure Celery is eager unless specifically testing async behavior
         app.config["CELERY_ALWAYS_EAGER"] = app.config.get(
             "CELERY_ALWAYS_EAGER", True
         )
@@ -93,11 +87,12 @@ def create_app(test_config=None):
 
     # 4. Other app setup that needs the app context or configuration
     # Initialize Earth Engine. This often needs to be mocked in tests.
-    from helpers.land_use import initialize_earth_engine  # Assuming it's here
+    from helpers.land_use import initialize_earth_engine
 
-    initialize_earth_engine()  # For unit tests, you'll need to mock this out.
+    initialize_earth_engine()
 
-    # Logger setup (your views/__init__.py might also do this, but this is the main app logger)
+    # Logger setup (your views/__init__.py might also do this,
+    # but this is the main app logger)
     logging.getLogger("my_app_logger")
 
     # 5. Initialize the global Celery app instance

@@ -1,6 +1,5 @@
 # tests/test_preapproved_user.py
 
-import pytest
 from models.db_model import PreapprovedUsersTable
 from models.preapproved_user import PreapprovedUser
 
@@ -18,9 +17,11 @@ def test_preapproved_user_create(db_session):
     group_id = 101
 
     # Call the create method
-    # Note: Your create method currently returns 'id', which might be a typo for `new_user.id`
-    # or it might return the instance itself. Let's assume it meant new_user.id or the instance.
-    created_user_id = PreapprovedUser.create(email, bucket, group_id)
+    # Note: Your create method currently returns 'id',
+    # which might be a typo for `new_user.id`
+    # or it might return the instance itself. Let's
+    # assume it meant new_user.id or the instance.
+    PreapprovedUser.create(email, bucket, group_id)
 
     # Assert that a user was created in the database
     # Use db_session directly to query the actual underlying table
@@ -66,35 +67,47 @@ def test_preapproved_user_get(db_session):
 
 def test_preapproved_user_delete(db_session):
     """
-    Tests the PreapprovedUser.delete method.
+    Tests the deletion of a preapproved user,
+    including verification of deletion
+    and attempting to delete a non-existent user.
     """
-    # Create a user to be deleted
+    # 1. Create a user to delete
     user_to_delete = PreapprovedUsersTable(
         email="delete_me@example.com", bucket="delete_bucket", group_id=303
     )
     db_session.add(user_to_delete)
-    db_session.commit()  # Commit to make it persistent in the test DB
+    db_session.commit()  # Commit the creation of the user
 
     user_id = user_to_delete.id
 
-    # Call the delete method
-    result = PreapprovedUser.delete(user_id)
+    # 2. Call the delete method with the test session for the created user
+    result = PreapprovedUser.delete(user_id, session=db_session)
+    # The delete method *does not* commit when an external session is provided.
+    # Therefore, we must explicitly commit here to persist the deletion.
+    db_session.commit()  # <--- IMPORTANT: Commit the deletion here!
 
+    # 3. Verify the first deletion
     assert result["status"] == 1
     assert result["message"] == "Success"
 
-    # Verify the user is no longer in the database
+    # Clear session cache to force re-fetch from the database
+    # This is good practice to ensure the DB
+    # state is reflected, not just cached objects.
+    db_session.expunge_all()
+
+    # Force re-fetch from the database to confirm deletion
+    # We no longer close and reopen the session.
+    # The `db_session` provided by the fixture is still active.
     deleted_user = (
         db_session.query(PreapprovedUsersTable).filter_by(id=user_id).first()
     )
-    assert deleted_user is None
+    assert deleted_user is None, f"User with ID {user_id} was not deleted."
 
-    # Test deleting a non-existent user
-    result_non_existent = PreapprovedUser.delete(99999)
+    # 4. Try deleting a non-existent user
+    # Use the same active db_session for this attempt.
+    result_non_existent = PreapprovedUser.delete(99999, session=db_session)
     assert result_non_existent["status"] == 0
-    assert (
-        result_non_existent["message"] == "Not run"
-    )  # Based on your implementation
+    assert result_non_existent["message"] == "User not found"
 
 
 def test_preapproved_user_get_all(db_session):
@@ -117,7 +130,8 @@ def test_preapproved_user_get_all(db_session):
     # Check if the returned objects are instances of PreapprovedUser
     assert all(isinstance(u, PreapprovedUser) for u in all_users)
 
-    # Check for specific data (order might not be guaranteed, so check presence)
+    # Check for specific data (order might not
+    # be guaranteed, so check presence)
     emails = {u.email for u in all_users}
     assert "all1@example.com" in emails
     assert "all2@example.com" in emails

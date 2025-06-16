@@ -14,7 +14,8 @@ def test_app_creation(app):
 
 def test_homepage_access(client):
     """
-    Tests accessing a simple Flask route (e.g., homepage) using the test client.
+    Tests accessing a simple Flask route
+    (e.g., homepage) using the test client.
     The 'client' fixture from conftest.py provides the test client.
     """
 

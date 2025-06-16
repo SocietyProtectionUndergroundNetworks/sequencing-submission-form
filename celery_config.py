@@ -5,14 +5,13 @@ from celery import Celery
 
 def make_celery(app):
     """
-    Creates and configures a Celery app instance using Flask app's configuration.
+    Creates and configures a Celery app instance
+    using Flask app's configuration.
     """
     celery_instance = Celery(
-        app.import_name,  # Standard way to get the Flask app's module name
-        broker=app.config.get("CELERY_BROKER_URL"),  # Use .get for robustness
-        backend=app.config.get(
-            "CELERY_RESULT_BACKEND"
-        ),  # Use .get for robustness
+        app.import_name,
+        broker=app.config.get("CELERY_BROKER_URL"),
+        backend=app.config.get("CELERY_RESULT_BACKEND"),
     )
 
     # Directly update Celery's configuration from Flask app.config
@@ -29,7 +28,6 @@ def make_celery(app):
         broker_transport_options=app.config.get(
             "CELERY_BROKER_TRANSPORT_OPTIONS", {}
         ),
-        # Ensure CELERY_ALWAYS_EAGER is passed if present in app.config
         CELERY_ALWAYS_EAGER=app.config.get("CELERY_ALWAYS_EAGER", False),
     )
 
@@ -41,5 +39,6 @@ def make_celery(app):
     return celery_instance
 
 
-# The global celery_app instance will now be imported from `flask_app/__init__.py`
+# The global celery_app instance will now
+# be imported from `flask_app/__init__.py`
 # after it has been configured by `create_app()`.

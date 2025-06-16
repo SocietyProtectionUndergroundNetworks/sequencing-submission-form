@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from helpers.dbm import session_scope
 from models.db_model import PreapprovedUsersTable
 import logging
@@ -47,23 +48,46 @@ class PreapprovedUser:
             return id
 
     @classmethod
-    def delete(cls, user_id):
-        with session_scope() as session:
-            to_return = {"status": 0, "message": "Not run"}
+    def delete(cls, user_id, session=None):
+        """
+        Deletes a preapproved user from the database
+        using the provided session.
+        If no session is provided, it will create
+        a new one using session_scope().
+        """
 
+        # Import session_scope only if needed, as per your original code
+        # We need to explicitly handle it for the test
+        import helpers.dbm as original_dbm_module
+
+        to_return = {"status": 0, "message": "Not run"}
+        own_session = False
+
+        if session is None:
+            own_session = True
+            # Use the actual session_scope from helpers.dbm
+            session_context = original_dbm_module.session_scope()
+        else:
+            # make a fake context manager that does nothing
+            @contextmanager
+            def dummy_scope():
+                yield session
+
+            session_context = dummy_scope()
+
+        with session_context as s:
             user_db = (
-                session.query(PreapprovedUsersTable)
-                .filter_by(id=user_id)
-                .first()
+                s.query(PreapprovedUsersTable).filter_by(id=user_id).first()
             )
             if user_db:
-
-                # Delete the user
-                session.delete(user_db)
-                session.commit()
+                s.delete(user_db)
+                if own_session:
+                    s.commit()
                 to_return = {"status": 1, "message": "Success"}
-
-            return to_return
+            else:
+                # Add a message for when user is not found, to clarify behavior
+                to_return["message"] = "User not found"
+        return to_return
 
     @classmethod
     def get_all(cls):

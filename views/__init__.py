@@ -23,7 +23,9 @@ def create_base_app():  # Renamed from create_app
         __name__, static_folder="../static", template_folder="../templates"
     )
 
-    # Configure logging (this will still happen, but the main app factory can override/augment it)
+    # Configure logging
+    # (this will still happen, but the main app
+    # factory can override/augment it)
     logging.basicConfig(
         level=logging.DEBUG,
         format="%(asctime)s 1 [%(levelname)s] %(message)s",
