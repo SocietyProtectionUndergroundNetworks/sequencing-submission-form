@@ -41,6 +41,10 @@ RUN addgroup -S docker && \
 # Set the working directory to /app
 WORKDIR /app
 
+# Set PYTHONPATH to include the /app directory (your project root)
+# This ensures Python can find 'models', 'db', 'flask_app', 'views' etc. as top-level packages
+ENV PYTHONPATH=/app
+
 # Change ownership of the application directory to the non-root user
 RUN chown -R $FLASK_PROCESS_USER:$FLASK_PROCESS_GROUP_ID /app
 

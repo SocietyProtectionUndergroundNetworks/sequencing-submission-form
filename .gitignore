@@ -79,6 +79,6 @@ static/map_full.html
 
 static/data.geojson
 
-mysql_test/
-
 flask_session/
+
+mysql_test/
