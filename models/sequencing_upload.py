@@ -488,10 +488,11 @@ class SequencingUpload:
                     datadict["region_1_reverse_primer"],
                 )
 
-            if (
-                datadict["region_2_forward_primer"] == "0"
-                and datadict["region_2_reverse_primer"] == "0"
-            ):
+            if datadict["region_2_forward_primer"] in (
+                "0",
+                None,
+                "",
+            ) and datadict["region_2_reverse_primer"] in ("0", None, ""):
                 datadict["Sequencing_regions_number"] = 1
             else:
                 datadict["Sequencing_regions_number"] = 2
