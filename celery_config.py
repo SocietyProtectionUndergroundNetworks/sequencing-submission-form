@@ -28,7 +28,7 @@ def make_celery(app):
         broker_transport_options=app.config.get(
             "CELERY_BROKER_TRANSPORT_OPTIONS", {}
         ),
-        CELERY_ALWAYS_EAGER=app.config.get("CELERY_ALWAYS_EAGER", False),
+        task_always_eager=app.config.get("CELERY_ALWAYS_EAGER", False),
     )
 
     # Optional: Autodiscover tasks if they are in specific modules

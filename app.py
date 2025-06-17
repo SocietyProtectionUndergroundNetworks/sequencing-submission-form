@@ -1,5 +1,4 @@
-# app.py (This is your main entry point for running the Flask app)
-
+# app.py
 import os
 
 # Import the create_app factory from your main app package
