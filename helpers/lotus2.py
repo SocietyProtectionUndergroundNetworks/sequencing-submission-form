@@ -196,7 +196,7 @@ def generate_lotus2_report(
             if "sdmopt" in parameters:
                 if parameters["sdmopt"] == "sdm_miSeq2_250":
                     sdmopt = "/lotus2_files/sdm_miSeq2_250.txt"
-                    
+
             mapping_file = input_dir + "/mapping_files/SSU_Mapping.txt"
 
             if analysis_type.name in ["SSU_dada2", "SSU_vsearch"]:
