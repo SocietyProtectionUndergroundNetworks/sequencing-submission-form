@@ -40,6 +40,8 @@ gunicorn==23.0.0
 
 folium==0.19.4
 
+cutadapt==5.1
+
 # Required for testing.
 pytest==8.4.0
 pytest-mock==3.14.1

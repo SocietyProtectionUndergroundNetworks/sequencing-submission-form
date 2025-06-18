@@ -1,8 +1,15 @@
 import logging
+import re
+import os
 import pandas as pd
 import numpy as np
 from helpers.dbm import session_scope
-from models.db_model import SequencingSequencerIDsTable, SequencingSamplesTable
+from helpers.cutadapt import run_cutadapt_analysis, parse_cutadapt_output
+from models.db_model import (
+    SequencingSequencerIDsTable,
+    SequencingSamplesTable,
+    SequencingFilesUploadedTable,
+)
 from models.sequencing_upload import SequencingUpload
 from sqlalchemy import and_
 
@@ -327,3 +334,116 @@ class SequencingSequencerId:
 
             # Return None if no matching record is found
             return None
+
+    @classmethod
+    def adapters_count(
+        cls,
+        sequencer_id,
+        process_folder,
+        forward_primer,
+        reverse_primer,
+        forward_primer_revcomp,
+        reverse_primer_revcomp,
+    ):
+
+        # Check if any adapter fields are present (not None/empty)
+        if all(
+            sequencer_id.get(field) is not None
+            for field in [
+                "fwd_read_fwd_adap",
+                "rev_read_rev_adap",
+                "fwd_rev_adap",
+            ]
+        ):
+            logger.info("Adapters already counted, skipping.")
+            return  # skip further processing
+
+        # Check primers exist
+        if not (forward_primer and reverse_primer):
+            logger.warning(
+                "Forward or reverse primer not "
+                " provided, skipping adapter count."
+            )
+            return
+
+        with session_scope() as session:
+            files_of_sequencer = (
+                session.query(SequencingFilesUploadedTable)
+                .filter_by(sequencerId=sequencer_id["id"])
+                .all()
+            )
+
+            filenames = [f.new_name for f in files_of_sequencer]
+
+            pattern = re.compile(r"(.+)_1(_\d+.*\.fastq(?:\.gz)?)$")
+            forward_file = None
+            reverse_file = None
+
+            for fname in filenames:
+                m = pattern.match(fname)
+                if m:
+                    base = m.group(1)
+                    suffix = m.group(2)
+                    rev_fname = f"{base}_2{suffix}"
+                    if rev_fname in filenames:
+                        forward_file = fname
+                        reverse_file = rev_fname
+                        break
+
+            if not (forward_file and reverse_file):
+                logger.warning(
+                    "Could not find matching pair "
+                    " of forward and reverse files."
+                )
+                return
+
+            file_1_path = os.path.join(
+                "seq_processed", process_folder, forward_file
+            )
+            file_2_path = os.path.join(
+                "seq_processed", process_folder, reverse_file
+            )
+
+            logger.info(
+                f"Running cutadapt on files: {file_1_path}, {file_2_path}"
+            )
+
+            try:
+                cutadapt_log = run_cutadapt_analysis(
+                    file_1_path=file_1_path,
+                    file_2_path=file_2_path,
+                    forward_primer_seq=forward_primer,
+                    reverse_primer_seq=reverse_primer,
+                )
+            except RuntimeError as e:
+                logger.error(f"Cutadapt failed: {e}")
+                return
+
+            reads = parse_cutadapt_output(cutadapt_log)
+            # logger.info(f"Cutadapt parsed reads: {reads}")
+
+            # Update the sequencer record in the database
+            # Fetch the actual sequencer record object from the DB to update
+            sequencer_record = (
+                session.query(SequencingSequencerIDsTable)
+                .filter_by(id=sequencer_id["id"])
+                .first()
+            )
+            if not sequencer_record:
+                logger.error(
+                    f"Sequencer record with id {sequencer_id['id']} not found"
+                )
+                return
+
+            if reads.get("read1_with_adapter") is not None:
+                sequencer_record.fwd_read_fwd_adap = reads[
+                    "read1_with_adapter"
+                ]
+            if reads.get("read2_with_adapter") is not None:
+                sequencer_record.rev_read_rev_adap = reads[
+                    "read2_with_adapter"
+                ]
+            if reads.get("pairs_written") is not None:
+                sequencer_record.fwd_rev_adap = reads["pairs_written"]
+
+            session.commit()

@@ -248,6 +248,10 @@ class SequencingSequencerIDsTable(Base):
     sequencing_run = Column(String(255), nullable=True)
     Index_1 = Column(String(100), nullable=True)
     Index_2 = Column(String(100), nullable=True)
+    fwd_read_fwd_adap = Column(Integer, nullable=True)
+    rev_read_rev_adap = Column(Integer, nullable=True)
+    fwd_rev_adap = Column(Integer, nullable=True)
+    fwd_rev_mrg_adap = Column(Integer, nullable=True)
 
 
 class SequencingFilesUploadedTable(Base):

@@ -2,7 +2,9 @@
   "ITS3/ITS4": {
     "Region": "ITS2",
     "Forward Primer": "GCATCGATGAAGAACGCAGC",
-    "Reverse Primer": "TCCTCCGCTTATTGATATGC"
+    "Forward Primer Revcomp": "GCTGCGTTCTTCATCGATGC",
+    "Reverse Primer": "TCCTCCGCTTATTGATATGC",
+    "Reverse Primer Revcomp": "GCATATCAATAAGCGGAGGA"
   },
   "WANDA/AML2": {
     "Region": "SSU",
@@ -14,15 +16,12 @@
     "Forward Primer": "TACACACCGCCCGTCG",
     "Reverse Primer": "CCTSCSCTTANTDATATGC"
   },
-  "ITS7/ITS4": {
-    "Region": "ITS2",
-    "Forward Primer": "TTTCAACAAYGGATTCTTGG",
-    "Reverse Primer": "TCCTCCGCTTATTGATATGC"
-  },
   "ITS4/fITS7": {
     "Region": "ITS2",
     "Forward Primer": "TCCTCCGCTTATTGATATGC",
-    "Reverse Primer": "GTGARTCATCGAATCTTTG"
+    "Forward Primer Revcomp": "GCATATCAATAAGCGGAGGA",
+    "Reverse Primer": "GTGARTCATCGAATCTTTG",
+    "Reverse Primer Revcomp": "CAAAGATTCGATGAYTCAC"
   },
   "ITS9/ITS4": {
     "Region": "Full ITS",
@@ -44,11 +43,6 @@
     "Forward Primer": "CTTGGTCATTTAGAGGAAGTAA",
     "Reverse Primer": "GCTGCGTTCTTCATCGATGC"
   },
-  "ITS5/ITS2": {
-    "Region": "ITS1",
-    "Forward Primer": "GGAAGTAAAAGTCGTAACAAGG",
-    "Reverse Primer": "GCTGCGTTCTTCATCGATGC"
-  },
   "AML1/AML2": {
     "Region": "SSU",
     "Forward Primer": "ATCAACTTTCGATGGTAGGATAGA",
@@ -62,7 +56,9 @@
   "ITS86F/ITS4": {
     "Region": "ITS2",
     "Forward Primer": "GTGAATCATCGAATCTTTGAA",
-    "Reverse Primer": "TCCTCCGCTTATTGATATGC"
+    "Forward Primer Revcomp": "TTCAAAGATTCGATGATTCAC",
+    "Reverse Primer": "TCCTCCGCTTATTGATATGC",
+    "Reverse Primer Revcomp": "GCATATCAATAAGCGGAGGA"
   },
   "AMV4-5NF/AMDGR": {
     "Region": "SSU",
@@ -72,17 +68,16 @@
   "5.8SR/ITS4": {
     "Region": "ITS2",
     "Forward Primer": "TCGATGAAGAACGCAGCG",
-    "Reverse Primer": "TCCTCCGCTTATTGATATGC"
+    "Forward Primer Revcomp": "CGCTGCGTTCTTCATCGA",
+    "Reverse Primer": "TCCTCCGCTTATTGATATGC",
+    "Reverse Primer Revcomp": "GCATATCAATAAGCGGAGGA"
   },
   "gITS7ngs/ITS4ngs": {
     "Region": "ITS2",
     "Forward Primer": "GTGARTCATCRARTYTTTG",
-    "Reverse Primer": "TCCTSCGCTTATTGATATGC"
-  },
-  "ITS5/ITS4": {
-    "Region": "Full ITS",
-    "Forward Primer": "TCCTCCGCTTATTGATATGC",
-    "Reverse Primer": "ACCCGCTGAACTTAAGC"
+    "Forward Primer Revcomp": "CAAARAYTYGATGAYTCAC",
+    "Reverse Primer": "TCCTSCGCTTATTGATATGC",
+    "Reverse Primer Revcomp": "GCATATCAATAAGCGSAGGA"
   },
   "LROR/LR5": {
     "Region": "LSU",
