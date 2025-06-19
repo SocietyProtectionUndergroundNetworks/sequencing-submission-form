@@ -1752,23 +1752,15 @@ class SequencingUpload:
             region = sequencer_id["Region"]
             # pass the sequencer_id, the region,
             # the forward and reverse primers
-            if sequencer_id["id"] == 12982:
-                SequencingSequencerId.adapters_count(
-                    sequencer_id,
-                    process_folder=process_data["uploads_folder"],
-                    forward_primer=primers_dictionary[region][
-                        "Forward Primer"
-                    ],
-                    reverse_primer=primers_dictionary[region][
-                        "Reverse Primer"
-                    ],
-                    forward_primer_revcomp=primers_dictionary[region][
-                        "Forward Primer Revcomp"
-                    ],
-                    reverse_primer_revcomp=primers_dictionary[region][
-                        "Reverse Primer Revcomp"
-                    ],
-                )
+            SequencingSequencerId.adapters_count(
+                sequencer_id,
+                process_folder=process_data["uploads_folder"],
+                forward_primer=primers_dictionary[region]["Forward Primer"],
+                reverse_primer=primers_dictionary[region]["Reverse Primer"],
+                reverse_primer_revcomp=primers_dictionary[region][
+                    "Reverse Primer Revcomp"
+                ],
+            )
 
     @classmethod
     def process_otu_data(

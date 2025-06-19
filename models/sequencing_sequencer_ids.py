@@ -4,7 +4,12 @@ import os
 import pandas as pd
 import numpy as np
 from helpers.dbm import session_scope
-from helpers.cutadapt import run_cutadapt_analysis, parse_cutadapt_output
+from helpers.cutadapt import (
+    detect_single_read_primers,
+    parse_detect_single_read_primers_output,
+    detect_merged_read_primers,
+    parse_detect_merged_read_primers_output,
+)
 from models.db_model import (
     SequencingSequencerIDsTable,
     SequencingSamplesTable,
@@ -342,37 +347,56 @@ class SequencingSequencerId:
         process_folder,
         forward_primer,
         reverse_primer,
-        forward_primer_revcomp,
         reverse_primer_revcomp,
     ):
 
-        # Check if any adapter fields are present (not None/empty)
-        if all(
-            sequencer_id.get(field) is not None
-            for field in [
-                "fwd_read_fwd_adap",
-                "rev_read_rev_adap",
-                "fwd_rev_adap",
-            ]
-        ):
-            logger.info("Adapters already counted, skipping.")
-            return  # skip further processing
-
-        # Check primers exist
-        if not (forward_primer and reverse_primer):
-            logger.warning(
-                "Forward or reverse primer not "
-                " provided, skipping adapter count."
-            )
-            return
-
+        # Fetch sequencer record early so we can check fields and update later
         with session_scope() as session:
+            sequencer_record = (
+                session.query(SequencingSequencerIDsTable)
+                .filter_by(id=sequencer_id["id"])
+                .first()
+            )
+            if not sequencer_record:
+                logger.error(
+                    f"Sequencer record with id {sequencer_id['id']} not found"
+                )
+                return
+
+            # Check primers exist
+            if not (forward_primer and reverse_primer):
+                logger.warning(
+                    "Forward or reverse primer not provided, " 
+                    "skipping adapter count."
+                )
+                return
+
+            # Determine if single-read adapters need
+            # to be counted (any of first 3 is None)
+            need_single_read = any(
+                getattr(sequencer_record, field) is None
+                for field in [
+                    "fwd_read_fwd_adap",
+                    "rev_read_rev_adap",
+                    "fwd_rev_adap",
+                ]
+            )
+
+            # Determine if merged-read adapters
+            # need to be counted (4th field is None)
+            need_merged_read = sequencer_record.fwd_rev_mrg_adap is None
+
+            # If nothing to do, skip
+            if not (need_single_read or need_merged_read):
+                logger.info("Adapters already counted, skipping.")
+                return
+
+            # Find matching forward and reverse files as before
             files_of_sequencer = (
                 session.query(SequencingFilesUploadedTable)
                 .filter_by(sequencerId=sequencer_id["id"])
                 .all()
             )
-
             filenames = [f.new_name for f in files_of_sequencer]
 
             pattern = re.compile(r"(.+)_1(_\d+.*\.fastq(?:\.gz)?)$")
@@ -392,7 +416,7 @@ class SequencingSequencerId:
 
             if not (forward_file and reverse_file):
                 logger.warning(
-                    "Could not find matching pair "
+                    "Could not find matching pair"
                     " of forward and reverse files."
                 )
                 return
@@ -404,46 +428,52 @@ class SequencingSequencerId:
                 "seq_processed", process_folder, reverse_file
             )
 
-            logger.info(
-                f"Running cutadapt on files: {file_1_path}, {file_2_path}"
-            )
+            # Run single-read adapter counting if needed
+            if need_single_read:
+                try:
+                    cutadapt_log = detect_single_read_primers(
+                        file_1_path=file_1_path,
+                        file_2_path=file_2_path,
+                        forward_primer_seq=forward_primer,
+                        reverse_primer_seq=reverse_primer,
+                    )
+                except RuntimeError as e:
+                    logger.error(f"Cutadapt single-read detection failed: {e}")
+                    return
 
-            try:
-                cutadapt_log = run_cutadapt_analysis(
-                    file_1_path=file_1_path,
-                    file_2_path=file_2_path,
-                    forward_primer_seq=forward_primer,
-                    reverse_primer_seq=reverse_primer,
+                reads = parse_detect_single_read_primers_output(cutadapt_log)
+
+                if reads.get("read1_with_adapter") is not None:
+                    sequencer_record.fwd_read_fwd_adap = reads[
+                        "read1_with_adapter"
+                    ]
+                if reads.get("read2_with_adapter") is not None:
+                    sequencer_record.rev_read_rev_adap = reads[
+                        "read2_with_adapter"
+                    ]
+                if reads.get("pairs_written") is not None:
+                    sequencer_record.fwd_rev_adap = reads["pairs_written"]
+
+                session.commit()
+
+            # Run merged-read adapter counting if needed
+            if need_merged_read:
+                try:
+                    merged_log = detect_merged_read_primers(
+                        file_1_path=file_1_path,
+                        file_2_path=file_2_path,
+                        forward_primer_seq=forward_primer,
+                        reverse_primer_seq=reverse_primer_revcomp,
+                    )
+                except RuntimeError as e:
+                    logger.error(f"Cutadapt merged-read detection failed: {e}")
+                    return
+
+                merged_reads = parse_detect_merged_read_primers_output(
+                    merged_log
                 )
-            except RuntimeError as e:
-                logger.error(f"Cutadapt failed: {e}")
-                return
 
-            reads = parse_cutadapt_output(cutadapt_log)
-            # logger.info(f"Cutadapt parsed reads: {reads}")
+                if merged_reads is not None:
+                    sequencer_record.fwd_rev_mrg_adap = merged_reads
 
-            # Update the sequencer record in the database
-            # Fetch the actual sequencer record object from the DB to update
-            sequencer_record = (
-                session.query(SequencingSequencerIDsTable)
-                .filter_by(id=sequencer_id["id"])
-                .first()
-            )
-            if not sequencer_record:
-                logger.error(
-                    f"Sequencer record with id {sequencer_id['id']} not found"
-                )
-                return
-
-            if reads.get("read1_with_adapter") is not None:
-                sequencer_record.fwd_read_fwd_adap = reads[
-                    "read1_with_adapter"
-                ]
-            if reads.get("read2_with_adapter") is not None:
-                sequencer_record.rev_read_rev_adap = reads[
-                    "read2_with_adapter"
-                ]
-            if reads.get("pairs_written") is not None:
-                sequencer_record.fwd_rev_adap = reads["pairs_written"]
-
-            session.commit()
+                session.commit()
