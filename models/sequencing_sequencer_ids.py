@@ -384,7 +384,10 @@ class SequencingSequencerId:
 
             # Determine if merged-read adapters
             # need to be counted (4th field is None)
-            need_merged_read = sequencer_record.fwd_rev_mrg_adap is None
+            need_merged_read = (
+                sequencer_record.fwd_rev_mrg_adap is None
+                and reverse_primer_revcomp
+            )
 
             # If nothing to do, skip
             if not (need_single_read or need_merged_read):
