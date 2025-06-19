@@ -18,7 +18,14 @@ RUN apk update && \
         mysql-dev \
         openjdk8 \
         perl \
-        rclone 
+        rclone \ 
+        gcompat
+
+RUN wget https://github.com/torognes/vsearch/releases/download/v2.30.0/vsearch-2.30.0-linux-x86_64.tar.gz && \
+    tar -xzf vsearch-2.30.0-linux-x86_64.tar.gz && \
+    mv vsearch-2.30.0-linux-x86_64/bin/vsearch /usr/local/bin/ && \
+    chmod +x /usr/local/bin/vsearch && \
+    rm -rf vsearch-2.30.0-linux-x86_64 vsearch-2.30.0-linux-x86_64.tar.gz
 
 # Set environment variable for Java 8
 ENV JAVA_HOME=/usr/lib/jvm/default-jvm
@@ -53,6 +60,7 @@ COPY requirements.txt .
 
 # Install any needed packages specified in requirements.txt
 RUN pip install --trusted-host pypi.python.org -r requirements.txt
+ENV PATH="$PATH:/home/runner/.local/bin"
 
 # Use the specified user to run the Flask app
 USER $FLASK_PROCESS_USER
