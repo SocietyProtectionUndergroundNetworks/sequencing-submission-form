@@ -13,6 +13,7 @@ from helpers.dbm import session_scope
 from helpers.fastqc import init_create_fastqc_report, check_fastqc_report
 from helpers.metadata_check import (
     get_sequences_based_on_primers,
+    build_region_primer_dict,
 )
 from helpers.bucket import check_file_exists_in_bucket, calculate_md5
 from models.db_model import (
@@ -1737,6 +1738,29 @@ class SequencingUpload:
             #    file["id"], "primer_occurrences_count", None
             # )
             SequencingFileUploaded.update_primer_occurrences_count(file["id"])
+
+    @classmethod
+    def adapters_count(cls, id):
+        from models.sequencing_sequencer_ids import SequencingSequencerId
+
+        sequencer_ids = cls.get_sequencer_ids(id)
+        process_data = cls.get(id)
+        # logger.info(process_data)
+
+        primers_dictionary = build_region_primer_dict(process_data)
+        for sequencer_id in sequencer_ids:
+            region = sequencer_id["Region"]
+            # pass the sequencer_id, the region,
+            # the forward and reverse primers
+            SequencingSequencerId.adapters_count(
+                sequencer_id,
+                process_folder=process_data["uploads_folder"],
+                forward_primer=primers_dictionary[region]["Forward Primer"],
+                reverse_primer=primers_dictionary[region]["Reverse Primer"],
+                reverse_primer_revcomp=primers_dictionary[region][
+                    "Reverse Primer Revcomp"
+                ],
+            )
 
     @classmethod
     def process_otu_data(

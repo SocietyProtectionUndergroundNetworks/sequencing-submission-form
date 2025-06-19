@@ -586,11 +586,25 @@ def get_sequences_based_on_primers(forward_primer, reverse_primer):
     # Check if the key exists in the JSON
     if search_key in primer_set_region:
         region_data = primer_set_region[search_key]
-        return {
+        # Build the result dictionary dynamically
+        result = {
             "Region": region_data.get("Region"),
             "Forward Primer": region_data.get("Forward Primer"),
             "Reverse Primer": region_data.get("Reverse Primer"),
         }
+
+        # Optionally add revcomp values if they exist
+        if "Forward Primer Revcomp" in region_data:
+            result["Forward Primer Revcomp"] = region_data[
+                "Forward Primer Revcomp"
+            ]
+
+        if "Reverse Primer Revcomp" in region_data:
+            result["Reverse Primer Revcomp"] = region_data[
+                "Reverse Primer Revcomp"
+            ]
+
+        return result
     else:
         return None
 
@@ -624,3 +638,36 @@ def sanitize_data(data):
         return sanitize_string(
             data
         )  # Escape string if it's not a list or dict
+
+
+def build_region_primer_dict(process_data):
+    region_primer_dict = {}
+
+    for i in [1, 2]:
+        region_key = f"region_{i}"
+        forward_key = f"{region_key}_forward_primer"
+        reverse_key = f"{region_key}_reverse_primer"
+
+        region_name = process_data[region_key]
+        forward_name = process_data[forward_key]
+        reverse_name = process_data[reverse_key]
+
+        # Get primer sequences
+        primer_seqs = get_sequences_based_on_primers(
+            forward_name, reverse_name
+        )
+
+        # Use .get() to safely access keys, fallback
+        # to empty string if not found
+        region_primer_dict[region_name] = {
+            "Forward Primer": primer_seqs.get("Forward Primer", ""),
+            "Forward Primer Revcomp": primer_seqs.get(
+                "Forward Primer Revcomp", ""
+            ),
+            "Reverse Primer": primer_seqs.get("Reverse Primer", ""),
+            "Reverse Primer Revcomp": primer_seqs.get(
+                "Reverse Primer Revcomp", ""
+            ),
+        }
+
+    return region_primer_dict

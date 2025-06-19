@@ -1945,6 +1945,26 @@ def reset_primers_count():
 
 
 @metadata_bp.route(
+    "/adapters_count",
+    methods=["GET"],
+    endpoint="adapters_count",
+)
+@login_required
+@admin_required
+@approved_required
+def adapters_count():
+    process_id = request.args.get("process_id")
+
+    if process_id:
+        SequencingUpload.adapters_count(process_id)
+        return "done"
+        return redirect(
+            url_for("metadata.metadata_form", process_id=process_id)
+            + "#step_9"
+        )
+
+
+@metadata_bp.route(
     "/export_all_richness_data",
     methods=["GET"],
     endpoint="export_all_richness_data",
