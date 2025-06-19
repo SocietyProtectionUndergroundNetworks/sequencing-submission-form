@@ -1,5 +1,4 @@
 import logging
-import re
 import os
 import pandas as pd
 import numpy as np
@@ -9,6 +8,7 @@ from helpers.cutadapt import (
     parse_detect_single_read_primers_output,
     detect_merged_read_primers,
     parse_detect_merged_read_primers_output,
+    find_forward_reverse_files,
 )
 from models.db_model import (
     SequencingSequencerIDsTable,
@@ -400,22 +400,23 @@ class SequencingSequencerId:
                 .filter_by(sequencerId=sequencer_id["id"])
                 .all()
             )
+
             filenames = [f.new_name for f in files_of_sequencer]
 
-            pattern = re.compile(r"(.+)_1(_\d+.*\.fastq(?:\.gz)?)$")
             forward_file = None
             reverse_file = None
 
-            for fname in filenames:
-                m = pattern.match(fname)
-                if m:
-                    base = m.group(1)
-                    suffix = m.group(2)
-                    rev_fname = f"{base}_2{suffix}"
-                    if rev_fname in filenames:
-                        forward_file = fname
-                        reverse_file = rev_fname
+            for i in range(len(filenames)):
+                for j in range(i + 1, len(filenames)):
+                    f1 = filenames[i]
+                    f2 = filenames[j]
+                    forward, reverse = find_forward_reverse_files(f1, f2)
+                    if forward and reverse:
+                        forward_file = forward
+                        reverse_file = reverse
                         break
+                if forward_file and reverse_file:
+                    break
 
             if not (forward_file and reverse_file):
                 logger.warning(

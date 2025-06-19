@@ -120,3 +120,36 @@ def parse_detect_merged_read_primers_output(log_output):
     reads = int(reads_match.group(1).replace(",", "")) if reads_match else None
 
     return reads
+
+
+def find_forward_reverse_files(filename1, filename2):
+    """
+    Given two filenames, return them as forward and reverse files
+    if they differ by only one character (e.g., R1 vs R2 or 1 vs 2).
+    Return (forward, reverse), or (None, None) if no valid match.
+    """
+    if len(filename1) != len(filename2):
+        return None, None
+
+    diffs = []
+    for i in range(len(filename1)):
+        if filename1[i] != filename2[i]:
+            diffs.append(i)
+
+    if len(diffs) != 1:
+        return None, None
+
+    diff_index = diffs[0]
+    char1 = filename1[diff_index].upper()
+    char2 = filename2[diff_index].upper()
+
+    if (char1 in {"1", "R"} and char2 in {"2"}) or (
+        char1 == "R" and char2 == "F"
+    ):
+        return filename1, filename2  # filename1 is forward
+    elif (char2 in {"1", "R"} and char1 in {"2"}) or (
+        char2 == "R" and char1 == "F"
+    ):
+        return filename2, filename1  # filename2 is forward
+    else:
+        return None, None
