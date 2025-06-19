@@ -641,14 +641,14 @@
                       <th scope="col" class="bg-gray"><span class="grey">____</span>Sequencer<span class="grey">_</span>ID<span class="grey">____</span></th>
                       <th scope="col" class="bg-gray"><span class="grey">____</span>Region<span class="grey">____</span></th>
                       <th scope="col" class="bg-gray"><span class="grey">____</span>SequencingRun<span class="grey">____</span></th>
-                      <th scope="col" class="bg-gray"><span class="grey">____</span>Index_1<span class="grey">____</span></th>
-                      <th scope="col" class="bg-gray"><span class="grey">____</span>Index_2<span class="grey">____</span></th>
                       <th scope="col" class="bg-gray">Files</th>
                       <th scope="col" class="bg-gray">New Names</th>
                       <th scope="col" class="bg-gray">Report</th>
                       <th scope="col" class="bg-gray">Storage</th>
-                      <th scope="col" class="bg-gray">Sequences Number</th>
-                      <th scope="col" class="bg-gray">Primers Count</th>
+                      <th scope="col" class="bg-gray">Sequences Count</th>
+                      <th scope="col" class="bg-gray">Primer Count</th>
+                      <th scope="col" class="bg-gray">Primer Pair Count</th>
+                      <th scope="col" class="bg-gray">Merged Read Primer Pair Count</th>
                       <th scope="col" class="bg-gray">Exclude from mapping</th>
                   </tr>
               </thead>
@@ -677,12 +677,6 @@
                                         </td>
                                         <td id="SR_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                                           {{ sequencer.sequencing_run }}
-                                        </td>
-                                        <td id="I1_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                                            {{ sequencer.Index_1 if sequencer.Index_1 is not none else 'N/A' }}
-                                        </td>
-                                        <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                                            {{ sequencer.Index_2 if sequencer.Index_2 is not none else 'N/A' }}
                                         </td>
                                         <!-- Handling the first file -->
                                         <td id="F_{{ sequencer.id }}_A">
@@ -721,11 +715,13 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            {% if files|length > 0 %}
-                                                {% if files[0].primer_occurrences_count %}
-                                                    {{ files[0].primer_occurrences_count }}
-                                                {% endif %}
-                                            {% endif %}
+                                            {{ sequencer.fwd_read_fwd_adap }}
+                                        </td>
+                                        <td>
+                                            {{ sequencer.fwd_rev_adap }}
+                                        </td>
+                                        <td>
+                                            {{ sequencer.fwd_rev_mrg_adap }}
                                         </td>
                                         <td>
                                           {% if files|length > 0 %}
@@ -778,11 +774,13 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            {% if files|length > 1 %}
-                                                {% if files[1].primer_occurrences_count %}
-                                                    {{ files[1].primer_occurrences_count }}
-                                                {% endif %}
-                                            {% endif %}
+                                            {{ sequencer.rev_read_rev_adap }}
+                                        </td>
+                                        <td>
+                                            {{ sequencer.fwd_rev_adap }}
+                                        </td>
+                                        <td>
+                                            {{ sequencer.fwd_rev_mrg_adap }}
                                         </td>
                                         <td>
                                           {% if files|length > 1 %}
@@ -807,12 +805,6 @@
                                         </td>
                                         <td id="SR_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                                           {{ sequencer.sequencing_run }}
-                                        </td>                                        
-                                        <td id="I1_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                                            {{ sequencer.Index_1 if sequencer.Index_1 is not none else 'N/A' }}
-                                        </td>
-                                        <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                                            {{ sequencer.Index_2 if sequencer.Index_2 is not none else 'N/A' }}
                                         </td>
                                         <!-- Handling the first file -->
                                         <td id="F_{{ sequencer.id }}_A">
@@ -852,11 +844,13 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            {% if files|length > 0 %}
-                                                {% if files[0].primer_occurrences_count %}
-                                                    {{ files[0].primer_occurrences_count }}
-                                                {% endif %}
-                                            {% endif %}
+                                            {{ sequencer.fwd_read_fwd_adap }}
+                                        </td>
+                                        <td>
+                                            {{ sequencer.fwd_rev_adap }}
+                                        </td>
+                                        <td>
+                                            {{ sequencer.fwd_rev_mrg_adap }}
                                         </td>
                                         <td>
                                           {% if files|length > 0 %}
@@ -909,11 +903,13 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            {% if files|length > 1 %}
-                                                {% if files[1].primer_occurrences_count %}
-                                                    {{ files[1].primer_occurrences_count }}
-                                                {% endif %}
-                                            {% endif %}
+                                            {{ sequencer.rev_read_rev_adap }}
+                                        </td>
+                                        <td>
+                                            {{ sequencer.fwd_rev_adap }}
+                                        </td>
+                                        <td>
+                                            {{ sequencer.fwd_rev_mrg_adap }}
                                         </td>
                                         <td>
                                           {% if files|length > 1 %}
@@ -940,12 +936,6 @@
                                         <td id="R_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                                             <span class="red">No sequencer</span>
                                         </td>
-                                        <td id="I1_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                                            <span class="red">No sequencer</span>
-                                        </td>
-                                        <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                                            <span class="red">No sequencer</span>
-                                        </td>
                                         <!-- Handling missing files -->
                                         <td id="F_{{ row.id }}_A">
                                             <span class="red">Not available</span>
@@ -955,6 +945,8 @@
                                         </td>
                                         <td id="FCQ_{{ row.id }}_A"></td>
                                         <td id="FBP_{{ row.id }}_A"></td>
+                                        <td></td>
+                                        <td></td>
                                         <td></td>
                                         <td></td>
                                         <td></td>
@@ -969,6 +961,8 @@
                                         </td>
                                         <td id="FCQ_{{ row.id }}_B"></td>
                                         <td id="FBP_{{ row.id }}_B"></td>
+                                        <td></td>
+                                        <td></td>
                                         <td></td>
                                         <td></td>
                                         <td></td>
@@ -981,12 +975,6 @@
                                         <td id="R_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                                             <span class="red">No sequencer</span>
                                         </td>
-                                        <td id="I1_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                                            <span class="red">No sequencer</span>
-                                        </td>
-                                        <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                                            <span class="red">No sequencer</span>
-                                        </td>
                                         <!-- Handling missing files -->
                                         <td id="F_{{ row.id }}_A">
                                             <span class="red">Not available</span>
@@ -996,6 +984,8 @@
                                         </td>
                                         <td id="FCQ_{{ row.id }}_A"></td>
                                         <td id="FBP_{{ row.id }}_A"></td>
+                                        <td></td>
+                                        <td></td>
                                         <td></td>
                                         <td></td>
                                         <td></td>
@@ -1010,6 +1000,8 @@
                                         </td>
                                         <td id="FCQ_{{ row.id }}_B"></td>
                                         <td id="FBP_{{ row.id }}_B"></td>
+                                        <td></td>
+                                        <td></td>
                                         <td></td>
                                         <td></td>
                                         <td></td>
@@ -1042,12 +1034,6 @@
                             </td>
                             <td id="SR_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                               {{ sequencer.sequencing_run }}
-                            </td>
-                            <td id="I1_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                              {{ sequencer.Index_1 if sequencer.Index_1 is not none else 'N/A' }}
-                            </td>
-                            <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                              {{ sequencer.Index_2 if sequencer.Index_2 is not none else 'N/A' }}
                             </td>
                             <td id="F_{{ sequencer.id }}_A">
                               {% if files|length > 0 %}
@@ -1084,13 +1070,9 @@
                                     {% endif %}
                                 {% endif %}
                             </td>
-                            <td>
-                                {% if files|length > 0 %}
-                                    {% if files[0].primer_occurrences_count %}
-                                        {{ files[0].primer_occurrences_count }}
-                                    {% endif %}
-                                {% endif %}
-                            </td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
                             <td>
                               {% if files|length > 0 %}
                                 {% if is_admin %}
@@ -1114,12 +1096,6 @@
                             </td>
                             <td id="SR_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                               {{ sequencer.sequencing_run }}
-                            </td>
-                            <td id="I1_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                              {{ sequencer.Index_1 if sequencer.Index_1 is not none else 'N/A' }}
-                            </td>
-                            <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                              {{ sequencer.Index_2 if sequencer.Index_2 is not none else 'N/A' }}
                             </td>
                             <td id="F_{{ sequencer.id }}_A" rowspan="{{ nr_files_per_sequence }}">
                               {% if files|length > 0 %}
@@ -1156,13 +1132,9 @@
                                   {% endif %}
                               {% endif %}
                             </td>
-                            <td rowspan="{{ nr_files_per_sequence }}">
-                                {% if files|length > 0 %}
-                                    {% if files[0].primer_occurrences_count %}
-                                        {{ files[0].primer_occurrences_count }}
-                                    {% endif %}
-                                {% endif %}
-                            </td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
                             <td rowspan="{{ nr_files_per_sequence }}">
                               {% if files|length > 0 %}
                                 {% if is_admin %}
@@ -1188,15 +1160,11 @@
                             <td id="R_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                               <span class="red">No sequencer</span>
                             </td>
-                            <td id="I1_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                              <span class="red">No sequencer</span>
-                            </td>
-                            <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                              <span class="red">No sequencer</span>
-                            </td>
                             <td id="F_{{ row.id }}_A">
                               <span class="red">Not available</span>
                             </td>
+                            <td></td>
+                            <td></td>
                             <td></td>
                             <td></td>
                             <td></td>
@@ -1212,15 +1180,11 @@
                             <td id="R_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
                               <span class="red">No sequencer</span>
                             </td>
-                            <td id="I1_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                              <span class="red">No sequencer</span>
-                            </td>
-                            <td id="I2_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                              <span class="red">No sequencer</span>
-                            </td>
                             <td id="F_{{ row.id }}_A">
                               <span class="red">Not available</span>
                             </td>
+                            <td></td>
+                            <td></td>
                             <td></td>
                             <td></td>
                             <td></td>
