@@ -1525,8 +1525,31 @@
 
                           {% if region_data.analysis_type=='SSU_dada2' %}
                             <div>Clustering DADA2</div>
+                            <h4> Sdmopt:</h4>
+                            <div>
+                              <select name="sdmopt">
+                                <option value="sdm_miSeq2_SSU_Spun" selected>sdm_miSeq2_SSU_Spun.txt</option>
+                                <option value="sdm_miSeq2_250">sdm_miSeq2_250.txt</option>
+                              </select>
+                            </div>                            
                           {% elif region_data.analysis_type=='SSU_vsearch' %}
                             <div>Clustering VSEARCH</div>
+                            <h4> Sdmopt:</h4>
+                            <div>
+                              <select name="sdmopt">
+                                <option value="sdm_miSeq2_SSU_Spun" selected>sdm_miSeq2_SSU_Spun.txt</option>
+                                <option value="sdm_miSeq2_250">sdm_miSeq2_250.txt</option>
+                              </select>
+                            </div>
+                          {% elif region_data.analysis_type=='SSU_eukaryome' %}
+                            <div>Database SSU_eukaryome</div>
+                            <h4> Sdmopt:</h4>
+                            <div>
+                              <select name="sdmopt">
+                                <option value="sdm_miSeq2_SSU_Spun" selected>sdm_miSeq2_SSU_Spun.txt</option>
+                                <option value="sdm_miSeq2_250">sdm_miSeq2_250.txt</option>
+                              </select>
+                            </div>                            
                           {% elif (region_data.analysis_type=='ITS1' or region_data.analysis_type=='ITS2')%}
                             <h4> Sdmopt:</h4>
                             <div>

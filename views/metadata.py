@@ -1349,6 +1349,8 @@ def generate_lotus2_report():
         "sdm_miSeq_ITS",
         "sdm_miSeq_ITS_200",
         "sdm_miSeq_ITS_forward",
+        "sdm_miSeq2_SSU_Spun",
+        "sdm_miSeq2_250",
     ]:
         parameters["sdmopt"] = sdmopt
     input_dir = "seq_processed/" + process_data["uploads_folder"]
