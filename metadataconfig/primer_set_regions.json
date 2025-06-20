@@ -9,7 +9,9 @@
   "WANDA/AML2": {
     "Region": "SSU",
     "Forward Primer": "CAGCCGCGGTAATTCCAGCT",
-    "Reverse Primer": "GAACCCAAACACTTTGGTTTCC"
+    "Forward Primer Revcomp": "AGCTGGAATTACCGCGGCTG",
+    "Reverse Primer": "GAACCCAAACACTTTGGTTTCC",
+    "Reverse Primer Revcomp": "GGAAACCAAAGTGTTTGGGTTC"
   },
   "ITS9mun/ITS4ngsUni": {
     "Region": "Full ITS",
@@ -26,12 +28,14 @@
   "ITS9/ITS4": {
     "Region": "Full ITS",
     "Forward Primer": "GAACGCAGCRAAIIGCGATA",
-    "Reverse Primer": "TCCTCCGCTTATTGATATGC"
+    "Reverse Primer": "TCCTCCGCTTATTGATATGC",
+    "Reverse Primer Revcomp": "GCATATCAATAAGCGGAGGA"
   },
   "ITS1/ITS4": {
     "Region": "Full ITS",
     "Forward Primer": "CTTGGTCATTTAGAGGAAGTAA",
-    "Reverse Primer": "TCCTCCGCTTATTGATATGC"
+    "Reverse Primer": "TCCTCCGCTTATTGATATGC",
+    "Reverse Primer Revcomp": "GCATATCAATAAGCGGAGGA"
   },
   "ITS1/ITS2": {
     "Region": "ITS1",
@@ -46,12 +50,16 @@
   "AML1/AML2": {
     "Region": "SSU",
     "Forward Primer": "ATCAACTTTCGATGGTAGGATAGA",
-    "Reverse Primer": "GAACCCAAACACTTTGGTTTCC"
+    "Forward Primer Revcomp": "TCTATCCTACCATCGAAAGTTGAT",
+    "Reverse Primer": "GAACCCAAACACTTTGGTTTCC",
+    "Reverse Primer Revcomp": "GGAAACCAAAGTGTTTGGGTTC"
   },
   "NS31/AML2": {
     "Region": "SSU",
     "Forward Primer": "TTGGAGGGCAAGTCTGGTGCC",
-    "Reverse Primer": "GAACCCAAACACTTTGGTTTCC"
+    "Forward Primer Revcomp": "GGCACCAGACTTGCCCTCCAA",
+    "Reverse Primer": "GAACCCAAACACTTTGGTTTCC",
+    "Reverse Primer Revcomp": "GGAAACCAAAGTGTTTGGGTTC"
   },
   "ITS86F/ITS4": {
     "Region": "ITS2",
@@ -63,7 +71,9 @@
   "AMV4-5NF/AMDGR": {
     "Region": "SSU",
     "Forward Primer": "AAGCTCGTAGTTGAATTTCG",
-    "Reverse Primer": "CCCAACTATCCCTATTAATCAT"
+    "Forward Primer Revcomp": "CGAAATTCAACTACGAGCTT",    
+    "Reverse Primer": "CCCAACTATCCCTATTAATCAT",
+    "Reverse Primer Revcomp": "ATGATTAATAGGGATAGTTGGG"
   },
   "5.8SR/ITS4": {
     "Region": "ITS2",
