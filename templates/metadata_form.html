@@ -11,6 +11,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/spark-md5/3.0.0/spark-md5.min.js"></script>
     <title>Upload data</title>
 </head>
+{% import 'macros.html' as macros %}
 <body>
   <div class="app-navbar">
     <a href="https://spun.earth" class="logo"></a>
@@ -720,9 +721,7 @@
                                         <td>
                                             {{ sequencer.fwd_rev_adap }}
                                         </td>
-                                        <td>
-                                            {{ sequencer.fwd_rev_mrg_adap }}
-                                        </td>
+                                        {{ macros.percent_cell(sequencer.fwd_rev_mrg_adap, files[0].total_sequences_number if files and files[0].total_sequences_number else 0) }}
                                         <td>
                                           {% if files|length > 0 %}
                                             {% if is_admin %}
@@ -779,9 +778,7 @@
                                         <td>
                                             {{ sequencer.fwd_rev_adap }}
                                         </td>
-                                        <td>
-                                            {{ sequencer.fwd_rev_mrg_adap }}
-                                        </td>
+                                        {{ macros.percent_cell(sequencer.fwd_rev_mrg_adap, files[1].total_sequences_number if files and files[1].total_sequences_number else 0) }}
                                         <td>
                                           {% if files|length > 1 %}
                                             {% if is_admin %}
@@ -849,9 +846,7 @@
                                         <td>
                                             {{ sequencer.fwd_rev_adap }}
                                         </td>
-                                        <td>
-                                            {{ sequencer.fwd_rev_mrg_adap }}
-                                        </td>
+                                        {{ macros.percent_cell(sequencer.fwd_rev_mrg_adap, files[0].total_sequences_number if files and files[0].total_sequences_number else 0) }}
                                         <td>
                                           {% if files|length > 0 %}
                                             {% if is_admin %}
@@ -908,9 +903,7 @@
                                         <td>
                                             {{ sequencer.fwd_rev_adap }}
                                         </td>
-                                        <td>
-                                            {{ sequencer.fwd_rev_mrg_adap }}
-                                        </td>
+                                        {{ macros.percent_cell(sequencer.fwd_rev_mrg_adap, files[1].total_sequences_number if files and files[1].total_sequences_number else 0) }}
                                         <td>
                                           {% if files|length > 1 %}
                                             {% if is_admin %}

@@ -1,0 +1,16 @@
+{% macro percent_cell(count, total) %}
+    {% set count = count or 0 %}
+    {% set total = total or 0 %}
+    {% if total > 0 %}
+        {% set ratio = count / total %}
+        {% set red = 255 %}
+        {% set green_blue = (255 * ratio) | round(0, 'floor') %}
+        <td style="background-color: rgb({{ red }}, {{ green_blue }}, {{ green_blue }});">
+            {{ count }}
+        </td>
+    {% else %}
+        <td style="background-color: rgb(255, 0, 0);">
+            {{ count }}
+        </td>
+    {% endif %}
+{% endmacro %}
