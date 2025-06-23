@@ -82,7 +82,7 @@ def detect_merged_read_primers(
         "4",
         "--discard-untrimmed",
         "-g",
-        f"^{forward_primer_seq}...{reverse_primer_seq}$",
+        f"{forward_primer_seq}...{reverse_primer_seq}",
         "-",
     ]
 
