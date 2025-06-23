@@ -1012,6 +1012,10 @@ class SequencingUpload:
 
                 # Append the file dictionary with the fastqc_report to the list
                 uploaded_files_dict[sample_id][sequencer_id].append(file_dict)
+                # Sort the list of files by 'new_name'
+                uploaded_files_dict[sample_id][sequencer_id].sort(
+                    key=lambda f: f["new_name"]
+                )
 
             # Combine the data into a structured list
             result = []
