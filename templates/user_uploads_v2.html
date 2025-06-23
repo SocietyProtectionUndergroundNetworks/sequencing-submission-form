@@ -44,6 +44,7 @@
           <th scope="col">Region 1</th>
           <th scope="col">Region 2</th>
           <th scope="col">Nr of Sequencer IDs</th>
+          <th scope="col">Sequencer with missing primer counts</th>
           <th scope="col">Nr of files per sequence</th>
           <th scope="col">Nr of files</th>
           <th scope="col">Files size processing folder</th>
@@ -116,6 +117,7 @@
               <td class="{% if upload.nr_sequencer_ids < (upload.nr_samples * upload.nr_regions) %}text-danger{% endif %}">
                   {{ upload.nr_sequencer_ids }}
               </td>
+              <td>{{ upload.missing_adapter_sequencer_ids }}</td>
               <td>{{ upload.nr_files_per_sequence }}</td>
               <td class="{% if upload.nr_fastq_files < (upload.nr_sequencer_ids * upload.nr_files_per_sequence) %}text-danger{% endif %}">
                   {{ upload.nr_fastq_files }}

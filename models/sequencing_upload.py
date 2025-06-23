@@ -37,7 +37,7 @@ from pathlib import Path
 from flask_login import current_user
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import desc, func, text
+from sqlalchemy import desc, func, text, or_
 
 
 # Get the logger instance from app.py
@@ -106,6 +106,40 @@ class SequencingUpload:
                 query = query.filter(SequencingUploadsTable.user_id == user_id)
 
             upload_dbs = query.order_by(desc(SequencingUploadsTable.id)).all()
+
+            # Precompute the missing adapters count
+            # grouped by sequencingUploadId
+            missing_adapters_counts = (
+                session.query(
+                    SequencingSamplesTable.sequencingUploadId,
+                    func.count(SequencingSamplesTable.id).label("cnt"),
+                )
+                .join(
+                    SequencingSequencerIDsTable,
+                    SequencingSamplesTable.id
+                    == SequencingSequencerIDsTable.sequencingSampleId,
+                )
+                .filter(
+                    or_(
+                        SequencingSequencerIDsTable.fwd_read_fwd_adap.is_(
+                            None
+                        ),
+                        SequencingSequencerIDsTable.rev_read_rev_adap.is_(
+                            None
+                        ),
+                        SequencingSequencerIDsTable.fwd_rev_adap.is_(None),
+                        SequencingSequencerIDsTable.fwd_rev_mrg_adap.is_(None),
+                    )
+                )
+                .group_by(SequencingSamplesTable.sequencingUploadId)
+                .all()
+            )
+
+            # Convert to a dictionary for quick lookup
+            missing_adapters_dict = {
+                upload_id: count
+                for upload_id, count in missing_adapters_counts
+            }
 
             uploads = []
             for upload_db, user in upload_dbs:
@@ -292,6 +326,11 @@ class SequencingUpload:
 
                 upload_dict = upload.__dict__
                 uploads.append(upload_dict)
+
+                # Add count of sequencer IDs with missing adapters
+                upload.missing_adapter_sequencer_ids = (
+                    missing_adapters_dict.get(upload.id, 0)
+                )
 
             return uploads
 
