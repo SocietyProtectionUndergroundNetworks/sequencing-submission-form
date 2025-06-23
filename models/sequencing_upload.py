@@ -37,7 +37,7 @@ from pathlib import Path
 from flask_login import current_user
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import desc, func, text, or_
+from sqlalchemy import desc, func, text, or_, case
 
 
 # Get the logger instance from app.py
@@ -2201,3 +2201,40 @@ class SequencingUpload:
                     # If there is no valid symlink, create one
                     if not os.path.islink(symlink_path):
                         os.symlink(paths["symlink"], symlink_path)
+
+    @classmethod
+    def adapters_count_all(cls):
+        with session_scope() as session:
+            # Define the condition for "any adapter field is NULL"
+            any_adapter_is_null = (
+                (SequencingSequencerIDsTable.fwd_read_fwd_adap.is_(None))
+                | (SequencingSequencerIDsTable.rev_read_rev_adap.is_(None))
+                | (SequencingSequencerIDsTable.fwd_rev_adap.is_(None))
+                | (SequencingSequencerIDsTable.fwd_rev_mrg_adap.is_(None))
+            )
+
+            # Now use it inside the HAVING clause
+            results = (
+                session.query(
+                    SequencingSamplesTable.sequencingUploadId.label(
+                        "upload_id"
+                    )
+                )
+                .join(
+                    SequencingSequencerIDsTable,
+                    SequencingSamplesTable.id
+                    == SequencingSequencerIDsTable.sequencingSampleId,
+                )
+                .group_by(SequencingSamplesTable.sequencingUploadId)
+                .having(
+                    func.count(SequencingSequencerIDsTable.id)
+                    == func.sum(case((any_adapter_is_null, 1), else_=0))
+                )
+                .all()
+            )
+
+            for row in results:
+                logger.info(
+                    "Doing counting of adapters for " + str(row.upload_id)
+                )
+                cls.adapters_count(row.upload_id)

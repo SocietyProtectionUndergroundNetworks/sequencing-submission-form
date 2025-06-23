@@ -1965,6 +1965,18 @@ def adapters_count():
 
 
 @metadata_bp.route(
+    "/adapters_count_all",
+    methods=["GET"],
+    endpoint="adapters_count_all",
+)
+@login_required
+@admin_required
+@approved_required
+def adapters_count_all():
+    SequencingUpload.adapters_count_all()
+
+
+@metadata_bp.route(
     "/export_all_richness_data",
     methods=["GET"],
     endpoint="export_all_richness_data",
