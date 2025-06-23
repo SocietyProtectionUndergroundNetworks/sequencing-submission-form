@@ -656,18 +656,18 @@ def build_region_primer_dict(process_data):
         primer_seqs = get_sequences_based_on_primers(
             forward_name, reverse_name
         )
-
-        # Use .get() to safely access keys, fallback
-        # to empty string if not found
-        region_primer_dict[region_name] = {
-            "Forward Primer": primer_seqs.get("Forward Primer", ""),
-            "Forward Primer Revcomp": primer_seqs.get(
-                "Forward Primer Revcomp", ""
-            ),
-            "Reverse Primer": primer_seqs.get("Reverse Primer", ""),
-            "Reverse Primer Revcomp": primer_seqs.get(
-                "Reverse Primer Revcomp", ""
-            ),
-        }
+        if primer_seqs:
+            # Use .get() to safely access keys, fallback
+            # to empty string if not found
+            region_primer_dict[region_name] = {
+                "Forward Primer": primer_seqs.get("Forward Primer", ""),
+                "Forward Primer Revcomp": primer_seqs.get(
+                    "Forward Primer Revcomp", ""
+                ),
+                "Reverse Primer": primer_seqs.get("Reverse Primer", ""),
+                "Reverse Primer Revcomp": primer_seqs.get(
+                    "Reverse Primer Revcomp", ""
+                ),
+            }
 
     return region_primer_dict
