@@ -375,7 +375,9 @@ def upload_metadata_file():
     else:
         return jsonify({"error": "Unsupported file type"}), 400
     df = df.dropna(how="all")
-    df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+    df = df.apply(
+        lambda col: col.str.strip() if col.dtype == "object" else col
+    )
 
     if "Date_collected" in df.columns:
         # Attempt to convert 'Date_collected' to datetime
