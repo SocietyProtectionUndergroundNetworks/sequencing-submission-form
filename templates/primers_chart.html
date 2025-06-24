@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnSuA4Ss2PkkikSOLtYs8BlYIeeIK1h99ty4YfvRPAlzr377vr3CXDb7sb7eEEBYjDtcYj+AjBH3FLv5uSJuXg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js" integrity="sha512-7Pi/otdlbbCR+LnW+F7PwFcSDJOuUJB3OxtEHbg4vSMvzvJjde4Po1v4BR9Gdc9aXNUNFVUY+SK51wWT8WF0Gg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Primers chart</title>
+</head>
+<body>
+  <div class="app-navbar">
+    <a href="https://spun.earth" class="logo"></a>
+    <div class="menu">
+      <ul>
+        <li><a href="https://spun.earth">Spun Website</a></li>
+        <li><a href="/">App homepage</a></li>
+        <li><a href="/logout">Logout</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="content" class="p-4">
+    <h1> Primers count chart for {{ project_id }} for region {{ region }}</h1>
+    <div id="msg" class="text-info">{{ msg }}</div>
+    <div>
+      <canvas id="primersLineChart" width="800" height="400"></canvas>
+    </div>  
+
+  </div>
+<script>
+  $(document).ready(function () {
+    const rawData = {{ chart_data | tojson }};
+    const labels = rawData.map(d => d.sample_id);
+
+    const fwd_read_fwd_adap = rawData.map(d => d.fwd_read_fwd_adap);
+    const rev_read_rev_adap = rawData.map(d => d.rev_read_rev_adap);
+    const fwd_rev_adap = rawData.map(d => d.fwd_rev_adap);
+    const fwd_rev_mrg_adap = rawData.map(d => d.fwd_rev_mrg_adap);
+
+    const allValues = [...fwd_read_fwd_adap, ...rev_read_rev_adap, ...fwd_rev_adap, ...fwd_rev_mrg_adap];
+    const minY = Math.min(...allValues) - 2;
+    const maxY = Math.max(...allValues) + 2;
+
+    const ctx = document.getElementById("primersLineChart").getContext("2d");
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: "Fwd Read Fwd Adap",
+            data: fwd_read_fwd_adap,
+            borderColor: "blue",
+            fill: false,
+            tension: 0
+          },
+          {
+            label: "Rev Read Rev Adap",
+            data: rev_read_rev_adap,
+            borderColor: "green",
+            fill: false,
+            tension: 0
+          },
+          {
+            label: "Fwd Rev Adap",
+            data: fwd_rev_adap,
+            borderColor: "orange",
+            fill: false,
+            tension: 0
+          },
+          {
+            label: "Fwd Rev Merged Adap",
+            data: fwd_rev_mrg_adap,
+            borderColor: "red",
+            fill: false,
+            tension: 0
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: {
+            display: true,
+            text: "Primer Percentages per Sample for region {{ region }}"
+          },
+          legend: {
+            position: 'top'
+          }
+        },
+        scales: {
+          y: {
+            min: minY,
+            max: 100,
+            title: {
+              display: true,
+              text: "Percentage (%)"
+            }
+          },
+          x: {
+            title: {
+              display: true,
+              text: "Sample ID"
+            }
+          }
+        }
+      }
+    });
+  });
+</script>
+
+</body>
+
+

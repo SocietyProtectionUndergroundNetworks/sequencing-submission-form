@@ -2389,3 +2389,76 @@ def create_share_link():
     return redirect(
         url_for("metadata.metadata_form", process_id=process_id) + "#step_14"
     )
+
+
+@metadata_bp.route("/primers_chart", endpoint="primers_chart")
+@login_required
+@approved_required
+@admin_or_owner_required
+def primers_chart():
+    process_id = request.args.get("process_id", "")
+    region = request.args.get("region", "ITS2")  # default to ITS2
+    project_id = ""
+    chart_data = []
+
+    if process_id:
+        process_data = SequencingUpload.get(process_id)
+        if process_data is not None:
+            project_id = process_data["project_id"]
+            samples_data_complete = (
+                SequencingUpload.get_samples_with_sequencers_and_files(
+                    process_id
+                )
+            )
+
+            for sample in samples_data_complete:
+                sample_id = sample["SampleID"]
+                for sequencer in sample["sequencer_ids"]:
+                    if sequencer["Region"] != region:
+                        continue
+
+                    files = sequencer.get("uploaded_files", [])
+                    if not files or not files[0].get("total_sequences_number"):
+                        continue
+
+                    total = files[0]["total_sequences_number"]
+                    if total == 0:
+                        continue
+
+                    chart_data.append(
+                        {
+                            "sample_id": sample_id,
+                            "fwd_read_fwd_adap": round(
+                                100
+                                * (sequencer.get("fwd_read_fwd_adap") or 0)
+                                / total,
+                                2,
+                            ),
+                            "rev_read_rev_adap": round(
+                                100
+                                * (sequencer.get("rev_read_rev_adap") or 0)
+                                / total,
+                                2,
+                            ),
+                            "fwd_rev_adap": round(
+                                100
+                                * (sequencer.get("fwd_rev_adap") or 0)
+                                / total,
+                                2,
+                            ),
+                            "fwd_rev_mrg_adap": round(
+                                100
+                                * (sequencer.get("fwd_rev_mrg_adap") or 0)
+                                / total,
+                                2,
+                            ),
+                        }
+                    )
+
+    return render_template(
+        "primers_chart.html",
+        chart_data=chart_data,
+        region=region,
+        project_id=project_id,
+        process_id=process_id,
+    )

@@ -1196,6 +1196,15 @@
         </div>
       {% endif %}
     </div>
+    <div>   
+      {% if process_data and process_data.regions %}
+        {% for region in process_data.regions %}
+          <div>
+            <a href="primers_chart?process_id={{ process_id }}&region={{ region }}" target="_blank" class="btn btn-secondary">Primers chart for {{ region }}</a>
+          </div>
+        {% endfor %}
+      {% endif %}
+    </div>
 
     {% if process_data and not process_data.using_scripps %}
       <div id="step_7" class="form-step-item">
