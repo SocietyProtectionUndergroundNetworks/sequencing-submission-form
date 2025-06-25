@@ -3,6 +3,7 @@ import io
 import os
 import hashlib
 import json
+import shutil
 from models.db_model import (
     SequencingFilesUploadedTable,
     SequencingSequencerIDsTable,
@@ -95,13 +96,14 @@ def test_upload_process_common_fields_creation(
     data = response.get_json()
     assert data["result"] == "ok"
     process_id = int(data["process_id"])
-    print("The process id is: " + str(process_id))
     assert isinstance(process_id, int)
 
     # Step 5: Check upload was created in DB
     upload = db_session.get(SequencingUploadsTable, process_id)
     assert upload is not None
     assert upload.project_id == test_project
+
+    process_directory = upload.uploads_folder
 
     # Step 6: Upload the metadata CSV file
     test_csv_path = os.path.join(
@@ -362,3 +364,9 @@ def test_upload_process_common_fields_creation(
                     f"{seq_id} {key} mismatch: "
                     f"expected {expected_value}, got {actual_value}"
                 )
+    # Assuming process_directory is defined
+    full_path = os.path.join("seq_processed", process_directory)
+
+    # Safety check (optional but recommended in tests)
+    if os.path.exists(full_path) and os.path.isdir(full_path):
+        shutil.rmtree(full_path)

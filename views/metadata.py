@@ -770,9 +770,6 @@ def sequencing_upload_chunk():
             f"{file.filename}.part{chunk_number}"
         )
 
-        # Read file content once, log length
-        file_content = file.read()
-
         # Reset pointer before saving
         file.seek(0)
 
