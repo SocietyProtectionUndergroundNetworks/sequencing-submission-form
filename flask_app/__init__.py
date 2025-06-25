@@ -1,6 +1,7 @@
 # flask_app/__init__.py
 
 import secrets
+import sys
 import logging
 
 # Import extensions without initializing them with an app yet
@@ -24,16 +25,35 @@ celery_app = (
 
 
 def create_app(test_config=None):
-    """
-    Main Flask application factory.
-    Args:
-        test_config (dict): Optional configuration for testing.
-                            If provided, it overrides default config.
-    Returns:
-        Flask.app: The fully configured Flask application instance.
-    """
-    # 1. Create the basic Flask app and register blueprints
     app = create_base_app()
+
+    # Clear current_app.logger handlers if any
+    if app.logger.hasHandlers():
+        app.logger.handlers.clear()
+
+    # Also clear root logger handlers to avoid duplicates
+    root_logger = logging.getLogger()
+    if root_logger.hasHandlers():
+        root_logger.handlers.clear()
+
+    # Set levels
+    app.logger.setLevel(logging.DEBUG)
+    root_logger.setLevel(logging.DEBUG)
+
+    # Create handler
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.DEBUG)
+    # Use the first one if you want to show the name of the logging handler.
+    # formatter = logging.Formatter('%(asctime)s %(levelname)s [%(name)s] %(message)s')
+    formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+    handler.setFormatter(formatter)
+
+    # Attach handler only once
+    app.logger.addHandler(handler)
+    root_logger.addHandler(handler)
+
+    # Prevent propagation to avoid duplicate logs on current_app.logger
+    app.logger.propagate = False
 
     # 2. Apply configuration based on environment or test_config
     # Default configuration (for development/production)
