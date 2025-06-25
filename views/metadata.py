@@ -753,36 +753,35 @@ def check_filename_matching():
 @login_required
 @approved_required
 def sequencing_upload_chunk():
+    process_id = request.args.get("process_id")
     file = request.files.get("file")
-    if file:
-        process_id = request.args.get("process_id")
 
-        if process_id:
-            process_data = SequencingUpload.get(process_id)
-            uploads_folder = process_data["uploads_folder"]
-            # Extract Resumable.js headers
-            resumable_chunk_number = request.args.get("resumableChunkNumber")
-            # resumable_chunk_size = request.args.get("resumableChunkSize")
-            # resumable_total_size = request.args.get("resumableTotalSize")
-            # expected_md5 = request.args.get("md5")
+    if file and process_id:
+        process_data = SequencingUpload.get(process_id)
+        uploads_folder = process_data["uploads_folder"]
 
-            # Handle file chunks or combine chunks into a complete file
-            chunk_number = (
-                int(resumable_chunk_number) if resumable_chunk_number else 1
-            )
+        resumable_chunk_number = request.args.get("resumableChunkNumber")
+        chunk_number = (
+            int(resumable_chunk_number) if resumable_chunk_number else 1
+        )
 
-            # Save or process the chunk
-            save_path = (
-                f"seq_uploads/{uploads_folder}/"
-                f"{file.filename}.part"
-                f"{chunk_number}"
-            )
-            file.save(save_path)
+        save_path = (
+            f"seq_uploads/{uploads_folder}/"
+            f"{file.filename}.part{chunk_number}"
+        )
 
-            # HERE HERE : To add what happens if all are uploaded.
+        # Read file content once, log length
+        file_content = file.read()
 
-            return jsonify({"message": f"Chunk {chunk_number} uploaded"}), 200
-    return jsonify({"message": "No file received"}), 400
+        # Reset pointer before saving
+        file.seek(0)
+
+        # Save file chunk once
+        file.save(save_path)
+
+        return jsonify({"message": f"Chunk {chunk_number} uploaded"}), 200
+
+    return jsonify({"message": "No file received or no process_id"}), 400
 
 
 # NOTE: The "GET" method is only used on the same
@@ -1960,10 +1959,6 @@ def adapters_count():
     if process_id:
         SequencingUpload.adapters_count(process_id)
         return "done"
-        return redirect(
-            url_for("metadata.metadata_form", process_id=process_id)
-            + "#step_9"
-        )
 
 
 @metadata_bp.route(
