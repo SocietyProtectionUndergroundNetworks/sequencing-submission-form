@@ -15,6 +15,7 @@ def app():
     """Creates and configures a Flask app with a real MySQL test database."""
     test_config = {
         "TESTING": True,
+        "DISABLE_EARTH_ENGINE": True,
         "SQLALCHEMY_DATABASE_URI": (
             "mysql+mysqldb://flask:flask@mysql_test:3306/flask_test"
             "?charset=utf8mb4"

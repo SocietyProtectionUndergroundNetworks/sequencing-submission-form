@@ -107,9 +107,10 @@ def create_app(test_config=None):
 
     # 4. Other app setup that needs the app context or configuration
     # Initialize Earth Engine. This often needs to be mocked in tests.
-    from helpers.land_use import initialize_earth_engine
-
-    initialize_earth_engine()
+    # Conditionally initialize Earth Engine only if NOT disabled
+    if not app.config.get("DISABLE_EARTH_ENGINE", False):
+        from helpers.land_use import initialize_earth_engine
+        initialize_earth_engine()
 
     # Logger setup (your views/__init__.py might also do this,
     # but this is the main app logger)
