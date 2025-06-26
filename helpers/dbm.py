@@ -32,11 +32,3 @@ def session_scope():
         raise
     finally:
         session.close()  # Always close the session
-
-
-# To delete when I have removed all of them
-def get_session(db_engine):
-    # https://docs.sqlalchemy.org/en/13/orm/session_api.html#session-and-sessionmaker
-    Session_mysql = sessionmaker(autoflush=False)
-    session = Session_mysql(bind=db_engine)
-    return session

@@ -1,0 +1,5 @@
+SampleID,Region,SequencerID,Index_1,Index_2
+test_sample_1,ITS2,sample1_ITS2_R,,
+test_sample_1,SSU,sample1_SSU_R,,
+test_sample_2,ITS2,sample2_ITS2_R,,
+test_sample_2,SSU,sample2_SSU_R,,

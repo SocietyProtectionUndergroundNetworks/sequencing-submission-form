@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  mysql_test:
+    image: mysql:5.7
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=flask_test
+      - MYSQL_USER=flask
+      - MYSQL_PASSWORD=flask
+    volumes:
+      - ./mysql_test:/var/lib/mysql
+      - ./config/docker/db/my.cnf:/etc/mysql/conf.d/my.cnf
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  flask_test:
+    image: ghcr.io/societyprotectionundergroundnetworks/sequencing-submission-form-flask:latest
+    depends_on:
+      mysql_test:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: pytest tests

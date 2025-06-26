@@ -137,6 +137,31 @@ Takes as parameters: analysis_type_id, from_id, to_id and anti_nuke. Example:
 `https://myserver/generate_all_region_rscripts_reports?analysis_type_id=3&from_id=1&to_id=10&anti_nuke=THE_ANTINUKE_STRING_HERE`
 It will only generate reports that are marked as "None" (aka, have not started), and whole lotus2 corresponding report is finished.
 
+- Generate all primers count:
+It looks for projects where none of the sequencerIDs have any primers counted, and initiates the counting. 
+`https://myserver/adapters_count_all`
+
+## Automated testing/lint
+### Lint: flake8, black
+The python code has been linted with flake8 and black. Flake8 has also been added to the deployment pipeline (via github actions) so that deployment doesn't 
+happen if the flake8 doesnt pass it. 
+While you are developing, before you push code, do a `make black` . This will run black (which will reformat the code if needed) and flake8 which will report any problems. 
+
+### pytest
+A few tests have been written for parts of the functionality. Most are just testing class methods. 
+The big test is an integration test which checks the whole submittion form, up to the point of counting the primers of 8 files. It also includes running fastqc reports. 
+It imitates the steps someone takes via the form (by doing mostly post submittions to various endpoints). 
+To run the test do : `make bashflask`   and when inside the container do `pytest` . 
+If you want to see all the log messages of the testing do a `pytest -s`
+
+## Docker images in github registry
+In order to run pytests in the deployment pipeline, we are pushing various docker images to the github image registry GHCR
+To do that you would need 
+- Login with a token to GHCR (I am not writting instructions for this here. Search for it)
+- Build the docker images locally (you probably have already done that in order to have a working development environment)
+- Push the docker images to the registry: 
+`docker tag sequencing-submission-form-flask ghcr.io/societyprotectionundergroundnetworks/sequencing-submission-form-flask:latest`
+`docker push ghcr.io/societyprotectionundergroundnetworks/sequencing-submission-form-flask:latest`
 
 #### Give back
 Anything that was not in the above instructions and gave you pain, add it to the instructions. 

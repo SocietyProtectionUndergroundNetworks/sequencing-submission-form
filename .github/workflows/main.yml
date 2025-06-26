@@ -23,10 +23,32 @@ jobs:
           pip install flake8
 
       - name: Run flake8
+        run: flake8
+
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4.1.1
+
+
+      - name: Log in to GHCR
+        run: echo ${{ secrets.CR_PAT }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Prepare test files and folders
         run: |
-          flake8
-          
-            
+          touch app.log
+          chmod 666 app.log
+          mkdir -p seq_processed
+          chmod -R 777 seq_processed
+          mkdir -p seq_uploads
+          chmod -R 777 seq_uploads
+          mkdir -p flask_session
+          chmod -R 777 flask_session
+      - name: Run integration tests with Docker Compose
+        run: docker compose -f docker-compose.test.yml up --abort-on-container-exit --exit-code-from flask_test
+
   deploy_to_server:
     runs-on: ubuntu-latest
     needs: lint
@@ -36,16 +58,9 @@ jobs:
 
       - name: Set up SSH and copy code to server
         run: |
-          # Create SSH directory and known_hosts file
           mkdir -p ~/.ssh
           ssh-keyscan -t rsa ${{ secrets.SERVER_DEPLOYMENT_IP }} >> ~/.ssh/known_hosts
-          
-          # Create private key file
           echo "${{ secrets.SERVER_DEPLOYMENT_PRIVATE_KEY }}" > ~/private_key_file
           chmod 600 ~/private_key_file
-          
-          # Securely copy repository code to the server
           scp -i ~/private_key_file -o UserKnownHostsFile=~/.ssh/known_hosts -r ./* ${{ secrets.SERVER_DEPLOYMENT_USERNAME }}@${{ secrets.SERVER_DEPLOYMENT_IP }}:${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY }}
-
-          # Run the make migrate command
-          ssh -i ~/private_key_file -o UserKnownHostsFile=~/.ssh/known_hosts ${{ secrets.SERVER_DEPLOYMENT_USERNAME }}@${{ secrets.SERVER_DEPLOYMENT_IP }} "cd ${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY }} && pwd && ls -la && make migrate"
+          ssh -i ~/private_key_file -o UserKnownHostsFile=~/.ssh/known_hosts ${{ secrets.SERVER_DEPLOYMENT_USERNAME }}@${{ secrets.SERVER_DEPLOYMENT_IP }} "cd ${{ secrets.SERVER_DEPLOYMENT_APP_DIRECTORY }} && make migrate"
