@@ -90,6 +90,21 @@ services:
       - flask
     restart: unless-stopped
 
+  mysql_test:
+    image: mysql:5.7
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=flask_test
+      - MYSQL_USER=flask
+      - MYSQL_PASSWORD=flask
+    volumes:
+      - ./mysql_test:/var/lib/mysql
+      - ./config/docker/db/my.cnf:/etc/mysql/conf.d/my.cnf
+    networks:
+      - database
+      - flask
+    restart: unless-stopped
+
   adminer:
     depends_on:
       - db
