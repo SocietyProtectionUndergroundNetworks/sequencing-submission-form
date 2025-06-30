@@ -778,7 +778,7 @@
                                         <td>
                                             {{ sequencer.fwd_rev_adap }}
                                         </td>
-                                        {{ macros.percent_cell(sequencer.fwd_rev_mrg_adap, files[1].total_sequences_number if files and files[1].total_sequences_number else 0) }}
+                                        {{ macros.percent_cell(sequencer.fwd_rev_mrg_adap, files[1].total_sequences_number if files and files|length > 1 and files[1].total_sequences_number else 0) }}
                                         <td>
                                           {% if files|length > 1 %}
                                             {% if is_admin %}
@@ -903,7 +903,7 @@
                                         <td>
                                             {{ sequencer.fwd_rev_adap }}
                                         </td>
-                                        {{ macros.percent_cell(sequencer.fwd_rev_mrg_adap, files[1].total_sequences_number if files and files[1].total_sequences_number else 0) }}
+                                        {{ macros.percent_cell(sequencer.fwd_rev_mrg_adap, files[1].total_sequences_number if files and files|length > 1 and files[1].total_sequences_number else 0) }}
                                         <td>
                                           {% if files|length > 1 %}
                                             {% if is_admin %}
