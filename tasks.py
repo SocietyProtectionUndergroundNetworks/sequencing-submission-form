@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from helpers.bucket import (
     bucket_chunked_upload_v2,
     bucket_upload_folder_v2,
+    download_file_from_bucket,
 )
 from helpers.fastqc import (
     create_fastqc_report,
@@ -170,3 +171,8 @@ def sync_project_async(process_id):
     except Exception as e:
         logger.error(f"Unexpected error in sync_project_async: {e}")
         raise
+
+
+@celery_app.task
+def download_file_from_bucket_async(bucket_name, blob_path, local_file_path):
+    download_file_from_bucket(bucket_name, blob_path, local_file_path)

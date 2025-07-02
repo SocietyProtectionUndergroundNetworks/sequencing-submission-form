@@ -430,3 +430,56 @@ def check_file_exists_in_bucket(
         # Return False if access is denied or
         # if the bucket/object does not exist
         return False
+
+
+def download_file_from_bucket(bucket_name, blob_path, local_file_path):
+    """
+    Downloads a single file from a Google Cloud Storage bucket to a local path.
+
+    Args:
+        bucket_name (str): The name of the Google Cloud Storage bucket.
+        blob_path (str): The full path of the blob in the bucket (e.g., 'directory/filename.txt').
+        local_file_path (str): The full local path where the file should be saved.
+
+    Returns:
+        bool: True if the file was successfully downloaded, False otherwise.
+    """
+    try:
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(bucket_name)
+        blob = bucket.blob(blob_path)
+
+        # Ensure the local directory exists
+        os.makedirs(os.path.dirname(local_file_path), exist_ok=True)
+
+        blob.download_to_filename(local_file_path)
+        logger.info(
+            f"Successfully downloaded '{blob_path}' from bucket '{bucket_name}' to '{local_file_path}'"
+        )
+        return True
+    except Exception as e:
+        logger.error(
+            f"Error downloading '{blob_path}' from bucket '{bucket_name}' to '{local_file_path}': {e}"
+        )
+        return False
+
+
+def init_download_file_from_bucket(bucket_name, blob_path, local_file_path):
+    from tasks import download_file_from_bucket_async
+
+    try:
+        result = download_file_from_bucket_async.delay(
+            bucket_name, blob_path, local_file_path
+        )
+        logger.info(
+            f"Celery download_file_from_bucket_async task "
+            f"called successfully! Task ID: {result.id}"
+        )
+    except Exception as e:
+        logger.error(
+            "This is an error message from helpers/bucket.py "
+            " while trying to bucket_upload_folder_v2_async"
+        )
+        logger.error(e)
+
+    return {"msg": "Process initiated"}

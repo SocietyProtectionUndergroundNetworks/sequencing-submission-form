@@ -15,7 +15,11 @@ from helpers.metadata_check import (
     get_sequences_based_on_primers,
     build_region_primer_dict,
 )
-from helpers.bucket import check_file_exists_in_bucket, calculate_md5
+from helpers.bucket import (
+    check_file_exists_in_bucket,
+    calculate_md5,
+    init_download_file_from_bucket,
+)
 from models.db_model import (
     ResolveEcoregionsTable,
     SequencingUploadsTable,
@@ -346,6 +350,42 @@ class SequencingUpload:
                     if f.endswith(".fastq.gz") or f.endswith(".fastq"):
                         fastq_count += 1
         return total_size, fastq_count
+
+    @classmethod
+    def _get_uploaded_files_for_upload(cls, session, sequencingUploadId):
+        """
+        Fetches all files associated with a given SequencingUpload ID from the database.
+        This is a helper method to avoid code duplication.
+
+        Args:
+            session: The database session.
+            sequencingUploadId (int): The ID of the SequencingUpload instance.
+
+        Returns:
+            list: A list of tuples, where each tuple contains
+                  (SequencingFilesUploadedTable instance, sample_id, Region).
+        """
+        return (
+            session.query(
+                SequencingFilesUploadedTable,
+                SequencingSamplesTable.id.label("sample_id"),
+                SequencingSequencerIDsTable.Region,
+            )
+            .join(
+                SequencingSequencerIDsTable,
+                SequencingFilesUploadedTable.sequencerId
+                == SequencingSequencerIDsTable.id,
+            )
+            .join(
+                SequencingSamplesTable,
+                SequencingSequencerIDsTable.sequencingSampleId
+                == SequencingSamplesTable.id,
+            )
+            .filter(
+                SequencingSamplesTable.sequencingUploadId == sequencingUploadId
+            )
+            .all()
+        )
 
     @staticmethod
     def determine_nr_files_per_sequence(sequencing_platform):
@@ -1133,6 +1173,12 @@ class SequencingUpload:
 
     @classmethod
     def ensure_bucket_upload_progress(self, sequencingUploadId):
+        """
+        Ensures that all files for a given sequencing upload have their
+        bucket_upload_progress updated and initiates chunked uploads if needed.
+        It also retries uploads if the file is not found in the bucket,
+        even if the progress was previously marked as 100.
+        """
         # Connect to the database and create a session
         with session_scope() as session:
 
@@ -1145,47 +1191,43 @@ class SequencingUpload:
 
             # If no instance is found, return early
             if not upload_instance:
+                logger.info(
+                    f"No SequencingUpload instance found for ID: {sequencingUploadId}"
+                )
                 return
 
             # Access the 'project' field
             bucket = upload_instance.project_id
             uploads_folder = upload_instance.uploads_folder
 
-            # Fetch related uploaded files
-            uploaded_files = (
-                session.query(
-                    SequencingFilesUploadedTable,
-                    SequencingSamplesTable.id.label("sample_id"),
-                    SequencingSequencerIDsTable.Region,
-                )
-                .join(
-                    SequencingSequencerIDsTable,
-                    SequencingFilesUploadedTable.sequencerId
-                    == SequencingSequencerIDsTable.id,
-                )
-                .join(
-                    SequencingSamplesTable,
-                    SequencingSequencerIDsTable.sequencingSampleId
-                    == SequencingSamplesTable.id,
-                )
-                .filter(
-                    SequencingSamplesTable.sequencingUploadId
-                    == sequencingUploadId
-                )
-                .all()
+            # Fetch related uploaded files using the new helper method
+            uploaded_files = self._get_uploaded_files_for_upload(
+                session, sequencingUploadId
             )
 
             # Iterate through the files and check the bucket_upload_progress
             for file, sample_id, region in uploaded_files:
+                # Construct the local path to the processed file (moved outside the if)
+                processed_file_path = (
+                    f"seq_processed/{uploads_folder}/{file.new_name}"
+                )
+                destination_upload_directory = region
+                destination_blob_name = file.new_name
+
+                # Check if upload is needed:
+                # 1. If bucket_upload_progress is not set or less than 100
+                # OR
+                # 2. If bucket_upload_progress is 100, but the file is NOT found in the bucket
                 if (
                     not file.bucket_upload_progress
                     or file.bucket_upload_progress < 100
-                ):
-                    # Construct the local path to the processed file
-                    processed_file_path = (
-                        f"seq_processed/{uploads_folder}/{file.new_name}"
+                    or not check_file_exists_in_bucket(
+                        local_file_path=processed_file_path,
+                        destination_upload_directory=destination_upload_directory,
+                        destination_blob_name=destination_blob_name,
+                        bucket_name=bucket,
                     )
-
+                ):
                     # Calculate MD5 if it is null
                     if not file.md5:
                         file.md5 = calculate_md5(
@@ -1197,12 +1239,15 @@ class SequencingUpload:
                     # Start the chunked upload to the bucket
                     init_bucket_chunked_upload_v2(
                         local_file_path=processed_file_path,
-                        destination_upload_directory=region,
-                        destination_blob_name=file.new_name,
+                        destination_upload_directory=destination_upload_directory,
+                        destination_blob_name=destination_blob_name,
                         sequencer_file_id=file.id,
                         bucket_name=bucket,
                         known_md5=file.md5,  # Pass the calculated MD5
                     )
+            logger.info(
+                f"Finished ensuring bucket upload progress for SequencingUpload ID: {sequencingUploadId}"
+            )
 
     @classmethod
     def update_field(cls, id, fieldname, value):
@@ -1624,6 +1669,149 @@ class SequencingUpload:
             return results
 
     @classmethod
+    def check_all_files_uploaded(cls, sequencingUploadId):
+        """
+        Checks if all files associated with a SequencingUpload instance
+        have been successfully uploaded to the Google Cloud Storage bucket.
+
+        Args:
+            sequencingUploadId (int): The ID of the SequencingUpload instance.
+
+        Returns:
+            bool: True if all files are found in the bucket, False otherwise.
+        """
+        with session_scope() as session:
+            # Fetch the SequencingUpload instance
+            upload_instance = (
+                session.query(SequencingUploadsTable)
+                .filter_by(id=sequencingUploadId)
+                .first()
+            )
+
+            # If no instance is found, it means no files are associated, so return False
+            if not upload_instance:
+                logger.info(
+                    f"No SequencingUpload instance found for ID: {sequencingUploadId}. Returning False."
+                )
+                return False
+
+            bucket_name = upload_instance.project_id
+            uploads_folder = (
+                upload_instance.uploads_folder
+            )  # This might not be directly used for blob path, but good to have.
+
+            # Fetch related uploaded files using the new helper method
+            uploaded_files = cls._get_uploaded_files_for_upload(
+                session, sequencingUploadId
+            )
+
+            if not uploaded_files:
+                logger.info(
+                    f"No files found for SequencingUpload ID: {sequencingUploadId}. Returning True (as there's nothing to check)."
+                )
+                return True  # If there are no files associated, consider them "all uploaded"
+
+            # Iterate through the files and check if each exists in the bucket
+            for file, sample_id, region in uploaded_files:
+                # Construct the local file path (though not strictly needed for exists check,
+                # it's part of the signature of check_file_exists_in_bucket)
+                local_file_path = (
+                    f"seq_processed/{uploads_folder}/{file.new_name}"
+                )
+                destination_upload_directory = (
+                    region  # The region acts as a directory in the bucket
+                )
+                destination_blob_name = file.new_name
+
+                file_exists = check_file_exists_in_bucket(
+                    local_file_path=local_file_path,
+                    destination_upload_directory=destination_upload_directory,
+                    destination_blob_name=destination_blob_name,
+                    bucket_name=bucket_name,
+                )
+
+                if not file_exists:
+                    logger.info(
+                        f"File '{file.new_name}' (ID: {file.id}) not found in bucket '{bucket_name}' under directory '{region}'. Returning False."
+                    )
+                    return False  # If any file is missing, return False immediately
+
+            logger.info(
+                f"All files for SequencingUpload ID: {sequencingUploadId} found in bucket. Returning True."
+            )
+            return True  # All files were found
+
+    @classmethod
+    def delete_local_files(cls, sequencingUploadId):
+        """
+        Deletes local files associated with a SequencingUpload instance
+        after ensuring they have been uploaded to the Google Cloud Storage bucket.
+
+        Args:
+            sequencingUploadId (int): The ID of the SequencingUpload instance.
+
+        Returns:
+            bool: True if all local files were successfully deleted, False otherwise.
+        """
+        # First, ensure all files are uploaded to the bucket
+        if not cls.check_all_files_uploaded(sequencingUploadId):
+            logger.info(
+                f"Not all files for SequencingUpload ID: {sequencingUploadId} are uploaded to the bucket. Aborting local file deletion."
+            )
+            return False
+
+        with session_scope() as session:
+            # Fetch the SequencingUpload instance to get necessary paths
+            upload_instance = (
+                session.query(SequencingUploadsTable)
+                .filter_by(id=sequencingUploadId)
+                .first()
+            )
+
+            if not upload_instance:
+                logger.info(
+                    f"No SequencingUpload instance found for ID: {sequencingUploadId}. Cannot delete local files."
+                )
+                return False
+
+            uploads_folder = upload_instance.uploads_folder
+
+            # Fetch related uploaded files using the new helper method
+            uploaded_files = cls._get_uploaded_files_for_upload(
+                session, sequencingUploadId
+            )
+
+            if not uploaded_files:
+                logger.info(
+                    f"No files found for SequencingUpload ID: {sequencingUploadId}. No local files to delete."
+                )
+                return True  # No files to delete, so consider it successful
+
+            all_deleted_successfully = True
+            for file, sample_id, region in uploaded_files:
+                local_file_path = (
+                    f"seq_processed/{uploads_folder}/{file.new_name}"
+                )
+
+                if os.path.exists(local_file_path):
+                    try:
+                        os.remove(local_file_path)
+                        logger.info(
+                            f"Successfully deleted local file: {local_file_path}"
+                        )
+                    except OSError as e:
+                        logger.error(
+                            f"Error deleting local file {local_file_path}: {e}"
+                        )
+                        all_deleted_successfully = False
+                else:
+                    logger.info(
+                        f"Local file not found (already deleted or never existed): {local_file_path}"
+                    )
+
+            return all_deleted_successfully
+
+    @classmethod
     def check_rscripts_reports_exist(cls, process_id):
         with session_scope() as session:
             process_data = cls.get(process_id)
@@ -1772,6 +1960,92 @@ class SequencingUpload:
                     # Append the region result to the results list
                     results.append(region_result)
             return results
+
+    @classmethod
+    def download_files_from_bucket(cls, sequencingUploadId):
+        """
+        Initiates asynchronous downloads of files from the Google Cloud Storage bucket
+        to the local folder if they exist in the bucket but not locally.
+
+        Args:
+            sequencingUploadId (int): The ID of the SequencingUpload instance.
+
+        Returns:
+            bool: True if all necessary download tasks were successfully initiated, False otherwise.
+        """
+        with session_scope() as session:
+            # Fetch the SequencingUpload instance
+            upload_instance = (
+                session.query(SequencingUploadsTable)
+                .filter_by(id=sequencingUploadId)
+                .first()
+            )
+
+            if not upload_instance:
+                logger.info(
+                    f"No SequencingUpload instance found for ID: {sequencingUploadId}. Cannot initiate file downloads."
+                )
+                return False
+
+            bucket_name = upload_instance.project_id
+            uploads_folder = upload_instance.uploads_folder
+
+            # Fetch related uploaded files
+            uploaded_files = cls._get_uploaded_files_for_upload(
+                session, sequencingUploadId
+            )
+
+            if not uploaded_files:
+                logger.info(
+                    f"No files found for SequencingUpload ID: {sequencingUploadId}. No files to download."
+                )
+                return True  # No files to download, consider it successful
+
+            all_tasks_initiated_successfully = True
+            for file, sample_id, region in uploaded_files:
+                local_file_path = (
+                    f"seq_processed/{uploads_folder}/{file.new_name}"
+                )
+                destination_upload_directory = (
+                    region  # The region acts as a directory in the bucket
+                )
+                destination_blob_name = file.new_name
+                blob_path = os.path.join(
+                    destination_upload_directory, destination_blob_name
+                )
+
+                # Check if file exists in bucket AND does NOT exist locally
+                file_exists_in_bucket = check_file_exists_in_bucket(
+                    local_file_path=local_file_path,
+                    destination_upload_directory=destination_upload_directory,
+                    destination_blob_name=destination_blob_name,
+                    bucket_name=bucket_name,
+                )
+                file_exists_locally = os.path.exists(local_file_path)
+
+                if file_exists_in_bucket and not file_exists_locally:
+                    logger.info(
+                        f"File '{file.new_name}' (ID: {file.id}) found in bucket but not locally. Attempting to initiate download task..."
+                    )
+                    # Call the new helper function to initiate the download task
+                    task_initiated = init_download_file_from_bucket(
+                        bucket_name=bucket_name,
+                        blob_path=blob_path,
+                        local_file_path=local_file_path,
+                    )
+                    if not task_initiated:
+                        all_tasks_initiated_successfully = False
+                elif not file_exists_in_bucket:
+                    logger.warning(
+                        f"File '{file.new_name}' (ID: {file.id}) not found in bucket '{bucket_name}' under directory '{region}'. Cannot initiate download."
+                    )
+                    all_tasks_initiated_successfully = False  # Consider it a failure if a file that should be downloaded isn't in the bucket
+                else:
+                    logger.info(
+                        f"File '{file.new_name}' (ID: {file.id}) already exists locally at '{local_file_path}'. Skipping download initiation."
+                    )
+
+            return all_tasks_initiated_successfully
 
     @classmethod
     def reset_primers_count(cls, id):

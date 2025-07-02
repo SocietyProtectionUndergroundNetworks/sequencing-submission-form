@@ -110,6 +110,7 @@ def create_app(test_config=None):
     # Conditionally initialize Earth Engine only if NOT disabled
     if not app.config.get("DISABLE_EARTH_ENGINE", False):
         from helpers.land_use import initialize_earth_engine
+
         initialize_earth_engine()
 
     # Logger setup (your views/__init__.py might also do this,

@@ -1165,6 +1165,63 @@ def ensure_bucket_uploads():
 
 
 @metadata_bp.route(
+    "/check_bucket_uploads",
+    methods=["GET"],
+    endpoint="check_bucket_uploads",
+)
+@login_required
+@admin_required
+@approved_required
+def check_bucket_uploads():
+    process_id = request.args.get("process_id")
+    if process_id:
+        result = SequencingUpload.check_all_files_uploaded(process_id)
+        return (
+            jsonify({"result": result}),
+            200,
+        )
+    return {}
+
+
+@metadata_bp.route(
+    "/delete_local_project_files",
+    methods=["GET"],
+    endpoint="delete_local_project_files",
+)
+@login_required
+@admin_required
+@approved_required
+def delete_local_project_files():
+    process_id = request.args.get("process_id")
+    if process_id:
+        result = SequencingUpload.delete_local_files(process_id)
+        return (
+            jsonify({"result": result}),
+            200,
+        )
+    return {}
+
+
+@metadata_bp.route(
+    "/download_process_files_from_bucket",
+    methods=["GET"],
+    endpoint="download_process_files_from_bucket",
+)
+@login_required
+@admin_required
+@approved_required
+def download_process_files_from_bucket():
+    process_id = request.args.get("process_id")
+    if process_id:
+        result = SequencingUpload.download_files_from_bucket(process_id)
+        return (
+            jsonify({"result": result}),
+            200,
+        )
+    return {}
+
+
+@metadata_bp.route(
     "/generate_mapping_files",
     methods=["POST"],
     endpoint="generate_mapping_files",
