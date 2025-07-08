@@ -8,6 +8,7 @@ import shutil
 import csv
 import re
 import pandas as pd
+from unidecode import unidecode
 from collections import defaultdict
 from helpers.dbm import session_scope
 from helpers.fastqc import init_create_fastqc_report, check_fastqc_report
@@ -1274,13 +1275,12 @@ class SequencingUpload:
 
         def sanitize_mapping_string(value):
             if value is None:
-                return "NA"  # Or any default value
-            sanitized = re.sub(
-                r"\s+", "_", value.strip()
-            )  # Replace spaces with underscores
-            sanitized = re.sub(
-                r"[^\w\-_]", "", sanitized
-            )  # Remove unwanted characters
+                return "NA"
+            # First, transliterate Unicode characters to ASCII equivalents
+            transliterated = unidecode(str(value))
+            sanitized = re.sub(r"\s+", "_", transliterated.strip())
+            # Now, remove any remaining non-word, non-hyphen, non-underscore ASCII characters
+            sanitized = re.sub(r"[^\w\-_]", "", sanitized)
             return sanitized
 
         samples_data_complete = self.get_samples_with_sequencers_and_files(
