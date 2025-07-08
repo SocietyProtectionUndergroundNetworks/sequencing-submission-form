@@ -80,7 +80,7 @@
               <td>{{ upload.nr_regions }}</td>
               <td>
                 <strong>{{ upload.region_1 }}</strong><br>                
-                {% if upload.Sequencing_platform.strip() == 'Nanopore (ONT, any)' %}
+                {% if upload.Sequencing_platform.strip() == 'Nanopore (ONT, any)' or upload.Sequencing_platform.strip() == 'ION Torrent' %}
                   Sequencing platform: '{{ upload.Sequencing_platform }}'. No analysis yet
                 {% else %}
                   Analysis: 
@@ -103,7 +103,7 @@
               <td>
 
                 <strong>{{ upload.region_2 }}</strong><br>
-                {% if upload.Sequencing_platform.strip() == 'Nanopore (ONT, any)' %}
+                {% if upload.Sequencing_platform.strip() == 'Nanopore (ONT, any)' or upload.Sequencing_platform.strip() == 'ION Torrent' %}
                   Sequencing platform: '{{ upload.Sequencing_platform }}'. No analysis yet
                 {% else %}                
                   Analysis: 
