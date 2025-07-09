@@ -2,29 +2,23 @@ import logging
 import csv
 import io
 from flask import (
-    redirect,
     Blueprint,
     render_template,
     request,
-    url_for,
     jsonify,
     Response,
 )
-from flask_login import current_user, login_required
+from flask_login import login_required
 from models.taxonomy import TaxonomyManager
 from models.sequencing_sample import SequencingSample
 from models.sequencing_upload import SequencingUpload
 from models.sequencing_analysis_type import SequencingAnalysisType
-from helpers.decorators import (
-    staff_required,
-    approved_required
-)
+from helpers.decorators import staff_required, approved_required
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
 taxonomy_bp = Blueprint("taxonomy", __name__)
-
 
 
 @taxonomy_bp.route(

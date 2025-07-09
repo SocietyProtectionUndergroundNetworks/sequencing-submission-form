@@ -4,6 +4,7 @@ import logging
 from flask import Flask
 
 # Import your blueprints
+from .admin import admin_bp
 from .user import user_bp
 from .upload import upload_bp
 from .data import data_bp
@@ -37,6 +38,7 @@ def create_base_app():  # Renamed from create_app
     logger = logging.getLogger("my_app_logger")  # noqa: F841
 
     # Register Blueprints
+    app.register_blueprint(admin_bp)
     app.register_blueprint(user_bp)
     app.register_blueprint(upload_bp)
     app.register_blueprint(data_bp)
