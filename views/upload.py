@@ -3,20 +3,15 @@ import psutil
 from flask import (
     Blueprint,
     render_template,
-    jsonify,
     redirect,
     url_for,
 )
 from flask_login import (
     current_user,
-    login_required,
 )
 from models.user import User
 from models.sequencing_upload import SequencingUpload
 from models.sequencing_sample import SequencingSample
-from helpers.decorators import (
-    approved_required,
-)
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -84,20 +79,3 @@ def app_instructions():
 @upload_bp.route("/app_instructions_v2", endpoint="app_instructions_v2")
 def app_instructions_v2():
     return render_template("app_instructions_v2.html")
-
-
-@upload_bp.route("/sysreport", methods=["GET"], endpoint="show_system_report")
-@login_required
-@approved_required
-def show_system_report():
-    if current_user.admin:
-        disk_usage = psutil.disk_usage("/app")
-        return jsonify(
-            {
-                "total": disk_usage.total,
-                "used": disk_usage.used,
-                "free": disk_usage.free,
-                "percent": disk_usage.percent,
-            }
-        )
-    return {}
