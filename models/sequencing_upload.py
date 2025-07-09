@@ -347,15 +347,48 @@ class SequencingUpload:
 
     @staticmethod
     def get_directory_size(directory):
+        """
+        Calculates the total size of files and counts FASTQ files
+        ONLY in the specified directory, not in its subdirectories.
+
+        Args:
+            directory (str): The path to the directory to scan.
+
+        Returns:
+            tuple: (total_size_in_bytes, fastq_file_count)
+        """
         total_size = 0
         fastq_count = 0
-        for dirpath, dirnames, filenames in os.walk(directory):
-            for f in filenames:
-                fp = os.path.join(dirpath, f)
+
+        if not os.path.isdir(directory):
+            # Handle cases where the directory might not exist or isn't a directory
+            print(
+                f"Warning: Directory not found or is not a directory: {directory}"
+            )
+            return 0, 0
+
+        try:
+            # os.listdir() gets contents of only the top-level directory
+            for entry_name in os.listdir(directory):
+                fp = os.path.join(directory, entry_name)
+
+                # Ensure it's a file, not a subdirectory or other special file
                 if os.path.isfile(fp):
                     total_size += os.path.getsize(fp)
-                    if f.endswith(".fastq.gz") or f.endswith(".fastq"):
+                    # Check for FASTQ extensions (case-insensitive for robustness)
+                    lower_f = entry_name.lower()
+                    if (
+                        lower_f.endswith(".fastq.gz")
+                        or lower_f.endswith(".fastq")
+                        or lower_f.endswith(".fq.gz")
+                        or lower_f.endswith(".fq")
+                    ):
                         fastq_count += 1
+        except OSError as e:
+            print(f"Error accessing directory '{directory}': {e}")
+            # Optionally re-raise or handle more gracefully
+            return 0, 0  # Or some error indicator
+
         return total_size, fastq_count
 
     @classmethod
