@@ -1,13 +1,17 @@
 import logging
 import os
-from flask_login import login_required
+from flask_login import login_required, current_user
 from flask import (
     Blueprint,
     request,
     jsonify,
+    render_template,
+    redirect,
+    url_for,
 )
 from models.sequencing_upload import SequencingUpload
 from models.sequencing_analysis import SequencingAnalysis
+from models.user import User
 from helpers.lotus2 import (
     delete_generated_lotus2_report,
     init_generate_all_lotus2_reports,
@@ -15,6 +19,9 @@ from helpers.lotus2 import (
 from helpers.decorators import (
     approved_required,
     admin_required,
+)
+from helpers.bucket import (
+    delete_bucket_folder,
 )
 from helpers.r_scripts import (
     delete_generated_rscripts_report,
@@ -24,6 +31,71 @@ from helpers.r_scripts import (
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
 projects_bp = Blueprint("projects", __name__)
+
+
+@projects_bp.route(
+    "/all_uploads_v2", methods=["GET"], endpoint="all_uploads_v2"
+)
+@login_required
+@admin_required
+@approved_required
+def all_uploads_v2():
+    user_metadata_uploads = SequencingUpload.get_all()
+    return render_template(
+        "user_uploads_v2.html",
+        user_uploads=user_metadata_uploads,
+        user_id="",
+        is_admin=current_user.admin,
+        username="",
+        user_email="",
+    )
+
+
+@projects_bp.route(
+    "/delete_upload_process_v2",
+    methods=["GET"],
+    endpoint="delete_upload_process_v2",
+)
+@admin_required
+@login_required
+@approved_required
+def delete_upload_process_v2():
+    process_id = request.args.get("process_id")
+    return_to = request.args.get("return_to")
+    process_data = SequencingUpload.get(process_id)
+    uploads_folder = process_data["user_id"]
+    if uploads_folder:
+        delete_bucket_folder("uploads/" + uploads_folder)
+    SequencingUpload.delete_upload_and_files(process_id)
+    if return_to == "user":
+        user_id = request.args.get("user_id")
+        return redirect(
+            url_for("projects_bp.user_uploads_v2", user_id=user_id)
+        )
+    else:
+        return redirect(url_for("projects_bp.all_uploads_v2"))
+
+
+@projects_bp.route(
+    "/user_uploads_v2", methods=["GET"], endpoint="user_uploads_v2"
+)
+@login_required
+@approved_required
+def user_uploads_v2():
+    user_id = request.args.get("user_id")
+    user = User.get(user_id)
+    if (current_user.admin) or (current_user.id == user_id):
+        user_metadata_uploads = SequencingUpload.get_all(user_id=user_id)
+        return render_template(
+            "user_uploads_v2.html",
+            user_uploads=user_metadata_uploads,
+            user_id=user_id,
+            is_admin=current_user.admin,
+            username=user.name,
+            user_email=user.email,
+        )
+    else:
+        return redirect(url_for("user.only_admins"))
 
 
 @projects_bp.route(

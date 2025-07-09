@@ -23,7 +23,7 @@
       {% if current_user.is_authenticated and current_user.approved %}
         {% if user_should_see_v2 or current_user.admin %}
           <h3> Version 2 </h3>
-          <a href="{{ url_for('metadata.metadata_form') }}">
+          <a href="{{ url_for('upload_form_bp.metadata_form') }}">
             <div class="page-menu-item">
               <h3>Data submission form</h3>
               <div> Start a new process. </div>

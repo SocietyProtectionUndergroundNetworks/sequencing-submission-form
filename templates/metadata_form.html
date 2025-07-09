@@ -1269,7 +1269,7 @@
           <h4> Local directory to scan (only admin)</h4>
           <form
             method="POST"
-            action="/sequencing_process_server_file"
+            action="/sequencing_process_server_files"
             id="step_8_form_process_server_file"
             enctype="multipart/form-data"
           >
@@ -3075,7 +3075,7 @@
         console.log(directoryName)
         // Send the form data via AJAX
         $.ajax({
-          url: '/sequencing_process_server_file',
+          url: '/sequencing_process_server_files',
           type: 'POST',
           data: {
             directory_name: directoryName,

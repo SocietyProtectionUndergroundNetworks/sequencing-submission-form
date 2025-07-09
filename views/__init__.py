@@ -9,11 +9,12 @@ from .user import user_bp
 from .upload import upload_bp
 from .data import data_bp
 from .ecoregions import ecoregions_bp
-from .metadata import metadata_bp
 from .scripps import scripps_bp
 from .buckets import bucket_bp
 from .taxonomy import taxonomy_bp
 from .projects import projects_bp
+from .sequencing_upload_form import upload_form_bp
+from .documentation import documentation_bp
 
 
 def create_base_app():  # Renamed from create_app
@@ -43,11 +44,12 @@ def create_base_app():  # Renamed from create_app
     app.register_blueprint(user_bp)
     app.register_blueprint(upload_bp)
     app.register_blueprint(data_bp)
-    app.register_blueprint(metadata_bp)
     app.register_blueprint(scripps_bp)
     app.register_blueprint(bucket_bp)
     app.register_blueprint(taxonomy_bp)
     app.register_blueprint(ecoregions_bp)
     app.register_blueprint(projects_bp)
+    app.register_blueprint(upload_form_bp)
+    app.register_blueprint(documentation_bp)
 
     return app
