@@ -116,5 +116,6 @@ def upload_report_to_bucket():
             bucket=bucket,
         )
     return redirect(
-        url_for("upload_form_bp.metadata_form", process_id=process_id) + "#step_9"
+        url_for("upload_form_bp.metadata_form", process_id=process_id)
+        + "#step_9"
     )

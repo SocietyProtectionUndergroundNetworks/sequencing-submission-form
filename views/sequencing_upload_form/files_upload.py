@@ -117,7 +117,8 @@ def confirm_files_uploading_finished():
         process_id, "files_uploading_confirmed", True
     )
     return redirect(
-        url_for("upload_form_bp.metadata_form", process_id=process_id) + "#step_9"
+        url_for("upload_form_bp.metadata_form", process_id=process_id)
+        + "#step_9"
     )
 
 

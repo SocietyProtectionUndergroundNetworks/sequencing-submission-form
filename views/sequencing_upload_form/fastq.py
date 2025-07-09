@@ -102,7 +102,8 @@ def delete_multiqc_report():
             shutil.rmtree(abs_multiqc_plots_folder)
 
     return redirect(
-        url_for("upload_form_bp.metadata_form", process_id=process_id) + "#step_10"
+        url_for("upload_form_bp.metadata_form", process_id=process_id)
+        + "#step_10"
     )
 
 

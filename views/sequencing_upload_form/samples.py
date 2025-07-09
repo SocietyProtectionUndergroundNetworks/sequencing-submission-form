@@ -382,5 +382,6 @@ def sequencing_revert_confirm_metadata():
     SequencingUpload.mark_upload_confirmed_as_false(process_id)
 
     return redirect(
-        url_for("upload_form_bp.metadata_form", process_id=process_id) + "#step_5"
+        url_for("upload_form_bp.metadata_form", process_id=process_id)
+        + "#step_5"
     )

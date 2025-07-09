@@ -238,7 +238,8 @@ def delete_sequencer_ids():
     SequencingUpload.delete_sequencer_ids_for_upload(process_id)
 
     return redirect(
-        url_for("upload_form_bp.metadata_form", process_id=process_id) + "#step_7"
+        url_for("upload_form_bp.metadata_form", process_id=process_id)
+        + "#step_7"
     )
 
 

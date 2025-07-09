@@ -35,7 +35,8 @@ def start_sync_process():
 
     init_sync_project(process_id)
     return redirect(
-        url_for("upload_form_bp.metadata_form", process_id=process_id) + "#step_14"
+        url_for("upload_form_bp.metadata_form", process_id=process_id)
+        + "#step_14"
     )
 
 
@@ -67,7 +68,8 @@ def create_share_link():
         logger.info("The share url could not be returned")
 
     return redirect(
-        url_for("upload_form_bp.metadata_form", process_id=process_id) + "#step_14"
+        url_for("upload_form_bp.metadata_form", process_id=process_id)
+        + "#step_14"
     )
 
 
@@ -83,7 +85,8 @@ def prepare_pdf_report():
     process_id = request.args.get("process_id")
     create_pdf_report(process_id)
     return redirect(
-        url_for("upload_form_bp.metadata_form", process_id=process_id) + "#step_14"
+        url_for("upload_form_bp.metadata_form", process_id=process_id)
+        + "#step_14"
     )
 
 

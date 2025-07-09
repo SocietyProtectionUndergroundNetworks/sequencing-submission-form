@@ -100,7 +100,8 @@ def delete_mapping_file():
             os.remove(abs_mapping_file)
 
     return redirect(
-        url_for("upload_form_bp.metadata_form", process_id=process_id) + "#step_11"
+        url_for("upload_form_bp.metadata_form", process_id=process_id)
+        + "#step_11"
     )
 
 
