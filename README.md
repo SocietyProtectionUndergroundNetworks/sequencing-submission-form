@@ -160,6 +160,7 @@ To do that you would need
 - Login with a token to GHCR (I am not writting instructions for this here. Search for it)
 - Build the docker images locally (you probably have already done that in order to have a working development environment)
 - Push the docker images to the registry: 
+For the flask image:
 `docker tag sequencing-submission-form-flask ghcr.io/societyprotectionundergroundnetworks/sequencing-submission-form-flask:latest`
 `docker push ghcr.io/societyprotectionundergroundnetworks/sequencing-submission-form-flask:latest`
 
