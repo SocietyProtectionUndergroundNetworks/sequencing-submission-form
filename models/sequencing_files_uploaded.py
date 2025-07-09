@@ -1,5 +1,4 @@
 import logging
-import os
 from helpers.dbm import session_scope
 from models.db_model import (
     SequencingFilesUploadedTable,
@@ -10,9 +9,7 @@ from models.db_model import (
 from helpers.fastqc import (
     check_fastqc_report,
     extract_total_sequences_from_fastqc_zip,
-    count_primer_occurrences,
 )
-from helpers.metadata_check import get_sequences_based_on_primers
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -215,133 +212,3 @@ class SequencingFileUploaded:
         if isinstance(total_sequences, int):
             cls.update_field(id, "total_sequences_number", total_sequences)
         return total_sequences
-
-    @classmethod
-    def update_primer_occurrences_count(cls, id):
-        # Connect to the database and create a session
-        with session_scope() as session:
-
-            # Perform a single query to get all necessary information
-            result = (
-                session.query(
-                    SequencingFilesUploadedTable.new_name,
-                    SequencingFilesUploadedTable.sequencerId,
-                    SequencingUploadsTable.region_1_forward_primer,
-                    SequencingUploadsTable.region_1_reverse_primer,
-                    SequencingUploadsTable.region_2_forward_primer,
-                    SequencingUploadsTable.region_2_reverse_primer,
-                    SequencingUploadsTable.uploads_folder,
-                    SequencingSequencerIDsTable.Region,
-                )
-                .join(
-                    SequencingSequencerIDsTable,
-                    SequencingFilesUploadedTable.sequencerId
-                    == SequencingSequencerIDsTable.id,
-                )
-                .join(
-                    SequencingSamplesTable,
-                    SequencingSequencerIDsTable.sequencingSampleId
-                    == SequencingSamplesTable.id,
-                )
-                .join(
-                    SequencingUploadsTable,
-                    SequencingSamplesTable.sequencingUploadId
-                    == SequencingUploadsTable.id,
-                )
-                .filter(SequencingFilesUploadedTable.id == id)
-                .first()
-            )
-
-            if not result:
-                logger.error(f"No record found for id: {id}")
-                return None
-
-            # Now that we have the regions primers, lets get the regions:
-            from models.sequencing_upload import SequencingUpload
-
-            regions = SequencingUpload.get_regions(
-                result.region_1_forward_primer,
-                result.region_1_reverse_primer,
-                result.region_2_forward_primer,
-                result.region_2_reverse_primer,
-            )
-
-            if len(regions) > 0 and regions[0] == result.Region:
-                # The file belongs to region 1
-                forward_primer = result.region_1_forward_primer
-                reverse_primer = result.region_1_reverse_primer
-            elif len(regions) > 1 and regions[1] == result.Region:
-                # The file belongs to region 2 and
-                # regions has at least 2 values
-                forward_primer = result.region_2_forward_primer
-                reverse_primer = result.region_2_reverse_primer
-            else:
-                logger.info("No primers matched")
-                return None
-
-            region_sequences = get_sequences_based_on_primers(
-                forward_primer,
-                reverse_primer,
-            )
-            # logger.info(region_sequences)
-
-            # Find out if this is the forward or reverse file
-            # Files with this sequencer ID
-            # Perform a single query to get all necessary information
-            result_files = (
-                session.query(
-                    SequencingFilesUploadedTable.new_name,
-                )
-                .filter(
-                    SequencingFilesUploadedTable.sequencerId
-                    == result.sequencerId
-                )
-                .all()
-            )
-            new_names = [file.new_name for file in result_files]
-            # Check if there are exactly two files
-            if len(new_names) == 2:
-                new_names.sort()  # Sort alphabetically
-
-                # Determine if result.new_name is the
-                # first or second in the sorted list
-                if result.new_name == new_names[0]:
-                    # logger.info("result.new_name is the first file.")
-                    # You can also assign a variable if needed
-                    sequence = region_sequences["Forward Primer"]
-                elif result.new_name == new_names[1]:
-                    # logger.info("result.new_name is the second file.")
-                    # Assign a variable if needed
-                    sequence = region_sequences["Reverse Primer"]
-                else:
-                    logger.info("result.new_name is not in the sorted files.")
-                    return []
-
-                path = (
-                    "seq_processed/"
-                    + result.uploads_folder
-                    + "/"
-                    + result.new_name
-                )
-                abs_path = os.path.abspath(path)
-                primer_occurrences_count = count_primer_occurrences(
-                    abs_path, sequence
-                )
-
-                if isinstance(primer_occurrences_count, int):
-                    logger.info("id: " + str(id))
-                    cls.update_field(
-                        id,
-                        "primer_occurrences_count",
-                        primer_occurrences_count,
-                    )
-                    return primer_occurrences_count
-
-                return primer_occurrences_count
-            else:
-                logger.info("While trying the id: " + str(id))
-                logger.info("There are not exactly two files.")
-                logger.info("The new names is:")
-                logger.info(new_names)
-
-            return []
