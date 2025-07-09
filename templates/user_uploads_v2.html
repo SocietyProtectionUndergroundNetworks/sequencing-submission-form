@@ -46,7 +46,8 @@
           <th scope="col">Nr of Sequencer IDs</th>
           <th scope="col">Sequencer with missing primer counts</th>
           <th scope="col">Nr of files per sequence</th>
-          <th scope="col">Nr of files</th>
+          <th scope="col">Nr of files uploaded</th>
+          <th scope="col">Nr of files on disk</th>
           <th scope="col">Files size processing folder</th>
           <th scope="col">Reviewed by admin</th>
           {% if is_admin %}
@@ -83,19 +84,23 @@
                 {% if upload.Sequencing_platform.strip() == 'Nanopore (ONT, any)' or upload.Sequencing_platform.strip() == 'ION Torrent' %}
                   Sequencing platform: '{{ upload.Sequencing_platform }}'. No analysis yet
                 {% else %}
-                  Analysis: 
-                  {% for analysis in upload.analysis[upload.region_1] %}
-                      <div>
-                          <strong>{{ analysis.analysis_type_name }}</strong><br>
-                          
-                          <span class="{{ 'text-success' if analysis.lotus2_status == 'Finished' else 'text-danger' }}">
-                            Lotus2: {{ analysis.lotus2_status if analysis.lotus2_status else 'Not Started' }}
-                          </span><br>
-                          <span class="{{ 'text-success' if analysis.rscripts_status == 'Finished' else 'text-danger' }}">
-                            Rscripts: {{ analysis.rscripts_status if analysis.rscripts_status else 'Not Started' }}
-                          </span>                                       
-                      </div>
-                  {% endfor %}
+                  {% if upload.nr_fastq_files_db_reported == 0 %}
+                    No files uploaded yet
+                  {% else %}
+                    Analysis: 
+                    {% for analysis in upload.analysis[upload.region_1] %}
+                        <div>
+                            <strong>{{ analysis.analysis_type_name }}</strong><br>
+                            
+                            <span class="{{ 'text-success' if analysis.lotus2_status == 'Finished' else 'text-danger' }}">
+                              Lotus2: {{ analysis.lotus2_status if analysis.lotus2_status else 'Not Started' }}
+                            </span><br>
+                            <span class="{{ 'text-success' if analysis.rscripts_status == 'Finished' else 'text-danger' }}">
+                              Rscripts: {{ analysis.rscripts_status if analysis.rscripts_status else 'Not Started' }}
+                            </span>                                       
+                        </div>
+                    {% endfor %}
+                  {% endif %}
                 {% endif %}
                 
               </td>
@@ -105,20 +110,24 @@
                 <strong>{{ upload.region_2 }}</strong><br>
                 {% if upload.Sequencing_platform.strip() == 'Nanopore (ONT, any)' or upload.Sequencing_platform.strip() == 'ION Torrent' %}
                   Sequencing platform: '{{ upload.Sequencing_platform }}'. No analysis yet
-                {% else %}                
-                  Analysis: 
-                  {% for analysis in upload.analysis[upload.region_2] %}
-                      <div>
-                          <strong>{{ analysis.analysis_type_name }}</strong><br>
-                          
-                          <span class="{{ 'text-success' if analysis.lotus2_status == 'Finished' else 'text-danger' }}">
-                            Lotus2: {{ analysis.lotus2_status if analysis.lotus2_status else 'Not Started' }}
-                          </span><br>  
-                          <span class="{{ 'text-success' if analysis.rscripts_status == 'Finished' else 'text-danger' }}">
-                            Rscripts: {{ analysis.rscripts_status if analysis.rscripts_status else 'Not Started' }}
-                          </span>                                       
-                      </div>
-                  {% endfor %}
+                {% else %}
+                  {% if upload.nr_fastq_files_db_reported == 0 %}
+                    No files uploaded yet
+                  {% else %}
+                    Analysis: 
+                    {% for analysis in upload.analysis[upload.region_2] %}
+                        <div>
+                            <strong>{{ analysis.analysis_type_name }}</strong><br>
+                            
+                            <span class="{{ 'text-success' if analysis.lotus2_status == 'Finished' else 'text-danger' }}">
+                              Lotus2: {{ analysis.lotus2_status if analysis.lotus2_status else 'Not Started' }}
+                            </span><br>  
+                            <span class="{{ 'text-success' if analysis.rscripts_status == 'Finished' else 'text-danger' }}">
+                              Rscripts: {{ analysis.rscripts_status if analysis.rscripts_status else 'Not Started' }}
+                            </span>                                       
+                        </div>
+                    {% endfor %}                      
+                  {% endif %}
                 {% endif %}          
               </td>
             
@@ -127,6 +136,9 @@
               </td>
               <td>{{ upload.missing_adapter_sequencer_ids }}</td>
               <td>{{ upload.nr_files_per_sequence }}</td>
+              <td>
+                  {{ upload.nr_fastq_files_db_reported }}
+              </td>              
               <td class="{% if upload.nr_fastq_files < (upload.nr_sequencer_ids * upload.nr_files_per_sequence) %}text-danger{% endif %}">
                   {{ upload.nr_fastq_files }}
               </td>

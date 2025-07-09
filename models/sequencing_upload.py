@@ -168,7 +168,7 @@ class SequencingUpload:
                 # Calculate the total size of the uploads folder and
                 # count the fastq files
                 upload.total_uploads_file_size = 0
-                upload.nr_fastq_files = 0
+                upload.nr_fastq_files = 0  # Count of files on disk
                 uploads_folder = filtered_dict["uploads_folder"]
                 if uploads_folder:
                     total_size, fastq_count = cls.get_directory_size(
@@ -176,6 +176,12 @@ class SequencingUpload:
                     )
                     upload.total_uploads_file_size = total_size
                     upload.nr_fastq_files = fastq_count
+
+                # Calculate the number of files reported by the database
+                db_reported_files = cls._get_uploaded_files_for_upload(
+                    session, filtered_dict["id"]
+                )
+                upload.nr_fastq_files_db_reported = len(db_reported_files)
 
                 # Calculate the number of regions
                 upload.nr_regions = 0
