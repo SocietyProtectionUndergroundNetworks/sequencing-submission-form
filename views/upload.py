@@ -21,44 +21,16 @@ from helpers.ecoregions import (
 from models.user import User
 from models.sequencing_upload import SequencingUpload
 from models.sequencing_sample import SequencingSample
+from helpers.decorators import (
+    admin_required,
+    approved_required,
+)
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
 
 upload_bp = Blueprint("upload", __name__)
-
-
-# Custom approved_required decorator
-def approved_required(view_func):
-    def decorated_approved_view(*args, **kwargs):
-        if not current_user.is_authenticated:
-            # Redirect unauthenticated users to the login page
-            return redirect(
-                url_for("user.login")
-            )  # Adjust 'login' to your actual login route
-        elif not current_user.approved:
-            # Redirect non-approved users to some unauthorized page
-            return redirect(url_for("user.only_approved"))
-        return view_func(*args, **kwargs)
-
-    return decorated_approved_view
-
-
-# Custom admin_required decorator
-def admin_required(view_func):
-    def decorated_view(*args, **kwargs):
-        if not current_user.is_authenticated:
-            # Redirect unauthenticated users to the login page
-            return redirect(
-                url_for("user.login")
-            )  # Adjust 'login' to your actual login route
-        elif not current_user.admin:
-            # Redirect non-admin users to some unauthorized page
-            return redirect(url_for("user.only_admins"))
-        return view_func(*args, **kwargs)
-
-    return decorated_view
 
 
 @upload_bp.route("/")
