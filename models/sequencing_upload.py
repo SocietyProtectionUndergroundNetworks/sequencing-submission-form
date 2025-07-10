@@ -2470,6 +2470,15 @@ class SequencingUpload:
                     ),
                 }
             elif region in ["ITS1", "ITS2"]:
+                file_mappings["physeq_fungi.Rdata"] = {
+                    "source": os.path.join(
+                        base_r_output_path, "physeq_fungi.Rdata"
+                    ),
+                    "symlink": os.path.join(
+                        relative_r_output_path_three_back,
+                        "physeq_fungi.Rdata",
+                    ),
+                }
                 file_mappings["ecm_physeq.Rdata"] = {
                     "source": os.path.join(
                         base_r_output_path,

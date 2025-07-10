@@ -152,6 +152,12 @@ physeq_filtered <- prune_samples(
   physeq_decontam
 )
 
+# Filter physeq_decontam to keep only OTUs with kingdom = "Fungi"
+physeq_fungi <- subset_taxa(physeq_filtered, Domain == "Fungi")
+
+# Save the fungi-only phyloseq object
+saveRDS(physeq_fungi, file = str_c(args$output, "/", "physeq_fungi.Rdata"))
+
 # Check the new sample sizes
 sample_sums(physeq_filtered)
 
