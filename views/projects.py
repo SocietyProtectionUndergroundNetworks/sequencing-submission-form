@@ -69,11 +69,9 @@ def delete_upload_process_v2():
     SequencingUpload.delete_upload_and_files(process_id)
     if return_to == "user":
         user_id = request.args.get("user_id")
-        return redirect(
-            url_for("projects_bp.user_uploads_v2", user_id=user_id)
-        )
+        return redirect(url_for("projects.user_uploads_v2", user_id=user_id))
     else:
-        return redirect(url_for("projects_bp.all_uploads_v2"))
+        return redirect(url_for("projects.all_uploads_v2"))
 
 
 @projects_bp.route(
@@ -100,7 +98,7 @@ def user_uploads_v2():
 
 @projects_bp.route(
     "/delete_all_lotus2_reports",
-    methods=["GET"],
+    methods=["POST"],
     endpoint="delete_all_lotus2_reports",
 )
 @login_required
@@ -108,10 +106,10 @@ def user_uploads_v2():
 @admin_required
 def delete_all_lotus2_reports():
     anti_nuke_env = os.environ.get("ANTI_NUKE_STRING")
-    analysis_type_id = request.args.get("analysis_type_id")
-    anti_nuke = request.args.get("anti_nuke")
-    from_id = request.args.get("from_id", default=None)
-    to_id = request.args.get("to_id", default=None)
+    analysis_type_id = request.form.get("analysis_type_id")
+    anti_nuke = request.form.get("anti_nuke")
+    from_id = request.form.get("from_id", default=None)
+    to_id = request.form.get("to_id", default=None)
     # Convert to integers only if the parameters are provided
     if from_id is not None:
         try:
@@ -194,7 +192,7 @@ def delete_all_lotus2_reports():
 
 @projects_bp.route(
     "/generate_all_lotus2_reports",
-    methods=["GET"],
+    methods=["POST"],
     endpoint="generate_all_lotus2_reports",
 )
 @login_required
@@ -202,11 +200,10 @@ def delete_all_lotus2_reports():
 @admin_required
 def generate_all_lotus2_reports():
     anti_nuke_env = os.environ.get("ANTI_NUKE_STRING")
-    # process_id = request.form.get("process_id")
     analysis_type_id = request.args.get("analysis_type_id")
-    anti_nuke = request.args.get("anti_nuke")
-    from_id = request.args.get("from_id", default=None)
-    to_id = request.args.get("to_id", default=None)
+    anti_nuke = request.form.get("anti_nuke")
+    from_id = request.form.get("from_id", default=None)
+    to_id = request.form.get("to_id", default=None)
     # Convert to integers only if the parameters are provided
     if from_id is not None:
         try:
@@ -278,7 +275,7 @@ def adapters_count_all():
 
 @projects_bp.route(
     "/generate_all_region_rscripts_reports",
-    methods=["GET"],
+    methods=["POST"],
     endpoint="generate_all_region_rscripts_reports",
 )
 @login_required
@@ -286,10 +283,9 @@ def adapters_count_all():
 @admin_required
 def generate_all_region_rscripts_reports():
     anti_nuke_env = os.environ.get("ANTI_NUKE_STRING")
-    # process_id = request.form.get("process_id")
-    region = request.args.get("region")
-    analysis_type_id = request.args.get("analysis_type_id")
-    anti_nuke = request.args.get("anti_nuke")
+    region = request.form.get("region")
+    analysis_type_id = request.form.get("analysis_type_id")
+    anti_nuke = request.form.get("anti_nuke")
 
     if (
         anti_nuke_env is not None
@@ -307,7 +303,7 @@ def generate_all_region_rscripts_reports():
 
 @projects_bp.route(
     "/delete_all_region_rscripts_reports",
-    methods=["GET"],
+    methods=["POST"],
     endpoint="delete_all_region_rscripts_reports",
 )
 @login_required
@@ -315,10 +311,9 @@ def generate_all_region_rscripts_reports():
 @admin_required
 def delete_all_region_rscripts_reports():
     anti_nuke_env = os.environ.get("ANTI_NUKE_STRING")
-    # process_id = request.form.get("process_id")
-    region = request.args.get("region")
-    analysis_type_id = request.args.get("analysis_type_id")
-    anti_nuke = request.args.get("anti_nuke")
+    region = request.form.get("region")
+    analysis_type_id = request.form.get("analysis_type_id")
+    anti_nuke = request.form.get("anti_nuke")
 
     if (
         anti_nuke_env is not None

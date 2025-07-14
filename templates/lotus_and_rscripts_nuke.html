@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spun data upload</title>
+    <!-- Your general.css -->
+    <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
+    <!-- Bootstrap CSS CDN -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <!-- jQuery CDN -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <!-- Inter font (kept for consistency with previous version, can be removed if general.css defines font) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Removed <style> block as CSS is now in general.css -->
+</head>
+<body>
+    <div class="app-navbar">
+        <a href="https://spun.earth" class="logo"></a>
+        <div class="menu">
+            <ul>
+                <li><a href="https://spun.earth">Spun Website</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="content">
+        <h1 class="text-center mb-8 text-3xl font-bold">Admin Nuke Operations</h1>
+
+        <!-- Delete all r_script reports Form -->
+        <div class="form-step-item">
+            <h2>Delete R-Script Reports</h2>
+            <form id="deleteRScriptReportsForm" method="POST" action="/delete_all_region_rscripts_reports">
+                <div class="mb-4">
+                    <label for="delete_r_region" class="form-label text-gray-700 mb-2 block">Region:</label>
+                    <input type="text" class="form-control" id="delete_r_region" name="region" required placeholder="e.g., ITS2">
+                </div>
+                <div class="mb-4">
+                    <label for="delete_r_analysis_type_id" class="form-label text-gray-700 mb-2 block">Analysis Type ID:</label>
+                    <input type="number" class="form-control" id="delete_r_analysis_type_id" name="analysis_type_id" required placeholder="e.g., 3">
+                </div>
+                <div class="mb-4">
+                    <label for="delete_r_anti_nuke" class="form-label text-gray-700 mb-2 block">Anti-Nuke String:</label>
+                    <input type="password" class="form-control" id="delete_r_anti_nuke" name="anti_nuke" required placeholder="Enter anti-nuke string">
+                </div>
+                <button type="submit" class="btn btn-danger w-full btn-action">
+                    Delete R-Script Reports
+                </button>
+            </form>
+        </div>
+
+        <!-- Regenerate all r_script reports Form -->
+        <div class="form-step-item">
+            <h2>Regenerate R-Script Reports</h2>
+            <form id="regenerateRScriptReportsForm" method="POST" action="/generate_all_region_rscripts_reports">
+                <div class="mb-4">
+                    <label for="regenerate_r_region" class="form-label text-gray-700 mb-2 block">Region:</label>
+                    <input type="text" class="form-control" id="regenerate_r_region" name="region" required placeholder="e.g., ITS2">
+                </div>
+                <div class="mb-4">
+                    <label for="regenerate_r_analysis_type_id" class="form-label text-gray-700 mb-2 block">Analysis Type ID:</label>
+                    <input type="number" class="form-control" id="regenerate_r_analysis_type_id" name="analysis_type_id" required placeholder="e.g., 3">
+                </div>
+                <div class="mb-4">
+                    <label for="regenerate_r_anti_nuke" class="form-label text-gray-700 mb-2 block">Anti-Nuke String:</label>
+                    <input type="password" class="form-control" id="regenerate_r_anti_nuke" name="anti_nuke" required placeholder="Enter anti-nuke string">
+                </div>
+                <button type="submit" class="btn btn-primary w-full btn-action">
+                    Regenerate R-Script Reports
+                </button>
+            </form>
+        </div>
+
+        <!-- Delete all lotus2 reports Form -->
+        <div class="form-step-item">
+            <h2>Delete Lotus2 Reports</h2>
+            <form id="deleteLotus2ReportsForm" method="POST" action="/delete_all_lotus2_reports">
+                <div class="mb-4">
+                    <label for="delete_l2_analysis_type_id" class="form-label text-gray-700 mb-2 block">Analysis Type ID:</label>
+                    <input type="number" class="form-control" id="delete_l2_analysis_type_id" name="analysis_type_id" required placeholder="e.g., 3">
+                </div>
+                <div class="mb-4">
+                    <label for="delete_l2_from_id" class="form-label text-gray-700 mb-2 block">From ID:</label>
+                    <input type="number" class="form-control" id="delete_l2_from_id" name="from_id" required placeholder="e.g., 1">
+                </div>
+                <div class="mb-4">
+                    <label for="delete_l2_to_id" class="form-label text-gray-700 mb-2 block">To ID:</label>
+                    <input type="number" class="form-control" id="delete_l2_to_id" name="to_id" required placeholder="e.g., 10">
+                </div>
+                <div class="mb-4">
+                    <label for="delete_l2_anti_nuke" class="form-label text-gray-700 mb-2 block">Anti-Nuke String:</label>
+                    <input type="password" class="form-control" id="delete_l2_anti_nuke" name="anti_nuke" required placeholder="Enter anti-nuke string">
+                </div>
+                <button type="submit" class="btn btn-danger w-full btn-action">
+                    Delete Lotus2 Reports
+                </button>
+            </form>
+        </div>
+
+        <!-- Regenerate all lotus2 reports Form -->
+        <div class="form-step-item">
+            <h2>Regenerate Lotus2 Reports</h2>
+            <form id="regenerateLotus2ReportsForm" method="POST" action="/generate_all_lotus2_reports">
+                <div class="mb-4">
+                    <label for="regenerate_l2_analysis_type_id" class="form-label text-gray-700 mb-2 block">Analysis Type ID:</label>
+                    <input type="number" class="form-control" id="regenerate_l2_analysis_type_id" name="analysis_type_id" required placeholder="e.g., 3">
+                </div>
+                <div class="mb-4">
+                    <label for="regenerate_l2_from_id" class="form-label text-gray-700 mb-2 block">From ID:</label>
+                    <input type="number" class="form-control" id="regenerate_l2_from_id" name="from_id" required placeholder="e.g., 1">
+                </div>
+                <div class="mb-4">
+                    <label for="regenerate_l2_to_id" class="form-label text-gray-700 mb-2 block">To ID:</label>
+                    <input type="number" class="form-control" id="regenerate_l2_to_id" name="to_id" required placeholder="e.g., 10">
+                </div>
+                <div class="mb-4">
+                    <label for="regenerate_l2_anti_nuke" class="form-label text-gray-700 mb-2 block">Anti-Nuke String:</label>
+                    <input type="password" class="form-control" id="regenerate_l2_anti_nuke" name="anti_nuke" required placeholder="Enter anti-nuke string">
+                </div>
+                <button type="submit" class="btn btn-primary w-full btn-action">
+                    Regenerate Lotus2 Reports
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Custom Confirmation Modals (one for each form, dynamically shown) -->
+    <!-- Delete R-Script Reports Modal -->
+    <div id="confirmDeleteRScriptModal" class="custom-modal-overlay">
+        <div class="custom-modal-content rounded-xl">
+            <h5>Confirm Deletion of R-Script Reports</h5>
+            <p class="text-gray-700">Are you sure you want to delete these R-Script reports? This action cannot be undone.</p>
+            <div class="modal-buttons">
+                <button class="btn-confirm" data-form-id="deleteRScriptReportsForm">Confirm</button>
+                <button class="btn-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Regenerate R-Script Reports Modal -->
+    <div id="confirmRegenerateRScriptModal" class="custom-modal-overlay">
+        <div class="custom-modal-content rounded-xl">
+            <h5>Confirm Regeneration of R-Script Reports</h5>
+            <p class="text-gray-700">Are you sure you want to regenerate these R-Script reports? This action will overwrite existing data.</p>
+            <div class="modal-buttons">
+                <button class="btn-confirm" data-form-id="regenerateRScriptReportsForm">Confirm</button>
+                <button class="btn-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Lotus2 Reports Modal -->
+    <div id="confirmDeleteLotus2Modal" class="custom-modal-overlay">
+        <div class="custom-modal-content rounded-xl">
+            <h5>Confirm Deletion of Lotus2 Reports</h5>
+            <p class="text-gray-700">Are you sure you want to delete these Lotus2 reports? This action cannot be undone.</p>
+            <div class="modal-buttons">
+                <button class="btn-confirm" data-form-id="deleteLotus2ReportsForm">Confirm</button>
+                <button class="btn-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Regenerate Lotus2 Reports Modal -->
+    <div id="confirmRegenerateLotus2Modal" class="custom-modal-overlay">
+        <div class="custom-modal-content rounded-xl">
+            <h5>Confirm Regeneration of Lotus2 Reports</h5>
+            <p class="text-gray-700">Are you sure you want to regenerate these Lotus2 reports? This action will overwrite existing data.</p>
+            <div class="modal-buttons">
+                <button class="btn-confirm" data-form-id="regenerateLotus2ReportsForm">Confirm</button>
+                <button class="btn-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // Function to show a specific modal
+            function showModal($modal) {
+                $modal.addClass('show');
+            }
+
+            // Function to hide a specific modal
+            function hideModal($modal) {
+                $modal.removeClass('show');
+            }
+
+            // Attach submit event listener to each form
+            $('form').on('submit', function(event) {
+                event.preventDefault(); // Prevent default form submission
+
+                const $form = $(this);
+                let $modal;
+
+                // Determine which modal to show based on the form's ID
+                if ($form.attr('id') === 'deleteRScriptReportsForm') {
+                    $modal = $('#confirmDeleteRScriptModal');
+                } else if ($form.attr('id') === 'regenerateRScriptReportsForm') {
+                    $modal = $('#confirmRegenerateRScriptModal');
+                } else if ($form.attr('id') === 'deleteLotus2ReportsForm') {
+                    $modal = $('#confirmDeleteLotus2Modal');
+                } else if ($form.attr('id') === 'regenerateLotus2ReportsForm') {
+                    $modal = $('#confirmRegenerateLotus2Modal');
+                }
+
+                if ($form.data('isConfirmed')) { // Check if form is already confirmed
+                    $form[0].submit(); // Submit the native form
+                } else {
+                    showModal($modal);
+                }
+            });
+
+            // Handle confirm button clicks for all modals
+            $('.btn-confirm').on('click', function() {
+                const formIdToSubmit = $(this).data('form-id');
+                const $formToSubmit = $('#' + formIdToSubmit);
+
+                $formToSubmit.data('isConfirmed', true); // Set flag for the specific form
+                hideModal($(this).closest('.custom-modal-overlay')); // Hide the current modal
+                $formToSubmit.submit(); // Submit the form
+            });
+
+            // Handle cancel button clicks for all modals
+            $('.btn-cancel').on('click', function() {
+                hideModal($(this).closest('.custom-modal-overlay')); // Hide the current modal
+            });
+
+            // Optional: Hide modal if clicking outside the content
+            $('.custom-modal-overlay').on('click', function(event) {
+                if ($(event.target).is($(this))) { // Check if click was directly on the overlay
+                    hideModal($(this));
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -15,79 +15,11 @@
     </div>
   </div>
   <div class="content" style="p-4">
-    <h1>Sequencing data upload process form</h1>
+    <h1>Admin operations</h1>
     <div>
         You are logged in with the name: {{name}} <br>
         with the email: {{email}}
     </div>
-
-
-      {% if current_user.is_authenticated and current_user.admin %}
-            <a href="/admin_operations">
-              <div class="page-menu-item">
-                <h3>Admin operations</h3>
-              </div>
-            </a>
-      {% endif %}
-    
-      {% if current_user.is_authenticated and current_user.approved %}
-        {% if user_should_see_v2 or current_user.admin %}
-          <h3> Version 2 </h3>
-          <a href="{{ url_for('upload_form_bp.metadata_form') }}">
-            <div class="page-menu-item">
-              <h3>Data submission form</h3>
-              <div> Start a new process. </div>
-              {% if user_metadata_uploads %}
-                <div> If you have already started one, please continue the previous process if possible </div>
-              {% endif %}
-            </div>
-          </a>
-          {% if user_metadata_uploads %}
-            <a href="/user_uploads_v2?user_id={{ user_id }}">
-              <div class="page-menu-item">
-                <h3>Previous uploads of user</h3>
-                <div> Please note that you have started allready a previous process </div>
-                <div> You can continue the previous process if possible </div>
-              </div>
-            </a>
-          {% endif %}
-        {% endif %}
-      {% endif %}
-      {% if current_user.is_authenticated and current_user.admin %}
-        <h3> SPUN Staff </h3>
-
-        <a href="/taxonomy/search">
-          <div class="page-menu-item">
-            <h3>Search for samples based on taxonomy</h3>
-          </div>
-        </a>   
-
-        <a href="/ecoregions/view_all">
-          <div class="page-menu-item">
-            <h3>View ecoregions</h3>
-          </div>
-        </a>           
-
-        <a href="/show_statistics">
-          <div class="page-menu-item">
-            <h3>Cohorts report</h3>
-          </div>
-        </a>  
-
-        <a href="/map/generate">
-          <div class="page-menu-item">
-            <h3>Generate Map</h3>
-          </div>
-        </a>  
-
-        <a href="/map/view">
-          <div class="page-menu-item">
-            <h3>View Map</h3>
-          </div>
-        </a>  
-
-      {% endif %}      
-      
       {% if current_user.is_authenticated and current_user.admin %}
         <h3> Admin </h3>
         <a href="{{ url_for('user.user_groups') }}">
@@ -130,7 +62,12 @@
           </div>
         </a>       
         
-                
+        <a href="/admin/lotus_and_scripts">
+          <div class="page-menu-item">
+            <h3>NUKE: Delete and mass reproduce lotus2 and r_scripts reports</h3>
+          </div>
+        </a>   
+        
       {% endif %}
       <a href="/logout">
         <div class="page-menu-item">

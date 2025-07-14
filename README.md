@@ -112,32 +112,7 @@ To create the templates, visit /create_xls_template  (aka in a dev environment :
 - template_with_dropdowns_for_google_sheets.xlsx
 - template_with_dropdowns_for_one_drive_and_excel.xlsx
 
-## Nuke urls
-Currently there are two admin actions that are too dangerous to put into normal buttons in the administration.
-They can be run if someone calls the url with very specific parameters. 
-They are additionaly protected by a url argument called "anti_nuke", which expects the value of an enviromental parameter existing in .env on the server. 
-Additionally they can only be run by a user with "Admin" status inside the application.
-
-- Delete all r_script reports for a specific analysis type: 
-Takes as parameters: region , analysis_type_id  and anti_nuke. Example:
-`https://myserver/delete_all_region_rscripts_reports?region=ITS2&analysis_type_id=3&anti_nuke=THE_ANTINUKE_STRING_HERE`
-
-- Regenerate all r_script reports for a specific analysis type: 
-Takes as parameters: region , analysis_type_id  and anti_nuke. Example:
-`https://myserver/generate_all_region_rscripts_reports?region=ITS2&analysis_type_id=3&anti_nuke=THE_ANTINUKE_STRING_HERE`
-It will only generate reports that are marked as "None" (aka, have not started), and whole lotus2 corresponding report is finished.
-
-- Delete all lotus2 reports for a specific analysis type: 
-Takes as parameters: analysis_type_id, from_id, to_id and anti_nuke. 
-Example:
-`https://myserver/delete_all_region_rscripts_reports?analysis_type_id=3&from_id=1&to_id=10&anti_nuke=THE_ANTINUKE_STRING_HERE`
-
-- Regenerate all lotus2 reports for a specific analysis type: 
-Takes as parameters: analysis_type_id, from_id, to_id and anti_nuke. Example:
-`https://myserver/generate_all_region_rscripts_reports?analysis_type_id=3&from_id=1&to_id=10&anti_nuke=THE_ANTINUKE_STRING_HERE`
-It will only generate reports that are marked as "None" (aka, have not started), and whole lotus2 corresponding report is finished.
-
-- Generate all primers count:
+## All primers count
 It looks for projects where none of the sequencerIDs have any primers counted, and initiates the counting. 
 `https://myserver/adapters_count_all`
 

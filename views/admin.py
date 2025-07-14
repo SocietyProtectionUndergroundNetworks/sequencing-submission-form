@@ -7,6 +7,9 @@ from flask_login import (
 from flask import (
     Blueprint,
     jsonify,
+    render_template,
+    redirect,
+    url_for,
 )
 from helpers.decorators import (
     approved_required,
@@ -113,3 +116,52 @@ def update_missing_geo_data():
     # baileys_ecoregion = get_baileys_ecoregion(-122.4194, 37.7749)
     # elevation = get_elevation(-122.4194, 37.7749)
     return jsonify({"done": 1}), 200
+
+
+@admin_bp.route(
+    "/admin_operations",
+    methods=["GET"],
+    endpoint="admin_operations",
+)
+@login_required
+@admin_required
+@approved_required
+def admin_operations():
+    if current_user.is_authenticated:
+        if not current_user.approved:
+            # Redirect non-approved users to some unauthorized page
+            return redirect(url_for("user.only_approved"))
+
+        sys_info = {}
+        if current_user.admin:
+            disk_usage = psutil.disk_usage("/app")
+            sys_info["disk_used_percent"] = disk_usage.percent
+
+        samples_with_missing_fields_nr = 0
+        if current_user.admin:
+            samples_with_missing_fields_nr = (
+                SequencingSample.count_missing_fields()
+            )
+
+        return render_template(
+            "admin_operations.html",
+            name=current_user.name,
+            user_id=current_user.id,
+            email=current_user.email,
+            sys_info=sys_info,
+            samples_with_missing_fields_nr=samples_with_missing_fields_nr,
+        )
+    else:
+        return render_template("public_homepage.html")
+
+
+@admin_bp.route(
+    "/admin/lotus_and_scripts",
+    methods=["GET"],
+    endpoint="lotus_and_scripts",
+)
+@login_required
+@admin_required
+@approved_required
+def lotus_and_scripts():
+    return render_template("lotus_and_rscripts_nuke.html")
