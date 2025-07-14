@@ -200,7 +200,7 @@ def delete_all_lotus2_reports():
 @admin_required
 def generate_all_lotus2_reports():
     anti_nuke_env = os.environ.get("ANTI_NUKE_STRING")
-    analysis_type_id = request.args.get("analysis_type_id")
+    analysis_type_id = request.form.get("analysis_type_id")
     anti_nuke = request.form.get("anti_nuke")
     from_id = request.form.get("from_id", default=None)
     to_id = request.form.get("to_id", default=None)
