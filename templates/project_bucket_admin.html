@@ -1,0 +1,183 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnSuA4Ss2PkkikSOLtYs8BlYIeeIK1h99ty4YfvRPAlzr377vr3CXDb7sb7eEEBYjDtcYj+AjBH3FLv5uSJuXg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js" integrity="sha512-7Pi/otdlbbCR+LnW+F7PwFcSDJOuUJB3OxtEHbg4vSMvzvJjde4Po1v4BR9Gdc9aXNUNFVUY+SK51wWT8WF0Gg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"> 
+    <title>Upload data</title>
+</head>
+<body>
+  <div class="app-navbar">
+    <a href="https://spun.earth" class="logo"></a>
+    <div class="menu">
+      <ul>
+        <li><a href="https://spun.earth">Spun Website</a></li>
+        <li><a href="/">App homepage</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <h1>
+    Admin projects bucket/local storage
+  </h1>
+  <div>
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">Project</th>
+          <th scope="col">Uploads folder</th>
+          <th scope="col">Region 1</th>
+          <th scope="col">Region 2</th>
+          <th scope="col">Nr of files uploaded</th>
+          <th scope="col">Nr of files on disk</th>
+          <th scope="col">Files size local</th>
+          <th scope="col">Check bucket</th>
+          <th scope="col">Delete local files</th>
+          <th scope="col">Download files from bucket</th>
+        </tr>
+      </thead>
+      {% from 'macros/_analysis_cell.html' import render_analysis_cell %}
+      <tbody id="files_body">
+        {% for upload in all_uploads %}
+
+          <tr>
+              <td scope="row">
+                <a href="/metadata_form?process_id={{ upload.id }}">
+                  {{ upload.id }}
+                </a>
+              </td>
+              <td>
+                <a href="/metadata_form?process_id={{ upload.id }}">
+                  {{ upload.project_id }}
+                </a>
+              </td>
+              <td>{{ upload.uploads_folder }}</td>
+              {{ render_analysis_cell('region_1', upload) }}
+              {{ render_analysis_cell('region_2', upload) }}              
+     
+              <td>
+                  {{ upload.nr_fastq_files_db_reported }}
+              </td>              
+              <td class="{% if upload.nr_fastq_files < (upload.nr_sequencer_ids * upload.nr_files_per_sequence) %}text-danger{% endif %}">
+                  {{ upload.nr_fastq_files }}
+              </td>
+              <td>
+                {{ '%.1f' | format(upload.total_uploads_file_size / (1024*1024)) }} MB
+              </td>
+              <td>
+                <button
+                  class="btn btn-sm btn-info check-upload-status-btn"
+                  data-process-id="{{ upload.id }}"
+                >
+                  Check Upload Status
+                </button>
+                <div id="status-{{ upload.id }}" class="mt-2 d-flex flex-column align-items-start">
+                  {# The status (True/False) and potentially the "Ensure" button will be displayed here #}
+                </div>
+              </td>
+              <td>
+                <a id="delete-btn-{{ upload.id }}" href="/delete_local_project_files?process_id={{ upload.project_id }}" target="_blank" class="btn btn-danger d-none">DELETE</a>
+              </td>
+              <td>
+                <a href="/download_process_files_from_bucket?process_id={{ upload.project_id }}" target="_blank" class="btn btn-primary">DOWNLOAD</a>
+              </td>            
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <script>
+    $(document).ready(function() {
+
+      // Function to check upload status and update UI
+      function checkUploadStatus(processId) {
+        var statusDiv = $('#status-' + processId);
+        var checkButton = $('.check-upload-status-btn[data-process-id="' + processId + '"]');
+        var deleteButton = $('#delete-btn-' + processId); // Get the delete button (<a> tag)
+
+        checkButton.prop('disabled', true).text('Checking...');
+        statusDiv.html('<i class="fas fa-spinner fa-spin"></i> Loading...'); // Font Awesome spinner
+        deleteButton.addClass('d-none'); // Hide delete button while checking or if false
+
+        $.ajax({
+          url: "{{ url_for('projects.check_bucket_uploads') }}",
+          type: "GET",
+          data: { process_id: processId },
+          success: function(response) {
+            var result = response.result;
+            statusDiv.empty(); // Clear previous content
+
+            if (result === true) {
+              statusDiv.append('<span class="badge bg-success">True</span>');
+              deleteButton.removeClass('d-none'); // Show delete button if true
+            } else if (result === false) {
+              statusDiv.append('<span class="badge bg-danger">False</span>');
+              // If false, show the "Ensure" button
+              statusDiv.append(
+                '<button class="btn btn-sm btn-warning mt-2 ensure-uploads-btn" data-process-id="' + processId + '">' +
+                'Ensure Bucket Uploads' +
+                '</button>'
+              );
+              deleteButton.addClass('d-none'); // Ensure it's hidden if false
+            } else {
+              statusDiv.append('<span class="badge bg-warning">Error: Invalid response</span>');
+              deleteButton.addClass('d-none'); // Ensure it's hidden if error
+            }
+          },
+          error: function(xhr, status, error) {
+            console.error("Error checking upload status:", error);
+            statusDiv.html('<span class="badge bg-danger">Error checking status</span>');
+            deleteButton.addClass('d-none'); // Ensure it's hidden on error
+          },
+          complete: function() {
+            checkButton.prop('disabled', false).text('Check Upload Status');
+          }
+        });
+      }
+
+      // Function to trigger "ensure bucket uploads"
+      function ensureBucketUploads(processId) {
+        var statusDiv = $('#status-' + processId);
+        var ensureButton = $('.ensure-uploads-btn[data-process-id="' + processId + '"]');
+
+        ensureButton.prop('disabled', true).text('Ensuring...');
+        statusDiv.append('<div class="text-muted mt-1">Attempting to ensure uploads...</div>');
+
+        $.ajax({
+          url: "{{ url_for('projects.ensure_bucket_uploads') }}",
+          type: "GET",
+          data: { process_id: processId },
+          success: function(response) {
+            // After ensuring, re-check the status to update the UI
+            statusDiv.append('<div class="text-success mt-1">Ensure process initiated. Re-checking status...</div>');
+            setTimeout(function() { // Give a small delay before re-checking
+                checkUploadStatus(processId);
+            }, 1000); // 1 second delay
+          },
+          error: function(xhr, status, error) {
+            console.error("Error ensuring bucket uploads:", error);
+            statusDiv.append('<div class="text-danger mt-1">Error ensuring uploads.</div>');
+            ensureButton.prop('disabled', false).text('Ensure Bucket Uploads'); // Re-enable if error
+          }
+        });
+      }
+
+      // Event listener for the initial "Check Upload Status" button
+      $('.check-upload-status-btn').on('click', function() {
+        var processId = $(this).data('process-id');
+        checkUploadStatus(processId);
+      });
+
+      // Event listener for the dynamically added "Ensure Bucket Uploads" button
+      $(document).on('click', '.ensure-uploads-btn', function() {
+        var processId = $(this).data('process-id');
+        ensureBucketUploads(processId);
+      });
+
+    });
+  </script>
+</body>
+</html>

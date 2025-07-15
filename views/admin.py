@@ -22,6 +22,7 @@ from helpers.ecoregions import (
     init_update_external_samples_with_ecoregions,
 )
 from models.sequencing_sample import SequencingSample
+from models.sequencing_upload import SequencingUpload
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -165,3 +166,19 @@ def admin_operations():
 @approved_required
 def lotus_and_scripts():
     return render_template("lotus_and_rscripts_nuke.html")
+
+
+@admin_bp.route(
+    "/admin/storage_per_project",
+    methods=["GET"],
+    endpoint="storage_per_project",
+)
+@login_required
+@admin_required
+@approved_required
+def storage_per_project():
+    all_uploads = SequencingUpload.get_all()
+    return render_template(
+        "project_bucket_admin.html",
+        all_uploads=all_uploads,
+    )
