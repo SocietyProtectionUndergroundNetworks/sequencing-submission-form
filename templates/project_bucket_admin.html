@@ -79,11 +79,20 @@
                 </div>
               </td>
               <td>
-                <a id="delete-btn-{{ upload.id }}" href="/delete_local_project_files?process_id={{ upload.project_id }}" target="_blank" class="btn btn-danger d-none">DELETE</a>
+                <button
+                  id="delete-btn-{{ upload.id }}"
+                  class="btn btn-danger btn-sm d-none delete-local-files-btn"
+                  data-process-id="{{ upload.id }}"
+                >
+                  DELETE LOCAL FILES
+                </button>
+                <div id="delete-status-{{ upload.id }}" class="mt-2">
+                  {# Result of delete operation will be displayed here #}
+                </div>
               </td>
               <td>
-                <a href="/download_process_files_from_bucket?process_id={{ upload.project_id }}" target="_blank" class="btn btn-primary">DOWNLOAD</a>
-              </td>            
+                <a href="/download_process_files_from_bucket?process_id={{ upload.id }}" target="_blank" class="btn btn-primary">DOWNLOAD</a>
+              </td>         
           </tr>
         {% endfor %}
       </tbody>
@@ -96,11 +105,12 @@
       function checkUploadStatus(processId) {
         var statusDiv = $('#status-' + processId);
         var checkButton = $('.check-upload-status-btn[data-process-id="' + processId + '"]');
-        var deleteButton = $('#delete-btn-' + processId); // Get the delete button (<a> tag)
+        var deleteButton = $('#delete-btn-' + processId);
 
         checkButton.prop('disabled', true).text('Checking...');
-        statusDiv.html('<i class="fas fa-spinner fa-spin"></i> Loading...'); // Font Awesome spinner
-        deleteButton.addClass('d-none'); // Hide delete button while checking or if false
+        statusDiv.html('<i class="fas fa-spinner fa-spin"></i> Loading...');
+        deleteButton.addClass('d-none');
+        $('#delete-status-' + processId).empty();
 
         $.ajax({
           url: "{{ url_for('projects.check_bucket_uploads') }}",
@@ -108,11 +118,11 @@
           data: { process_id: processId },
           success: function(response) {
             var result = response.result;
-            statusDiv.empty(); // Clear previous content
+            statusDiv.empty();
 
             if (result === true) {
               statusDiv.append('<span class="badge bg-success">True</span>');
-              deleteButton.removeClass('d-none'); // Show delete button if true
+              deleteButton.removeClass('d-none');
             } else if (result === false) {
               statusDiv.append('<span class="badge bg-danger">False</span>');
               // If false, show the "Ensure" button
@@ -151,16 +161,51 @@
           type: "GET",
           data: { process_id: processId },
           success: function(response) {
-            // After ensuring, re-check the status to update the UI
             statusDiv.append('<div class="text-success mt-1">Ensure process initiated. Re-checking status...</div>');
-            setTimeout(function() { // Give a small delay before re-checking
-                checkUploadStatus(processId);
-            }, 1000); // 1 second delay
+            setTimeout(function() {
+                checkUploadStatus(processId); // Re-check after ensuring
+            }, 1000);
           },
           error: function(xhr, status, error) {
             console.error("Error ensuring bucket uploads:", error);
             statusDiv.append('<div class="text-danger mt-1">Error ensuring uploads.</div>');
-            ensureButton.prop('disabled', false).text('Ensure Bucket Uploads'); // Re-enable if error
+            ensureButton.prop('disabled', false).text('Ensure Bucket Uploads');
+          }
+        });
+      }
+
+      function deleteLocalFiles(processId) {
+        var deleteButton = $('#delete-btn-' + processId);
+        var deleteStatusDiv = $('#delete-status-' + processId);
+
+        if (!confirm('Are you sure you want to delete local files for process ID ' + processId + '? This action cannot be undone.')) {
+            return;
+        }
+
+        deleteButton.prop('disabled', true).text('Deleting...');
+        deleteStatusDiv.html('<i class="fas fa-spinner fa-spin"></i> Deleting...'); // Show loading spinner
+
+        $.ajax({
+          url: "{{ url_for('projects.delete_local_project_files') }}",
+          type: "GET",
+          data: { process_id: processId },
+          success: function(response) {
+            var result = response.result;
+            if (result === true) {
+              deleteStatusDiv.html('<span class="badge bg-success">Deletion Succeeded</span>');
+              deleteButton.remove();
+            } else if (result === false) {
+              deleteStatusDiv.html('<span class="badge bg-danger">Deletion Failed</span>');
+            } else {
+              deleteStatusDiv.html('<span class="badge bg-warning">Error: Invalid response</span>');
+            }
+          },
+          error: function(xhr, status, error) {
+            console.error("Error deleting local files:", error);
+            deleteStatusDiv.html('<span class="badge bg-danger">Error during deletion</span>');
+          },
+          complete: function() {
+            deleteButton.prop('disabled', false).text('DELETE LOCAL FILES');
           }
         });
       }
@@ -175,6 +220,12 @@
       $(document).on('click', '.ensure-uploads-btn', function() {
         var processId = $(this).data('process-id');
         ensureBucketUploads(processId);
+      });
+
+      // **NEW Event listener for the dynamically shown "DELETE LOCAL FILES" button**
+      $(document).on('click', '.delete-local-files-btn', function() {
+        var processId = $(this).data('process-id');
+        deleteLocalFiles(processId);
       });
 
     });
