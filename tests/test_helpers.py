@@ -89,7 +89,6 @@ def _create_dummy_sequencing_upload(db_session, mocker, app_fixture, **kwargs):
         "Extraction_method": "AutoMethod",
         "Multiple_sequencing_runs": "No",
         "DNA_conc_instrument": "MockInstrument",
-        "reviewed_by_admin": False,
         "files_uploading_confirmed": True,
         "share_url": None,
         "share_sync_completed": False,

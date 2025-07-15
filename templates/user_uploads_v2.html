@@ -49,7 +49,6 @@
           <th scope="col">Nr of files uploaded</th>
           <th scope="col">Nr of files on disk</th>
           <th scope="col">Files size processing folder</th>
-          <th scope="col">Reviewed by admin</th>
           {% if is_admin %}
             <th scope="col">Delete</th>
           {% endif %}
@@ -144,21 +143,6 @@
               </td>
               <td>
                 {{ '%.1f' | format(upload.total_uploads_file_size / (1024*1024)) }} MB
-              </td>
-              <td>
-                {% if is_admin %}
-                  <form action="/update_reviewed_by_admin_status_v2" method="post" class="approved-form">
-                    <input type="hidden" name="process_id" value="{{ upload.id }}">
-                    <input type="hidden" name="user_id" value="{{ user_id }}">
-                    <input type="hidden" name="return_to" value="user">
-                    <input type="hidden" name="order_by" value="{{ order_by }}">
-                    <div class="form-check">
-                      <input class="form-check-input approved-checkbox" type="checkbox" name="reviewed" {% if upload.reviewed_by_admin %} checked {% endif %}>
-                    </div>
-                  </form>
-                {% else: %}
-                  {{ upload.reviewed_by_admin }}
-                {% endif %}
               </td>
               {% if is_admin %}
                 <td>

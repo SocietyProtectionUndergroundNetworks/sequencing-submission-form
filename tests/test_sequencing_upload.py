@@ -360,7 +360,6 @@ def test_get_samples(db_session, mocker, app):
             Extraction_method="Kit",
             Multiple_sequencing_runs="No",
             DNA_conc_instrument="NanoDrop",
-            reviewed_by_admin=False,
             files_uploading_confirmed=True,
             share_url=None,
             share_sync_completed=False,
