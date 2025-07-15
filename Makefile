@@ -83,6 +83,9 @@ delete_expired_files:
 migrate:
 	docker-compose exec flask alembic upgrade head
 
+pytest:
+	docker-compose exec flask pytest
+
 migratetest:
 	docker-compose exec -e MYSQL_HOST=mysql_test -e MYSQL_DATABASE=flask_test flask alembic upgrade head
 

@@ -126,8 +126,9 @@ While you are developing, before you push code, do a `make black` . This will ru
 A few tests have been written for parts of the functionality. Most are just testing class methods. 
 The big test is an integration test which checks the whole submittion form, up to the point of counting the primers of 8 files. It also includes running fastqc reports. 
 It imitates the steps someone takes via the form (by doing mostly post submittions to various endpoints). 
-To run the test do : `make bashflask`   and when inside the container do `pytest` . 
-If you want to see all the log messages of the testing do a `pytest -s`
+To run the tests do: `make pytest`
+To run the tests with seeing all the log messages do: `make bashflask`   and when inside the container do `pytest -s` 
+
 
 ## Docker images in github registry
 In order to run pytests in the deployment pipeline, we are pushing various docker images to the github image registry GHCR
