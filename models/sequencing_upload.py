@@ -1719,15 +1719,15 @@ class SequencingUpload:
         Returns:
             bool: True if all files are found in the bucket, False otherwise.
         """
+        from google.cloud import storage
+
         with session_scope() as session:
-            # Fetch the SequencingUpload instance
             upload_instance = (
                 session.query(SequencingUploadsTable)
                 .filter_by(id=sequencingUploadId)
                 .first()
             )
 
-            # If no instance is found, it means no files are associated, so return False
             if not upload_instance:
                 logger.info(
                     f"No SequencingUpload instance found for ID: {sequencingUploadId}. Returning False."
@@ -1735,50 +1735,47 @@ class SequencingUpload:
                 return False
 
             bucket_name = upload_instance.project_id
-            uploads_folder = (
-                upload_instance.uploads_folder
-            )  # This might not be directly used for blob path, but good to have.
 
-            # Fetch related uploaded files using the new helper method
             uploaded_files = cls._get_uploaded_files_for_upload(
                 session, sequencingUploadId
             )
 
             if not uploaded_files:
                 logger.info(
-                    f"No files found for SequencingUpload ID: {sequencingUploadId}. Returning True (as there's nothing to check)."
+                    f"No files found for SequencingUpload ID: {sequencingUploadId}. Returning True."
                 )
-                return True  # If there are no files associated, consider them "all uploaded"
+                return True
 
-            # Iterate through the files and check if each exists in the bucket
+            # Group files by region to avoid redundant listings
+            files_by_region = {}
             for file, sample_id, region in uploaded_files:
-                # Construct the local file path (though not strictly needed for exists check,
-                # it's part of the signature of check_file_exists_in_bucket)
-                local_file_path = (
-                    f"seq_processed/{uploads_folder}/{file.new_name}"
-                )
-                destination_upload_directory = (
-                    region  # The region acts as a directory in the bucket
-                )
-                destination_blob_name = file.new_name
+                files_by_region.setdefault(region, []).append(file.new_name)
 
-                file_exists = check_file_exists_in_bucket(
-                    local_file_path=local_file_path,
-                    destination_upload_directory=destination_upload_directory,
-                    destination_blob_name=destination_blob_name,
-                    bucket_name=bucket_name,
-                )
+            # Initialize client once
+            storage_client = storage.Client()
 
-                if not file_exists:
-                    logger.info(
-                        f"File '{file.new_name}' (ID: {file.id}) not found in bucket '{bucket_name}' under directory '{region}'. Returning False."
-                    )
-                    return False  # If any file is missing, return False immediately
+            # For each region, list all blobs and check
+            for region, expected_files in files_by_region.items():
+                prefix = f"{region}/"  # GCS "folder"
+                try:
+                    bucket = storage_client.bucket(bucket_name)
+                    blobs = list(bucket.list_blobs(prefix=prefix))
+                    blob_names = {blob.name.split("/")[-1] for blob in blobs}
+
+                    for filename in expected_files:
+                        if filename not in blob_names:
+                            logger.info(
+                                f"File '{filename}' not found in bucket '{bucket_name}' under directory '{region}'. Returning False."
+                            )
+                            return False
+                except Exception as e:
+                    logger.exception(f"Error while accessing GCS bucket: {e}")
+                    return False
 
             logger.info(
                 f"All files for SequencingUpload ID: {sequencingUploadId} found in bucket. Returning True."
             )
-            return True  # All files were found
+            return True
 
     @classmethod
     def delete_local_files(cls, sequencingUploadId):
