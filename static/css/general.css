@@ -13,9 +13,26 @@
   height: 60px;
 }
 
+.app-navbar .menu ul { /* Added to target the ul specifically */
+  list-style: none; /* Remove bullet points */
+  margin: 0;
+  padding: 0;
+}
+
+.app-navbar .menu li { /* Added to target list items */
+  display: inline-block; /* For horizontal menu */
+}
+
 .app-navbar .menu a {
   color: white;
   text-decoration: none;
+  padding: 10px 15px; /* Add some padding for better click area */
+  display: block; /* Make the whole area clickable */
+}
+
+.app-navbar .menu a:hover {
+  background-color: #333; /* Darker background on hover */
+  border-radius: 5px; /* Slightly rounded corners on hover */
 }
 
 .content {
@@ -49,8 +66,8 @@
 .content .form-step-item {
   max-width: 900px;
   margin-top: 20px;
-  margin-left: auto; /* Center the form-step-item */
-  margin-right: auto; /* Center the form-step-item */
+  /* REMOVED: margin-left: auto; */
+  /* REMOVED: margin-right: auto; */
   box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.1); /* Retain shadow */
 }
 
@@ -77,10 +94,18 @@
   text-decoration: underline;
 }
 
-/* Custom styles moved from HTML */
+/* Custom styles for the admin nuke forms page */
 body {
     font-family: 'Inter', sans-serif; /* Keep Inter font */
     background-color: #f0f2f5; /* Light gray background */
+}
+
+/* This new container will center its children (the form-step-items) */
+.admin-nuke-forms-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* This centers the form-step-items horizontally */
+    gap: 2rem; /* Adds space between the forms */
 }
 
 /* Custom modal styling */
