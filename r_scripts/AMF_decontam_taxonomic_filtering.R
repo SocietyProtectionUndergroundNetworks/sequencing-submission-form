@@ -203,32 +203,42 @@ if (args$exclude != "") {
 
 if (str_detect(args$lotus2, "SSU_dada2") | str_detect(args$lotus2, "SSU_eukaryome")) {
 
-  amf_physeq <- physeq_decontam %>%
-    subset_taxa(
-      Class == "Glomeromycetes" |
-        Class ==  "Archaeosporomycetes" |
-        Class ==  "Paraglomeromycetes"
-    ) %>%
-    subset_taxa(eval(parse(text = filter_expr_combined)))
+  amf_count <- tax_table(physeq_decontam)@.Data %>%
+    as_tibble() %>%
+    filter(Class == "Glomeromycetes" | Class ==  "Archaeosporomycetes" | Class ==  "Paraglomeromycetes") %>%
+    count()
+  
+  if (amf_count != 0) {
 
-  # Save file. To open in R use: amf_physeq <- readRDS("amf_physeq.Rdata")
-  saveRDS(amf_physeq, file = str_c(args$output, "/", "amf_physeq.Rdata"))
-  export_phyloseq_as_csv(amf_physeq, "amf_physeq_")
-
-  p <- plot_bar(amf_physeq, fill = "Genus")
-  plot(p)
-  ggsave(
-    str_c(args$output, "/", "amf_physeq_by_genus.pdf"), p,
-    width = 14, height = 14, units = "in"
-  )
-
-  ## ChaoRichness
-
-  amf_physeq_truesamples <- prune_samples(
-    !sample_data(amf_physeq)$is.neg,
-    amf_physeq
-  )
-
+    amf_physeq <- physeq_decontam %>%
+      subset_taxa(
+        Class == "Glomeromycetes" |
+          Class ==  "Archaeosporomycetes" |
+          Class ==  "Paraglomeromycetes"
+      ) %>%
+      subset_taxa(eval(parse(text = filter_expr_combined)))
+  
+    # Save file. To open in R use: amf_physeq <- readRDS("amf_physeq.Rdata")
+    saveRDS(amf_physeq, file = str_c(args$output, "/", "amf_physeq.Rdata"))
+    export_phyloseq_as_csv(amf_physeq, "amf_physeq_")
+  
+    p <- plot_bar(amf_physeq, fill = "Genus")
+    plot(p)
+    ggsave(
+      str_c(args$output, "/", "amf_physeq_by_genus.pdf"), p,
+      width = 14, height = 14, units = "in"
+    )
+  
+    ## ChaoRichness
+  
+    amf_physeq_truesamples <- prune_samples(
+      !sample_data(amf_physeq)$is.neg,
+      amf_physeq
+    )
+  } else {
+    system(paste0("touch ", str_c(args$output, "/", "amf_physeq.Rdata")))
+    system(paste0("touch ", str_c(args$output, "/", "amf_physeq_by_genus.pdf")))
+  }
 }
 
 ## if SSU_vsearch then
