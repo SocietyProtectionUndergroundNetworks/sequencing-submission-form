@@ -68,6 +68,10 @@ RUN conda config --add channels bioconda
 
 RUN conda config --add channels conda-forge
 
+RUN conda config -n base --remove channels defaults
+
+RUN conda config --remove channels defaults
+
 # Install mamba for faster package installations (optional but recommended)
 RUN conda install -y mamba -n base -c conda-forge
 
