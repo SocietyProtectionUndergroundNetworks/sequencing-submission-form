@@ -42,7 +42,7 @@ services:
   r_service:
     build:
       context: .
-      dockerfile: Dockerfile-r
+      dockerfile: Dockerfile-rconda
       args:
         FLASK_PROCESS_USER: ${FLASK_PROCESS_USER}
         FLASK_PROCESS_USER_ID: ${FLASK_PROCESS_USER_ID}
