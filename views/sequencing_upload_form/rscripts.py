@@ -32,7 +32,9 @@ def show_report_outcome():
     process_id = request.args.get("process_id")
     analysis_type_id = request.args.get("analysis_type_id")
     file_type = request.args.get("type")  # Renamed 'file' to 'type'
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    project_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
     if file_type in [
         "LotuS_progout",
         "demulti",
