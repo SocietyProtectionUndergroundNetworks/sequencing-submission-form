@@ -55,6 +55,10 @@ def create_pdf_report(process_id):
 
     # constract the r command
     command = [
+        "conda",
+        "run",
+        "-n",
+        "r_env",
         "Rscript",
         "generate_pdf_report.R",
         "-p",
@@ -198,6 +202,10 @@ def generate_rscripts_report(process_id, input_dir, region, analysis_type_id):
 
             # Construct the Rscript command
             command = [
+                "conda",
+                "run",
+                "-n",
+                "r_env",
                 "Rscript",
                 r_script,
                 "-l",
