@@ -37,12 +37,16 @@ The solution was adopted by the following article: https://qmacro.org/blog/posts
 - The GOOGLE_VM_PROPERTY is not needed for the application, only to create a shortcut for sshing to the virtual machine. You can safely ignore it.
 
 ### Lotus2 files
-When the docker-compose creates the lotus2 docker image (using the Dockerfile-lotus2), it runs the autoupdate script. But because the 
+When the docker-compose creates the lotus2 docker image (using the Dockerfile-lotus2), it runs the autoupdate script. We use the UNITE database as it gets automatically installed by Lotus2. We also use the following modified databases:
 
 #### SILVA database
+For SSU_dada2 analysis we use a reduced SILVA database, without glomeromycetes sequences in it. 
+
 The two files we need are SLV_138.1_SSU.fasta  and SLV_138.1_SSU.tax . 
 To find them we used an existing installation of lotus2 via conda, and copied them from /lotus2/share/lotus2-2.34.1-0/DB/
-We copied them with the same names as above in the lotus2_files/SILVA/ folder.
+
+Then, running the script reduce_silva.py available in this repository we create the SLV_138.1_SSU_NO_AMF.fasta and SLV_138.1_SSU_NO_AMF.tax files that we use. 
+We then copy those two files the lotus2_files folder.
 
 #### EUKARYOME databases
 We used as basis the v1.9.3 of the ITS and SSU databases.
@@ -63,6 +67,7 @@ For the taxonomy we used the corresponding `.tax` files shipped with the above a
 The resulting lotus2-compatible files we used are called:
 - mothur_EUK_SSU_v1.9.3_lotus.tax
 - mothur_EUK_ITS_v1.9.3_lotus.tax
+and we also need to put those in the lotus2_files folder.
 
 #### Resolve ecoregions GeoPackage
 We use the resolve ecoregions dataset to retreive the resolveEcoregion name to a set of coordinates. 
