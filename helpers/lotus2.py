@@ -125,7 +125,13 @@ def generate_lotus2_report(
             )
 
             if analysis_type.name in ["ITS1", "ITS2"]:
-                refDB = "UNITE"
+                # Until 2025-07 we use the default UNITE that was downloaded with Lotus2
+                # refDB = "UNITE"
+
+                # Since 2025-08 we use the v10 (02-2025) database, located in lotus2_files
+                # Instructions for the download are in the README.md
+                refDB = "/lotus2_files/UNITE_v10_sh_general_release_dynamic_all_19.02.2025.fasta"
+
                 tax4refDB = ""
             if analysis_type.name in ["ITS1_eukaryome", "ITS2_eukaryome"]:
                 refDB = "/lotus2_files/mothur_EUK_ITS_v1.9.3.fasta"

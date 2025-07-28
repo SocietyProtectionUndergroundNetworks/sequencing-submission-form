@@ -82,3 +82,5 @@ static/data.geojson
 flask_session/
 
 mysql_test/
+
+lotus2_files/UNITE_v10_sh_general_release_dynamic_all_19.02.2025.fasta

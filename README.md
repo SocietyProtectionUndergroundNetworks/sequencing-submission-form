@@ -37,7 +37,21 @@ The solution was adopted by the following article: https://qmacro.org/blog/posts
 - The GOOGLE_VM_PROPERTY is not needed for the application, only to create a shortcut for sshing to the virtual machine. You can safely ignore it.
 
 ### Lotus2 files
-When the docker-compose creates the lotus2 docker image (using the Dockerfile-lotus2), it runs the autoupdate script. We use the UNITE database as it gets automatically installed by Lotus2. We also use the following modified databases:
+When the docker-compose creates the lotus2 docker image (using the Dockerfile-lotus2), it runs the autoupdate script.  We also use the following modified databases:
+
+#### UNITE database
+
+##### Until 07-2025: 
+We use the UNITE database as it gets automatically installed by Lotus2. 
+
+In the Lotus2 v2.34.1-1 the version of the UNITE database that gets installed is: sh_refs_v9_25.07.2023 . For reference, it is the version from the Unite repository:
+ https://unite.ut.ee/repository.php  -> General FASTA release -> 9.0 ->	2023-07-18 -> All eukaryotes -> the one that specifies "Includes singletons set as RefS (in dynamic files)." 
+https://doi.plutof.ut.ee/doi/10.15156/BIO/2938069
+
+##### After 07:2025: 
+We downloaded the latest (10) version from  ( https://doi.plutof.ut.ee/doi/10.15156/BIO/3301231 )
+ https://unite.ut.ee/repository.php  -> General FASTA release -> 10.0 -> 2025-02-19 All eukaryotes -> the one that specifies "Includes singletons set as RefS (in dynamic files)." 
+https://doi.plutof.ut.ee/doi/10.15156/BIO/3301231 
 
 #### SILVA database
 For SSU_dada2 analysis we use a reduced SILVA database, without glomeromycetes sequences in it. 
