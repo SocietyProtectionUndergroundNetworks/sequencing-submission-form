@@ -50,8 +50,20 @@ https://doi.plutof.ut.ee/doi/10.15156/BIO/2938069
 
 ##### After 07:2025: 
 We downloaded the latest (10) version from  ( https://doi.plutof.ut.ee/doi/10.15156/BIO/3301231 )
+
+Path to get it: 
  https://unite.ut.ee/repository.php  -> General FASTA release -> 10.0 -> 2025-02-19 All eukaryotes -> the one that specifies "Includes singletons set as RefS (in dynamic files)." 
 https://doi.plutof.ut.ee/doi/10.15156/BIO/3301231 
+
+Because Lotus2 expects the fasta file to be seperated from the tax file, we used a python script to seperate the two. 
+The script is in [scripts/seperate_unite_taxa.py](scripts/seperate_unite_taxa.py)  and its usage is: 
+
+`python seperate_unite_taxa.py <input_fasta_file> <output_fasta_file> <output_tax_file>` 
+
+Using the script we ended up with the following files:
+- UNITE_v10_sh_general_release_dynamic_all_19.02.2025.fasta
+- UNITE_v10_sh_general_release_dynamic_all_19.02.2025.tax
+
 
 #### SILVA database
 For SSU_dada2 analysis we use a reduced SILVA database, without glomeromycetes sequences in it. 
@@ -59,7 +71,7 @@ For SSU_dada2 analysis we use a reduced SILVA database, without glomeromycetes s
 The two files we need are SLV_138.1_SSU.fasta  and SLV_138.1_SSU.tax . 
 To find them we used an existing installation of lotus2 via conda, and copied them from /lotus2/share/lotus2-2.34.1-0/DB/
 
-Then, running the script reduce_silva.py available in this repository we create the SLV_138.1_SSU_NO_AMF.fasta and SLV_138.1_SSU_NO_AMF.tax files that we use. 
+Then, running the script [scripts/reduce_silva.py](scripts/reduce_silva.py) available in this repository we create the SLV_138.1_SSU_NO_AMF.fasta and SLV_138.1_SSU_NO_AMF.tax files that we use. 
 We then copy those two files the lotus2_files folder.
 
 #### EUKARYOME databases
