@@ -138,6 +138,10 @@ class SequencingAnalysisTable(Base):
     lotus2_finished_at = Column(DateTime)
     lotus2_celery_task_id = Column(String(255), nullable=True)
     lotus2_status = Column(String(255), nullable=True)
+    lotus2_command = Column(
+        MEDIUMTEXT(charset="utf8mb4", collation="utf8mb4_unicode_ci"),
+        nullable=True,
+    )
     lotus2_result = Column(
         MEDIUMTEXT(charset="utf8mb4", collation="utf8mb4_unicode_ci"),
         nullable=True,
