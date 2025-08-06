@@ -1,0 +1,57 @@
+FROM ubuntu:latest AS builder
+
+# Update package lists and install essential tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download the Miniconda installer
+ARG MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"
+RUN wget --quiet $MINICONDA_URL -O miniconda.sh && \
+    /bin/bash miniconda.sh -b -p /opt/miniconda && \
+    rm miniconda.sh
+
+# Add Miniconda to PATH
+ENV PATH="/opt/miniconda/bin:$PATH"
+
+# Remove conda defaults channels
+RUN conda config -n base --remove channels defaults
+
+# Create a conda environment
+RUN conda create -y -n r_env -c conda-forge \
+    r-base r-ggplot2 r-dt r-ragg r-tidyverse r-readxl \
+    r-dplyr r-doparallel r-vegan r-writexl r-data.table \
+    r-reshape2 r-ape r-gridextra r-tablehtml r-optparse \
+    r-inext r-janitor r-pdftools r-knitr r-markdown
+
+RUN conda install -y -n r_env -c bioconda -c conda-forge \
+    bioconductor-phyloseq bioconductor-decontam && \
+    conda clean -afy
+
+# Set working directory
+WORKDIR /usr/src/app
+
+# Define build arguments for user and group IDs
+ARG FLASK_PROCESS_USER_ID
+ARG FLASK_PROCESS_GROUP_ID
+
+# Create a user with the specified user and group IDs
+#RUN groupadd -g ${FLASK_PROCESS_GROUP_ID} appgroup && \
+#    useradd -m -u ${FLASK_PROCESS_USER_ID} -g appgroup appuser && \
+#    chown -R appuser:appgroup /usr/src/app
+# Create a user with the specified user and group IDs
+RUN chown -R ${FLASK_PROCESS_USER_ID}:${FLASK_PROCESS_GROUP_ID} /usr/src/app
+RUN id ${FLASK_PROCESS_USER_ID}
+
+# Switch to non-root user
+USER ${FLASK_PROCESS_USER_ID}
+
+# Set the r environment to activate upon container start
+RUN conda init bash
+RUN echo "conda activate r_env" >> ~/.bashrc
+
+# CMD ["conda", "activate", "r_env"]
+
+# Keep the container running
+CMD ["tail", "-f", "/dev/null"]
