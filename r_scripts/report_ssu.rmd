@@ -3,6 +3,7 @@ params:
   project: ""
   ssu: ""
   missing: "[]"
+  command_ssu_file: ""
 header-includes:
   - \pagenumbering{gobble}
 urlcolor: blue
@@ -41,22 +42,22 @@ knitr::include_graphics(paste0(params$project, "/fastqc/", strsplit(params$ssu, 
 
 ASVs were produced using DADA2 within the LotuS2 pipeline:
 
-```
-lotus2 -i Project_name/SSU \
--o Project_name/SSU/lotus2_SSU_ASVs \
--m Project_name/SSU/Project_name_mapping.txt  \
--refDB vt_types_fasta_from_05-06-2019.qiime.fasta,SLV \
--tax4refDB vt_types_GF.txt \
--amplicon_type SSU \
--LCA_idthresh 97,95,93,91,88,78,0 \
--tax_group fungi \
--taxAligner blast \
--forwardPrimer CAGCCGCGGTAATTCCAGCT  \
--reversePrimer GAACCCAAACACTTTGGTTTCC \
--clustering dada2 \
--LCA_cover 0.97 \
--derepMin 10:1,5:2,3:3 \ 
--sdmopt ~/miniconda3/envs/lotus2/share/lotus2-2.34.1-0/configs/sdm_miSeq2_SSU_Spun.txt
+```{r command_ssu, echo=FALSE, results='asis', warning=FALSE}
+# Read the command from the file, suppressing the 'incomplete final line' warning
+command_string <- readLines(params$command_ssu_file, warn = FALSE)
+
+# Join lines into a single string and clean up whitespace
+formatted_command <- paste(command_string, collapse = " ")
+formatted_command <- gsub("\\s+", " ", formatted_command)
+
+# Add line breaks and backslashes for arguments, and after the comma
+formatted_command <- gsub(" -", " \\\\\n\t-", formatted_command)
+formatted_command <- gsub(",/", ",\\\\\n\t/", formatted_command)
+
+# Print the formatted command inside a markdown code block
+cat("```\n")
+cat(formatted_command, "\n")
+cat("\n```\n")
 ```
 
 The database used for parameter -refDB is the [MaarjAM](https://maarjam.ut.ee/) database with a taxonomy file, specified with -tax4refDB) adjusted to match Schüssler's [taxonomy](http://www.amf-phylogeny.com/). These files can all be downloaded from [SPUN's Github](https://github.com/SocietyProtectionUndergroundNetworks/sequencing-submission-form/tree/master/lotus2_files), as can the configuration file sdm_miSeq2_SSU_Spun.txt.

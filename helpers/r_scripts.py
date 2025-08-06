@@ -18,6 +18,9 @@ def create_pdf_report(process_id):
     uploads_folder = process_data["uploads_folder"]
     project_id = process_data["project_id"]
 
+    temp_dir_path = os.path.join("seq_processed/", str(uploads_folder), "temp")
+    os.makedirs(temp_dir_path, exist_ok=True)
+
     rscripts_reports = SequencingUpload.check_rscripts_reports_exist(
         process_id
     )
@@ -26,6 +29,8 @@ def create_pdf_report(process_id):
     ssu_report = None
     missing_ssu_json_output = None
     missing_its_json_output = None
+    its_command = None
+    ssu_command = None
 
     for r_report in rscripts_reports:
         logger.info(r_report["analysis_type"])
@@ -40,6 +45,7 @@ def create_pdf_report(process_id):
             missing_its_json_output = json.dumps(
                 missing_its_json_data, separators=(",", ":")
             )
+            its_command = r_report["lotus2_command"]
 
         elif "SSU_dada2" == r_report["analysis_type"]:
             ssu_report = r_report["analysis_type"]
@@ -52,6 +58,7 @@ def create_pdf_report(process_id):
             missing_ssu_json_output = json.dumps(
                 missing_ssu_json_data, separators=(",", ":")
             )
+            ssu_command = r_report["lotus2_command"]
 
     # constract the r command
     command = [
@@ -73,6 +80,20 @@ def create_pdf_report(process_id):
 
     if missing_its_json_output:
         command.extend(["--missing-its", str(missing_its_json_output)])
+
+    # Write its_command to a temporary file and pass the filename
+    if its_command:
+        its_command_file = os.path.join(temp_dir_path, "its_command.txt")
+        with open(its_command_file, "w") as f:
+            f.write(its_command)
+        command.extend(["--command-its-file", "/" + its_command_file])
+
+    # Write ssu_command to a temporary file and pass the filename
+    if ssu_command:
+        ssu_command_file = os.path.join(temp_dir_path, "ssu_command.txt")
+        with open(ssu_command_file, "w") as f:
+            f.write(ssu_command)
+        command.extend(["--command-ssu-file", "/" + ssu_command_file])
 
     command_str = " ".join(shlex.quote(arg) for arg in command)
     logger.info(command_str)
