@@ -1886,6 +1886,7 @@ class SequencingUpload:
                         "rscripts_command_outcome": False,
                         "analysis_type": analysis_type_name,
                         "analysis_type_id": analysis_type.id,
+                        "lotus2_command": None,
                         "started_at": None,
                         "finished_at": None,
                     }
@@ -1906,7 +1907,9 @@ class SequencingUpload:
                         region_result["rscripts_command_outcome"] = (
                             analysis.rscripts_result
                         )
-
+                        region_result["lotus2_command"] = (
+                            analysis.lotus2_command
+                        )
                         # Proceed only if the status is "Finished"
                         if region_result["rscripts_status"] == "Finished":
 

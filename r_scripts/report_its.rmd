@@ -3,6 +3,7 @@ params:
   project: ""
   its: ""
   missing: "[]"
+  command_its_file: ""
 header-includes:
   - \pagenumbering{gobble}
 urlcolor: blue
@@ -41,21 +42,22 @@ knitr::include_graphics(paste0(params$project, "/fastqc/", strsplit(params$its, 
 
 OTUs were produced using VSEARCH within the Lotus2 pipeline:
 
-```
-lotus2 -i Project_name/ITS2 \
--o Project_name/ITS2/lotus2_ITS2_OTUs \
--m Project_name/ITS2/Project_name_mapping.txt  \
--refDB UNITE \
--amplicon_type ITS2 \
--LCA_idthresh 97,95,93,91,88,78,0 \
--tax_group fungi \
--taxAligner blast \
--forwardPrimer GCATCGATGAAGAACGCAGC  \
--reversePrimer TCCTCCGCTTATTGATATGC \
--clustering vsearch \
--derepMin 10:1,5:2,3:3 \
--id 0.97 \
--sdmopt ~/miniconda3/envs/lotus2/share/lotus2-2.34.1-0/configs/sdm_miSeq_ITS.txt
+```{r command_its, echo=FALSE, results='asis', warning=FALSE}
+# Read the command from the file, suppressing the 'incomplete final line' warning
+command_string <- readLines(params$command_its_file, warn = FALSE)
+
+# Join lines into a single string and clean up whitespace
+formatted_command <- paste(command_string, collapse = " ")
+formatted_command <- gsub("\\s+", " ", formatted_command)
+
+# Add line breaks and backslashes for arguments, and after the comma
+formatted_command <- gsub(" -", " \\\\\n\t-", formatted_command)
+formatted_command <- gsub(",/", ",\\\\\n\t/", formatted_command)
+
+# Print the formatted command inside a markdown code block
+cat("```\n")
+cat(formatted_command, "\n")
+cat("\n```\n")
 ```
 
 Configuration file sdm_miSeq_ITS.txt can be downloaded from [SPUN's Github](https://github.com/SocietyProtectionUndergroundNetworks/sequencing-submission-form/tree/master/lotus2_files), or from [LotuS2](https://github.com/hildebra/lotus2).

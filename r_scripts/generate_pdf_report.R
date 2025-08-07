@@ -39,6 +39,18 @@ option_list <- list(
     type = "character",
     default = "",
     help = "Name of SSU subfolder eg SSU_dada2 or SSU_vsearch"
+  ),
+  make_option(
+    c("--command-its-file"),
+    type = "character",
+    default = "",
+    help = "Path to the ITS lotus2 command file"
+  ),
+  make_option(
+    c("--command-ssu-file"),
+    type = "character",
+    default = "",
+    help = "Path to the SSU lotus2 command file"
   )
 )
 
@@ -61,14 +73,32 @@ render(intro_rmd, output_file = intro_pdf, params = list(name = args$name))
 
 # Render ITS report if applicable
 if (args$its != "") {
-  render(its_rmd, output_file = its_pdf, params = list(project = args$project, its = args$its, missing = args$missing_its))
+  render(
+    its_rmd, 
+    output_file = its_pdf, 
+    params = list(
+      project = args$project, 
+      its = args$its, 
+      missing = args$missing_its,
+      command_its_file = args$command_its_file
+    )
+  )
 } else {
   its_pdf <- NULL  # Skip ITS report
 }
 
 # Render SSU report if applicable
 if (args$ssu != "") {
-  render(ssu_rmd, output_file = ssu_pdf, params = list(project = args$project, ssu = args$ssu, missing = args$missing_ssu))
+  render(
+    ssu_rmd, 
+    output_file = ssu_pdf, 
+    params = list(
+      project = args$project, 
+      ssu = args$ssu, 
+      missing = args$missing_ssu,
+      command_ssu_file = args$command_ssu_file
+    )
+  )
 } else {
   ssu_pdf <- NULL  # Skip SSU report
 }
