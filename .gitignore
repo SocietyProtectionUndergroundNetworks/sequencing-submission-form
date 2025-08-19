@@ -86,3 +86,11 @@ mysql_test/
 lotus2_files/UNITE_v10_sh_general_release_dynamic_all_19.02.2025.fasta
 
 lotus2_files/UNITE_v10_sh_general_release_dynamic_all_19.02.2025.tax
+
+r_scripts/LibrarySize_1.png
+
+r_scripts/filtered_rarefaction_1.png
+
+r_scripts/ecm_physeq_by_genus_1.png
+
+r_scripts/amf_physeq_by_genus_1.png

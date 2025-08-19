@@ -173,6 +173,12 @@ def generate_lotus2_report(
             command_str = "source activate lotus2_env && " + " ".join(command)
             logger.info(" - the command is: ")
             logger.info(command_str)
+
+            # Store the command in the database for logging purposes
+            SequencingAnalysis.update_field(
+                analysis_id, "lotus2_command", " ".join(command)
+            )
+
             # Run the command inside the container
             result = container.exec_run(["bash", "-c", command_str])
             logger.info(result.output)

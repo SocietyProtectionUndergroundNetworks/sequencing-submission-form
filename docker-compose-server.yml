@@ -12,13 +12,7 @@ services:
         target: /var/run/docker.sock
 
   flask: &flask
-    build:
-      context: .
-      dockerfile: Dockerfile-flask
-      args:
-        FLASK_PROCESS_USER: ${FLASK_PROCESS_USER}
-        FLASK_PROCESS_USER_ID: ${FLASK_PROCESS_USER_ID}
-        FLASK_PROCESS_GROUP_ID: ${FLASK_PROCESS_GROUP_ID}
+    image: ghcr.io/societyprotectionundergroundnetworks/sequencing-submission-form-flask:latest
     container_name: spun-flask
     depends_on:
       - db

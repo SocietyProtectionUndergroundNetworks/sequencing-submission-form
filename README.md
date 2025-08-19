@@ -36,6 +36,14 @@ The solution was adopted by the following article: https://qmacro.org/blog/posts
 - Set GOOGLE_CLIENT_CALLBACK_URL=http://127.0.0.1/login/callback
 - The GOOGLE_VM_PROPERTY is not needed for the application, only to create a shortcut for sshing to the virtual machine. You can safely ignore it.
 
+### Server deployment
+Additionally to all the other steps, on the server you will need to login to ghcr.io with a user that has access to this repository so that they can pull the registry images. 
+
+- Create a github personal access token with permissions "read packages", 
+- login using that PAT :
+``` echo YOUR_PAT_HERE | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin ``` 
+
+
 ### Lotus2 files
 When the docker-compose creates the lotus2 docker image (using the Dockerfile-lotus2), it runs the autoupdate script.  We also use the following modified databases:
 
@@ -169,6 +177,7 @@ To do that you would need
 - Push the docker images to the registry: 
 For the flask image:
 `docker tag sequencing-submission-form-flask ghcr.io/societyprotectionundergroundnetworks/sequencing-submission-form-flask:latest`
+
 `docker push ghcr.io/societyprotectionundergroundnetworks/sequencing-submission-form-flask:latest`
 
 #### Give back
