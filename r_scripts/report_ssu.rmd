@@ -76,21 +76,29 @@ paste0("Decontamination was carried out using the Decontam.R package. Prevalence
 
 Below is a rarefaction curve displaying the richness vs sequencing depth of each of your samples. This can be used to infer whether the sequence depth for each sample was sufficient to capture the fungal diversity in the sample. If your sample diversity is inconsistent and samples not plateauing for all samples you might want to subsample (or rarefy) the reads to a fixed number, or sequence depth. This is to ensure that diversity isn't inflated in one sample compared to another just because the sequencing depths are different. 
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+```{r rarefaction, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
 pdf_page <- pdftools::pdf_convert(paste0(params$project, "/r_output/", params$ssu, "/filtered_rarefaction.pdf"), pages = 1, dpi = 200)
 ```
-```{r, echo=FALSE, message=FALSE, warning=FALSE, out.width="100%"}
+```{r rarefaction_embed, echo=FALSE, message=FALSE, warning=FALSE, out.width="100%"}
 knitr::include_graphics(pdf_page)
 ```
 
 \newpage
 ### SSU Your data at a glance - AMF only
 
-Below is a bar plot displaying the AMF genera in your ITS samples from the **amf_physeq.Rdata** object provided in your **SSU/results** folder. This is provided for you to see a brief overview of the AMF present in your project.
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
-pdf_page <- pdftools::pdf_convert(paste0(params$project, "/r_output/", params$ssu, "/amf_physeq_by_genus.pdf"), pages = 1, dpi = 200)
+```{r bar_plot, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+pdf_file <- file.path(params$project, "r_output", params$ssu, "amf_physeq_by_genus.pdf")
+if (file.exists(pdf_file) && file.info(pdf_file)$size > 0) {
+  pdf_page <- pdftools::pdf_convert(pdf_file, pages = 1, dpi = 200)
+} else {
+  pdf_page <- NULL
+}
 ```
-```{r, echo=FALSE, message=FALSE, warning=FALSE, out.width="100%"}
-knitr::include_graphics(pdf_page)
+```{r bar_plot_embed, echo=FALSE, message=FALSE, warning=FALSE, out.width="100%", results='asis'}
+if (!is.null(pdf_page)) {
+  cat("Below is a bar plot displaying the AMF genera in your ITS samples from the **amf_physeq.Rdata** object provided in your **SSU/results** folder. This is provided for you to see a brief overview of the AMF present in your project.")
+  knitr::include_graphics(pdf_page)
+} else {
+  cat("No AMFs were found")
+}
 ```
