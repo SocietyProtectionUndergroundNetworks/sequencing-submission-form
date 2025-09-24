@@ -1,0 +1,55 @@
+# Start from Ubuntu 22.04
+FROM ubuntu:22.04
+
+# Prevent interactive prompts during apt-get install
+ENV DEBIAN_FRONTEND=noninteractive
+
+# System dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    bzip2 \
+    ca-certificates \
+    curl \
+    git \
+    libglib2.0-0 \
+    libxext6 \
+    libsm6 \
+    libxrender1 \
+    sudo \
+    r-base \
+    build-essential \
+    libboost-all-dev \
+    libxml2-dev \
+    libcurl4-openssl-dev \
+    zlib1g-dev \
+    libgomp1 && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Create a non-root user
+RUN useradd -ms /bin/bash condauser
+USER condauser
+WORKDIR /home/condauser
+
+# Install Miniconda
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh && \
+    bash miniconda.sh -b -p $HOME/miniconda && \
+    rm miniconda.sh
+
+ENV PATH=/home/condauser/miniconda/bin:$PATH
+
+# Configure conda channels
+RUN conda config --add channels bioconda && \
+    conda config --add channels conda-forge && \
+    conda config -n base --remove channels defaults && \
+    conda config --remove channels defaults
+
+# Install mamba
+RUN conda install -y mamba -n base -c conda-forge
+
+# Create Lotus3 environment with mamba
+RUN mamba create -n lotus3_env -c bioconda lotus3 -y
+
+# Add compilers inside the lotus3 environment
+RUN /home/condauser/miniconda/bin/conda install -n lotus3_env -y gcc make
+
+CMD ["/bin/bash"]
