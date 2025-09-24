@@ -66,6 +66,19 @@ services:
       - flask
     command: ["tail", "-f", "/dev/null"]
 
+  lotus3:
+    build:
+      context: .
+      dockerfile: Dockerfile-lotus3
+    container_name: spun-lotus3
+    volumes:
+      - ./seq_processed:/seq_processed  #v2 processed files
+      - ./processing:/processing  #v1 processed files
+      - ./lotus2_files:/lotus2_files
+    networks:
+      - flask
+    command: ["tail", "-f", "/dev/null"]
+
   celery-worker:
     container_name: spun-celery-worker  # Unique name for the Celery worker container
     build:
