@@ -50,6 +50,9 @@ bashdb:
 bashlotus:
 	docker-compose run --rm lotus2 bash
 
+bashlotus3:
+	docker-compose run --rm lotus3 bash
+
 bashredis:
 	docker-compose run --rm redis /bin/sh
 

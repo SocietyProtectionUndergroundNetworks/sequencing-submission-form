@@ -239,7 +239,7 @@ def test_get_region():
     # Test known primer sets (selected 5 as requested)
     assert SequencingUpload.get_region("ITS3", "ITS4") == "ITS2"
     assert SequencingUpload.get_region("WANDA", "AML2") == "SSU"
-    assert SequencingUpload.get_region("ITS9mun", "ITS4ngsUni") == "Full ITS"
+    assert SequencingUpload.get_region("ITS9mun", "ITS4ngsUni") == "Full_ITS"
     assert SequencingUpload.get_region("AML1", "AML2") == "SSU"
     assert SequencingUpload.get_region("LROR", "LR5") == "LSU"
 

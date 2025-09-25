@@ -89,6 +89,8 @@ def generate_lotus2_report(
     SequencingAnalysis.update_field(analysis_id, "parameters", parameters)
 
     analysis_type = SequencingAnalysisType.get(analysis_type_id)
+    logger.info(analysis_type.id)
+    logger.info(analysis_type.name)
     input_dir = "/" + input_dir
     output_path = input_dir + "/lotus2_report/" + analysis_type.name
 
@@ -304,6 +306,92 @@ def generate_lotus2_report(
                 analysis_id, "lotus2_result", result.output
             )
 
+        elif region == "Full_ITS":
+
+            mapping_file = input_dir + "/mapping_files/Full_ITS_Mapping.txt"
+
+            logger.info("-----------------------------")
+            logger.info(analysis_type.name)
+            if analysis_type.name in ["FULL_ITS_PACBIO"]:
+                container = client.containers.get("spun-lotus3")
+                sdmopt = "/lotus2_files/sdm_PacBio_ITS.txt"
+
+                refDB = "/lotus2_files/UNITE_v10_sh_general_release_dynamic_all_19.02.2025.fasta"
+
+                tax4refDB = "/lotus2_files/UNITE_v10_sh_general_release_dynamic_all_19.02.2025.tax"
+
+                command = [
+                    "lotus3",
+                    debug_command,
+                    "-i",
+                    input_dir,
+                    "-o",
+                    output_path,
+                    "-m",
+                    mapping_file,
+                    "-refDB",
+                    refDB,
+                    "-tax4refDB",
+                    tax4refDB,
+                    "-amplicon_type",
+                    "ITS",
+                    "-LCA_idthresh",
+                    "97,95,93,91,88,78,0",
+                    "-tax_group",
+                    "fungi",
+                    "-taxAligner",
+                    "blast",
+                    "-clustering",
+                    "vsearch",
+                    "-LCA_cover",
+                    "0.97",
+                    "-sdmThreads",
+                    "1",
+                    "-derepMin",
+                    "10:1,5:2,3:3",
+                    "-sdmopt",
+                    sdmopt,
+                ]
+
+                command_str = "source activate lotus3_env && " + " ".join(
+                    command
+                )
+                logger.info(" - the command is: ")
+                logger.info(command_str)
+
+                # Store the command in the database for logging purposes
+                SequencingAnalysis.update_field(
+                    analysis_id, "lotus2_command", " ".join(command)
+                )
+
+                # Run the command inside the container
+                result = container.exec_run(["bash", "-c", command_str])
+                logger.info(result.output)
+
+                SequencingAnalysis.update_field(
+                    analysis_id, "lotus2_status", "Finished"
+                )
+                SequencingAnalysis.update_field(
+                    analysis_id, "lotus2_finished_at", datetime.utcnow()
+                )
+                SequencingAnalysis.update_field(
+                    analysis_id, "lotus2_result", result.output
+                )
+
+            else:
+                logger.info(
+                    "Lotus2 report generation for amplicon "
+                    + region
+                    + " cannot be generated as we don't have the details."
+                )
+                SequencingAnalysis.update_field(
+                    analysis_id,
+                    "lotus2_status",
+                    "Abandoned. Full_ITS without supported analysis.",
+                )
+                SequencingAnalysis.update_field(
+                    analysis_id, "lotus2_finished_at", datetime.utcnow()
+                )
         else:
             logger.info(
                 "Lotus2 report generation for amplicon "
