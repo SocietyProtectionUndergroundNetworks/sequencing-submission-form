@@ -312,13 +312,18 @@ def generate_lotus2_report(
 
             logger.info("-----------------------------")
             logger.info(analysis_type.name)
-            if analysis_type.name in ["FULL_ITS_PACBIO"]:
+            if analysis_type.name in ["FULL_ITS_PACBIO", "FULL_ITS_Eukaryome"]:
                 container = client.containers.get("spun-lotus3")
                 sdmopt = "/lotus2_files/sdm_PacBio_ITS.txt"
 
-                refDB = "/lotus2_files/UNITE_v10_sh_general_release_dynamic_all_19.02.2025.fasta"
+                if analysis_type.name == "FULL_ITS_PACBIO":
+                    refDB = "/lotus2_files/UNITE_v10_sh_general_release_dynamic_all_19.02.2025.fasta"
 
-                tax4refDB = "/lotus2_files/UNITE_v10_sh_general_release_dynamic_all_19.02.2025.tax"
+                    tax4refDB = "/lotus2_files/UNITE_v10_sh_general_release_dynamic_all_19.02.2025.tax"
+
+                elif analysis_type.name == "FULL_ITS_Eukaryome":
+                    refDB = "/lotus2_files/mothur_EUK_ITS_v1.9.3.fasta"
+                    tax4refDB = "/lotus2_files/mothur_EUK_ITS_v1.9.3_lotus.tax"
 
                 command = [
                     "lotus3",

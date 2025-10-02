@@ -2,8 +2,8 @@
 #* indicates alternative quality filtering options, saved in *.add.fna etc. files separately from initial quality filtered dataset
 #sequence length refers to sequence length AFTER removal of Primers, Barcodes and trimming. this ensures that downstream analyis tools will have appropiate sequence information
 minSeqLength	300
-maxSeqLength	2000
-minAvgQuality	27
+maxSeqLength	1000
+minAvgQuality	35
 *minSeqLength	300
 *minAvgQuality	25
 #truncate total Sequence length to X (length after Barcode, Adapter and Primer removals, set to -1 to deactivate)
@@ -18,16 +18,16 @@ maxHomonucleotide	16
 
 #Filter whole sequence if one window of quality scores is below average
 QualWindowWidth	50
-QualWindowThreshhold	-1
+QualWindowThreshhold	35
 
 #Trim the end of a sequence if a window falls below quality threshhold. Useful for removing low qulaity trailing ends of sequence
 TrimWindowWidth	20
-TrimWindowThreshhold	-1
+TrimWindowThreshhold	35
 
 #Probabilistic max number of accumulated sequencing errors. After this length, the rest of the sequence will be deleted. Complimentary to TrimWindowThreshhold. (-1) deactivates this option.
-maxAccumulatedError	-1
+maxAccumulatedError	1
 #mid qual option
-*maxAccumulatedError	-1
+*maxAccumulatedError	1.5
 
 
 #Max Barcode Errors 
@@ -53,11 +53,11 @@ PEheaderPairFmt	1
 
 #sets if sequences without match to reverse primer will be accepted (T=reject ; F=accept all); default=F
 RejectSeqWithoutRevPrim	T
-*RejectSeqWithoutRevPrim	F
+*RejectSeqWithoutRevPrim	T
 
 #sets if sequences without a forward (LinkerPrimerSequence) primer will be accepted (T=reject ; F=accept all); default=T
 RejectSeqWithoutFwdPrim	T
-*RejectSeqWithoutFwdPrim	F
+*RejectSeqWithoutFwdPrim	T
 
 #checks if pair1 and pair2 were switched (ignore if single read data)
 CheckForMixedPairs	T
