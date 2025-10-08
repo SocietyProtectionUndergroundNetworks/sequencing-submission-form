@@ -297,4 +297,8 @@ if (num_ecm_genera > 0) {
 
   # Export the combined data to a CSV file
   fwrite(otu_full_data, file = str_c(args$output, "/otu_full_data.csv"))
+} else {
+  system(paste0("touch ", str_c(args$output, "/", "ecm_physeq.Rdata")))
+  system(paste0("touch ", str_c(args$output, "/", "ecm_physeq_by_genus.pdf")))
+  writeLines("sample_id,observed,estimator,est_s_e,x95_percent_lower,x95_percent_upper,seq_depth", str_c(args$output, "/metadata_chaorichness.csv"))
 }
