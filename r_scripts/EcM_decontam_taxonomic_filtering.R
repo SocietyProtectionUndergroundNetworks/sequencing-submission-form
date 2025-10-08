@@ -277,28 +277,29 @@ if (num_ecm_genera > 0) {
     clean_names() %>%
     fwrite(str_c(args$output, "/metadata_chaorichness.csv"))
     
-    
-  # Extract taxonomy data
-  taxonomy_data <- tax_table(physeq_decontam) %>%  # or physeq_filtered if you prefer
-    as.data.frame() %>%
-    rownames_to_column("OTU")
-
-  # Extract OTU data (abundance) from the OTU table
-  otu_long <- otu_table(physeq_decontam) %>%  # Keep the unfiltered data
-    as.data.frame() %>%
-    rownames_to_column("OTU") %>%
-    pivot_longer(!OTU, names_to = "sample_id", values_to = "abundance") %>%
-    filter(abundance != 0)
-
-  # Combine OTU table with taxonomy data
-  otu_full_data <- otu_long %>%
-    left_join(taxonomy_data, by = "OTU") %>%
-    mutate(ecm_flag = ifelse(Genus %in% fungal_traits_ecm$Genus, 1, 0))  # Add ECM flag
-
-  # Export the combined data to a CSV file
-  fwrite(otu_full_data, file = str_c(args$output, "/otu_full_data.csv"))
 } else {
   system(paste0("touch ", str_c(args$output, "/", "ecm_physeq.Rdata")))
   system(paste0("touch ", str_c(args$output, "/", "ecm_physeq_by_genus.pdf")))
   writeLines("sample_id,observed,estimator,est_s_e,x95_percent_lower,x95_percent_upper,seq_depth", str_c(args$output, "/metadata_chaorichness.csv"))
 }
+
+# Extract taxonomy data
+taxonomy_data <- tax_table(physeq_decontam) %>%  # or physeq_filtered if you prefer
+    as.data.frame() %>%
+    rownames_to_column("OTU")
+
+# Extract OTU data (abundance) from the OTU table
+otu_long <- otu_table(physeq_decontam) %>%  # Keep the unfiltered data
+    as.data.frame() %>%
+    rownames_to_column("OTU") %>%
+    pivot_longer(!OTU, names_to = "sample_id", values_to = "abundance") %>%
+    filter(abundance != 0)
+
+# Combine OTU table with taxonomy data
+otu_full_data <- otu_long %>%
+    left_join(taxonomy_data, by = "OTU") %>%
+    mutate(ecm_flag = ifelse(Genus %in% fungal_traits_ecm$Genus, 1, 0))  # Add ECM flag
+
+# Export the combined data to a CSV file
+fwrite(otu_full_data, file = str_c(args$output, "/otu_full_data.csv"))
+
