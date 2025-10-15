@@ -1,0 +1,22 @@
+FROM quay.io/biocontainers/lotus3:3.03--hdfd78af_1
+
+# -------------------------------
+# Download required DB files (phiX and ITS chimera)
+# -------------------------------
+RUN mkdir -p /usr/local/share/lotus3-3.03-1/DB && cd /usr/local/share/lotus3-3.03-1/DB \
+    # Download phiX reference
+    && wget -q -O phiX.fasta http://lotus2.earlham.ac.uk/lotus/packs/DB/phiX.fasta \
+    # Download ITS chimera reference zip
+    && wget -q -O uchITS.zip http://lotus2.earlham.ac.uk/lotus/packs/DB/uchime_reference_dataset_11.03.2015.zip \
+    && rm -fr ITS_chimera \
+    && unzip -q uchITS.zip -d ITS_chimera \
+    && rm uchITS.zip \ 
+    && sed -i 's|^UCHIME_REFDB_ITS .*|UCHIME_REFDB_ITS /usr/local/share/lotus3-3.03-1/DB/ITS_chimera/uchime_sh_refs_dynamic_original_985_11.03.2015.fasta|' /usr/local/share/lotus3-3.03-1/lOTUs.cfg \
+    # Download phiX reference
+    && wget -q -O phiX.fasta http://lotus2.earlham.ac.uk/lotus/packs/DB/phiX.fasta \
+    # Download ITS chimera reference zip
+    && wget -q -O uchITS.zip http://lotus2.earlham.ac.uk/lotus/packs/DB/uchime_reference_dataset_11.03.2015.zip \
+    && rm -fr ITS_chimera \
+    && unzip -q uchITS.zip -d ITS_chimera \
+    && rm uchITS.zip \
+    && sed -i 's|REFDB_PHIX DB//phiX.fasta|REFDB_PHIX /usr/local/share/lotus3-3.03-1/DB/phiX.fasta|' /usr/local/share/lotus3-3.03-1/lOTUs.cfg \
