@@ -111,6 +111,13 @@
     "Forward Primer": "AGGGAAACGATTGAAGCCAGTC",
     "Reverse Primer": "CGTGTTTCAAGACGGGTCGT"
   },
+  "18S_V4F/18S_V4RE": {
+    "Region": "SSU",
+    "Forward Primer": "CCAGCAGCCGCGGTAATTCC",
+    "Forward Primer Revcomp": "GGAATTACCGCGGCTGCTGG",
+    "Reverse Primer": "ACTTTCGTTCTTGATTAA",
+    "Reverse Primer Revcomp": "TTAATCAAGAACGAAAGT"
+  },
   "Other/Other": {
     "Region": "Other",
     "Forward Primer": "",
