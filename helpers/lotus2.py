@@ -4,6 +4,10 @@ import shutil
 import os
 from datetime import datetime
 
+# Note: Even though for legacy reasons the module
+# and all the variables and field names are called lotus2,
+# we are actually using lotus3 for the report generation.
+
 # PROCESS_DIR =
 logger = logging.getLogger("my_app_logger")
 
@@ -110,8 +114,8 @@ def generate_lotus2_report(
         debug_command = " -v --debug "
 
     try:
-        # Run Lotus2 inside the 'spun-lotus2' container
-        container = client.containers.get("spun-lotus2")
+        # Run Lotus3 inside the 'spun-lotus3' container
+        container = client.containers.get("spun-lotus3")
 
         if region in ["ITS1", "ITS2"]:
 
@@ -140,7 +144,7 @@ def generate_lotus2_report(
                 tax4refDB = "/lotus2_files/mothur_EUK_ITS_v1.9.4_lotus.tax"
 
             command = [
-                "lotus2",
+                "lotus3",
                 debug_command,
                 "-i",
                 input_dir,
@@ -172,7 +176,7 @@ def generate_lotus2_report(
             # Conditionally add -tax4refDB argument
             if tax4refDB:
                 command.extend(["-tax4refDB", tax4refDB])
-            command_str = "source activate lotus2_env && " + " ".join(command)
+            command_str = " ".join(command)
             logger.info(" - the command is: ")
             logger.info(command_str)
 
@@ -251,7 +255,7 @@ def generate_lotus2_report(
                 tax4refDB = "/lotus2_files/mothur_EUK_SSU_v1.9.3_lotus.tax"
 
             command = [
-                "lotus2",
+                "lotus3",
                 debug_command,
                 "-i",
                 input_dir,
@@ -283,7 +287,7 @@ def generate_lotus2_report(
                 sdmopt,
             ]
 
-            command_str = "source activate lotus2_env && " + " ".join(command)
+            command_str = " ".join(command)
             logger.info(" - the command is: ")
             logger.info(command_str)
 
@@ -313,7 +317,6 @@ def generate_lotus2_report(
             logger.info("-----------------------------")
             logger.info(analysis_type.name)
             if analysis_type.name in ["FULL_ITS_PACBIO", "FULL_ITS_Eukaryome"]:
-                container = client.containers.get("spun-lotus3")
                 sdmopt = "/lotus2_files/sdm_PacBio_ITS.txt"
 
                 if analysis_type.name == "FULL_ITS_PACBIO":
@@ -358,9 +361,7 @@ def generate_lotus2_report(
                     sdmopt,
                 ]
 
-                command_str = "source activate lotus3_env && " + " ".join(
-                    command
-                )
+                command_str = " ".join(command)
                 logger.info(" - the command is: ")
                 logger.info(command_str)
 

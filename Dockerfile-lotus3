@@ -1,55 +1,20 @@
-# Start from Ubuntu 22.04
-FROM ubuntu:22.04
+FROM quay.io/biocontainers/lotus3:3.03--hdfd78af_1
 
-# Prevent interactive prompts during apt-get install
-ENV DEBIAN_FRONTEND=noninteractive
-
-# System dependencies
-RUN apt-get update && apt-get install -y \
-    wget \
-    bzip2 \
-    ca-certificates \
-    curl \
-    git \
-    libglib2.0-0 \
-    libxext6 \
-    libsm6 \
-    libxrender1 \
-    sudo \
-    r-base \
-    build-essential \
-    libboost-all-dev \
-    libxml2-dev \
-    libcurl4-openssl-dev \
-    zlib1g-dev \
-    libgomp1 && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Create a non-root user
-RUN useradd -ms /bin/bash condauser
-USER condauser
-WORKDIR /home/condauser
-
-# Install Miniconda
-RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh && \
-    bash miniconda.sh -b -p $HOME/miniconda && \
-    rm miniconda.sh
-
-ENV PATH=/home/condauser/miniconda/bin:$PATH
-
-# Configure conda channels
-RUN conda config --add channels bioconda && \
-    conda config --add channels conda-forge && \
-    conda config -n base --remove channels defaults && \
-    conda config --remove channels defaults
-
-# Install mamba
-RUN conda install -y mamba -n base -c conda-forge
-
-# Create Lotus3 environment with mamba
-RUN mamba create -n lotus3_env -c bioconda lotus3 -y
-
-# Add compilers inside the lotus3 environment
-RUN /home/condauser/miniconda/bin/conda install -n lotus3_env -y gcc make
-
-CMD ["/bin/bash"]
+# -------------------------------
+# Download required DB files (phiX and ITS chimera)
+# -------------------------------
+RUN mkdir -p /usr/local/share/lotus3-3.03-1/DB && cd /usr/local/share/lotus3-3.03-1/DB \
+    # Download phiX reference
+    && wget -q -O phiX.fasta http://lotus2.earlham.ac.uk/lotus/packs/DB/phiX.fasta \
+    # Download ITS chimera reference zip
+    && wget -q -O uchITS.zip http://lotus2.earlham.ac.uk/lotus/packs/DB/uchime_reference_dataset_11.03.2015.zip \
+    && rm -rf ITS_chimera \
+    && unzip -q uchITS.zip -d ITS_chimera \
+    && rm uchITS.zip \
+    # Update config paths (exact matches, avoid duplicates)
+    && sed -i 's|^UCHIME_REFDB_ITS .*|UCHIME_REFDB_ITS /usr/local/share/lotus3-3.03-1/DB/ITS_chimera/uchime_sh_refs_dynamic_original_985_11.03.2015.fasta|' /usr/local/share/lotus3-3.03-1/lOTUs.cfg \
+    && sed -i 's|^UCHIME_REFDB_ITS1 .*|UCHIME_REFDB_ITS1 /usr/local/share/lotus3-3.03-1/DB/ITS_chimera/ITS1_ITS2_datasets/uchime_sh_refs_dynamic_develop_985_11.03.2015.ITS1.fasta|' /usr/local/share/lotus3-3.03-1/lOTUs.cfg \
+    && sed -i 's|^UCHIME_REFDB_ITS2 .*|UCHIME_REFDB_ITS2 /usr/local/share/lotus3-3.03-1/DB/ITS_chimera/ITS1_ITS2_datasets/uchime_sh_refs_dynamic_develop_985_11.03.2015.ITS2.fasta|' /usr/local/share/lotus3-3.03-1/lOTUs.cfg \
+    && sed -i 's|REFDB_PHIX DB//phiX.fasta|REFDB_PHIX /usr/local/share/lotus3-3.03-1/DB/phiX.fasta|' /usr/local/share/lotus3-3.03-1/lOTUs.cfg \
+    # Clean up potential duplicates
+    && awk '!seen[$0]++' /usr/local/share/lotus3-3.03-1/lOTUs.cfg > /tmp/lOTUs.cfg && mv /tmp/lOTUs.cfg /usr/local/share/lotus3-3.03-1/lOTUs.cfg
