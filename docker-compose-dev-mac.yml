@@ -115,18 +115,6 @@ services:
       - database
     restart: unless-stopped
 
-  lotus2:
-    image: quay.io/biocontainers/lotus2:2.34.1--hdfd78af_0
-    container_name: spun-lotus2
-    volumes:
-      - ./seq_processed:/seq_processed  #v2 processed files
-      - ./processing:/processing  #v1 processed files
-      - ./lotus2_files:/lotus2_files  #v1 processed files
-      - ./run_lotus2.sh:/usr/local/bin/run_lotus2.sh
-    networks:
-      - flask
-    command: ["tail", "-f", "/dev/null"]  # Keep the container running
-
   redis:
     image: "redis:latest"
     volumes:
