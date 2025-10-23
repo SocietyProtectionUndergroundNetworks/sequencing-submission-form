@@ -133,6 +133,9 @@ sshvm:
 ssh:
 	ssh ${SSH_KEY} ubuntu@${SERVER_IP}
 
+sshold:
+	ssh ${SSH_KEY} ubuntu@${OLD_SERVER_IP}
+
 copyssh:
 	gcloud compute scp ~/.ssh/id_rsa.pub ${GOOGLE_VM_PROPERTY}:~/
 
