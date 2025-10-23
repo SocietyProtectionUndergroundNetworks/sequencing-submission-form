@@ -1,20 +1,29 @@
 FROM quay.io/biocontainers/lotus3:3.03--hdfd78af_1
 
 # -------------------------------
-# Download required DB files (phiX and ITS chimera)
+# Download required DB files (phiX, ITS chimera, and rdp_gold)
 # -------------------------------
 RUN mkdir -p /usr/local/share/lotus3-3.03-1/DB && cd /usr/local/share/lotus3-3.03-1/DB \
     # Download phiX reference
     && wget -q -O phiX.fasta http://lotus2.earlham.ac.uk/lotus/packs/DB/phiX.fasta \
+    \
     # Download ITS chimera reference zip
     && wget -q -O uchITS.zip http://lotus2.earlham.ac.uk/lotus/packs/DB/uchime_reference_dataset_11.03.2015.zip \
     && rm -rf ITS_chimera \
     && unzip -q uchITS.zip -d ITS_chimera \
     && rm uchITS.zip \
+    \
+    # Download and unpack rdp_gold reference
+    && wget -q -O rdp_gold.fa.gz http://lotus2.earlham.ac.uk/lotus/packs/rdp_gold.fa.gz \
+    && gunzip -f rdp_gold.fa.gz \
+    \
     # Update config paths (exact matches, avoid duplicates)
     && sed -i 's|^UCHIME_REFDB_ITS .*|UCHIME_REFDB_ITS /usr/local/share/lotus3-3.03-1/DB/ITS_chimera/uchime_sh_refs_dynamic_original_985_11.03.2015.fasta|' /usr/local/share/lotus3-3.03-1/lOTUs.cfg \
     && sed -i 's|^UCHIME_REFDB_ITS1 .*|UCHIME_REFDB_ITS1 /usr/local/share/lotus3-3.03-1/DB/ITS_chimera/ITS1_ITS2_datasets/uchime_sh_refs_dynamic_develop_985_11.03.2015.ITS1.fasta|' /usr/local/share/lotus3-3.03-1/lOTUs.cfg \
     && sed -i 's|^UCHIME_REFDB_ITS2 .*|UCHIME_REFDB_ITS2 /usr/local/share/lotus3-3.03-1/DB/ITS_chimera/ITS1_ITS2_datasets/uchime_sh_refs_dynamic_develop_985_11.03.2015.ITS2.fasta|' /usr/local/share/lotus3-3.03-1/lOTUs.cfg \
     && sed -i 's|REFDB_PHIX DB//phiX.fasta|REFDB_PHIX /usr/local/share/lotus3-3.03-1/DB/phiX.fasta|' /usr/local/share/lotus3-3.03-1/lOTUs.cfg \
+    && sed -i 's|UCHIME_REFDB DB//rdp_gold.fa|UCHIME_REFDB /usr/local/share/lotus3-3.03-1/DB/rdp_gold.fa|' /usr/local/share/lotus3-3.03-1/lOTUs.cfg \
+    \
     # Clean up potential duplicates
-    && awk '!seen[$0]++' /usr/local/share/lotus3-3.03-1/lOTUs.cfg > /tmp/lOTUs.cfg && mv /tmp/lOTUs.cfg /usr/local/share/lotus3-3.03-1/lOTUs.cfg
+    && awk '!seen[$0]++' /usr/local/share/lotus3-3.03-1/lOTUs.cfg > /tmp/lOTUs.cfg \
+    && mv /tmp/lOTUs.cfg /usr/local/share/lotus3-3.03-1/lOTUs.cfg
