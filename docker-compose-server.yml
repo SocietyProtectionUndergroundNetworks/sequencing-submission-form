@@ -14,6 +14,7 @@ services:
   flask: &flask
     image: ghcr.io/societyprotectionundergroundnetworks/sequencing-submission-form-flask:latest
     container_name: spun-flask
+    user: "1000:1000"
     depends_on:
       - db
     environment:
