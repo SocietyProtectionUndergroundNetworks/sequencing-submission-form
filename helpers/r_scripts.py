@@ -47,6 +47,19 @@ def create_pdf_report(process_id):
             )
             its_command = r_report["lotus2_command"]
 
+        elif "FULL_ITS_Eukaryome" == r_report["analysis_type"]:
+            its_report = r_report["analysis_type"]
+            missing_samples_its = SequencingUpload.get_missing_its_files(
+                process_id
+            )
+            missing_its_json_data = [
+                {"sample": sample[1]} for sample in missing_samples_its
+            ]
+            missing_its_json_output = json.dumps(
+                missing_its_json_data, separators=(",", ":")
+            )
+            its_command = r_report["lotus2_command"]
+
         elif "SSU_dada2" == r_report["analysis_type"]:
             ssu_report = r_report["analysis_type"]
             missing_samples_ssu = SequencingUpload.get_missing_ssu_files(
