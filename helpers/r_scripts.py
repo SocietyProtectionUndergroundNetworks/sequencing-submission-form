@@ -59,6 +59,7 @@ def create_pdf_report(process_id):
                 missing_its_json_data, separators=(",", ":")
             )
             its_command = r_report["lotus2_command"]
+            its_region = r_report["region"]
 
         elif "SSU_dada2" == r_report["analysis_type"]:
             ssu_report = r_report["analysis_type"]
@@ -72,6 +73,7 @@ def create_pdf_report(process_id):
                 missing_ssu_json_data, separators=(",", ":")
             )
             ssu_command = r_report["lotus2_command"]
+            ssu_region = r_report["region"]
 
     # constract the r command
     command = [
@@ -84,9 +86,11 @@ def create_pdf_report(process_id):
     ]
     if its_report:
         command.extend(["-i", str(its_report)])
+        command.extend(["--its-region", str(its_region)])
 
     if ssu_report:
         command.extend(["-s", str(ssu_report)])
+        command.extend(["--ssu-region", str(ssu_region)])
 
     if missing_ssu_json_output:
         command.extend(["--missing-ssu", str(missing_ssu_json_output)])
