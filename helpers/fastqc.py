@@ -1,5 +1,6 @@
 import os
 import multiqc
+import re
 import subprocess
 import zipfile
 from pathlib import Path
@@ -107,8 +108,10 @@ def create_multiqc_report(process_id):
 
     if process_data["regions"]:
         for region in process_data["regions"]:
+            # ensure region name is safe for folder naming
+            clean_region = re.sub(r"\s+", "_", region)
             multiqc_folder = os.path.join(
-                "seq_processed", uploads_folder, "fastqc", region
+                "seq_processed", uploads_folder, "fastqc", clean_region
             )
             # The 'export_plots=True' only works in
             # multiqc version 1.19, not in 1.25.2
@@ -169,8 +172,10 @@ def check_multiqc_report(process_id):
         # Iterate through each region
         for region in process_data["regions"]:
             # Construct the path to the multiqc folder
+            # ensure region name is safe for folder naming
+            clean_region = re.sub(r"\s+", "_", region)
             multiqc_folder = os.path.join(
-                "seq_processed", uploads_folder, "fastqc", region
+                "seq_processed", uploads_folder, "fastqc", clean_region
             )
 
             # Construct the path to the potential multiqc report file

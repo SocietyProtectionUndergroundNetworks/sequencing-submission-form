@@ -8,9 +8,12 @@ from models.db_model import (
     SequencingAnalysisTypesTable,
     SequencingUploadsTable,
     SequencingAnalysisSampleRichnessTable,
+    Class,
+    Taxonomy,
     OTU,
 )
 from helpers.dbm import session_scope
+from sqlalchemy import func
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -431,3 +434,54 @@ class SequencingAnalysis:
                 f"data for analysis_type_id {analysis_type_id}."
             )
             return len(results)
+
+    @classmethod
+    def get_ecm_count(cls, analysis_id):
+        with session_scope() as session:
+            count_ecm = (
+                session.query(func.count(OTU.id))
+                .filter(
+                    OTU.sequencing_analysis_id == analysis_id,
+                    OTU.ecm_flag == 1,
+                )
+                .scalar()
+            )
+
+            return count_ecm
+
+    @classmethod
+    def get_amf_count(cls, analysis_id):
+        with session_scope() as session:
+            # Get the class IDs for the AMF groups
+            class_ids = (
+                session.query(Class.id)
+                .filter(
+                    Class.name.in_(
+                        [
+                            "Glomeromycetes",
+                            "Archaeosporomycetes",
+                            "Paraglomeromycetes",
+                        ]
+                    )
+                )
+                .all()
+            )
+
+            # Extract integers from tuples returned by .all()
+            class_ids = [cid[0] for cid in class_ids]
+
+            if not class_ids:
+                return 0  # No AMF classes found
+
+            # Count OTUs in those classes for the given analysis_id
+            amf_count = (
+                session.query(func.count(OTU.id))
+                .join(Taxonomy, OTU.taxonomy_id == Taxonomy.id)
+                .filter(
+                    OTU.sequencing_analysis_id == analysis_id,
+                    Taxonomy.class_id.in_(class_ids),
+                )
+                .scalar()
+            )
+
+            return amf_count or 0
