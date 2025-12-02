@@ -39,6 +39,21 @@ def create_base_app():  # Renamed from create_app
     )
     logger = logging.getLogger("my_app_logger")  # noqa: F841
 
+    # Silence HTTP debug messages from urllib3
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+
+    # also silence google.auth debug info
+    logging.getLogger("google.auth").setLevel(logging.WARNING)
+    logging.getLogger("googleapiclient").setLevel(logging.WARNING)
+
+    logging.getLogger("PIL").setLevel(logging.ERROR)
+    logging.getLogger("PIL.PngImagePlugin").setLevel(logging.ERROR)
+    logging.getLogger("fontTools").setLevel(logging.ERROR)
+    logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
+    logging.getLogger("fontTools.ttLib").setLevel(logging.ERROR)
+    logging.getLogger("fontTools.ttLib.tables").setLevel(logging.ERROR)
+    logging.getLogger("weasyprint.fonts").setLevel(logging.ERROR)
+
     # Register Blueprints
     app.register_blueprint(admin_bp)
     app.register_blueprint(user_bp)

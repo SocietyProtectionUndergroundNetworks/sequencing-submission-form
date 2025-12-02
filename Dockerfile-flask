@@ -1,69 +1,99 @@
-# Python image to use.
-FROM python:3.11-alpine
+# ----------------------------
+# Base image
+# ----------------------------
+FROM python:3.11-slim
 
-ARG FLASK_PROCESS_USER
-ARG FLASK_PROCESS_USER_ID
-ARG FLASK_PROCESS_GROUP_ID
+# ----------------------------
+# Build arguments
+# ----------------------------
+ARG FLASK_PROCESS_USER=runner
+ARG FLASK_PROCESS_USER_ID=1000
+ARG FLASK_PROCESS_GROUP_ID=1000
 ARG ENVIRONMENT=production
 ENV ENVIRONMENT=${ENVIRONMENT}
 
-# Install necessary build dependencies
-RUN apk update && \
-    apk add --no-cache bash && \
-    apk add --no-cache \
-        build-base \
-        python3-dev \
-        linux-headers \
-        musl-dev \
-        mysql-dev \
-        openjdk8 \
-        perl \
-        rclone \ 
-        gcompat
+# ----------------------------
+# Install system dependencies
+# ----------------------------
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    python3-dev \
+    default-jdk \
+    libmariadb-dev \
+    libmariadb-dev-compat \
+    libpango-1.0-0 \
+    libcairo2 \
+    libffi-dev \
+    libpangocairo-1.0-0 \
+    zlib1g-dev \
+    bzip2 \
+    xz-utils \
+    wget \
+    unzip \
+    curl \
+    git \
+    rclone \
+    perl \
+    pkg-config \
+    poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
 
+
+# ----------------------------
+# Upgrade pip, setuptools, wheel
+# ----------------------------
+RUN pip install --upgrade pip setuptools wheel
+
+# ----------------------------
+# Install vsearch
+# ----------------------------
 RUN wget https://github.com/torognes/vsearch/releases/download/v2.30.0/vsearch-2.30.0-linux-x86_64.tar.gz && \
     tar -xzf vsearch-2.30.0-linux-x86_64.tar.gz && \
     mv vsearch-2.30.0-linux-x86_64/bin/vsearch /usr/local/bin/ && \
     chmod +x /usr/local/bin/vsearch && \
     rm -rf vsearch-2.30.0-linux-x86_64 vsearch-2.30.0-linux-x86_64.tar.gz
 
-# Set environment variable for Java 8
-ENV JAVA_HOME=/usr/lib/jvm/default-jvm
-
-# Download and install fastqc
+# ----------------------------
+# Install FastQC
+# ----------------------------
 WORKDIR /usr/local/bin
 RUN wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.12.1.zip -O fastqc.zip && \
     unzip fastqc.zip && \
     chmod +x FastQC/fastqc && \
-    ln -s /usr/local/bin/FastQC/fastqc /usr/local/bin/fastqc
+    ln -s /usr/local/bin/FastQC/fastqc /usr/local/bin/fastqc && \
+    rm fastqc.zip
 
-# Set FastQC in the PATH  
-ENV PATH="/usr/local/bin/FastQC:${PATH}"    
+# Add FastQC to PATH
+ENV PATH="/usr/local/bin/FastQC:${PATH}"
 
-# Create a non-root user and add it to the docker group
-RUN addgroup -S docker && \
-    addgroup -g $FLASK_PROCESS_GROUP_ID $FLASK_PROCESS_USER && \
-    adduser -D -u $FLASK_PROCESS_USER_ID -G docker $FLASK_PROCESS_USER
+# ----------------------------
+# Create non-root user
+# ----------------------------
+RUN groupadd -g $FLASK_PROCESS_GROUP_ID $FLASK_PROCESS_USER && \
+    useradd -m -u $FLASK_PROCESS_USER_ID -g $FLASK_PROCESS_GROUP_ID $FLASK_PROCESS_USER
 
-# Set the working directory to /app
+# ----------------------------
+# Set working directory
+# ----------------------------
 WORKDIR /app
-
-# Set PYTHONPATH to include the /app directory (your project root)
-# This ensures Python can find 'models', 'db', 'flask_app', 'views' etc. as top-level packages
 ENV PYTHONPATH=/app
 
-# Change ownership of the application directory to the non-root user
+# Change ownership of /app to non-root user
 RUN chown -R $FLASK_PROCESS_USER:$FLASK_PROCESS_GROUP_ID /app
 
-# Copy the requirements file used for dependencies
+# ----------------------------
+# Copy requirements and install
+# ----------------------------
 COPY requirements.txt .
-
-# Install any needed packages specified in requirements.txt
 RUN pip install --trusted-host pypi.python.org -r requirements.txt
-ENV PATH="$PATH:/home/runner/.local/bin"
+ENV PATH="$PATH:/home/$FLASK_PROCESS_USER/.local/bin"
 
-# Use the specified user to run the Flask app
+# ----------------------------
+# Switch to non-root user
+# ----------------------------
 USER $FLASK_PROCESS_USER
 
-# Run the app using Gunicorn
-CMD exec gunicorn --bind 0.0.0.0:56733 app:app --workers ${GUNICORN_WORKERS} --threads 2 ${GUNICORN_RELOAD}
+# ----------------------------
+# Run the Flask app with Gunicorn
+# ----------------------------
+CMD exec gunicorn --bind 0.0.0.0:56733 app:app --workers ${GUNICORN_WORKERS:-2} --threads 2 ${GUNICORN_RELOAD:-}

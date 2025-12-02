@@ -1910,6 +1910,7 @@ class SequencingUpload:
                         region_result["lotus2_command"] = (
                             analysis.lotus2_command
                         )
+                        region_result["id"] = analysis_id
                         # Proceed only if the status is "Finished"
                         if region_result["rscripts_status"] == "Finished":
 

@@ -51,7 +51,19 @@ option_list <- list(
     type = "character",
     default = "",
     help = "Path to the SSU lotus2 command file"
-  )
+  ),
+  make_option(
+    c("--its-region"),
+    type = "character",
+    default = "",
+    help = "ITS Region sequenced (e.g., ITS1, ITS2, FULL_ITS)"
+  ),
+  make_option(
+    c("--ssu-region"),
+    type = "character",
+    default = "",
+    help = "SSU Region sequenced (e.g., SSU)"
+  )   
 )
 
 # Parse options
@@ -69,7 +81,7 @@ its_pdf <- paste0(args$project, "/r_output/its.pdf")
 ssu_pdf <- paste0(args$project, "/r_output/ssu.pdf")
 
 # Render the intro (always included)
-render(intro_rmd, output_file = intro_pdf, params = list(name = args$name))
+render(intro_rmd, output_file = intro_pdf, params = list(name = args$name, its_region = args$its_region, ssu_region = args$ssu_region))
 
 # Render ITS report if applicable
 if (args$its != "") {
@@ -80,7 +92,8 @@ if (args$its != "") {
       project = args$project, 
       its = args$its, 
       missing = args$missing_its,
-      command_its_file = args$command_its_file
+      command_its_file = args$command_its_file,
+      its_region = args$its_region
     )
   )
 } else {
@@ -96,7 +109,8 @@ if (args$ssu != "") {
       project = args$project, 
       ssu = args$ssu, 
       missing = args$missing_ssu,
-      command_ssu_file = args$command_ssu_file
+      command_ssu_file = args$command_ssu_file,
+      ssu_region = args$ssu_region
     )
   )
 } else {

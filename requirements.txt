@@ -40,8 +40,16 @@ gunicorn==23.0.0
 
 folium==0.19.4
 
-cutadapt==5.1
+cutadapt
 
 # Required for testing.
 pytest==8.4.0
 pytest-mock==3.14.1
+
+# Required for Hetzner Cloud interaction
+hcloud==2.11.1
+
+# Required for PDF generation
+weasyprint
+jinja2
+pdf2image
