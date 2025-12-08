@@ -10,6 +10,8 @@ from flask import (
     render_template,
     redirect,
     url_for,
+    flash,
+    request,
 )
 from helpers.decorators import (
     approved_required,
@@ -23,6 +25,7 @@ from helpers.ecoregions import (
 )
 from models.sequencing_sample import SequencingSample
 from models.sequencing_upload import SequencingUpload
+from models.app_configuration import AppConfiguration
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -182,3 +185,32 @@ def storage_per_project():
         "project_bucket_admin.html",
         all_uploads=all_uploads,
     )
+
+
+@admin_bp.route(
+    "/admin/configuration",
+    methods=["GET"],
+    endpoint="configuration",
+)
+@login_required
+@admin_required
+@approved_required
+def configuration():
+    all_config = AppConfiguration.get_all()
+    return render_template(
+        "configuration.html",
+        all_config=all_config,
+    )
+
+
+@admin_bp.route("/admin/configuration/update", methods=["POST"])
+@login_required
+@admin_required
+@approved_required
+def update_configuration():
+    remote_pipeline_value = request.form.get("remote_pipeline")
+
+    AppConfiguration.update_config("remote_pipeline", remote_pipeline_value)
+
+    flash("Configuration updated successfully!", "success")
+    return redirect(url_for("admin.configuration"))

@@ -505,3 +505,12 @@ class ExternalSamplingTable(Base):
     )
 
     __table_args__ = (Index("idx_dna_region", dna_region),)
+
+
+class AppConfigurationTable(Base):
+    __tablename__ = "app_configuration"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    label = Column(String(255), nullable=True)
+    description = Column(String(255), nullable=True)
+    value = Column(String(255), nullable=True)
