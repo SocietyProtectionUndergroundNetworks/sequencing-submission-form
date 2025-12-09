@@ -121,8 +121,16 @@
             {% endif %}
             <li>
                 <strong>physeq_predecontam.Rdata</strong> - If for any reason you would like to see the initial phyloseq object 
-                produced by Lotus2 prior to the removal of likely contaminant OTUs or ASVs, this can be found in the sub-folder 
-                'pre_decontam'. within both the '{{ its_region | default("ITS") }}' and '{{ ssu_region | default("SSU") }}' folders.
+                produced by Lotus3 prior to the removal of likely contaminant OTUs or ASVs, this can be found in the sub-folder 
+                'pre_decontam' in both the 
+                {% if its_region %}
+                    '{{ its_region | default("ITS") }}'
+                {% endif %}
+                {{ and_text }}
+                {% if ssu_region %}
+                    '{{ ssu_region | default("SSU") }}'
+                {% endif %}
+                {{ folder_text }}.
             </li>
         </ul>
 
@@ -142,10 +150,16 @@
         
         <h3>Bioinformatics processing</h3>
         <p>
-            The software <a href="https://github.com/hildebra/LotuS3/">LotuS3</a> was used to designate OTUs from 
-            <strong>{{ its_region | default("ITS") }}</strong> sequences and ASVs from <strong>{{ ssu_region | default("SSU") }}</strong> sequences. 
+            The software <a href="https://github.com/hildebra/LotuS3/">LotuS3</a> was used to designate OTUs from
+            {% if its_region %}
+                <strong>{{ its_region | default("ITS") }}</strong> sequences
+            {% endif %}
+            {{ and_text }}
+            {% if ssu_region %}
+                <strong>{{ ssu_region | default("SSU") }}</strong> sequences
+            {% endif %}. 
             Exact commands including parameters are listed below. Following generation of a <a href="https://joey711.github.io/phyloseq/">phyloseq</a> 
-            object by LotuS2, the decontam program is run to remove contaminating OTUs or ASVs based on the included presence of which taxa are 
+            object by LotuS3, the decontam program is run to remove contaminating OTUs or ASVs based on the included presence of which taxa are 
             identified in the control samples. Removed contaminants are listed in the contaminants.html file which can 
             be found in the <strong>{{ region_text }}</strong> folders and is described further below.
         </p>
@@ -190,11 +204,11 @@
         
 
         <h2>{{ its_region }} OTU table</h2>
-        <p>OTUs were produced using VSEARCH within the LotuS2 pipeline:</p>
+        <p>OTUs were produced using VSEARCH within the LotuS3 pipeline:</p>
         <pre><code style="font-size:8pt;">{{ its_formatted_command }}</code></pre>
         <p>SDM opt configuration file can be downloaded from 
             <a href="https://github.com/SocietyProtectionUndergroundNetworks/sequencing-submission-form/tree/master/lotus2_files">SPUN's Github</a>, 
-            or from <a href="https://github.com/hildebra/lotus2">LotuS2</a>.
+            or from <a href="https://github.com/hildebra/lotus2">LotuS3</a>.
         </p>
 
         <h2>{{ its_region }} Decontamination</h2>
@@ -280,7 +294,7 @@
         <div class="page-break"></div>
 
         <h2>SSU ASV table</h2>
-        <p>ASVs were produced using DADA2 within the LotuS2 pipeline:</p>
+        <p>ASVs were produced using DADA2 within the LotuS3 pipeline:</p>
         <pre><code style="font-size:8pt;">{{ ssu_formatted_command }}</code></pre>
         <p>
             The database used for parameter -refDB is the <a href="https://maarjam.ut.ee/">MaarjAM</a> 
