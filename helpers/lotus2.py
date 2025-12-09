@@ -3,6 +3,7 @@ import logging
 import shutil
 import os
 from datetime import datetime
+from helpers.hetzner_vm import run_lotus3_on_vm
 
 # Note: Even though for legacy reasons the module
 # and all the variables and field names are called lotus2,
@@ -73,79 +74,135 @@ def init_generate_lotus2_report(
 def generate_lotus2_report(
     process_id, input_dir, region, debug, analysis_type_id, parameters
 ):
+    import os
+
     client = docker.from_env()
+
     from models.sequencing_analysis import SequencingAnalysis
     from models.sequencing_analysis_type import SequencingAnalysisType
+    from models.app_configuration import AppConfiguration
 
-    # TEMP . If region = SSU, then the typeID =1
-    # If the region = ITS2 then the typeID = 3
-    # If the region = ITS1 then the typeID = 4
-    # sequencing_analysis_type = get_analysis_type(region)
+    def log(msg):
+        logger.info(msg)
 
+    # Normalize input_dir (ensure leading slash)
+    input_dir = os.path.join("/", input_dir)
+
+    # Fetch database objects
     analysis_id = SequencingAnalysis.get_by_upload_and_type(
         process_id, analysis_type_id
     )
+    analysis_type = SequencingAnalysisType.get(analysis_type_id)
 
+    # Initial DB updates
     SequencingAnalysis.update_field(
         analysis_id, "lotus2_started_at", datetime.utcnow()
     )
     SequencingAnalysis.update_field(analysis_id, "lotus2_status", "Started")
     SequencingAnalysis.update_field(analysis_id, "parameters", parameters)
 
-    analysis_type = SequencingAnalysisType.get(analysis_type_id)
-    logger.info(analysis_type.id)
-    logger.info(analysis_type.name)
-    input_dir = "/" + input_dir
-    output_path = input_dir + "/lotus2_report/" + analysis_type.name
+    output_path = os.path.join(input_dir, "lotus2_report", analysis_type.name)
 
-    logger.info("Trying for:")
-    logger.info(" - process_id : " + str(process_id))
-    logger.info(" - analysis_type_id : " + str(analysis_type_id))
-    logger.info(" - analysis_id : " + str(analysis_id))
-    logger.info(" - input_dir : " + str(input_dir))
-    logger.info(" - output_path : " + str(output_path))
-    logger.info(" - region : " + str(region))
-    logger.info(" - debug : " + str(debug))
-    logger.info(" - parameters : ")
-    logger.info(parameters)
+    # Logging block
+    log("Trying for:")
+    for k, v in {
+        "process_id": process_id,
+        "analysis_type_id": analysis_type_id,
+        "analysis_id": analysis_id,
+        "input_dir": input_dir,
+        "output_path": output_path,
+        "region": region,
+        "debug": debug,
+        "parameters": parameters,
+    }.items():
+        log(f" - {k}: {v}")
 
-    debug_command = ""
-    if debug == 1:
-        debug_command = " -v --debug "
+    debug_flag = " -v --debug " if debug == 1 else ""
 
     try:
-        # Run Lotus3 inside the 'spun-lotus3' container
         container = client.containers.get("spun-lotus3")
 
-        if region in ["ITS1", "ITS2"]:
+        # ------------------------------
+        #  Helper: Run command + DB write
+        # ------------------------------
+        def run_lotus_command(command_list):
+            command_str = " ".join(command_list)
+            log(" - the command is:")
+            log(command_str)
 
-            sdmopt = "/lotus2_files/sdm_miSeq_ITS.txt"
-            if "sdmopt" in parameters:
-                if parameters["sdmopt"] == "sdm_miSeq_ITS_200":
-                    sdmopt = "/lotus2_files/sdm_miSeq_ITS_200.txt"
-                if parameters["sdmopt"] == "sdm_miSeq_ITS_forward":
-                    sdmopt = "/lotus2_files/sdm_miSeq_ITS_forward.txt"
-
-            mapping_file = (
-                input_dir + "/mapping_files/" + region + "_Mapping.txt"
+            # Store the command in DB
+            SequencingAnalysis.update_field(
+                analysis_id, "lotus2_command", command_str
             )
 
+            remote_pipeline = AppConfiguration.get_value("remote_pipeline")
+
+            # -------------------------------------------------------
+            # REMOTE PIPELINE LOGIC
+            # -------------------------------------------------------
+            if str(remote_pipeline) == "1":
+                log("Remote pipeline enabled → starting VM...")
+                server_name = f"lotus3-{process_id}-{analysis_type_id}-{int(datetime.utcnow().timestamp())}"
+                result = run_lotus3_on_vm(command_str, server_name)
+
+                SequencingAnalysis.update_field(
+                    analysis_id,
+                    "lotus2_result",
+                    result["stdout"] + "\n" + result["stderr"],
+                )
+                SequencingAnalysis.update_field(
+                    analysis_id, "lotus2_status", "Finished"
+                )
+                SequencingAnalysis.update_field(
+                    analysis_id, "lotus2_finished_at", datetime.utcnow()
+                )
+
+                return
+
+            # -------------------------------------------------------
+            # NORMAL LOCAL DOCKER EXECUTION
+            # -------------------------------------------------------
+            result = container.exec_run(["bash", "-c", command_str])
+            log(result.output)
+
+            SequencingAnalysis.update_field(
+                analysis_id, "lotus2_status", "Finished"
+            )
+            SequencingAnalysis.update_field(
+                analysis_id, "lotus2_finished_at", datetime.utcnow()
+            )
+            SequencingAnalysis.update_field(
+                analysis_id, "lotus2_result", result.output
+            )
+
+        # ------------------------------
+        #          REGION = ITS1/ITS2
+        # ------------------------------
+        if region in ["ITS1", "ITS2"]:
+            mapping_file = os.path.join(
+                input_dir, "mapping_files", f"{region}_Mapping.txt"
+            )
+
+            # Select SDM file
+            sdm_map = {
+                "sdm_miSeq_ITS_200": "/lotus2_files/sdm_miSeq_ITS_200.txt",
+                "sdm_miSeq_ITS_forward": "/lotus2_files/sdm_miSeq_ITS_forward.txt",
+            }
+            sdmopt = sdm_map.get(
+                parameters.get("sdmopt"), "/lotus2_files/sdm_miSeq_ITS.txt"
+            )
+
+            # refDB / tax4refDB selection
             if analysis_type.name in ["ITS1", "ITS2"]:
-                # Until 2025-07 we use the default UNITE that was downloaded with Lotus2
-                # refDB = "UNITE"
-
-                # Since 2025-08 we use the v10 (02-2025) database, located in lotus2_files
-                # Instructions for the download are in the README.md
                 refDB = "/lotus2_files/UNITE_v10_sh_general_release_dynamic_all_19.02.2025.fasta"
-
                 tax4refDB = "/lotus2_files/UNITE_v10_sh_general_release_dynamic_all_19.02.2025.tax"
-            if analysis_type.name in ["ITS1_eukaryome", "ITS2_eukaryome"]:
+            else:  # eukaryome
                 refDB = "/lotus2_files/mothur_EUK_ITS_v1.9.4.fasta"
                 tax4refDB = "/lotus2_files/mothur_EUK_ITS_v1.9.4_lotus.tax"
 
-            command = [
+            cmd = [
                 "lotus3",
-                debug_command,
+                debug_flag,
                 "-i",
                 input_dir,
                 "-o",
@@ -172,91 +229,49 @@ def generate_lotus2_report(
                 sdmopt,
                 "-id",
                 "0.97",
+                "-tax4refDB",
+                tax4refDB,
             ]
-            # Conditionally add -tax4refDB argument
-            if tax4refDB:
-                command.extend(["-tax4refDB", tax4refDB])
-            command_str = " ".join(command)
-            logger.info(" - the command is: ")
-            logger.info(command_str)
+            return run_lotus_command(cmd)
 
-            # Store the command in the database for logging purposes
-            SequencingAnalysis.update_field(
-                analysis_id, "lotus2_command", " ".join(command)
-            )
-
-            # Run the command inside the container
-            result = container.exec_run(["bash", "-c", command_str])
-            logger.info(result.output)
-            logger.info(
-                "Finished process_id : "
-                + str(process_id)
-                + " - analysis_type_id : "
-                + str(analysis_type_id)
-            )
-
-            SequencingAnalysis.update_field(
-                analysis_id, "lotus2_status", "Finished"
-            )
-            SequencingAnalysis.update_field(
-                analysis_id, "lotus2_finished_at", datetime.utcnow()
-            )
-            SequencingAnalysis.update_field(
-                analysis_id, "lotus2_result", result.output
-            )
-
-        elif region == "SSU":
-            # We used to define the container differently
-            # because we had two different versions of lotus2
+        # ------------------------------
+        #            REGION = SSU
+        # ------------------------------
+        if region == "SSU":
             parameters = parameters | analysis_type.parameters
             clustering = parameters["clustering"]
 
-            sdmopt = "/lotus2_files/sdm_miSeq2_SSU_Spun.txt"
+            mapping_file = os.path.join(
+                input_dir, "mapping_files", "SSU_Mapping.txt"
+            )
 
-            if "sdmopt" in parameters:
-                if parameters["sdmopt"] == "sdm_miSeq2_250":
-                    sdmopt = "/lotus2_files/sdm_miSeq2_250.txt"
+            sdm_map = {
+                "sdm_miSeq2_250": "/lotus2_files/sdm_miSeq2_250.txt",
+            }
+            sdmopt = sdm_map.get(
+                parameters.get("sdmopt"),
+                "/lotus2_files/sdm_miSeq2_SSU_Spun.txt",
+            )
 
-            mapping_file = input_dir + "/mapping_files/SSU_Mapping.txt"
-
+            # Select DBs
             if analysis_type.name in ["SSU_dada2", "SSU_vsearch"]:
-
-                # The following two is if we want to use
-                # The FULL SILVA database
-                refDB = (
-                    "/lotus2_files"
-                    "/vt_types_fasta_from_05-06-2019.qiime.fasta,SLV"
-                )
-
-                tax4refDB = "/lotus2_files/vt_types_GF.txt"
-
-                # The following two is if we want to use
-                # The reduced SILVA database
+                # Reduced SILVA
                 refDB = (
                     "/lotus2_files/vt_types_fasta_from_05-06-2019.qiime.fasta,"
                     "/lotus2_files/SLV_138.1_SSU_NO_AMF.fasta"
                 )
-
                 tax4refDB = (
                     "/lotus2_files/vt_types_GF.txt,"
                     "/lotus2_files/SLV_138.1_SSU_NO_AMF.tax"
                 )
 
-            elif analysis_type.name in ["SSU_eukaryome"]:
-
-                # eukaryome database
+            elif analysis_type.name == "SSU_eukaryome":
                 refDB = "/lotus2_files/mothur_EUK_SSU_v1.9.3.fasta"
-
-                # Special version of the .tax file for this database
-                # We had to add a space after the first tab
-                # and after each ; (field seperator) so that
-                # the taxonomy that gets produced doesnt have the first
-                # letter of each category cut out
                 tax4refDB = "/lotus2_files/mothur_EUK_SSU_v1.9.3_lotus.tax"
 
-            command = [
+            cmd = [
                 "lotus3",
-                debug_command,
+                debug_flag,
                 "-i",
                 input_dir,
                 "-o",
@@ -286,51 +301,29 @@ def generate_lotus2_report(
                 "-sdmopt",
                 sdmopt,
             ]
+            return run_lotus_command(cmd)
 
-            command_str = " ".join(command)
-            logger.info(" - the command is: ")
-            logger.info(command_str)
-
-            # Store the command in the database for logging purposes
-            SequencingAnalysis.update_field(
-                analysis_id, "lotus2_command", " ".join(command)
+        # ------------------------------
+        #       REGION = Full ITS
+        # ------------------------------
+        if region == "Full_ITS":
+            mapping_file = os.path.join(
+                input_dir, "mapping_files", "Full_ITS_Mapping.txt"
             )
 
-            # Run the command inside the container
-            result = container.exec_run(["bash", "-c", command_str])
-            logger.info(result.output)
-
-            SequencingAnalysis.update_field(
-                analysis_id, "lotus2_status", "Finished"
-            )
-            SequencingAnalysis.update_field(
-                analysis_id, "lotus2_finished_at", datetime.utcnow()
-            )
-            SequencingAnalysis.update_field(
-                analysis_id, "lotus2_result", result.output
-            )
-
-        elif region == "Full_ITS":
-
-            mapping_file = input_dir + "/mapping_files/Full_ITS_Mapping.txt"
-
-            logger.info("-----------------------------")
-            logger.info(analysis_type.name)
             if analysis_type.name in ["FULL_ITS_PACBIO", "FULL_ITS_Eukaryome"]:
                 sdmopt = "/lotus2_files/sdm_PacBio_ITS.txt"
 
                 if analysis_type.name == "FULL_ITS_PACBIO":
                     refDB = "/lotus2_files/UNITE_v10_sh_general_release_dynamic_all_19.02.2025.fasta"
-
                     tax4refDB = "/lotus2_files/UNITE_v10_sh_general_release_dynamic_all_19.02.2025.tax"
-
-                elif analysis_type.name == "FULL_ITS_Eukaryome":
+                else:
                     refDB = "/lotus2_files/mothur_EUK_ITS_v1.9.4.fasta"
                     tax4refDB = "/lotus2_files/mothur_EUK_ITS_v1.9.4_lotus.tax"
 
-                command = [
+                cmd = [
                     "lotus3",
-                    debug_command,
+                    debug_flag,
                     "-i",
                     input_dir,
                     "-o",
@@ -360,56 +353,30 @@ def generate_lotus2_report(
                     "-sdmopt",
                     sdmopt,
                 ]
+                return run_lotus_command(cmd)
 
-                command_str = " ".join(command)
-                logger.info(" - the command is: ")
-                logger.info(command_str)
-
-                # Store the command in the database for logging purposes
-                SequencingAnalysis.update_field(
-                    analysis_id, "lotus2_command", " ".join(command)
-                )
-
-                # Run the command inside the container
-                result = container.exec_run(["bash", "-c", command_str])
-                logger.info(result.output)
-
-                SequencingAnalysis.update_field(
-                    analysis_id, "lotus2_status", "Finished"
-                )
-                SequencingAnalysis.update_field(
-                    analysis_id, "lotus2_finished_at", datetime.utcnow()
-                )
-                SequencingAnalysis.update_field(
-                    analysis_id, "lotus2_result", result.output
-                )
-
-            else:
-                logger.info(
-                    "Lotus2 report generation for amplicon "
-                    + region
-                    + " cannot be generated as we don't have the details."
-                )
-                SequencingAnalysis.update_field(
-                    analysis_id,
-                    "lotus2_status",
-                    "Abandoned. Full_ITS without supported analysis.",
-                )
-                SequencingAnalysis.update_field(
-                    analysis_id, "lotus2_finished_at", datetime.utcnow()
-                )
-        else:
-            logger.info(
-                "Lotus2 report generation for amplicon "
-                + region
-                + " cannot be generated as we don't have the details."
-            )
+            # Unsupported Full ITS type
             SequencingAnalysis.update_field(
-                analysis_id, "lotus2_status", "Abandoned. Unknown region."
+                analysis_id,
+                "lotus2_status",
+                "Abandoned. Full_ITS without supported analysis.",
             )
             SequencingAnalysis.update_field(
                 analysis_id, "lotus2_finished_at", datetime.utcnow()
             )
+            log("Unsupported Full_ITS analysis.")
+            return
+
+        # ------------------------------
+        # UNKNOWN REGION
+        # ------------------------------
+        SequencingAnalysis.update_field(
+            analysis_id, "lotus2_status", "Abandoned. Unknown region."
+        )
+        SequencingAnalysis.update_field(
+            analysis_id, "lotus2_finished_at", datetime.utcnow()
+        )
+        log(f"Unknown region {region}")
 
     except Exception as e:
         logger.error(f"Error generating Lotus2 report: {str(e)}")

@@ -64,14 +64,9 @@ services:
     command: ["tail", "-f", "/dev/null"]
 
   celery-worker:
+    image: ghcr.io/societyprotectionundergroundnetworks/sequencing-submission-form-flask:latest
     container_name: spun-celery-worker  # Unique name for the Celery worker container
-    build:
-      context: .
-      dockerfile: Dockerfile-flask
-      args:
-        FLASK_PROCESS_USER: ${FLASK_PROCESS_USER}
-        FLASK_PROCESS_USER_ID: ${FLASK_PROCESS_USER_ID}
-        FLASK_PROCESS_GROUP_ID: ${FLASK_PROCESS_GROUP_ID}
+    user: "1000:1000"
     depends_on:
       - db
       - redis
@@ -82,6 +77,7 @@ services:
     volumes:
       - .:/app
       - ${GOOGLE_APPLICATION_CREDENTIALS_PATH}:/google_auth_file/key_file.json
+      - ${HETZNER_SSH_PRIVATE_KEY_PATH}:/ssh_private_key/prod_to_vm
       - /var/run/docker.sock:/var/run/docker.sock
     env_file:
       - .env
