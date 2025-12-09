@@ -48,6 +48,7 @@ pytest-mock==3.14.1
 
 # Required for Hetzner Cloud interaction
 hcloud==2.11.1
+paramiko==4.0.0
 
 # Required for PDF generation
 weasyprint
