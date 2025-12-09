@@ -4,6 +4,7 @@ import paramiko
 import requests
 import logging
 import socket
+from datetime import datetime, timezone
 
 logger = logging.getLogger("my_app_logger")
 
@@ -189,3 +190,66 @@ def run_lotus3_on_vm(command_string, server_name):
     finally:
         logger.info(f"Deleting the VM with id {vm_id}")
         delete_vm(vm_id)
+
+
+def list_existing_vms():
+    """
+    List all existing Hetzner VMs with ID, name, creation date, and public IP.
+
+    Returns:
+        List[dict]: Each dict contains 'id', 'name', 'created', 'ip'
+    """
+    r = requests.get(API_URL, headers=_api_headers())
+    if r.status_code != 200:
+        raise HetznerVMError(f"Failed to list VMs: {r.text}")
+
+    servers = r.json().get("servers", [])
+    vm_list = []
+
+    for srv in servers:
+        vm_list.append(
+            {
+                "id": srv["id"],
+                "name": srv["name"],
+                "created": srv["created"],  # ISO 8601 timestamp
+                "ip": (
+                    srv["public_net"]["ipv4"]["ip"]
+                    if "public_net" in srv
+                    else None
+                ),
+            }
+        )
+
+    return vm_list
+
+
+def send_vm_status_to_slack():
+    from helpers.slack import send_message_to_slack
+
+    vms = list_existing_vms()
+
+    if not vms:
+        send_message_to_slack("No active Hetzner VMs found.")
+        return
+
+    message_lines = [":satellite: *Active Hetzner VMs:*"]
+
+    now = datetime.now(timezone.utc)
+
+    for vm in vms:
+        created = datetime.fromisoformat(vm["created"].replace("Z", "+00:00"))
+        uptime = now - created
+
+        days = uptime.days
+        hours, remainder = divmod(uptime.seconds, 3600)
+        minutes, _ = divmod(remainder, 60)
+
+        uptime_str = f"{days}d {hours}h {minutes}m"
+
+        message_lines.append(
+            f"- `ID {vm['id']}` | *{vm['name']}* | IP `{vm['ip']}` | Uptime: `{uptime_str}`"
+        )
+
+    final_message = "\n".join(message_lines)
+
+    send_message_to_slack(final_message)
