@@ -819,7 +819,7 @@ class SequencingUpload:
             JOIN sequencing_files_uploaded
                 AS sfu ON sfu.sequencerId = ssi.id
             WHERE ss.sequencingUploadId = :sequencingUploadId
-            AND ssi.Region IN ('ITS1', 'ITS2')
+            AND ssi.Region IN ('ITS1', 'ITS2', 'Full_ITS')
             GROUP BY ss.id
         )
         """
