@@ -65,6 +65,9 @@ logsflask:
 logscelery:
 	docker-compose logs -f --tail=200 celery-worker
 
+logsbeat:
+	docker-compose logs -f --tail=200 celery-beat
+
 logsnginx:
 	docker-compose logs -f --tail=200 nginx
 
@@ -75,7 +78,7 @@ logsr:
 	docker-compose logs -f --tail=200 r_service
 
 logslotus:
-	docker-compose logs -f --tail=200 lotus2
+	docker-compose logs -f --tail=200 lotus3
 
 migration:
 	docker-compose exec flask alembic revision --autogenerate -m "${description}"

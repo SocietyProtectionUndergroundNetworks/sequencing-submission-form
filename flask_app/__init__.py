@@ -15,6 +15,7 @@ from db.db_conn import (
 from views import create_base_app
 from extensions import login_manager
 from celery_config import make_celery
+from celery.schedules import crontab
 
 # Initialize extensions as objects, to be bound to an app later
 db = SQLAlchemy()
@@ -25,6 +26,7 @@ celery_app = (
 
 
 def create_app(test_config=None):
+    global celery_app
     app = create_base_app()
 
     # Clear current_app.logger handlers if any
@@ -119,8 +121,14 @@ def create_app(test_config=None):
 
     # 5. Initialize the global Celery app instance
     # This must be done AFTER app.config is fully set up
-    global celery_app
     celery_app = make_celery(app)
+
+    celery_app.conf.beat_schedule = {
+        "send_vm_status_every_morning_7am": {
+            "task": "tasks.send_vm_status_to_slack_task",
+            "schedule": crontab(hour=7, minute=0),  # every day at 07:00
+        },
+    }
 
     # 6. Import tasks AFTER Celery is initialized
     # This is crucial for Celery to register tasks correctly.

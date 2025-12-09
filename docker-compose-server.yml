@@ -91,6 +91,25 @@ services:
       - flask
     entrypoint: celery -A celery_worker worker --loglevel=info
 
+  celery-beat:
+    image: ghcr.io/societyprotectionundergroundnetworks/sequencing-submission-form-flask:latest
+    container_name: spun-celery-beat
+    user: "1000:1000"
+    depends_on:
+      - redis
+    volumes:
+      - .:/app
+      - ${GOOGLE_APPLICATION_CREDENTIALS_PATH}:/google_auth_file/key_file.json
+      - ${HETZNER_SSH_PRIVATE_KEY_PATH}:/ssh_private_key/prod_to_vm
+    env_file:
+      - .env
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - DOCKER_HOST=tcp://socat:2375
+    networks:
+      - flask
+    entrypoint: celery -A celery_worker beat --loglevel=info
+
   nginx:
     image: nginx:alpine
     build:

@@ -1,5 +1,5 @@
 import logging
-from celery import current_app as celery_app
+from flask_app import celery_app
 from redis import Redis
 from redis.exceptions import LockError
 from contextlib import contextmanager
@@ -22,6 +22,7 @@ from helpers.r_scripts import (
 )
 from helpers.ecoregions import update_external_samples_with_ecoregions
 from helpers.share_directory import sync_project
+from helpers.hetzner_vm import send_vm_status_to_slack
 
 logger = logging.getLogger("my_app_logger")
 
@@ -176,3 +177,8 @@ def sync_project_async(process_id):
 @celery_app.task
 def download_file_from_bucket_async(bucket_name, blob_path, local_file_path):
     download_file_from_bucket(bucket_name, blob_path, local_file_path)
+
+
+@celery_app.task(name="tasks.send_vm_status_to_slack_task")
+def send_vm_status_to_slack_task():
+    send_vm_status_to_slack()
