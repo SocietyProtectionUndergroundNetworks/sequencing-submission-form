@@ -26,6 +26,7 @@ from helpers.ecoregions import (
 from models.sequencing_sample import SequencingSample
 from models.sequencing_upload import SequencingUpload
 from models.app_configuration import AppConfiguration
+from helpers.hetzner_vm import list_existing_vms
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -214,3 +215,16 @@ def update_configuration():
 
     flash("Configuration updated successfully!", "success")
     return redirect(url_for("admin.configuration"))
+
+
+@admin_bp.route(
+    "/admin/see_vms",
+    methods=["GET"],
+    endpoint="see_vms",
+)
+@login_required
+@admin_required
+@approved_required
+def see_vms():
+    vms = list_existing_vms()
+    return render_template("see_vms.html", vms=vms)
