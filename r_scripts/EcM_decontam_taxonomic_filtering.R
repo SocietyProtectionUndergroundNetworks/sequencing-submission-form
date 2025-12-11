@@ -210,6 +210,10 @@ fungal_traits_ecm <- fungaltraits %>%
   select(Genus, primary_lifestyle) %>%
   filter(primary_lifestyle == "ectomycorrhizal")
 
+fungal_traits_amf <- fungaltraits %>%
+  select(Genus, primary_lifestyle) %>%
+  filter(primary_lifestyle %in% c("arbuscular_mycorrhizal", "AMF", "arbuscular"))
+
 # Check how many Genuses are ecm:
 
 num_ecm_genera <- length(which(get_taxa_unique(physeq_filtered, taxonomic.rank = "Genus") %in% fungal_traits_ecm$Genus))
@@ -282,6 +286,33 @@ if (num_ecm_genera > 0) {
   system(paste0("touch ", str_c(args$output, "/", "ecm_physeq_by_genus.pdf")))
   writeLines("sample_id,observed,estimator,est_s_e,x95_percent_lower,x95_percent_upper,seq_depth", str_c(args$output, "/metadata_chaorichness.csv"))
 }
+
+# Check how many Genuses are amf:
+num_amf_genera <- length(
+  which(get_taxa_unique(physeq_filtered, taxonomic.rank = "Genus") %in% fungal_traits_amf$Genus)
+)
+
+if (num_amf_genera > 0) {
+
+  amf_physeq <- subset_taxa(physeq_decontam, Genus %in% fungal_traits_amf$Genus) %>%
+    subset_taxa(eval(parse(text = filter_expr_combined)))
+
+  saveRDS(amf_physeq, file = str_c(args$output, "/", "amf_physeq.Rdata"))
+  export_phyloseq_as_csv(amf_physeq, "amf_physeq_")
+
+  p <- plot_bar(amf_physeq, fill = "Genus")
+  ggsave(
+    str_c(args$output, "/", "amf_physeq_by_genus.pdf"), p,
+    width = 14, height = 14, units = "in"
+  )
+
+} else {
+  # Create empty placeholders
+  system(paste0("touch ", str_c(args$output, "/", "amf_physeq.Rdata")))
+  system(paste0("touch ", str_c(args$output, "/", "amf_physeq_by_genus.pdf")))
+}
+
+
 
 # Extract taxonomy data
 taxonomy_data <- tax_table(physeq_decontam) %>%  # or physeq_filtered if you prefer
