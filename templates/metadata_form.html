@@ -1844,6 +1844,8 @@
   var project_common_data = JSON.parse('{{ project_common_data|tojson|safe }}');
   var samples_data = JSON.parse('{{ samples_data|tojson }}');
   var sequencing_regions_number = {{ process_data["Sequencing_regions_number"] if process_data["Sequencing_regions_number"] else 0 }};
+  var region_1_reverse_primer = "{{ process_data["region_1_reverse_primer"] }}"
+  var region_2_reverse_primer = "{{ process_data["region_2_reverse_primer"] }}"
   ////// ############################################# /////////
   ////// ############ STEP 2 STARTS HERE ############# /////////
   ////// ############################################# /////////
@@ -1907,7 +1909,12 @@
         }
 
         // If a reverse primer was already selected in process_data, set it
-        var selectedReverse = process_data["region_" + region + "_reverse_primer"];
+        if ( region == 1) {
+          var selectedReverse = region_1_reverse_primer; 
+        } else {
+          var selectedReverse = region_2_reverse_primer;
+        }
+        
         if (selectedReverse) {
             reverseSelect.val(selectedReverse);
         }
@@ -1926,7 +1933,11 @@
             });
 
             // If a reverse primer was already selected, set it
-            var selectedReverse = process_data["region_" + region + "_reverse_primer"];
+            if ( region == 1) {
+              var selectedReverse = region_1_reverse_primer; 
+            } else {
+              var selectedReverse = region_2_reverse_primer;
+            }
             if (selectedReverse) {
                 reverseSelect.val(selectedReverse);
             }
