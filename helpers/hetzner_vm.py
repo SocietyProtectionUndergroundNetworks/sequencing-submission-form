@@ -171,6 +171,7 @@ def run_lotus3_on_vm(command_string, server_name):
         # 2. Run lotus3 command
         full_cmd = f"""
             docker run --rm \
+                --user root \
                 -v /mnt/seq_processed:/seq_processed \
                 -v /mnt/lotus2_files:/lotus2_files \
                 sequencing-submission-form-lotus3:latest \
