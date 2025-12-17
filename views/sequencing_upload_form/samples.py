@@ -21,6 +21,7 @@ from helpers.decorators import (
 from helpers.metadata_check import (
     check_metadata,
     get_columns_data,
+    normalize_row,
 )
 from models.sequencing_upload import SequencingUpload
 from models.sequencing_sample import SequencingSample
@@ -154,6 +155,7 @@ def upload_metadata_file():
         for _, row in df.iterrows():
             # Convert the row to a dictionary
             datadict = row.to_dict()
+            datadict = normalize_row(datadict, expected_columns_data)
             # Call the create method of SequencingSample and
             # capture the sample_line_id
             sample_line_id = SequencingSample.create(

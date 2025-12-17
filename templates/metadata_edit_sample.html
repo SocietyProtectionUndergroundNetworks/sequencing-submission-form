@@ -24,7 +24,6 @@
   <div class="content p-4">
     <h1>Edit Sample Form</h1>
     <div id="msg" clas  s="text-info">{{ msg }}</div>
-
     <div class="container">
         <form id="metadataForm">
             <input type="hidden" name="process_id" value="{{ sample.sequencingUploadId }}">
@@ -39,7 +38,7 @@
                                 <select class="form-control" id="{{ column_key }}" name="{{ column_key }}">
                                     <option value="">------</option>
                                     {% for option in column_values['options'] %}
-                                        <option value="{{ option }}" {% if sample[column_key] == option %}selected{% endif %}>{{ option }}</option>
+                                        <option value="{{ option }}" {% if sample[column_key]|lower == option|lower %}selected{% endif %}>{{ option }}</option>
                                     {% endfor %}
                                 </select>
                             {% elif column_values.get('field_type') == 'date' %}

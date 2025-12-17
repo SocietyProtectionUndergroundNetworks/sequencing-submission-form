@@ -44,8 +44,6 @@ option_list <- list(
   make_option(
     c("-e", "--exclude"),
     type = "character",
-    #default = '[{"Taxonomy_level": "Family","Value": "Suillaceae"},
-    #            {"Taxonomy_level": "Family","Value": "Tricholomataceae"}]',
     default = '',
     help = "JSON string of taxonomy levels and values to exclude when making AMF subset"
   )
@@ -87,14 +85,13 @@ p <- ggplot(data = df, aes(x = Index, y = LibrarySize, color = Sample_or_Control
 ggsave(str_c(args$output, "/", "LibrarySize.pdf"), p,
        width = 7, height = 7, units = "in")
 
-## Import required files to assess taxonomy of removed OTUs - for the whole process, we need the 'hiera_BLAST.txt' file and the phyloseq object
+## Import required files to assess taxonomy of removed OTUs
 otu_taxonomy <- read_tsv(str_c(args$lotus2, "/", "hiera_BLAST.txt")) %>%
   set_names("OTU", "kingdom", "phylum", "class", "order", "family", "genus", "species")
 
-# If there are no controls, or if the read depth of any control species is in the 75th percentils, store in a variable and print warning
+cat("DEBUG: hiera_BLAST.txt loaded. Rows:", nrow(otu_taxonomy), "\n")
 
 num_of_controls <- df %>% as_tibble %>% filter(Sample_or_Control == "Control") %>% nrow()
-
 sample_data(physeq)$is.neg <- (sample_data(physeq)$Sample_or_Control == "Control")
 
 if (num_of_controls > 0) {

@@ -55,6 +55,44 @@ def get_columns_data(exclude=True):
     return data
 
 
+def normalize_value(value, options):
+    """
+    Normalize a value against a list of allowed options.
+    Returns the canonical option if matched (case-insensitive),
+    otherwise returns the original value.
+    """
+    if value is None:
+        return None
+
+    if not options:
+        return value
+
+    value_str = str(value).strip()
+
+    for opt in options:
+        if value_str.lower() == str(opt).lower():
+            return opt  # canonical case from lookup
+
+    return value
+
+
+def normalize_row(datadict, columns_data):
+    """
+    Normalize a row dict using columns metadata.
+    """
+    normalized = {}
+
+    for col, value in datadict.items():
+        column_meta = columns_data.get(col)
+
+        if column_meta and "options" in column_meta:
+            normalized[col] = normalize_value(value, column_meta["options"])
+        else:
+            normalized[col] = value
+
+    return normalized
+
+
 def get_project_common_data():
     current_dir = os.path.dirname(__file__)
     base_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
@@ -174,54 +212,49 @@ def check_field_length_value(value, max_length):
         return {"status": 1, "message": "Valid value"}
 
 
+def build_canonical_lookup(valid_values):
+    """
+    Build a mapping of lowercase value → canonical value
+    """
+    return {str(v).strip().lower(): v for v in valid_values}
+
+
 def check_field_values_lookup(df, valid_values, field_name, allow_empty=True):
     """
     Check if field_name values are valid based on the valid_values list.
-    Ignore case when comparing values.
+    Case-insensitive validation using canonical values.
     """
-    invalid_values = [
-        {"row": idx, "value": value}
-        for idx, value in df[field_name].dropna().items()
-        if (
-            (
-                isinstance(value, str)
-                and value.strip() == ""
-                and not allow_empty
-            )
-            or (
-                isinstance(value, str)
-                and value.strip().lower()
-                not in [v.lower() for v in valid_values]
-            )
-            or (
-                not isinstance(value, str)
-                and not allow_empty
-                and pd.isna(value)
-            )
-        )
-    ]
+    canonical_map = build_canonical_lookup(valid_values)
+    valid_lower = set(canonical_map.keys())
 
-    # Identify empty values
-    empty_values = []
-    if not allow_empty:
-        empty_values = df[
-            df[field_name].isna()
-            | df[field_name].astype(str).str.strip().eq("")
-        ].index.tolist()
+    invalid_values = []
 
-    if invalid_values or empty_values:
+    for idx, value in df[field_name].items():
+        # Handle empty values
+        if value is None or (isinstance(value, float) and pd.isna(value)):
+            if not allow_empty:
+                invalid_values.append({"row": idx, "value": value})
+            continue
+
+        value_str = str(value).strip()
+
+        if value_str == "":
+            if not allow_empty:
+                invalid_values.append({"row": idx, "value": value})
+            continue
+
+        # Case-insensitive comparison
+        if value_str.lower() not in valid_lower:
+            invalid_values.append({"row": idx, "value": value})
+
+    if invalid_values:
         return {
             "invalid": invalid_values,
-            "empty_values": empty_values,
-            "message": (
-                "Invalid " + field_name + " values"
-                if invalid_values
-                else "Empty values found for " + field_name
-            ),
+            "message": f"Invalid {field_name} values",
             "status": 0,
         }
-    else:
-        return {"status": 1}
+
+    return {"status": 1}
 
 
 def check_date_collected(date):
