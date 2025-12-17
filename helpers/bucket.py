@@ -23,6 +23,15 @@ def calculate_md5(file_path):
 
 
 def list_buckets():
+    env = os.getenv("ENVIRONMENT").lower()
+
+    if env == "development":
+        # Dummy buckets for dev mode
+        return {
+            "dev-bucket-1": "DEV",
+            "dev-bucket-2": "DEV",
+            "dev-bucket-3": "DEV",
+        }
     # Instantiates a client
     storage_client = storage.Client()
 
