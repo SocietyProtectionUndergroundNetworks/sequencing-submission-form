@@ -116,6 +116,7 @@ def create_app(test_config=None):
     app.config["DISABLE_EARTH_ENGINE"] = env != "production"
     if not app.config["DISABLE_EARTH_ENGINE"]:
         from helpers.land_use import initialize_earth_engine
+
         initialize_earth_engine()
 
     # Logger setup (your views/__init__.py might also do this,
