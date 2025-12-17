@@ -42,7 +42,11 @@
                                     {% endfor %}
                                 </select>
                             {% elif column_values.get('field_type') == 'date' %}
-                                <input type="date" class="form-control" id="{{ column_key }}" name="{{ column_key }}" value="{{ sample[column_key] }}">
+                                <input type="date"
+                                    class="form-control"
+                                    id="{{ column_key }}"
+                                    name="{{ column_key }}"
+                                    value="{{ sample[column_key].split(' ')[0] if sample[column_key] else '' }}">
                             {% else %}
                                 <input type="text" class="form-control" id="{{ column_key }}" name="{{ column_key }}" placeholder="{{ column_key }}" value="{{ sample[column_key] }}">
                             {% endif %}
