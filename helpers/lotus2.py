@@ -125,7 +125,7 @@ def generate_lotus2_report(
         # ------------------------------
         #  Helper: Run command + DB write
         # ------------------------------
-        def run_lotus_command(command_list):
+        def run_lotus_command(command_list, server_size):
             command_str = " ".join(command_list)
             log(" - the command is:")
             log(command_str)
@@ -143,7 +143,19 @@ def generate_lotus2_report(
             if str(remote_pipeline) == "1":
                 log("Remote pipeline enabled → starting VM...")
                 server_name = f"lotus3-{process_id}-{analysis_type_id}-{int(datetime.utcnow().timestamp())}"
-                result = run_lotus3_on_vm(command_str, server_name)
+                # When on the VM set temp dirs to be inside the VM. 
+                # Set all 3 variables because different tools use different ones.
+                command_str = (
+                    "export TMPDIR=/tmp/lotus_tmp && "
+                    "export TMP=/tmp/lotus_tmp && "
+                    "export TEMP=/tmp/lotus_tmp && "
+                    "mkdir -p /tmp/lotus_tmp && "
+                    + command_str
+                )
+
+                result = run_lotus3_on_vm(
+                    command_str, server_name, server_size
+                )
 
                 SequencingAnalysis.update_field(
                     analysis_id,
@@ -179,6 +191,7 @@ def generate_lotus2_report(
         #          REGION = ITS1/ITS2
         # ------------------------------
         if region in ["ITS1", "ITS2"]:
+            server_size = "cpx62"
             mapping_file = os.path.join(
                 input_dir, "mapping_files", f"{region}_Mapping.txt"
             )
@@ -232,7 +245,7 @@ def generate_lotus2_report(
                 "-tax4refDB",
                 tax4refDB,
             ]
-            return run_lotus_command(cmd)
+            return run_lotus_command(cmd, server_size)
 
         # ------------------------------
         #            REGION = SSU
@@ -240,6 +253,7 @@ def generate_lotus2_report(
         if region == "SSU":
             parameters = parameters | analysis_type.parameters
             clustering = parameters["clustering"]
+            server_size = "cpx62"
 
             mapping_file = os.path.join(
                 input_dir, "mapping_files", "SSU_Mapping.txt"
@@ -268,6 +282,7 @@ def generate_lotus2_report(
             elif analysis_type.name == "SSU_eukaryome":
                 refDB = "/lotus2_files/mothur_EUK_SSU_v1.9.3.fasta"
                 tax4refDB = "/lotus2_files/mothur_EUK_SSU_v1.9.3_lotus.tax"
+                server_size = "ccx43"
 
             cmd = [
                 "lotus3",
@@ -301,12 +316,13 @@ def generate_lotus2_report(
                 "-sdmopt",
                 sdmopt,
             ]
-            return run_lotus_command(cmd)
+            return run_lotus_command(cmd, server_size)
 
         # ------------------------------
         #       REGION = Full ITS
         # ------------------------------
         if region == "Full_ITS":
+            server_size = "cpx62"
             mapping_file = os.path.join(
                 input_dir, "mapping_files", "Full_ITS_Mapping.txt"
             )
@@ -353,7 +369,7 @@ def generate_lotus2_report(
                     "-sdmopt",
                     sdmopt,
                 ]
-                return run_lotus_command(cmd)
+                return run_lotus_command(cmd, server_size)
 
             # Unsupported Full ITS type
             SequencingAnalysis.update_field(
