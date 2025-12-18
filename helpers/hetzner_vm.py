@@ -31,11 +31,11 @@ def _api_headers():
     return {"Authorization": f"Bearer {HETZNER_API_TOKEN}"}
 
 
-def create_vm(name="lotus3-runner"):
+def create_vm(name="lotus3-runner", server_size="cpx62"):
     """Create a VM from snapshot."""
     data = {
         "name": name,
-        "server_type": "cpx62",
+        "server_type": server_size,
         "image": HETZNER_SNAPSHOT_ID,
         "ssh_keys": [HETZNER_SSH_KEY_ID],
     }
@@ -150,7 +150,7 @@ def run_remote_command(ip, command, stream_output=False):
 # ---------------------------------------------------------
 #             High-level Combined Runner
 # ---------------------------------------------------------
-def run_lotus3_on_vm(command_string, server_name):
+def run_lotus3_on_vm(command_string, server_name, server_size="cpx62"):
     """
     Main high-level function used by lotus2.py:
     - Creates VM
@@ -160,7 +160,7 @@ def run_lotus3_on_vm(command_string, server_name):
     - Returns results
     """
 
-    vm = create_vm(server_name)
+    vm = create_vm(server_name, server_size)
     vm_id = vm["id"]
     vm_ip = vm["ip"]
 
