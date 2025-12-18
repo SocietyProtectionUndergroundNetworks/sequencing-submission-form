@@ -24,8 +24,9 @@ def calculate_md5(file_path):
 
 def list_buckets():
     env = os.getenv("ENVIRONMENT").lower()
+    dev_mode = os.getenv("DEV_MODE").lower()
 
-    if env == "development":
+    if env == "development" and dev_mode == "true":
         # Dummy buckets for dev mode
         return {
             "dev-bucket-1": "DEV",
