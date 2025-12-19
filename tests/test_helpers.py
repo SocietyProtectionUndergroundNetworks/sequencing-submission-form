@@ -123,6 +123,26 @@ def _create_dummy_sampling_record(db_session, mocker, app_fixture, **kwargs):
     unique = uuid.uuid4().hex[:8]
     default_sample_data = {
         "SampleID": f"TEST-SAMPLE-{unique}",
+        "Site_name": "TEST-SITE",
+        "Latitude": 3.68823,
+        "Longitude": 39.68602,
+        "Vegetation": "trees",
+        "Land_use": "shrubs",
+        "Agricultural_land": "No",
+        "Ecosystem": "Boreal Forests/Taiga",
+        "resolve_ecoregion_id": None,
+        "BaileysEcoregion": None,
+        "Grid_Size": "10m",
+        "Soil_depth": "0-20cm",
+        "Transport_refrigeration": "Yes",
+        "Drying": "No",
+        "Date_collected": "2000-01-01",
+        "DNA_concentration_ng_ul": 0,
+        "Elevation": 11,
+        "Sample_type": "soil",
+        "Sample_or_Control": "Control",
+        "IndigenousPartnership": False,
+        "Notes": None,
     }
 
     sample_data = {**default_sample_data, **kwargs}
