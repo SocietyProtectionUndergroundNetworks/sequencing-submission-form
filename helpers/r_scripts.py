@@ -80,7 +80,7 @@ def create_pdf_report(process_id):
     ssu_count_amf = 0
 
     for r_report in rscripts_reports:
-        if "ITS2" == r_report["analysis_type"]:
+        if r_report["analysis_type"] in ("ITS1", "ITS2"):
             its_report = r_report["analysis_type"]
             missing_samples_its = SequencingUpload.get_missing_its_files(
                 process_id
@@ -88,7 +88,6 @@ def create_pdf_report(process_id):
             its_command = r_report["lotus2_command"]
             its_region = r_report.get("region", "ITS")  # Use get for safety
             its_count_ecm = SequencingAnalysis.get_ecm_count(r_report["id"])
-
         elif "FULL_ITS_Eukaryome" == r_report["analysis_type"]:
             its_report = r_report["analysis_type"]
             missing_samples_its = SequencingUpload.get_missing_its_files(
