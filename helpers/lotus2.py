@@ -327,10 +327,10 @@ def generate_lotus2_report(
                 input_dir, "mapping_files", "Full_ITS_Mapping.txt"
             )
 
-            if analysis_type.name in ["FULL_ITS_PACBIO", "FULL_ITS_Eukaryome"]:
+            if analysis_type.name in ["FULL_ITS_UNITE", "FULL_ITS_Eukaryome"]:
                 sdmopt = "/lotus2_files/sdm_PacBio_ITS.txt"
 
-                if analysis_type.name == "FULL_ITS_PACBIO":
+                if analysis_type.name == "FULL_ITS_UNITE":
                     refDB = "/lotus2_files/UNITE_v10_sh_general_release_dynamic_all_19.02.2025.fasta"
                     tax4refDB = "/lotus2_files/UNITE_v10_sh_general_release_dynamic_all_19.02.2025.tax"
                 else:
