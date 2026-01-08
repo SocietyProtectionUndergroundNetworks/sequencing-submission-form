@@ -3,6 +3,7 @@
 import secrets
 import sys
 import logging
+import os
 
 # Import extensions without initializing them with an app yet
 from flask_sqlalchemy import SQLAlchemy
@@ -110,7 +111,13 @@ def create_app(test_config=None):
     # 4. Other app setup that needs the app context or configuration
     # Initialize Earth Engine. This often needs to be mocked in tests.
     # Conditionally initialize Earth Engine only if NOT disabled
-    if not app.config.get("DISABLE_EARTH_ENGINE", False):
+    # Disable only if ENVIRONMENT=development AND DEV_MODE=true
+    env = os.getenv("ENVIRONMENT", "development").lower()
+    dev_mode = os.getenv("DEV_MODE", "true").lower()
+    app.config["DISABLE_EARTH_ENGINE"] = (
+        env == "development" and dev_mode == "true"
+    )
+    if not app.config["DISABLE_EARTH_ENGINE"]:
         from helpers.land_use import initialize_earth_engine
 
         initialize_earth_engine()
