@@ -53,8 +53,15 @@
           {% endif %}
         {% endif %}
       {% endif %}
-      {% if current_user.is_authenticated and current_user.admin %}
+
+      {% if current_user.is_authenticated and (current_user.admin or current_user.spun_staff) %}
         <h3> SPUN Staff </h3>
+
+        <a href="/all_uploads_v2">
+          <div class="page-menu-item">
+            <h3>All v2 uploads</h3>
+          </div>
+        </a>
 
         <a href="/taxonomy/search">
           <div class="page-menu-item">
@@ -98,11 +105,6 @@
         <a href="{{ url_for('user.users') }}">
           <div class="page-menu-item">
             <h3>Users</h3>
-          </div>
-        </a>
-        <a href="/all_uploads_v2">
-          <div class="page-menu-item">
-            <h3>All v2 uploads</h3>
           </div>
         </a>
         <a href="/scripps_form">

@@ -11,7 +11,7 @@ from flask import (
 )
 from helpers.decorators import (
     approved_required,
-    admin_or_owner_required,
+    staff_or_owner_required,
 )
 from sqlalchemy.inspection import inspect
 from helpers.metadata_check import (
@@ -31,7 +31,7 @@ logger = logging.getLogger("my_app_logger")
 @upload_form_bp.route("/metadata_form", endpoint="metadata_form")
 @login_required
 @approved_required
-@admin_or_owner_required
+@staff_or_owner_required
 def metadata_form():
     my_buckets = {}
     map_key = os.environ.get("GOOGLE_MAP_API_KEY")

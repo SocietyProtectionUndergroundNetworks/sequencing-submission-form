@@ -19,6 +19,7 @@ from helpers.lotus2 import (
 from helpers.decorators import (
     approved_required,
     admin_required,
+    staff_required,
 )
 from helpers.bucket import (
     delete_bucket_folder,
@@ -37,7 +38,7 @@ projects_bp = Blueprint("projects", __name__)
     "/all_uploads_v2", methods=["GET"], endpoint="all_uploads_v2"
 )
 @login_required
-@admin_required
+@staff_required
 @approved_required
 def all_uploads_v2():
     user_metadata_uploads = SequencingUpload.get_all()
