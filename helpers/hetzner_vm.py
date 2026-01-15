@@ -233,7 +233,7 @@ def send_vm_status_to_slack():
     vms = list_existing_vms()
 
     if not vms:
-        send_message_to_slack("No active Hetzner VMs found.")
+        # send_message_to_slack("No active Hetzner VMs found.")
         return
 
     message_lines = [":satellite: *Active Hetzner VMs:*"]
