@@ -97,11 +97,6 @@
       
       {% if current_user.is_authenticated and current_user.admin %}
         <h3> Admin </h3>
-        <a href="{{ url_for('user.user_groups') }}">
-          <div class="page-menu-item">
-            <h3>User Groups</h3>
-          </div>
-        </a>
         <a href="{{ url_for('user.users') }}">
           <div class="page-menu-item">
             <h3>Users</h3>
