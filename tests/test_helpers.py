@@ -11,9 +11,11 @@ from models.db_model import (
     Genus,
     Species,
     Taxonomy,
+    SequencingSamplesTable,
 )
 from unittest.mock import MagicMock
 from models.sequencing_upload import SequencingUpload
+from models.sequencing_sample import SequencingSample
 
 
 def _create_dummy_user_and_bucket_dependencies(db_session):
@@ -108,6 +110,52 @@ def _create_dummy_sequencing_upload(db_session, mocker, app_fixture, **kwargs):
         project_id,
         upload_data,
     )  # Return relevant info
+
+
+def _create_dummy_sampling_record(db_session, mocker, app_fixture, **kwargs):
+    """
+    Creates and commits a SequencingSamplesTable row via SequencingSample.create.
+    Returns (sample_id, sequencing_upload_id, sample_data, sample_row).
+    """
+    sequencing_upload_id, user_id, project_id, upload_data = (
+        _create_dummy_sequencing_upload(db_session, mocker, app_fixture)
+    )
+    unique = uuid.uuid4().hex[:8]
+    default_sample_data = {
+        "SampleID": f"TEST-SAMPLE-{unique}",
+        "Site_name": "TEST-SITE",
+        "Latitude": 3.68823,
+        "Longitude": 39.68602,
+        "Vegetation": "trees",
+        "Land_use": "shrubs",
+        "Agricultural_land": "No",
+        "Ecosystem": "Boreal Forests/Taiga",
+        "resolve_ecoregion_id": None,
+        "BaileysEcoregion": None,
+        "Grid_Size": "10m",
+        "Soil_depth": "0-20cm",
+        "Transport_refrigeration": "Yes",
+        "Drying": "No",
+        "Date_collected": "2000-01-01",
+        "DNA_concentration_ng_ul": 0,
+        "Elevation": 11,
+        "Sample_type": "soil",
+        "Sample_or_Control": "Control",
+        "IndigenousPartnership": False,
+        "Notes": None,
+    }
+
+    sample_data = {**default_sample_data, **kwargs}
+
+    with app_fixture.test_request_context():
+        sample_id = SequencingSample.create(sequencing_upload_id, sample_data)
+
+    db_session.commit()
+
+    sample_row = (
+        db_session.query(SequencingSamplesTable).filter_by(id=sample_id).one()
+    )
+    return sample_id, sequencing_upload_id, sample_data, sample_row
 
 
 def _create_dummy_ecoregion(db_session, ecoregion_id, name, fid, objectid):
