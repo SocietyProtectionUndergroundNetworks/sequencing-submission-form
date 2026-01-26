@@ -165,6 +165,7 @@ def metadata_form():
         missing_sequencing_ids=missing_sequencing_ids,
         samples_data_complete=samples_data_complete,
         is_admin=current_user.admin,
+        is_staff=current_user.spun_staff,
         multiqc_report_exists=multiqc_report_exists,
         extra_data_keys=extra_data_keys,
         extra_data=extra_data,

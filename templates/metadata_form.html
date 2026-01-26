@@ -729,7 +729,7 @@
                                                      data-file-id="{{ files[0].id }}"
                                                      {% if files[0].exclude_from_mapping %}checked{% endif %}>
                                             {% else %}
-                                              {% if files[0].exclude_from_mapping %} excluded {% endif %}>
+                                              {% if files[0].exclude_from_mapping %} excluded {% endif %}
                                             {% endif %}
                                           {% endif %}
                                         </td>
@@ -1321,10 +1321,10 @@
     {% endif %}
 
 
-    {% if is_admin %}
+    {% if is_admin or is_staff %}
 
       <div id="step_10" class="form-step-item">
-        <h3> Step 10: Admin only. Generate MultiQC report</h3>
+        <h3> Step 10: Generate MultiQC report</h3>
         {% if has_empty_fastqc_report %}
           <div> There are missing fastqc report files. Generate them first </div>
           <form
@@ -1337,8 +1337,10 @@
                disabled="disabled"
               {% endif %}
             >
-              <input type="submit" class="btn btn-primary" id="step_10_button_fastqc">
-              <input type="hidden" name="process_id" value="{{ process_id }}">
+              {% if is_admin %}
+                <input type="submit" class="btn btn-primary" id="step_10_button_fastqc">
+                <input type="hidden" name="process_id" value="{{ process_id }}">
+              {% endif %}
             </fieldset>
           </form>
         {% else %}
@@ -1389,10 +1391,10 @@
       {% endif %}
     {% endif %}
 
-    {% if is_admin %}
+    {% if is_admin or is_staff %}
 
       <div id="step_11" class="form-step-item">
-        <h3> Step 11: Admin only. Generate Mapping files</h3>
+        <h3> Step 11: Mapping files</h3>
         <form
           method="POST"
           action="/generate_mapping_files"
@@ -1447,10 +1449,10 @@
       {% endif %}
     {% endif %}
 
-    {% if is_admin %}
+    {% if is_admin or is_staff %}
 
       <div id="step_12" class="form-step-item">
-        <h3> Step 12: Admin only. Generate lotus2 report</h3>
+        <h3> Step 12: Generate lotus2 report</h3>
       </div>
     {% endif %}
 
@@ -1624,7 +1626,7 @@
                     {% if region_data.bucket_log_exists %}
                       A LotuS_progout.log file exists on the bucket in the correct directory
                     {% else %}
-                      {% if region_data.log_files_exist.phyloseq %}
+                      {% if region_data.log_files_exist.phyloseq and is_admin %}
                         <a href="upload_report_to_bucket?process_id={{ process_data.id }}&report=lotus2&analysis_type_id={{ region_data.analysis_type_id }}" class="btn btn-primary">
                           Upload to bucket
                         </a>
@@ -1639,10 +1641,10 @@
     {% endif %}
       <div id="step_12_msg" class="explanation"></div>
 
-    {% if is_admin %}
+    {% if is_admin or is_staff %}
 
       <div id="step_13" class="form-step-item">
-        <h3> Step 13: Admin only. Generate r scripts report</h3>
+        <h3> Step 13: Generate r scripts report</h3>
       </div>
     {% endif %}
 
@@ -1797,9 +1799,11 @@
                     {% if region_data.bucket_log_exists %}
                       A LotuS_progout.log file exists on the bucket in the correct directory
                     {% else %}
-                      <a href="upload_report_to_bucket?process_id={{ process_data.id }}&report=rscripts&analysis_type_id={{ region_data.analysis_type_id }}" class="btn btn-primary">
-                        Upload to bucket
-                      </a>
+                      {% if is_admin %}
+                        <a href="upload_report_to_bucket?process_id={{ process_data.id }}&report=rscripts&analysis_type_id={{ region_data.analysis_type_id }}" class="btn btn-primary">
+                          Upload to bucket
+                        </a>
+                      {% endif %}  
                     {% endif %}
                   {% endif %}
                 </td>
@@ -1809,10 +1813,9 @@
       </table>
     {% endif %}
     <div id="step_13_msg" class="explanation"></div>
-
-    {% if is_admin %}
+    {% if is_admin or is_staff %}
       <div id="step_14" class="form-step-item">
-        <h3> Step 14: Admin only. Prepare pdf report</h3>
+        <h3> Step 14: Prepare pdf report</h3>
         <a href="prepare_pdf_report?process_id={{ process_data.id }}" class="btn btn-primary">Prepare pdf report</a>
         {% if pdf_report %}
           <a href="download_pdf_report?process_id={{ process_data.id }}" class="btn btn-primary" target="_blank">Download pdf report</a>

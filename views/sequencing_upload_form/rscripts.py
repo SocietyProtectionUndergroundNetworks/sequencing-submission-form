@@ -9,9 +9,9 @@ from flask import (
     jsonify,
 )
 from helpers.decorators import (
-    admin_or_owner_required,
     approved_required,
     admin_required,
+    staff_or_owner_required,
 )
 from helpers.r_scripts import (
     init_generate_rscripts_report,
@@ -27,7 +27,7 @@ logger = logging.getLogger("my_app_logger")
 )
 @login_required
 @approved_required
-@admin_or_owner_required
+@staff_or_owner_required
 def show_report_outcome():
     process_id = request.args.get("process_id")
     analysis_type_id = request.args.get("analysis_type_id")
