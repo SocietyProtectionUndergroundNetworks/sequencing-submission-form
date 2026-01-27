@@ -37,6 +37,11 @@
     "Reverse Primer": "TCCTCCGCTTATTGATATGC",
     "Reverse Primer Revcomp": "GCATATCAATAAGCGGAGGA"
   },
+  "ITS1F/LR5": {
+    "Region": "Full_ITS_LSU",
+    "Forward Primer": "TCCGTAGGTGAACCTGC",
+    "Reverse Primer": "TCCTGAGGGAAACTTCG"
+  },
   "ITS1/ITS2": {
     "Region": "ITS1",
     "Forward Primer": "CTTGGTCATTTAGAGGAAGTAA",

@@ -819,7 +819,7 @@ class SequencingUpload:
             JOIN sequencing_files_uploaded
                 AS sfu ON sfu.sequencerId = ssi.id
             WHERE ss.sequencingUploadId = :sequencingUploadId
-            AND ssi.Region IN ('ITS1', 'ITS2', 'Full_ITS')
+            AND ssi.Region IN ('ITS1', 'ITS2', 'Full_ITS', 'Full_ITS_LSU')
             GROUP BY ss.id
         )
         """
@@ -1142,7 +1142,6 @@ class SequencingUpload:
                 sample_data["sequencer_ids"] = sequencer_ids_dict.get(
                     sample_id, []
                 )
-
                 for sequencer in sample_data["sequencer_ids"]:
                     sequencer_id = sequencer["id"]
                     sequencer["uploaded_files"] = uploaded_files_dict.get(

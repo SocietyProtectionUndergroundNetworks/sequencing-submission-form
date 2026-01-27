@@ -321,22 +321,28 @@ def generate_lotus2_report(
         # ------------------------------
         #       REGION = Full ITS
         # ------------------------------
-        if region == "Full_ITS":
+        if region in ["Full_ITS", "Full_ITS_LSU"]:
             server_size = "cpx62"
             mapping_file = os.path.join(
-                input_dir, "mapping_files", "Full_ITS_Mapping.txt"
+                input_dir, "mapping_files", region + "_Mapping.txt"
             )
-
-            if analysis_type.name in ["FULL_ITS_UNITE", "FULL_ITS_Eukaryome"]:
+            if analysis_type.name in [
+                "FULL_ITS_UNITE",
+                "FULL_ITS_Eukaryome",
+                "FULL_ITS_LSU_UNITE",
+                "FULL_ITS_LSU_Eukaryome",
+            ]:
                 sdmopt = "/lotus2_files/sdm_PacBio_ITS.txt"
 
-                if analysis_type.name == "FULL_ITS_UNITE":
+                if analysis_type.name in [
+                    "FULL_ITS_UNITE",
+                    "FULL_ITS_LSU_UNITE",
+                ]:
                     refDB = "/lotus2_files/UNITE_v10_sh_general_release_dynamic_all_19.02.2025.fasta"
                     tax4refDB = "/lotus2_files/UNITE_v10_sh_general_release_dynamic_all_19.02.2025.tax"
                 else:
                     refDB = "/lotus2_files/mothur_EUK_ITS_v1.9.4.fasta"
                     tax4refDB = "/lotus2_files/mothur_EUK_ITS_v1.9.4_lotus.tax"
-
                 cmd = [
                     "lotus3",
                     debug_flag,
@@ -375,12 +381,12 @@ def generate_lotus2_report(
             SequencingAnalysis.update_field(
                 analysis_id,
                 "lotus2_status",
-                "Abandoned. Full_ITS without supported analysis.",
+                "Abandoned. Full_ITS or Full_ITS_LSU without supported analysis.",
             )
             SequencingAnalysis.update_field(
                 analysis_id, "lotus2_finished_at", datetime.utcnow()
             )
-            log("Unsupported Full_ITS analysis.")
+            log("Unsupported Full_ITS or Full_ITS_LSU analysis.")
             return
 
         # ------------------------------
