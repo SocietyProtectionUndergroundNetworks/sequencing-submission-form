@@ -172,7 +172,11 @@
 
         <h2>{{ its_region }} Missing samples</h2>
         {% if missing_samples_its %}
-            <p>The following {{ its_region }} samples were expected according to the metadata file but not found:</p>
+            <p>
+                The following {{ its_region }} samples were expected
+                according to the metadata file but not found 
+                (or excluded from mapping because the corresponding sequencing files were empty or had too few reads):
+            </p>
             <ul>
             {% for item in missing_samples_its %}
                 <li>{{ item[1] }}</li>

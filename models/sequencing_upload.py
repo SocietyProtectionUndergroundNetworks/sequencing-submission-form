@@ -820,6 +820,7 @@ class SequencingUpload:
                 AS sfu ON sfu.sequencerId = ssi.id
             WHERE ss.sequencingUploadId = :sequencingUploadId
             AND ssi.Region IN ('ITS1', 'ITS2', 'Full_ITS', 'Full_ITS_LSU')
+            AND (sfu.exclude_from_mapping IS NULL or sfu.exclude_from_mapping = 0)
             GROUP BY ss.id
         )
         """
