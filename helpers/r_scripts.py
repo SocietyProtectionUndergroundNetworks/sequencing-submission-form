@@ -358,13 +358,13 @@ def generate_rscripts_report(process_id, input_dir, region, analysis_type_id):
         # Run rscripts inside the 'spun-r_service' container
         container = client.containers.get("spun-r-service")
 
-        if region in ["ITS1", "ITS2", "Full_ITS"]:
+        if region in ["ITS1", "ITS2", "Full_ITS", "Full_ITS_LSU"]:
             r_script = "EcM_decontam_taxonomic_filtering.R"
 
         if region in ["SSU"]:
             r_script = "AMF_decontam_taxonomic_filtering.R"
 
-        if region in ["ITS1", "ITS2", "SSU", "Full_ITS"]:
+        if region in ["ITS1", "ITS2", "SSU", "Full_ITS", "Full_ITS_LSU"]:
             os.makedirs(
                 input_dir + "/r_output/" + analysis_type.name, exist_ok=True
             )
