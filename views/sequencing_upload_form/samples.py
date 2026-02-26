@@ -4,6 +4,7 @@ import logging
 import csv
 import pandas as pd
 import numpy as np
+import datetime
 from flask_login import login_required
 from flask import (
     request,
@@ -100,6 +101,21 @@ def upload_metadata_file():
     if not file:
         return jsonify({"error": "No file uploaded"}), 400
 
+    # Save a temp file before trying any processing, 
+    # so we have the original file in case anything goes wrong
+    # lets give it a unique name, starting with a YYYY-DD-HH-MM-SS
+    process_data = SequencingUpload.get(process_id)
+    uploads_folder = process_data["uploads_folder"]
+
+    # Create unique name: YYYY-MM-DD-HH-MM-SS_filename
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    filename = f"{timestamp}_{file.filename}"
+    
+    # Save a temp file before trying any processing
+    save_path = f"seq_uploads/{uploads_folder}/{filename}"
+    file.save(save_path)
+    file.seek(0)
+
     # Read uploaded file and get its column names
     filename = file.filename
     file_extension = os.path.splitext(filename)[1].lower()
@@ -141,9 +157,6 @@ def upload_metadata_file():
     if result["status"] == 1:
 
         # if all is good, lets save the file they uploaded.
-        process_data = SequencingUpload.get(process_id)
-        uploads_folder = process_data["uploads_folder"]
-
         save_path = f"seq_uploads/{uploads_folder}/" f"samples_file_{filename}"
         file.save(save_path)
 
