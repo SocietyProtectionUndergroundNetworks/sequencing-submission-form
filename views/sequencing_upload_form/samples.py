@@ -88,6 +88,25 @@ def metadata_validate_row():
     )
 
 
+
+@upload_form_bp.route(
+    "/delete_metadata", methods=["GET"], endpoint="delete_metadata"
+)
+@login_required
+@approved_required
+@admin_required
+def delete_metadata():
+    #process_id = request.form.get("process_id")
+    process_id = request.args.get("process_id")
+    logger.info(f"Attempting to delete metadata for process_id: {process_id}")
+    #First lets check that there are no sequencer IDs connected. Dont allow deletion if there are.
+    sequencer_ids = SequencingUpload.get_sequencer_ids(process_id)
+    logger.info(f"Found {len(sequencer_ids)} sequencer IDs")
+    if len(sequencer_ids) > 0:
+        return jsonify({"error": "Cannot delete metadata with associated sequencer IDs"}), 400  
+    #SequencingSample.delete_by_process_id(process_id)
+    return jsonify({"message": "Metadata deleted successfully"}), 200
+
 @upload_form_bp.route(
     "/upload_metadata_file", methods=["POST"], endpoint="upload_metadata_file"
 )

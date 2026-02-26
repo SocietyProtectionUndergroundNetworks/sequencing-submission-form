@@ -403,6 +403,14 @@
           </tbody>
       </table>
     </div>
+    <a href="delete_metadata?process_id={{ process_id }}" 
+      class="btn btn-danger"
+      onclick="return confirm('Are you sure you want to delete this metadata? This action cannot be undone.');"
+      {% if not process_data or process_data["metadata_upload_confirmed"] %}
+        style="display:none"
+      {% endif %}>
+      Delete metadata
+    </a>
 
     <div id="step_5" class="form-step-item">
       <h3> Step 5: Confirm your metadata</h3>
