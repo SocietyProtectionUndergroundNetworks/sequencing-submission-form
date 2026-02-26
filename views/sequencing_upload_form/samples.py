@@ -101,7 +101,7 @@ def upload_metadata_file():
     if not file:
         return jsonify({"error": "No file uploaded"}), 400
 
-    # Save a temp file before trying any processing, 
+    # Save a temp file before trying any processing,
     # so we have the original file in case anything goes wrong
     # lets give it a unique name, starting with a YYYY-DD-HH-MM-SS
     process_data = SequencingUpload.get(process_id)
@@ -110,7 +110,7 @@ def upload_metadata_file():
     # Create unique name: YYYY-MM-DD-HH-MM-SS_filename
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     filename = f"{timestamp}_{file.filename}"
-    
+
     # Save a temp file before trying any processing
     save_path = f"seq_uploads/{uploads_folder}/{filename}"
     file.save(save_path)
