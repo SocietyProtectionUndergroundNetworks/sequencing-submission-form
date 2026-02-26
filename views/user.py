@@ -157,6 +157,11 @@ def callback():
                 admin=False,
                 approved=False,
             )
+            from helpers.slack import send_message_to_slack
+
+            send_message_to_slack(
+                f"User {users_email} just had their account created."
+            )
 
     # Begin user session by logging the user in
     login_user(user, remember=True)
@@ -191,7 +196,10 @@ def only_admins():
 
 @user_bp.route("/only_approved")
 def only_approved():
-    return render_template("only_approved.html")
+    admin_contact_email = os.environ.get("ADMIN_CONTACT_EMAIL", "")
+    return render_template(
+        "only_approved.html", admin_contact_email=admin_contact_email
+    )
 
 
 @user_bp.route("/users", endpoint="users")

@@ -3,11 +3,12 @@ import psutil
 from flask import (
     Blueprint,
     render_template,
-    redirect,
-    url_for,
 )
 from flask_login import (
     current_user,
+)
+from helpers.decorators import (
+    approved_required,
 )
 from models.user import User
 from models.sequencing_upload import SequencingUpload
@@ -21,12 +22,9 @@ upload_bp = Blueprint("upload", __name__)
 
 
 @upload_bp.route("/")
+@approved_required
 def index():
     if current_user.is_authenticated:
-        if not current_user.approved:
-            # Redirect non-approved users to some unauthorized page
-            return redirect(url_for("user.only_approved"))
-
         sys_info = {}
         if current_user.admin:
             disk_usage = psutil.disk_usage("/app")
