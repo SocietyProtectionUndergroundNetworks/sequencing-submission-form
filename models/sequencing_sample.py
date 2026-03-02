@@ -429,3 +429,22 @@ class SequencingSample:
 
             result = session.execute(query).all()
             return [(row.name, row.id) for row in result]
+
+    @classmethod
+    def delete_by_process_id(cls, process_id):
+        """
+        Deletes all samples associated with a specific sequencing upload ID.
+        """
+        with session_scope() as session:
+            # Query the samples associated with the given process_id
+            deleted_rows = (
+                session.query(SequencingSamplesTable)
+                .filter(
+                    SequencingSamplesTable.sequencingUploadId == process_id
+                )
+                .delete(synchronize_session=False)
+            )
+
+            # The session_scope usually handles the commit,
+            # but ensure your context manager is configured to do so.
+            return deleted_rows
