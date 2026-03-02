@@ -1206,6 +1206,13 @@
         </div>
       {% endif %}
     </div>
+    {% if is_admin %}
+      <button id="step_7_delete_sequencer_ids_btn"
+        data-process-id="{{ process_id }}"
+        class="btn btn-danger">
+        Delete sequencer IDs
+      </button>
+    {% endif %}    
     <div>   
       {% if process_data and process_data.regions %}
         {% for region in process_data.regions %}
@@ -1244,12 +1251,6 @@
             <input type="button" id="step_7_button" class="btn btn-primary" value="I confirm">
           </fieldset>
         </form>
-        {% if total_uploaded_files == 0 or is_admin %}
-          <br/><a href="#" id="step_7_delete_sequencer_ids_btn" class="btn btn-danger">
-            Delete all sequencer IDs
-          </a>
-        {% endif %}
-        
       </div>
     {% endif %}
 
@@ -2858,7 +2859,7 @@
                 console.error('Error updating file exclusion:', error);
             }
         });
-    });
+    }); 
 
   });
   ////// ############################################# /////////
@@ -2875,14 +2876,33 @@
       $('#step_7_form fieldset').attr('disabled', 'disabled');
   }
   $(document).ready(function () {
-    $('#step_7_delete_sequencer_ids_btn').on('click', function (e) {
-      e.preventDefault();
+    $('#step_7_delete_sequencer_ids_btn').on('click', function(e) {
+        e.preventDefault();
+        const processId = $(this).data('process-id');
+        const $btn = $(this);
 
-      if (confirm("Are you absolutely certain? This will delete your sequencer IDs and you will have to upload them again")) {
-        window.location.href = "/delete_sequencer_ids?process_id={{ process_data.id }}";
-      }
-    });
+        if (!confirm('Are you sure you want to delete the sequencer IDs for this process?')) return;
+
+        $btn.prop('disabled', true).text('Deleting...');
+
+        $.ajax({
+            url: `/delete_sequencer_ids?process_id=${processId}`,
+            type: 'GET',
+            success: function(response) {
+                sessionStorage.setItem('flashMessage', response.message);
+                sessionStorage.setItem('flashType', 'success');
+                location.reload(); 
+            },
+            error: function(xhr) {
+                const errorMsg = xhr.responseJSON ? xhr.responseJSON.error : "An error occurred";
+                showAlert(errorMsg, 'danger'); // Calls the global function
+                $btn.prop('disabled', false).text('Delete Sequencer IDs');
+            }
+        });
+    }); 
   });
+
+  
 
   function update_step7_missing_ids_div(missingSequencingIds) {
       if (missingSequencingIds && missingSequencingIds.length > 0) {

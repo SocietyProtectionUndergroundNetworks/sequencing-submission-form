@@ -687,6 +687,36 @@ class SequencingUpload:
             return sequencer_ids_list
 
     @classmethod
+    def get_associated_files_count(self, sequencingUploadId):
+        """
+        Returns the count of sequencing files associated with a specific
+        sequencingUploadId by joining through the samples and sequencer ID tables.
+        """
+        with session_scope() as session:
+            # We start at the files table and join upwards to the samples
+            # to find the link to the original sequencingUploadId
+            count = (
+                session.query(SequencingFilesUploadedTable)
+                .join(
+                    SequencingSequencerIDsTable,
+                    SequencingFilesUploadedTable.sequencerId
+                    == SequencingSequencerIDsTable.id,
+                )
+                .join(
+                    SequencingSamplesTable,
+                    SequencingSequencerIDsTable.sequencingSampleId
+                    == SequencingSamplesTable.id,
+                )
+                .filter(
+                    SequencingSamplesTable.sequencingUploadId
+                    == sequencingUploadId
+                )
+                .count()
+            )
+
+            return count
+
+    @classmethod
     def delete_sequencer_ids_for_upload(self, upload_id: int):
         with session_scope() as session:
             # Get all sequencer IDs linked to the upload
