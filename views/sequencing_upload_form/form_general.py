@@ -65,6 +65,7 @@ def metadata_form():
     is_owner = False
     total_uploaded_files = 0
     extra_col_names = []
+    flat_sequencer_rows = []
 
     if process_id:
         process_data = SequencingUpload.get(process_id)
@@ -116,6 +117,33 @@ def metadata_form():
                     process_id
                 )
             )
+
+            if samples_data_complete:
+                num_regions = process_data.get("Sequencing_regions_number", 1)
+                for sample in samples_data_complete:
+                    sequencer_list = sample.get("sequencer_ids", [])
+                    for i in range(num_regions):
+                        sequencer = (
+                            sequencer_list[i]
+                            if i < len(sequencer_list)
+                            else None
+                        )
+                        flat_sequencer_rows.append(
+                            {
+                                "sample_id": sample.get("id"),
+                                "sample_name": sample.get("SampleID"),
+                                "is_first_for_sample": (i == 0),
+                                "total_sample_rowspan": num_regions
+                                * nr_files_per_sequence,
+                                "sequencer": sequencer,
+                                "files": (
+                                    sequencer.get("uploaded_files", [])
+                                    if sequencer
+                                    else []
+                                ),
+                                "region_index": i,
+                            }
+                        )
 
             # check if we have files without fastq report
             has_empty_fastqc_report = any(
@@ -185,6 +213,7 @@ def metadata_form():
         is_owner=is_owner,
         total_uploaded_files=total_uploaded_files,
         extra_col_names=extra_col_names,
+        flat_sequencer_rows=flat_sequencer_rows,
     )
 
 
