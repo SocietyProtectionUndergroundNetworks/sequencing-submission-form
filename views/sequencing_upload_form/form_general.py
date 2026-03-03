@@ -64,6 +64,7 @@ def metadata_form():
     pdf_report = False
     is_owner = False
     total_uploaded_files = 0
+    extra_col_names = []
 
     if process_id:
         process_data = SequencingUpload.get(process_id)
@@ -94,10 +95,17 @@ def metadata_form():
                         # Update the set of unique keys with keys from the
                         # extracolumns_json dictionary
                         extra_data_keys.update(extracolumns_json.keys())
-            # lets delete the extracolumns_json from the samples_data
-            for sample in samples_data:
-                if "extracolumns_json" in sample:
-                    del sample["extracolumns_json"]
+
+            # Logic to identify unique extra columns
+            if samples_data:
+                for sample in samples_data:
+                    # Assuming get_samples returns a list of dicts with 'extracolumns_json'
+                    extra_data = sample.get("extracolumns_json")
+                    if extra_data and isinstance(extra_data, dict):
+                        for key in extra_data.keys():
+                            if key not in extra_col_names:
+                                extra_col_names.append(key)
+
             sequencer_ids = SequencingUpload.get_sequencer_ids(process_id)
             valid_samples = SequencingUpload.validate_samples(process_id)
             missing_sequencing_ids = (
@@ -176,6 +184,7 @@ def metadata_form():
         pdf_report=pdf_report,
         is_owner=is_owner,
         total_uploaded_files=total_uploaded_files,
+        extra_col_names=extra_col_names,
     )
 
 

@@ -345,6 +345,9 @@
                   {% for expectedColumn in expected_columns.keys() %}
                       <th scope="col">{{ expectedColumn }}</th>
                   {% endfor %}
+                  {% for extra_col in extra_col_names %}
+                      <th scope="col" class="table-info">{{ extra_col }}</th>
+                  {% endfor %}                  
               </tr>
           </thead>
           <tbody>
@@ -397,6 +400,15 @@
                           {% for column in expected_columns.keys() %}
                               <td>{{ row[column] }}</td>
                           {% endfor %}
+                          {% for extra_col in extra_col_names %}
+                              <td>
+                                  {% if row.extracolumns_json and extra_col in row.extracolumns_json %}
+                                      {{ row.extracolumns_json[extra_col] }}
+                                  {% else %}
+                                      -
+                                  {% endif %}
+                              </td>
+                          {% endfor %}                          
                       </tr>
                   {% endfor %}
               {% endif %}
