@@ -416,7 +416,7 @@
       </table>
     </div>
     {% if is_admin %}
-      <button id="delete-metadata-btn"
+      <button id="step_4_delete_metadata_btn"
         data-process-id="{{ process_id }}"
         class="btn btn-danger"
         {% if not process_data or process_data["metadata_upload_confirmed"] %}
@@ -2108,7 +2108,7 @@
   ////// ####### STEP 4 DELETE SAMPLES STARTS HERE ### /////////
   ////// ############################################# /////////
   $(document).ready(function() {
-      $('#delete-metadata-btn').on('click', function(e) {
+      $('#step_4_delete_metadata_btn').on('click', function(e) {
           e.preventDefault();
           const processId = $(this).data('process-id');
           const $btn = $(this);
