@@ -62,6 +62,9 @@ def create_app(test_config=None):
     # Default configuration (for development/production)
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False  # Good practice
 
+    # Limit maximum upload size
+    app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
+
     if test_config is None:
         # Load default database and session config
         app.config["SQLALCHEMY_DATABASE_URI"] = get_database_uri()

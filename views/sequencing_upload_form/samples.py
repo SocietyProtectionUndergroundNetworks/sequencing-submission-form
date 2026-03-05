@@ -27,6 +27,7 @@ from helpers.metadata_check import (
 )
 from models.sequencing_upload import SequencingUpload
 from models.sequencing_sample import SequencingSample
+from werkzeug.utils import secure_filename
 
 logger = logging.getLogger("my_app_logger")
 
@@ -136,6 +137,10 @@ def upload_metadata_file():
     if not file:
         return jsonify({"error": "No file uploaded"}), 400
 
+    # Sanitize the filename immediately
+    original_filename = file.filename
+    filename = secure_filename(original_filename)
+
     # Save a temp file before trying any processing,
     # so we have the original file in case anything goes wrong
     # lets give it a unique name, starting with a YYYY-DD-HH-MM-SS
@@ -144,15 +149,14 @@ def upload_metadata_file():
 
     # Create unique name: YYYY-MM-DD-HH-MM-SS_filename
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    filename = f"{timestamp}_{file.filename}"
+    save_filename = f"{timestamp}_{filename}"
 
     # Save a temp file before trying any processing
-    save_path = f"seq_uploads/{uploads_folder}/{filename}"
+    save_path = f"seq_uploads/{uploads_folder}/{save_filename}"
     file.save(save_path)
     file.seek(0)
 
     # Read uploaded file and get its column names
-    filename = file.filename
     file_extension = os.path.splitext(filename)[1].lower()
 
     if file_extension == ".csv":
