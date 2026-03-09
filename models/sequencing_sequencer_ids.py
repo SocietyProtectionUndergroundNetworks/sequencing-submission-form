@@ -327,17 +327,20 @@ class SequencingSequencerId:
             # Iterate through the results to find the matching record
             for sample_id, sequencer_id, region in sequencer_records:
                 if filename_no_ext.startswith(sequencer_id):
-                    # Generate the new filename
                     region = region.replace(" ", "_")
-                    new_filename = (
-                        filename_no_ext.replace(
-                            sequencer_id, f"{sample_id}_{region}_"
-                        )
-                        + extension
-                    )
-                    return new_filename
 
-            # Return None if no matching record is found
+                    # Get suffix after ID, remove _001, and handle underscores
+                    suffix = filename_no_ext[len(sequencer_id) :].replace(
+                        "_001", ""
+                    )
+                    connector = (
+                        "_" if suffix and not suffix.startswith("_") else ""
+                    )
+
+                    return (
+                        f"{sample_id}_{region}{connector}{suffix}{extension}"
+                    )
+
             return None
 
     @classmethod

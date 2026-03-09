@@ -226,8 +226,8 @@ def test_upload_process_common_fields_creation(
         "tests/fastq_files/sample2_ITS2_R2.fastq.gz",
         "tests/fastq_files/sample1_SSU_R1.fastq.gz",
         "tests/fastq_files/sample1_SSU_R2.fastq.gz",
-        "tests/fastq_files/sample2_SSU_R1.fastq.gz",
-        "tests/fastq_files/sample2_SSU_R2.fastq.gz",
+        "tests/fastq_files/sample2_SSU_R1_001.fastq.gz",
+        "tests/fastq_files/sample2_SSU_R2_001.fastq.gz",
     ]
 
     chunk_size = 10 * 1024 * 1024  # 10MB chunks like your JS
@@ -310,6 +310,43 @@ def test_upload_process_common_fields_creation(
     assert_uploaded_files(
         process_id, [os.path.basename(p) for p in file_paths]
     )
+
+    # Step 11b: Specifically assert the new filenames for the modified suffixes
+    with session_scope() as session:
+        # Query the new names for test_sample_2 SSU files
+        renamed_files = (
+            session.query(
+                SequencingFilesUploadedTable.original_filename,
+                SequencingFilesUploadedTable.new_name,
+            )
+            .join(
+                SequencingSequencerIDsTable,
+                SequencingFilesUploadedTable.sequencerId
+                == SequencingSequencerIDsTable.id,
+            )
+            .join(
+                SequencingSamplesTable,
+                SequencingSequencerIDsTable.sequencingSampleId
+                == SequencingSamplesTable.id,
+            )
+            .filter(SequencingSamplesTable.SampleID == "test_sample_2")
+            .filter(SequencingSequencerIDsTable.Region == "SSU")
+            .all()
+        )
+
+        name_map = {
+            row.original_filename: row.new_name for row in renamed_files
+        }
+
+        # Verify that _001 was stripped and naming pattern is correct: {sample}_{region}_{read}.fastq.gz
+        assert (
+            name_map.get("sample2_SSU_R1_001.fastq.gz")
+            == "test_sample_2_SSU_1.fastq.gz"
+        )
+        assert (
+            name_map.get("sample2_SSU_R2_001.fastq.gz")
+            == "test_sample_2_SSU_2.fastq.gz"
+        )
 
     # Step 12: Trigger the counting of the adapters
     SequencingUpload.adapters_count(process_id)
