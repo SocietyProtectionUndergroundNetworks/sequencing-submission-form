@@ -37,6 +37,11 @@
     "Reverse Primer": "TCCTCCGCTTATTGATATGC",
     "Reverse Primer Revcomp": "GCATATCAATAAGCGGAGGA"
   },
+  "ITS1F/LR5": {
+    "Region": "Full_ITS_LSU",
+    "Forward Primer": "TCCGTAGGTGAACCTGC",
+    "Reverse Primer": "TCCTGAGGGAAACTTCG"
+  },
   "ITS1/ITS2": {
     "Region": "ITS1",
     "Forward Primer": "CTTGGTCATTTAGAGGAAGTAA",
@@ -95,6 +100,13 @@
     "Forward Primer Revcomp": "CAAARAYTYGATGAYTCAC",
     "Reverse Primer": "TCCTSCGCTTATTGATATGC",
     "Reverse Primer Revcomp": "GCATATCAATAAGCGSAGGA"
+  },
+  "gITS7ngs/ITS4ngsUni": {
+    "Region": "ITS2",
+    "Forward Primer": "GTGARTCATCRARTYTTTG",
+    "Forward Primer Revcomp": "CAAARAYTYGATGAYTCAC",
+    "Reverse Primer": "CCTSCSCTTANTDATATGC",
+    "Reverse Primer Revcomp": "GCATATHANTAAGSGSAGG"
   },
   "LROR/LR5": {
     "Region": "LSU",

@@ -4,6 +4,7 @@ import logging
 import csv
 import pandas as pd
 import numpy as np
+import datetime
 from flask_login import login_required
 from flask import (
     request,
@@ -17,6 +18,7 @@ from helpers.decorators import (
     approved_required,
     admin_or_owner_required,
     admin_required,
+    staff_or_owner_required,
 )
 from helpers.metadata_check import (
     check_metadata,
@@ -25,6 +27,7 @@ from helpers.metadata_check import (
 )
 from models.sequencing_upload import SequencingUpload
 from models.sequencing_sample import SequencingSample
+from werkzeug.utils import secure_filename
 
 logger = logging.getLogger("my_app_logger")
 
@@ -88,6 +91,40 @@ def metadata_validate_row():
 
 
 @upload_form_bp.route(
+    "/delete_metadata", methods=["GET"], endpoint="delete_metadata"
+)
+@login_required
+@approved_required
+@admin_required
+def delete_metadata():
+    # process_id = request.form.get("process_id")
+    process_id = request.args.get("process_id")
+    logger.info(f"Attempting to delete metadata for process_id: {process_id}")
+    # First lets check that there are no sequencer IDs connected. Dont allow deletion if there are.
+    sequencer_ids = SequencingUpload.get_sequencer_ids(process_id)
+    logger.info(f"Found {len(sequencer_ids)} sequencer IDs")
+    if len(sequencer_ids) > 0:
+        return (
+            jsonify(
+                {
+                    "error": "Cannot delete metadata with associated sequencer IDs"
+                }
+            ),
+            400,
+        )
+    deleted_records = SequencingSample.delete_by_process_id(process_id)
+    return (
+        jsonify(
+            {
+                "message": "Metadata deleted successfully",
+                "deleted": deleted_records,
+            }
+        ),
+        200,
+    )
+
+
+@upload_form_bp.route(
     "/upload_metadata_file", methods=["POST"], endpoint="upload_metadata_file"
 )
 @login_required
@@ -100,8 +137,26 @@ def upload_metadata_file():
     if not file:
         return jsonify({"error": "No file uploaded"}), 400
 
+    # Sanitize the filename immediately
+    original_filename = file.filename
+    filename = secure_filename(original_filename)
+
+    # Save a temp file before trying any processing,
+    # so we have the original file in case anything goes wrong
+    # lets give it a unique name, starting with a YYYY-DD-HH-MM-SS
+    process_data = SequencingUpload.get(process_id)
+    uploads_folder = process_data["uploads_folder"]
+
+    # Create unique name: YYYY-MM-DD-HH-MM-SS_filename
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    save_filename = f"{timestamp}_{filename}"
+
+    # Save a temp file before trying any processing
+    save_path = f"seq_uploads/{uploads_folder}/{save_filename}"
+    file.save(save_path)
+    file.seek(0)
+
     # Read uploaded file and get its column names
-    filename = file.filename
     file_extension = os.path.splitext(filename)[1].lower()
 
     if file_extension == ".csv":
@@ -141,9 +196,6 @@ def upload_metadata_file():
     if result["status"] == 1:
 
         # if all is good, lets save the file they uploaded.
-        process_data = SequencingUpload.get(process_id)
-        uploads_folder = process_data["uploads_folder"]
-
         save_path = f"seq_uploads/{uploads_folder}/" f"samples_file_{filename}"
         file.save(save_path)
 
@@ -250,7 +302,7 @@ def update_sample():
 )
 @login_required
 @approved_required
-@admin_or_owner_required
+@staff_or_owner_required
 def download_metadata():
     process_id = request.args.get("process_id")
     process_data = SequencingUpload.get(process_id)
@@ -386,4 +438,88 @@ def sequencing_revert_confirm_metadata():
     return redirect(
         url_for("upload_form_bp.metadata_form", process_id=process_id)
         + "#step_5"
+    )
+
+
+# views/sequencing_upload_form/samples.py
+
+
+@upload_form_bp.route(
+    "/admin_append_metadata_columns",
+    methods=["POST"],
+    endpoint="admin_append_metadata_columns",
+)
+@login_required
+@admin_required
+def admin_append_metadata_columns():
+    file = request.files.get("file")
+    process_id = request.form.get("process_id")
+
+    if not file or not process_id:
+        return jsonify({"error": "File or Process ID missing"}), 400
+
+    # Read file
+    file_extension = os.path.splitext(file.filename)[1].lower()
+    if file_extension == ".csv":
+        df = pd.read_csv(file, sep=None, engine="python")
+    elif file_extension in [".xls", ".xlsx"]:
+        df = pd.read_excel(file, engine="openpyxl")
+    else:
+        return jsonify({"error": "Unsupported file type"}), 400
+
+    if "SampleID" not in df.columns:
+        return (
+            jsonify(
+                {
+                    "error": "CSV must contain a 'SampleID' column to match records"
+                }
+            ),
+            400,
+        )
+
+    # Get standard columns to identify what is "extra"
+    expected_columns_data = get_columns_data(exclude=False)
+    standard_keys = set(expected_columns_data.keys())
+
+    # Identify columns in the new file that are NOT in the standard schema
+    # and also NOT the SampleID itself
+    new_extra_cols = [
+        c for c in df.columns if c not in standard_keys and c != "SampleID"
+    ]
+
+    if not new_extra_cols:
+        return (
+            jsonify(
+                {"error": "No new extra columns found in the uploaded file"}
+            ),
+            400,
+        )
+
+    # Get existing samples for this process to match against
+    from models.sequencing_upload import SequencingUpload
+
+    existing_samples = SequencingUpload.get_samples(process_id)
+    # Create a mapping of SampleID -> Database ID
+    sample_map = {s["SampleID"]: s["id"] for s in existing_samples}
+
+    update_count = 0
+    df = df.replace({np.nan: None})
+
+    for _, row in df.iterrows():
+        sid = str(row["SampleID"]).strip()
+        if sid in sample_map:
+            # Extract only the extra data from this row
+            extra_data = {col: row[col] for col in new_extra_cols}
+            db_id = sample_map[sid]
+
+            if SequencingSample.append_extra_columns(db_id, extra_data):
+                update_count += 1
+
+    return (
+        jsonify(
+            {
+                "message": f"Successfully updated {update_count} samples with columns: {', '.join(new_extra_cols)}"
+            }
+        ),
+        200,
     )

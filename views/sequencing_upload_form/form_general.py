@@ -11,7 +11,7 @@ from flask import (
 )
 from helpers.decorators import (
     approved_required,
-    admin_or_owner_required,
+    staff_or_owner_required,
 )
 from sqlalchemy.inspection import inspect
 from helpers.metadata_check import (
@@ -31,7 +31,7 @@ logger = logging.getLogger("my_app_logger")
 @upload_form_bp.route("/metadata_form", endpoint="metadata_form")
 @login_required
 @approved_required
-@admin_or_owner_required
+@staff_or_owner_required
 def metadata_form():
     my_buckets = {}
     map_key = os.environ.get("GOOGLE_MAP_API_KEY")
@@ -64,6 +64,8 @@ def metadata_form():
     pdf_report = False
     is_owner = False
     total_uploaded_files = 0
+    extra_col_names = []
+    flat_sequencer_rows = []
 
     if process_id:
         process_data = SequencingUpload.get(process_id)
@@ -94,10 +96,17 @@ def metadata_form():
                         # Update the set of unique keys with keys from the
                         # extracolumns_json dictionary
                         extra_data_keys.update(extracolumns_json.keys())
-            # lets delete the extracolumns_json from the samples_data
-            for sample in samples_data:
-                if "extracolumns_json" in sample:
-                    del sample["extracolumns_json"]
+
+            # Logic to identify unique extra columns
+            if samples_data:
+                for sample in samples_data:
+                    # Assuming get_samples returns a list of dicts with 'extracolumns_json'
+                    extra_data = sample.get("extracolumns_json")
+                    if extra_data and isinstance(extra_data, dict):
+                        for key in extra_data.keys():
+                            if key not in extra_col_names:
+                                extra_col_names.append(key)
+
             sequencer_ids = SequencingUpload.get_sequencer_ids(process_id)
             valid_samples = SequencingUpload.validate_samples(process_id)
             missing_sequencing_ids = (
@@ -108,6 +117,33 @@ def metadata_form():
                     process_id
                 )
             )
+
+            if samples_data_complete:
+                num_regions = process_data.get("Sequencing_regions_number", 1)
+                for sample in samples_data_complete:
+                    sequencer_list = sample.get("sequencer_ids", [])
+                    for i in range(num_regions):
+                        sequencer = (
+                            sequencer_list[i]
+                            if i < len(sequencer_list)
+                            else None
+                        )
+                        flat_sequencer_rows.append(
+                            {
+                                "sample_id": sample.get("id"),
+                                "sample_name": sample.get("SampleID"),
+                                "is_first_for_sample": (i == 0),
+                                "total_sample_rowspan": num_regions
+                                * nr_files_per_sequence,
+                                "sequencer": sequencer,
+                                "files": (
+                                    sequencer.get("uploaded_files", [])
+                                    if sequencer
+                                    else []
+                                ),
+                                "region_index": i,
+                            }
+                        )
 
             # check if we have files without fastq report
             has_empty_fastqc_report = any(
@@ -165,6 +201,7 @@ def metadata_form():
         missing_sequencing_ids=missing_sequencing_ids,
         samples_data_complete=samples_data_complete,
         is_admin=current_user.admin,
+        is_staff=current_user.spun_staff,
         multiqc_report_exists=multiqc_report_exists,
         extra_data_keys=extra_data_keys,
         extra_data=extra_data,
@@ -175,6 +212,8 @@ def metadata_form():
         pdf_report=pdf_report,
         is_owner=is_owner,
         total_uploaded_files=total_uploaded_files,
+        extra_col_names=extra_col_names,
+        flat_sequencer_rows=flat_sequencer_rows,
     )
 
 

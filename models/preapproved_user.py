@@ -35,6 +35,7 @@ class PreapprovedUser:
 
     @classmethod
     def create(cls, email, bucket, group_id):
+        email = email.strip().lower()
         with session_scope() as session:
             new_user = PreapprovedUsersTable(
                 email=email,

@@ -164,6 +164,9 @@ def run_lotus3_on_vm(command_string, server_name, server_size="cpx62"):
     vm_id = vm["id"]
     vm_ip = vm["ip"]
 
+    # On Vms we use /tmp for temporary files
+    command_string = f"{command_string} -tmp /tmp"
+
     try:
         # 1. Wait for VM
         wait_for_ssh(vm_ip)
@@ -230,7 +233,7 @@ def send_vm_status_to_slack():
     vms = list_existing_vms()
 
     if not vms:
-        send_message_to_slack("No active Hetzner VMs found.")
+        # send_message_to_slack("No active Hetzner VMs found.")
         return
 
     message_lines = [":satellite: *Active Hetzner VMs:*"]

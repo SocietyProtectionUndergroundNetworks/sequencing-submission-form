@@ -7,8 +7,6 @@ from flask import (
     request,
     jsonify,
     Response,
-    redirect,
-    url_for,
     render_template,
 )
 from helpers.decorators import (
@@ -226,20 +224,38 @@ def get_sequencers_sample():
 
 
 @upload_form_bp.route(
-    "/delete_sequencer_ids",
-    methods=["GET"],
-    endpoint="delete_sequencer_ids",
+    "/delete_sequencer_ids", methods=["GET"], endpoint="delete_sequencer_ids"
 )
 @login_required
 @approved_required
 @admin_required
 def delete_sequencer_ids():
+    # process_id = request.form.get("process_id")
     process_id = request.args.get("process_id")
-    SequencingUpload.delete_sequencer_ids_for_upload(process_id)
+    logger.info(
+        f"Attempting to delete sequencer ids for process_id: {process_id}"
+    )
+    # First lets check that there are no sequence files uploaded with sequencer IDs for this process
 
-    return redirect(
-        url_for("upload_form_bp.metadata_form", process_id=process_id)
-        + "#step_7"
+    sequencer_ids_count = SequencingUpload.get_associated_files_count(
+        process_id
+    )
+    logger.info(f"Found {sequencer_ids_count} associated files")
+    if sequencer_ids_count > 0:
+        return (
+            jsonify(
+                {"error": "Cannot delete sequencer ids with associated files"}
+            ),
+            400,
+        )
+    SequencingUpload.delete_sequencer_ids_for_upload(process_id)
+    return (
+        jsonify(
+            {
+                "message": "Sequencer IDs deleted successfully",
+            }
+        ),
+        200,
     )
 
 

@@ -162,12 +162,24 @@
                 <input type="text" id="user_email" name="user_email" class="form-control" required>
             </div>
             <label for="bucket">Bucket:</label>
-            <select name="bucket">
-              <option value="none"> - </option>
-              {% for bucket in all_buckets %}
-                <option value="{{ bucket }}">{{ bucket }}</option>
-              {% endfor %}
-            </select>
+            <input
+                type="text"
+                id="bucket"
+                name="bucket"
+                class="form-control"
+                list="bucket-list"
+                autocomplete="off"
+            >
+
+            <datalist id="bucket-list">
+                {% for bucket in all_buckets %}
+                    <option value="{{ bucket }}">
+                {% endfor %}
+            </datalist>
+
+            <div class="invalid-feedback">
+                This bucket is not in the approved list.
+            </div>
             <label for="group">Group:</label>
             <select name="group">
               <option value="none"> - </option>
@@ -292,6 +304,33 @@
       }
     });
 
+  $(document).ready(function () {
+      const validBuckets = new Set(
+          $('#bucket-list option').map(function () {
+              return this.value;
+          }).get()
+      );
+
+      $('#bucket').on('input blur', function () {
+          const value = $(this).val();
+
+          if (value === '' || validBuckets.has(value)) {
+              $(this).removeClass('is-invalid');
+          } else {
+              $(this).addClass('is-invalid');
+          }
+      });
+
+      // Optional: block form submission if invalid
+      $('form').on('submit', function (e) {
+          const value = $('#bucket').val();
+          if (value && !validBuckets.has(value)) {
+              e.preventDefault();
+              $('#bucket').addClass('is-invalid');
+          }
+      });
+  });
   </script>
+
 </body>
 </html>

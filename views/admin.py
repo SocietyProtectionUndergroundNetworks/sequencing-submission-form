@@ -133,9 +133,6 @@ def update_missing_geo_data():
 @approved_required
 def admin_operations():
     if current_user.is_authenticated:
-        if not current_user.approved:
-            # Redirect non-approved users to some unauthorized page
-            return redirect(url_for("user.only_approved"))
 
         sys_info = {}
         if current_user.admin:
