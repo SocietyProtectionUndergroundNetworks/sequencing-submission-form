@@ -26,6 +26,7 @@ from helpers.fastqc import (
 from models.sequencing_upload import SequencingUpload
 from models.sequencing_files_uploaded import SequencingFileUploaded
 from models.sequencing_sequencer_ids import SequencingSequencerId
+from werkzeug.utils import secure_filename
 
 logger = logging.getLogger("my_app_logger")
 
@@ -329,6 +330,7 @@ def sequencing_upload_chunk():
     file = request.files.get("file")
 
     if file and process_id:
+        filename = secure_filename(file.filename)
         process_data = SequencingUpload.get(process_id)
         uploads_folder = process_data["uploads_folder"]
 
@@ -338,8 +340,7 @@ def sequencing_upload_chunk():
         )
 
         save_path = (
-            f"seq_uploads/{uploads_folder}/"
-            f"{file.filename}.part{chunk_number}"
+            f"seq_uploads/{uploads_folder}/" f"{filename}.part{chunk_number}"
         )
 
         # Reset pointer before saving

@@ -52,6 +52,41 @@ def admin_or_owner_required(view_func):
     return decorated_view
 
 
+# Custom staff or owner decorator
+# Note: if no process_id is passed, the view returns the page
+# If no process_id is passed, then the page has no owner
+def staff_or_owner_required(view_func):
+    @wraps(view_func)
+    def decorated_view(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return redirect(url_for("user.login"))
+
+        process_id = request.form.get("process_id") or request.args.get(
+            "process_id"
+        )
+
+        # If no process_id is provided, allow access
+        if not process_id:
+            return view_func(*args, **kwargs)
+
+        from models.sequencing_upload import SequencingUpload
+
+        # If process_id is provided, check ownership or admin rights
+        process_data = SequencingUpload.get(process_id)
+        if process_data and current_user.id == process_data["user_id"]:
+            return view_func(*args, **kwargs)
+
+        if current_user.spun_staff:
+            return view_func(*args, **kwargs)
+
+        if current_user.admin:
+            return view_func(*args, **kwargs)
+
+        return redirect(url_for("user.only_staff"))
+
+    return decorated_view
+
+
 # Custom approved_required decorator
 def approved_required(view_func):
     @wraps(view_func)

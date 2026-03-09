@@ -19,6 +19,8 @@ services:
 
   flask_test:
     image: ghcr.io/societyprotectionundergroundnetworks/sequencing-submission-form-flask:latest
+    environment:
+      - APP_SECRET_KEY=${APP_SECRET_KEY}
     depends_on:
       mysql_test:
         condition: service_healthy

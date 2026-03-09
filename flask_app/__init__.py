@@ -1,5 +1,6 @@
 # flask_app/__init__.py
 
+import os
 import secrets
 import sys
 import logging
@@ -7,12 +8,13 @@ import logging
 # Import extensions without initializing them with an app yet
 from flask_sqlalchemy import SQLAlchemy
 from flask_session import Session
+from flask_wtf.csrf import CSRFProtect
 
 # Import your helpers and modules
 from db.db_conn import (
     get_database_uri,
 )
-from views import create_base_app
+
 from extensions import login_manager
 from celery_config import make_celery
 from celery.schedules import crontab
@@ -20,6 +22,7 @@ from celery.schedules import crontab
 # Initialize extensions as objects, to be bound to an app later
 db = SQLAlchemy()
 sess = Session()
+csrf = CSRFProtect()  # Initialized CSRFProtect object
 celery_app = (
     None  # Placeholder for your Celery instance, global for worker entry
 )
@@ -27,6 +30,10 @@ celery_app = (
 
 def create_app(test_config=None):
     global celery_app
+    from views import (
+        create_base_app,
+    )  # Moved here to break circular dependency
+
     app = create_base_app()
 
     # Clear current_app.logger handlers if any
@@ -61,11 +68,19 @@ def create_app(test_config=None):
     # Default configuration (for development/production)
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False  # Good practice
 
+    # Limit maximum upload size
+    app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
+
     if test_config is None:
         # Load default database and session config
         app.config["SQLALCHEMY_DATABASE_URI"] = get_database_uri()
         app.config["SESSION_TYPE"] = "sqlalchemy"
         app.config["SESSION_SQLALCHEMY"] = db
+        app.config["SECRET_KEY"] = os.environ.get(
+            "APP_SECRET_KEY"
+        ) or secrets.token_urlsafe(
+            16
+        )  # Use env var or generate a new one
 
         # Celery configuration for non-testing environments
         app.config.update(
@@ -81,13 +96,12 @@ def create_app(test_config=None):
             CELERY_ALWAYS_EAGER=False,
         )
         # Secret key generation
-        app.secret_key = secrets.token_urlsafe(
-            16
-        )  # Generate a new one each time
+        app.secret_key = app.config["SECRET_KEY"]
 
     else:
         # Load the test configuration if passed in (e.g., from pytest)
         app.config.from_mapping(test_config)
+        app.config["WTF_CSRF_ENABLED"] = False  # Added to fix failed test
         app.config["CELERY_ALWAYS_EAGER"] = app.config.get(
             "CELERY_ALWAYS_EAGER", True
         )
@@ -98,14 +112,23 @@ def create_app(test_config=None):
             "SESSION_TYPE", "filesystem"
         )
         app.config["SESSION_SQLALCHEMY"] = db
+
+        # Priority:
+        # 1. SECRET_KEY passed directly in test_config dict
+        # 2. APP_SECRET_KEY from environment (GitHub Actions)
+        # 3. Hardcoded fallback for local manual testing only
         app.secret_key = app.config.get(
-            "SECRET_KEY", "test-secret-key-for-testing-only"
-        )  # Use test key
+            "SECRET_KEY",
+            os.environ.get(
+                "APP_SECRET_KEY", "test-secret-key-for-testing-only"
+            ),
+        )
 
     # 3. Initialize Flask extensions with the app instance
     db.init_app(app)  # Initialize SQLAlchemy with the configured app
     sess.init_app(app)  # Initialize Flask-Session
     login_manager.init_app(app)  # Initialize Flask-Login
+    csrf.init_app(app)  # Initialized CSRF protection
 
     # 4. Other app setup that needs the app context or configuration
     # Initialize Earth Engine. This often needs to be mocked in tests.

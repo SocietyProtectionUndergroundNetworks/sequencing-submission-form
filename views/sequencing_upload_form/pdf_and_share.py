@@ -11,6 +11,7 @@ from flask import (
 from helpers.decorators import (
     approved_required,
     admin_required,
+    staff_or_owner_required,
 )
 from helpers.r_scripts import (
     create_pdf_report,
@@ -96,8 +97,8 @@ def prepare_pdf_report():
     endpoint="download_pdf_report",
 )
 @login_required
-@admin_required
 @approved_required
+@staff_or_owner_required
 def download_pdf_report():
     process_id = request.args.get("process_id")
     process_data = SequencingUpload.get(process_id)

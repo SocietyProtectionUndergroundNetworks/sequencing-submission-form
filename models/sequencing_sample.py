@@ -429,3 +429,56 @@ class SequencingSample:
 
             result = session.execute(query).all()
             return [(row.name, row.id) for row in result]
+
+    @classmethod
+    def delete_by_process_id(cls, process_id):
+        """
+        Deletes all samples associated with a specific sequencing upload ID.
+        """
+        with session_scope() as session:
+            # Query the samples associated with the given process_id
+            deleted_rows = (
+                session.query(SequencingSamplesTable)
+                .filter(
+                    SequencingSamplesTable.sequencingUploadId == process_id
+                )
+                .delete(synchronize_session=False)
+            )
+
+            # The session_scope usually handles the commit,
+            # but ensure your context manager is configured to do so.
+            return deleted_rows
+
+    @classmethod
+    def append_extra_columns(cls, sample_id, extra_data):
+        """
+        Appends new keys to the existing extracolumns_json field for a sample.
+        """
+        with session_scope() as session:
+            try:
+                sample = (
+                    session.query(SequencingSamplesTable)
+                    .filter_by(id=sample_id)
+                    .one()
+                )
+
+                # Use .copy() to ensure a new dictionary reference is created
+                current_extra = (
+                    dict(sample.extracolumns_json)
+                    if sample.extracolumns_json
+                    else {}
+                )
+
+                # Update with new data
+                current_extra.update(extra_data)
+
+                # Re-assigning a NEW dict object triggers the update
+                sample.extracolumns_json = current_extra
+                session.commit()
+                return True
+            except NoResultFound:
+                return False
+            except Exception as e:
+                logger.error(f"Error appending extra columns: {e}")
+                session.rollback()
+                return False

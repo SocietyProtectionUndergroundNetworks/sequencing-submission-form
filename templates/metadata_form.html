@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/resumable.js/1.1.0/resumable.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
@@ -39,6 +40,7 @@
       <h3> Step 1: Project ID allocated to user </h3>
       <form id="step_1_form">
         <fieldset>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           {% if process_data and process_data['project_id'] %}
             <div>Selected project id: <span class="fw-bold">{{ process_data['project_id'] }}</span></div>
           {% else %}
@@ -70,11 +72,13 @@
     <div id="step_2" class="form-step-item">
       <h3> Step 2: Tell us how you are going to run the sequencing</h3>
       <form id="step_2_form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <fieldset
           {% if my_buckets|length != 1 or process_data %}
            disabled="disabled"
           {% endif %}
         >
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           <div class="form-check">
             <input
               class="form-check-input"
@@ -113,6 +117,7 @@
       <h3> Step 3: Give us the common data for your project</h3>
       <form id="step_3_form">
         <fieldset {% if not is_admin %}disabled="disabled"{% endif %}>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           {% if my_buckets|length == 1 %}
             <input type="hidden" id="step_3_sequenceProjectId" name="project_id" value="{{ my_buckets|list|first }}"/>
           {% else %}
@@ -251,6 +256,7 @@
             disabled="disabled"
           {% endif %}
         >
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           <div class="form-check">
             <input class="form-check-input" type="radio" name="upload_method" id="upload_method_1" value="1">
             <label class="form-check-label" for="sequencing_method_1">
@@ -276,6 +282,7 @@
             enctype="multipart/form-data"
             id="step_4_file_upload"
         >
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           <input type="hidden" name="project_id" value="{{ project_id }}">
           <input type="hidden" name="process_id" value="{{ process_id }}">
           <input type="file" id="step_4_file_upload_button" accept=".csv, .xls, .xlsx">
@@ -293,6 +300,7 @@
 
     <div class="container">
       <form id="metadataForm" style="display:none">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <input type="hidden" name="process_id" value="{{ process_id }}">
         {% for column_key, column_values in expected_columns.items() %}
           {% if 'excludeFromTemplate' not in column_values or column_values['excludeFromTemplate'] != 'True' %}
@@ -345,6 +353,9 @@
                   {% for expectedColumn in expected_columns.keys() %}
                       <th scope="col">{{ expectedColumn }}</th>
                   {% endfor %}
+                  {% for extra_col in extra_col_names %}
+                      <th scope="col" class="table-info">{{ extra_col }}</th>
+                  {% endfor %}                  
               </tr>
           </thead>
           <tbody>
@@ -397,12 +408,42 @@
                           {% for column in expected_columns.keys() %}
                               <td>{{ row[column] }}</td>
                           {% endfor %}
+                          {% for extra_col in extra_col_names %}
+                              <td>
+                                  {% if row.extracolumns_json and extra_col in row.extracolumns_json %}
+                                      {{ row.extracolumns_json[extra_col] }}
+                                  {% else %}
+                                      -
+                                  {% endif %}
+                              </td>
+                          {% endfor %}                          
                       </tr>
                   {% endfor %}
               {% endif %}
           </tbody>
       </table>
     </div>
+    {% if is_admin %}
+      <button id="step_4_delete_metadata_btn"
+        data-process-id="{{ process_id }}"
+        class="btn btn-danger"
+        {% if not process_data or process_data["metadata_upload_confirmed"] %}
+          style="display:none"
+        {% endif %}>
+        Delete metadata
+      </button>
+
+      <div id="step_4_admin_append_columns" class="form-step-item mt-4 border p-3">
+        <h4>(Admin only) Append Extra Metadata Columns</h4>
+        <p>Upload a CSV/XLS with a <strong>SampleID</strong> column. Any additional columns will be appended to the existing samples.</p>
+        <form id="step_4_append_columns_form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <input type="hidden" name="process_id" value="{{ process_id }}">
+          <input type="file" id="step_4_append_file_button" accept=".csv, .xls, .xlsx" class="btn btn-secondary btn-sm">
+        </form>
+        <div id="step_4_append_msg" class="mt-2"></div>
+      </div>      
+    {% endif %}
 
     <div id="step_5" class="form-step-item">
       <h3> Step 5: Confirm your metadata</h3>
@@ -413,6 +454,7 @@
           {% endif %}
 
         >
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           <p>All my metadata have been uploaded and I have checked the map and all the samples seem to be in the correct locations.</p>
           <input type="hidden" name="process_id" value="{{ process_id }}">
           <input type="button" class="btn btn-primary" id="step_5_button" value="I confirm">
@@ -444,6 +486,7 @@
              disabled="disabled"
             {% endif %}
           >
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           <p>
             Based on the information you provided on step 3 (sequencing platform and primers)
             you have {{ process_data["Sequencing_regions_number"] }} regions, and we expect {{ nr_files_per_sequence }} files per region. 
@@ -550,12 +593,14 @@
               enctype="multipart/form-data"
               id="step_6_file_upload"
           >
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <input type="hidden" name="process_id" value="{{ process_id }}">
             <input type="file" id="step_6_file_upload_button" accept=".csv, .xls, .xlsx">
           </form>
         </div>
         <div id="step_6_case_2" class="explanation" style="display:none;">
           <form id="sequencerIdsForm" style="display:none">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <input type="hidden" name="process_id" value="{{ process_id }}">
             <div class="form-group row mb-3">
                 <label for="sequencer_sample_id" class="col-sm-3 col-form-label">SampleID</label>
@@ -634,7 +679,7 @@
           <h4> Expected number of files per sequence is {{ nr_files_per_sequence }} </h4>
           <h4> Number of sequencing regions is {{ process_data["Sequencing_regions_number"] }} </h4>
           <h4> Total uploaded files {{ total_uploaded_files }}</h4>
-          <table id="samplesTable" class="table-bordered">
+          <table id="sequencerIDsTable" class="table-bordered">
               <thead>
                   <tr>
                       <th scope="col" class="bg-gray">DbID</th>
@@ -655,547 +700,88 @@
               </thead>
               
               <tbody>
-                {% if nr_files_per_sequence == 2 %}
-                    <!-- Iterate over each sample in samples_data_complete -->
-                    {% for row in samples_data_complete %}
-                        <!-- For each row, iterate a fixed number of sequencing regions -->
-                        {% for region_index in range(0, process_data["Sequencing_regions_number"]) %}
-                            <!-- Check if the current index is within the available sequencer IDs -->
-                            {% if region_index < row.sequencer_ids | length %}
-                                {% set sequencer = row.sequencer_ids[region_index] %}
-                                {% set files = sequencer.uploaded_files %}
-
-                                {% if region_index == 0 %}
-                                    <!-- Only add these cells for the first sequencer of each row -->
-                                    <tr>
-                                        <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"] * nr_files_per_sequence }}">{{ row.id }}</td>
-                                        <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"] * nr_files_per_sequence }}">{{ row.SampleID }}</td>
-                                        <td id="S_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                                            {{ sequencer.SequencerID }}
-                                        </td>
-                                        <td id="R_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                                            {{ sequencer.Region }}
-                                        </td>
-                                        <td id="SR_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                                          {{ sequencer.sequencing_run }}
-                                        </td>
-                                        <!-- Handling the first file -->
-                                        <td id="F_{{ sequencer.id }}_A">
-                                            {% if files|length > 0 %}
-                                                {{ files[0].original_filename }}
-                                            {% else %}
-                                                <span class="red">Not uploaded</span>
-                                            {% endif %}
-                                        </td>
-                                        <td id="FNN_{{ sequencer.id }}_A">
-                                            {% if files|length > 0 %}
-                                                {{ files[0].new_name }}
-                                            {% else %}
-                                                <span class="red">Not uploaded</span>
-                                            {% endif %}
-                                        </td>
-                                        <td id="FCQ_{{ sequencer.id }}_A">
-                                            {% if files|length > 0 %}
-                                                {% if files[0].fastqc_report %}
-                                                    <a href="show_fastqc_report?file_id={{ files[0].id }}" target="_blank" class="link">Done</a>
-                                                {% endif %}
-                                            {% endif %}
-                                        </td>
-                                        <td id="FBP_{{ sequencer.id }}_A">
-                                            {% if files|length > 0 %}
-                                                {% if files[0].bucket_upload_progress %}
-                                                    {{ files[0].bucket_upload_progress }}%
-                                                {% endif %}
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if files|length > 0 %}
-                                                {% if files[0].total_sequences_number %}
-                                                    {{ files[0].total_sequences_number }}
-                                                {% endif %}
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {{ sequencer.fwd_read_fwd_adap }}
-                                        </td>
-                                        <td>
-                                            {{ sequencer.fwd_rev_adap }}
-                                        </td>
-                                        {{ macros.percent_cell(sequencer.fwd_rev_mrg_adap, files[0].total_sequences_number if files and files[0].total_sequences_number else 0) }}
-                                        <td>
-                                          {% if files|length > 0 %}
-                                            {% if is_admin %}
-                                              <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
-                                                     data-file-id="{{ files[0].id }}"
-                                                     {% if files[0].exclude_from_mapping %}checked{% endif %}>
-                                            {% else %}
-                                              {% if files[0].exclude_from_mapping %} excluded {% endif %}>
-                                            {% endif %}
-                                          {% endif %}
-                                        </td>
-                                    </tr>
-
-                                    <!-- Handle second file if it exists -->
-                                    <tr>
-                                        <td id="F_{{ sequencer.id }}_B">
-                                            {% if files|length > 1 %}
-                                                {{ files[1].original_filename }}
-                                            {% else %}
-                                                <span class="red">Not uploaded</span>
-                                            {% endif %}
-                                        </td>
-                                        <td id="FNN_{{ sequencer.id }}_B">
-                                            {% if files|length > 1 %}
-                                                {{ files[1].new_name }}
-                                            {% else %}
-                                                <span class="red">Not uploaded</span>
-                                            {% endif %}
-                                        </td>
-                                        <td id="FCQ_{{ sequencer.id }}_B">
-                                            {% if files|length > 1 %}
-                                                {% if files[1].fastqc_report %}
-                                                    <a href="show_fastqc_report?file_id={{ files[1].id }}" target="_blank" class="link">Done</a>
-                                                {% endif %}
-                                            {% endif %}
-                                        </td>
-                                        <td id="FBP_{{ sequencer.id }}_B">
-                                            {% if files|length > 1 %}
-                                                {% if files[1].bucket_upload_progress %}
-                                                    {{ files[1].bucket_upload_progress }}%
-                                                {% endif %}
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if files|length > 1 %}
-                                                {% if files[1].total_sequences_number %}
-                                                    {{ files[1].total_sequences_number }}
-                                                {% endif %}
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {{ sequencer.rev_read_rev_adap }}
-                                        </td>
-                                        <td>
-                                            {{ sequencer.fwd_rev_adap }}
-                                        </td>
-                                        {{ macros.percent_cell(sequencer.fwd_rev_mrg_adap, files[1].total_sequences_number if files and files|length > 1 and files[1].total_sequences_number else 0) }}
-                                        <td>
-                                          {% if files|length > 1 %}
-                                            {% if is_admin %}
-                                              <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
-                                                     data-file-id="{{ files[1].id }}"
-                                                     {% if files[1].exclude_from_mapping %}checked{% endif %}>
-                                            {% else %}
-                                              {% if files[1].exclude_from_mapping %} excluded {% endif %}>
-                                            {% endif %}
-                                          {% endif %}
-                                        </td>
-                                    </tr>
-                                {% else %}
-                                    <!-- For subsequent sequencers in the same row -->
-                                    <tr>
-                                        <td id="S_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                                            {{ sequencer.SequencerID }}
-                                        </td>
-                                        <td id="R_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                                            {{ sequencer.Region }}
-                                        </td>
-                                        <td id="SR_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                                          {{ sequencer.sequencing_run }}
-                                        </td>
-                                        <!-- Handling the first file -->
-                                        <td id="F_{{ sequencer.id }}_A">
-                                            {% if files|length > 0 %}
-                                                {{ files[0].original_filename }}
-                                            {% else %}
-                                                <span class="red">Not uploaded</span>
-                                            {% endif %}
-                                        </td>
-                                        <!-- Handling the first file -->
-                                        <td id="FNN_{{ sequencer.id }}_A">
-                                            {% if files|length > 0 %}
-                                                {{ files[0].new_name }}
-                                            {% else %}
-                                                <span class="red">Not uploaded</span>
-                                            {% endif %}
-                                        </td>
-                                        <td id="FCQ_{{ sequencer.id }}_A">
-                                            {% if files|length > 0 %}
-                                                {% if files[0].fastqc_report %}
-                                                    <a href="show_fastqc_report?file_id={{ files[0].id }}" target="_blank" class="link">Done</a>
-                                                {% endif %}
-                                            {% endif %}
-                                        </td>
-                                        <td id="FBP_{{ sequencer.id }}_A">
-                                          {% if files|length > 0 %}
-                                              {% if files[0].bucket_upload_progress %}
-                                                  {{ files[0].bucket_upload_progress }}%
-                                              {% endif %}
-                                          {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if files|length > 0 %}
-                                                {% if files[0].total_sequences_number %}
-                                                    {{ files[0].total_sequences_number }}
-                                                {% endif %}
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {{ sequencer.fwd_read_fwd_adap }}
-                                        </td>
-                                        <td>
-                                            {{ sequencer.fwd_rev_adap }}
-                                        </td>
-                                        {{ macros.percent_cell(sequencer.fwd_rev_mrg_adap, files[0].total_sequences_number if files and files[0].total_sequences_number else 0) }}
-                                        <td>
-                                          {% if files|length > 0 %}
-                                            {% if is_admin %}
-                                              <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
-                                                     data-file-id="{{ files[0].id }}"
-                                                     {% if files[0].exclude_from_mapping %}checked{% endif %}>
-                                            {% else %}
-                                              {% if files[0].exclude_from_mapping %} excluded {% endif %}>
-                                            {% endif %}
-                                          {% endif %}
-                                        </td>
-                                    </tr>
-
-                                    <!-- Handle second file if it exists -->
-                                    <tr>
-                                        <td id="F_{{ sequencer.id }}_B">
-                                            {% if files|length > 1 %}
-                                                {{ files[1].original_filename }}
-                                            {% else %}
-                                                <span class="red">Not uploaded</span>
-                                            {% endif %}
-                                        </td>
-                                        <td id="FNN_{{ sequencer.id }}_B">
-                                            {% if files|length > 1 %}
-                                                {{ files[1].new_name }}
-                                            {% else %}
-                                                <span class="red">Not uploaded</span>
-                                            {% endif %}
-                                        </td>
-                                        <td id="FCQ_{{ sequencer.id }}_B">
-                                            {% if files|length > 1 %}
-                                                {% if files[1].fastqc_report %}
-                                                    <a href="show_fastqc_report?file_id={{ files[1].id }}" target="_blank" class="link">Done</a>
-                                                {% endif %}
-                                            {% endif %}
-                                        </td>
-                                        <td id="FBP_{{ sequencer.id }}_B">
-                                            {% if files|length > 1 %}
-                                                {% if files[1].bucket_upload_progress %}
-                                                    {{ files[1].bucket_upload_progress }}%
-                                                {% endif %}
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if files|length > 1 %}
-                                                {% if files[1].total_sequences_number %}
-                                                    {{ files[1].total_sequences_number }}
-                                                {% endif %}
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {{ sequencer.rev_read_rev_adap }}
-                                        </td>
-                                        <td>
-                                            {{ sequencer.fwd_rev_adap }}
-                                        </td>
-                                        {{ macros.percent_cell(sequencer.fwd_rev_mrg_adap, files[1].total_sequences_number if files and files|length > 1 and files[1].total_sequences_number else 0) }}
-                                        <td>
-                                          {% if files|length > 1 %}
-                                            {% if is_admin %}
-                                              <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
-                                                     data-file-id="{{ files[1].id }}"
-                                                     {% if files[1].exclude_from_mapping %}checked{% endif %}>
-                                            {% else %}
-                                              {% if files[1].exclude_from_mapping %} excluded {% endif %}>
-                                            {% endif %}
-                                          {% endif %}
-                                        </td>
-                                    </tr>
-                                {% endif %}
-                            {% else %}
-                                <!-- Handle missing sequencers gracefully -->
-                                {% if region_index == 0 %}
-                                    <tr>
-                                        <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"] * nr_files_per_sequence }}">{{ row.id }}</td>
-                                        <td class="bg-gray" rowspan="{{ process_data["Sequencing_regions_number"] * nr_files_per_sequence }}">{{ row.SampleID }}</td>
-                                        <td id="S_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                                            <span class="red">No sequencer</span>
-                                        </td>
-                                        <td id="R_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                                            <span class="red">No sequencer</span>
-                                        </td>
-                                        <!-- Handling missing files -->
-                                        <td id="F_{{ row.id }}_A">
-                                            <span class="red">Not available</span>
-                                        </td>
-                                        <td id="FNN_{{ row.id }}_A">
-                                            <span class="red">Not available</span>
-                                        </td>
-                                        <td id="FCQ_{{ row.id }}_A"></td>
-                                        <td id="FBP_{{ row.id }}_A"></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                    </tr>
-
-                                    <tr>
-                                        <td id="F_{{ row.id }}_B">
-                                            <span class="red">Not available</span>
-                                        </td>
-                                        <td id="FNN_{{ row.id }}_B">
-                                            <span class="red">Not available</span>
-                                        </td>
-                                        <td id="FCQ_{{ row.id }}_B"></td>
-                                        <td id="FBP_{{ row.id }}_B"></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                    </tr>
-                                {% else %}
-                                    <tr>
-                                        <td id="S_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                                            <span class="red">No sequencer</span>
-                                        </td>
-                                        <td id="R_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                                            <span class="red">No sequencer</span>
-                                        </td>
-                                        <!-- Handling missing files -->
-                                        <td id="F_{{ row.id }}_A">
-                                            <span class="red">Not available</span>
-                                        </td>
-                                        <td id="FNN_{{ row.id }}_A">
-                                            <span class="red">Not available</span>
-                                        </td>
-                                        <td id="FCQ_{{ row.id }}_A"></td>
-                                        <td id="FBP_{{ row.id }}_A"></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                    </tr>
-
-                                    <tr>
-                                        <td id="F_{{ row.id }}_B">
-                                            <span class="red">Not available</span>
-                                        </td>
-                                        <td id="FNN_{{ row.id }}_B">
-                                            <span class="red">Not available</span>
-                                        </td>
-                                        <td id="FCQ_{{ row.id }}_B"></td>
-                                        <td id="FBP_{{ row.id }}_B"></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                    </tr>
-                                {% endif %}
+                {% for row in flat_sequencer_rows %}
+                    {% set sequencer = row.sequencer %}
+                    {% set files = row.files %}
+                    
+                    {% for file_idx in range(nr_files_per_sequence) %}
+                        <tr>
+                            {# Sample level info #}
+                            {% if row.is_first_for_sample and file_idx == 0 %}
+                                <td class="bg-gray" rowspan="{{ row.total_sample_rowspan }}">{{ row.sample_id }}</td>
+                                <td class="bg-gray" rowspan="{{ row.total_sample_rowspan }}">{{ row.sample_name }}</td>
                             {% endif %}
-                        {% endfor %}
-                    {% endfor %}
-                {% endif %}
 
-                {% if nr_files_per_sequence == 1 %}
-                  <!-- Iterate over each sample in samples_data_complete -->
-                  {% for row in samples_data_complete %}
-                    <!-- For each row, iterate a fixed number of sequencing regions -->
-                    {% for region_index in range(0, process_data['Sequencing_regions_number']) %}
-                      {% if region_index < row.sequencer_ids | length %}
-                        {% set sequencer = row.sequencer_ids[region_index] %}
-                        {% set files = sequencer.uploaded_files %}
+                            {# Sequencer/Region level info #}
+                            {% if file_idx == 0 %}
+                                <td rowspan="{{ nr_files_per_sequence }}">
+                                    {{ sequencer.SequencerID if sequencer else '<span class="red">No sequencer</span>'|safe }}
+                                </td>
+                                <td rowspan="{{ nr_files_per_sequence }}">
+                                    {{ sequencer.Region if sequencer else '<span class="red">No sequencer</span>'|safe }}
+                                </td>
+                                <td rowspan="{{ nr_files_per_sequence }}">
+                                    {{ sequencer.sequencing_run if sequencer else '-' }}
+                                </td>
+                            {% endif %}
 
-                        {% if region_index == 0 %}
-                          <!-- Only add these cells for the first sequencer of each row -->
-                          <tr>
-                            <td class="bg-gray" rowspan="{{ process_data['Sequencing_regions_number'] }}">{{ row.id }}</td>
-                            <td class="bg-gray" rowspan="{{ process_data['Sequencing_regions_number'] }}">{{ row.SampleID }}</td>
-                            <td id="S_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                              {{ sequencer.SequencerID }}
+                            {# File level info #}
+                            {% set current_file = files[file_idx] if file_idx < files|length else None %}
+                            <td>
+                                {{ current_file.original_filename if current_file else '<span class="red">Not uploaded</span>'|safe }}
                             </td>
-                            <td id="R_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                              {{ sequencer.Region }}
+                            <td>
+                                {{ current_file.new_name if current_file else '<span class="red">Not uploaded</span>'|safe }}
                             </td>
-                            <td id="SR_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                              {{ sequencer.sequencing_run }}
-                            </td>
-                            <td id="F_{{ sequencer.id }}_A">
-                              {% if files|length > 0 %}
-                                {{ files[0].original_filename }}
-                              {% else %}
-                                <span class="red">Not uploaded</span>
-                              {% endif %}
-                            </td>
-                            <td id="FNN_{{ sequencer.id }}_A">
-                                {% if files|length > 0 %}
-                                    {{ files[0].new_name }}
-                                {% else %}
-                                    <span class="red">Not uploaded</span>
-                                {% endif %}
-                            </td>
-                            <td id="FCQ_{{ sequencer.id }}_A">
-                                {% if files|length > 0 %}
-                                    {% if files[0].fastqc_report %}
-                                        <a href="show_fastqc_report?file_id={{ files[0].id }}" target="_blank" class="link">Done</a>
-                                    {% endif %}
-                                {% endif %}
-                            </td>
-                            <td id="FBP_{{ sequencer.id }}_A">
-                                {% if files|length > 0 %}
-                                    {% if files[0].bucket_upload_progress %}
-                                        {{ files[0].bucket_upload_progress }}%
-                                    {% endif %}
+                            <td>
+                                {% if current_file and current_file.fastqc_report %}
+                                    <a href="show_fastqc_report?file_id={{ current_file.id }}" target="_blank" class="link">Done</a>
                                 {% endif %}
                             </td>
                             <td>
-                                {% if files|length > 0 %}
-                                    {% if files[0].total_sequences_number %}
-                                        {{ files[0].total_sequences_number }}
+                                {{ current_file.bucket_upload_progress ~ '%' if current_file and current_file.bucket_upload_progress else '' }}
+                            </td>
+                            <td>
+                                {{ current_file.total_sequences_number if current_file and current_file.total_sequences_number else '' }}
+                            </td>
+
+                            {# Metrics / Primer data #}
+                            <td>
+                                {% if sequencer %}
+                                    {{ sequencer.fwd_read_fwd_adap if file_idx == 0 else sequencer.rev_read_rev_adap }}
+                                {% endif %}
+                            </td>
+                            <td>{{ sequencer.fwd_rev_adap if sequencer else '' }}</td>
+                            
+                            {# Use your existing macro for the percent cell #}
+                            {{ macros.percent_cell(sequencer.fwd_rev_mrg_adap, current_file.total_sequences_number if current_file else 0) }}
+
+                            <td>
+                                {% if current_file %}
+                                    {% if is_admin %}
+                                        <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
+                                              data-file-id="{{ current_file.id }}"
+                                              {% if current_file.exclude_from_mapping %}checked{% endif %}>
+                                    {% elif current_file.exclude_from_mapping %}
+                                        excluded
                                     {% endif %}
                                 {% endif %}
                             </td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td>
-                              {% if files|length > 0 %}
-                                {% if is_admin %}
-                                  <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
-                                         data-file-id="{{ files[0].id }}"
-                                         {% if files[0].exclude_from_mapping %}checked{% endif %}>
-                                {% else %}
-                                  {% if files[0].exclude_from_mapping %} excluded {% endif %}>
-                                {% endif %}
-                              {% endif %}
-                            </td>
-                          </tr>
-                        {% else %}
-                          <!-- For subsequent sequencers in the same row -->
-                          <tr>
-                            <td id="S_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                              {{ sequencer.SequencerID }}
-                            </td>
-                            <td id="R_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                              {{ sequencer.Region }}
-                            </td>
-                            <td id="SR_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                              {{ sequencer.sequencing_run }}
-                            </td>
-                            <td id="F_{{ sequencer.id }}_A" rowspan="{{ nr_files_per_sequence }}">
-                              {% if files|length > 0 %}
-                                {{ files[0].original_filename }}
-                              {% else %}
-                                <span class="red">Not uploaded</span>
-                              {% endif %}
-                            </td>
-                            <td id="FNN_{{ sequencer.id }}_A" rowspan="{{ nr_files_per_sequence }}">
-                              {% if files|length > 0 %}
-                                  {{ files[0].new_name }}
-                              {% else %}
-                                  <span class="red">Not uploaded</span>
-                              {% endif %}
-                            </td>
-                            <td id="FCQ_{{ sequencer.id }}_A" rowspan="{{ nr_files_per_sequence }}">
-                              {% if files|length > 0 %}
-                                  {% if files[0].fastqc_report %}
-                                      <a href="show_fastqc_report?file_id={{ files[0].id }}" target="_blank" class="link">Done</a>
-                                  {% endif %}
-                              {% endif %}
-                            </td>
-                            <td id="FBP_{{ sequencer.id }}_A" rowspan="{{ nr_files_per_sequence }}">
-                              {% if files|length > 0 %}
-                                  {% if files[0].bucket_upload_progress %}
-                                      {{ files[0].bucket_upload_progress }}%
-                                  {% endif %}
-                              {% endif %}
-                            </td>
-                            <td rowspan="{{ nr_files_per_sequence }}">
-                              {% if files|length > 0 %}
-                                  {% if files[0].total_sequences_number %}
-                                      {{ files[0].total_sequences_number }}
-                                  {% endif %}
-                              {% endif %}
-                            </td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td rowspan="{{ nr_files_per_sequence }}">
-                              {% if files|length > 0 %}
-                                {% if is_admin %}
-                                  <input type="checkbox" class="step_6_exclude_file_from_mapping_checkbox"
-                                         data-file-id="{{ files[0].id }}"
-                                         {% if files[0].exclude_from_mapping %}checked{% endif %}>
-                                {% else %}
-                                  {% if files[0].exclude_from_mapping %} excluded {% endif %}>
-                                {% endif %}
-                              {% endif %}
-                            </td>
-                          </tr>
-                        {% endif %}
-                      {% else %}
-                        <!-- Handle missing sequencers gracefully -->
-                        {% if region_index == 0 %}
-                          <tr>
-                            <td class="bg-gray" rowspan="{{ process_data['Sequencing_regions_number'] }}">{{ row.id }}</td>
-                            <td class="bg-gray" rowspan="{{ process_data['Sequencing_regions_number'] }}">{{ row.SampleID }}</td>
-                            <td id="S_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                              <span class="red">No sequencer</span>
-                            </td>
-                            <td id="R_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                              <span class="red">No sequencer</span>
-                            </td>
-                            <td id="F_{{ row.id }}_A">
-                              <span class="red">Not available</span>
-                            </td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                          </tr>
-                        {% else %}
-                          <tr>
-                            <td id="S_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                              <span class="red">No sequencer</span>
-                            </td>
-                            <td id="R_{{ row.id }}_{{ region_index }}" rowspan="{{ nr_files_per_sequence }}">
-                              <span class="red">No sequencer</span>
-                            </td>
-                            <td id="F_{{ row.id }}_A">
-                              <span class="red">Not available</span>
-                            </td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                          </tr>
-                        {% endif %}
-                      {% endif %}
+                        </tr>
                     {% endfor %}
-                  {% endfor %}
-                {% endif %}
-
+                {% endfor %}
               </tbody>
           </table>
         </div>
       {% endif %}
     </div>
+    {% if is_admin %}
+      <button id="step_7_delete_sequencer_ids_btn"
+        data-process-id="{{ process_id }}"
+        class="btn btn-danger">
+        Delete sequencer IDs
+      </button>
+    {% endif %}    
     <div>   
       {% if process_data and process_data.regions %}
         {% for region in process_data.regions %}
@@ -1230,16 +816,11 @@
             {% endif %}
 
           >
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <input type="hidden" name="process_id" value="{{ process_id }}">
             <input type="button" id="step_7_button" class="btn btn-primary" value="I confirm">
           </fieldset>
         </form>
-        {% if total_uploaded_files == 0 or is_admin %}
-          <br/><a href="#" id="step_7_delete_sequencer_ids_btn" class="btn btn-danger">
-            Delete all sequencer IDs
-          </a>
-        {% endif %}
-        
       </div>
     {% endif %}
 
@@ -1259,6 +840,7 @@
              disabled="disabled"
             {% endif %}
           >
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <input type="file" class="btn btn-primary" id="step_8_upload_file_button" name="file" multiple />
             <input type="hidden" name="process_id" value="{{ process_id }}">
           </fieldset>
@@ -1273,6 +855,7 @@
             id="step_8_form_process_server_file"
             enctype="multipart/form-data"
           >
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             Directory: <input type="input" id="step_8_direct_directory" name="step_8_direct_directory" />
             <br>
             SequencingRun: <input type="input" id="step_8_sequencing_run" name="step_8_sequencing_run" />
@@ -1289,6 +872,7 @@
                 enctype="multipart/form-data"
                 id="step_8_file_upload_migration"
             >
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
               <input type="hidden" name="process_id" value="{{ process_id }}">
               <input type="file" id="step_8_file_migration_upload_button" accept=".csv">
             </form>
@@ -1312,6 +896,7 @@
              disabled="disabled"
             {% endif %}
           >
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>          
             <input type="submit" class="btn btn-primary" id="step_9_button">
             <input type="hidden" name="process_id" value="{{ process_id }}">
           </fieldset>
@@ -1321,10 +906,10 @@
     {% endif %}
 
 
-    {% if is_admin %}
+    {% if is_admin or is_staff %}
 
       <div id="step_10" class="form-step-item">
-        <h3> Step 10: Admin only. Generate MultiQC report</h3>
+        <h3> Step 10: Generate MultiQC report</h3>
         {% if has_empty_fastqc_report %}
           <div> There are missing fastqc report files. Generate them first </div>
           <form
@@ -1337,8 +922,11 @@
                disabled="disabled"
               {% endif %}
             >
-              <input type="submit" class="btn btn-primary" id="step_10_button_fastqc">
-              <input type="hidden" name="process_id" value="{{ process_id }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+              {% if is_admin %}
+                <input type="submit" class="btn btn-primary" id="step_10_button_fastqc">
+                <input type="hidden" name="process_id" value="{{ process_id }}">
+              {% endif %}
             </fieldset>
           </form>
         {% else %}
@@ -1353,6 +941,7 @@
                disabled="disabled"
               {% endif %}
             >
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
               <input type="submit" class="btn btn-primary" id="step_10_button">
               <input type="hidden" name="process_id" value="{{ process_id }}">
             </fieldset>
@@ -1389,15 +978,16 @@
       {% endif %}
     {% endif %}
 
-    {% if is_admin %}
+    {% if is_admin or is_staff %}
 
       <div id="step_11" class="form-step-item">
-        <h3> Step 11: Admin only. Generate Mapping files</h3>
+        <h3> Step 11: Mapping files</h3>
         <form
           method="POST"
           action="/generate_mapping_files"
           id="step_11_form"
         >
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           <fieldset
             {% if ((process_data and not process_data.files_uploading_confirmed) or (mapping_files_exist)) %}
              disabled="disabled"
@@ -1447,10 +1037,10 @@
       {% endif %}
     {% endif %}
 
-    {% if is_admin %}
+    {% if is_admin or is_staff %}
 
       <div id="step_12" class="form-step-item">
-        <h3> Step 12: Admin only. Generate lotus2 report</h3>
+        <h3> Step 12: Generate lotus2 report</h3>
       </div>
     {% endif %}
 
@@ -1485,6 +1075,7 @@
                         action="/generate_lotus2_report"
                         class="step_12_form_run_report"
                       >
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <fieldset>
                           Debug: <input type="checkbox" id="debug-checkbox" name="debug"> <br>
 
@@ -1515,7 +1106,7 @@
                                 <option value="sdm_miSeq2_250">sdm_miSeq2_250.txt</option>
                               </select>
                             </div>                            
-                          {% elif (region_data.analysis_type=='ITS1' or region_data.analysis_type=='ITS2')%}
+                          {% elif (region_data.analysis_type=='ITS1' or region_data.analysis_type=='ITS1_eukaryome' or region_data.analysis_type=='ITS2' or region_data.analysis_type=='ITS2_eukaryome')%}
                             <h4> Sdmopt:</h4>
                             <div>
                               <select name="sdmopt">
@@ -1542,6 +1133,7 @@
                         action="/delete_lotus2_report"
                         class="step_12_form_delete_report"
                       >
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <fieldset>
                           <input type="submit" class="btn btn-primary" value="Delete">
                           <input type="hidden" name="analysis_type_id" value="{{ region_data.analysis_type_id }}">
@@ -1624,7 +1216,7 @@
                     {% if region_data.bucket_log_exists %}
                       A LotuS_progout.log file exists on the bucket in the correct directory
                     {% else %}
-                      {% if region_data.log_files_exist.phyloseq %}
+                      {% if region_data.log_files_exist.phyloseq and is_admin %}
                         <a href="upload_report_to_bucket?process_id={{ process_data.id }}&report=lotus2&analysis_type_id={{ region_data.analysis_type_id }}" class="btn btn-primary">
                           Upload to bucket
                         </a>
@@ -1639,10 +1231,10 @@
     {% endif %}
       <div id="step_12_msg" class="explanation"></div>
 
-    {% if is_admin %}
+    {% if is_admin or is_staff %}
 
       <div id="step_13" class="form-step-item">
-        <h3> Step 13: Admin only. Generate r scripts report</h3>
+        <h3> Step 13: Generate r scripts report</h3>
       </div>
     {% endif %}
 
@@ -1679,6 +1271,7 @@
                         action="/generate_rscripts_report"
                         class="step_13_form_run_report"
                       >
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <fieldset>
                           Debug: <input type="checkbox" id="debug-checkbox" name="debug"> <br>
                           <input type="submit" class="btn btn-primary" value="Generate">
@@ -1694,6 +1287,7 @@
                         class="step_13_form_delete_report"
                       >
                         <fieldset>
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                           <input type="submit" class="btn btn-primary" value="Delete">
                           <input type="hidden" name="process_id" value="{{ process_id }}">
                           <input type="hidden" name="analysis_type_id" value="{{ region_data.analysis_type_id }}">
@@ -1797,9 +1391,11 @@
                     {% if region_data.bucket_log_exists %}
                       A LotuS_progout.log file exists on the bucket in the correct directory
                     {% else %}
-                      <a href="upload_report_to_bucket?process_id={{ process_data.id }}&report=rscripts&analysis_type_id={{ region_data.analysis_type_id }}" class="btn btn-primary">
-                        Upload to bucket
-                      </a>
+                      {% if is_admin %}
+                        <a href="upload_report_to_bucket?process_id={{ process_data.id }}&report=rscripts&analysis_type_id={{ region_data.analysis_type_id }}" class="btn btn-primary">
+                          Upload to bucket
+                        </a>
+                      {% endif %}  
                     {% endif %}
                   {% endif %}
                 </td>
@@ -1809,10 +1405,9 @@
       </table>
     {% endif %}
     <div id="step_13_msg" class="explanation"></div>
-
-    {% if is_admin %}
+    {% if is_admin or is_staff %}
       <div id="step_14" class="form-step-item">
-        <h3> Step 14: Admin only. Prepare pdf report</h3>
+        <h3> Step 14: Prepare pdf report</h3>
         <a href="prepare_pdf_report?process_id={{ process_data.id }}" class="btn btn-primary">Prepare pdf report</a>
         {% if pdf_report %}
           <a href="download_pdf_report?process_id={{ process_data.id }}" class="btn btn-primary" target="_blank">Download pdf report</a>
@@ -1846,6 +1441,56 @@
   var sequencing_regions_number = {{ process_data["Sequencing_regions_number"] if process_data["Sequencing_regions_number"] else 0 }};
   var region_1_reverse_primer = "{{ process_data["region_1_reverse_primer"] }}"
   var region_2_reverse_primer = "{{ process_data["region_2_reverse_primer"] }}"
+
+
+
+
+  ////// ############################################# /////////
+  ////// ###### MESSAGE HANDLING STARTS HERE ######### /////////
+  ////// ############################################# /////////
+
+  // --- GLOBAL UTILITIES ---
+  function showAlert(message, category) {
+      // Remove any existing alerts first
+      $('#js-alert-container').remove();
+
+      const alertHtml = `
+          <div id="js-alert-container" style="position: fixed; top: 20px; left: 10%; right: 10%; z-index: 9999;">
+              <div class="alert alert-${category} alert-dismissible fade show shadow-lg" role="alert">
+                  ${message}
+                  <button type="button" class="close close-alert" aria-label="Close" style="outline: none;">
+                      <span aria-hidden="true">&times;</span>
+                  </button>
+              </div>
+          </div>`;
+      
+      $('body').prepend(alertHtml);
+  }
+
+  // Global listener for the "X" button (Delegated)
+  $(document).on('click', '.close-alert', function() {
+      $(this).closest('#js-alert-container').fadeOut(200, function() {
+          $(this).remove();
+      });
+  });
+
+  $(document).ready(function() {
+      const msg = sessionStorage.getItem('flashMessage');
+      const type = sessionStorage.getItem('flashType');
+
+      if (msg) {
+          showAlert(msg, type); // Calls the global function
+          sessionStorage.removeItem('flashMessage');
+          sessionStorage.removeItem('flashType');
+      }
+  });
+
+  ////// ############################################# /////////
+  ////// ###### MESSAGE HANDLING ends HERE ########### /////////
+  ////// ############################################# /////////
+
+
+
   ////// ############################################# /////////
   ////// ############ STEP 2 STARTS HERE ############# /////////
   ////// ############################################# /////////
@@ -2483,6 +2128,88 @@
   ////// ####### STEP 4 FILL IN FORM ENDS HERE ####### /////////
   ////// ############################################# /////////
 
+
+  ////// ############################################# /////////
+  ////// ####### STEP 4 DELETE SAMPLES STARTS HERE ### /////////
+  ////// ############################################# /////////
+  $(document).ready(function() {
+      $('#step_4_delete_metadata_btn').on('click', function(e) {
+          e.preventDefault();
+          const processId = $(this).data('process-id');
+          const $btn = $(this);
+
+          if (!confirm('Are you sure you want to delete this metadata?')) return;
+
+          $btn.prop('disabled', true).text('Deleting...');
+
+          $.ajax({
+              url: `/delete_metadata?process_id=${processId}`,
+              type: 'GET',
+              success: function(response) {
+                  sessionStorage.setItem('flashMessage', response.message);
+                  sessionStorage.setItem('flashType', 'success');
+                  location.reload(); 
+              },
+              error: function(xhr) {
+                  const errorMsg = xhr.responseJSON ? xhr.responseJSON.error : "An error occurred";
+                  showAlert(errorMsg, 'danger'); // Calls the global function
+                  $btn.prop('disabled', false).text('Delete metadata');
+              }
+          });
+      });
+  });
+  ////// ############################################# /////////
+  ////// ####### STEP 4 DELETE SAMPLES ENDS HERE ##### /////////
+  ////// ############################################# /////////
+
+
+  ////// ############################################# /////////
+  ////// ####### STEP 4 UPDATE SAMPLES STARTS HERE ### /////////
+  ////// ############################################# /////////
+  $(document).ready(function() {
+      $('#step_4_append_file_button').on('change', function() {
+          var fileInput = this;
+          var file = fileInput.files[0];
+          var processId = $('#step_4_append_columns_form input[name="process_id"]').val();
+
+          if (!file) return;
+
+          if (!confirm('This will add new columns to all matching samples in this process. Proceed?')) {
+              fileInput.value = "";
+              return;
+          }
+
+          var formData = new FormData();
+          formData.append('file', file);
+          formData.append('process_id', processId);
+
+          $('#step_4_append_msg').text('Processing...').removeClass('text-danger text-success').addClass('text-info');
+
+          $.ajax({
+              url: '/admin_append_metadata_columns',
+              type: 'POST',
+              data: formData,
+              contentType: false,
+              processData: false,
+              success: function(response) {
+                  // Following your style of using sessionStorage for flash messages on reload
+                  sessionStorage.setItem('flashMessage', response.message);
+                  sessionStorage.setItem('flashType', 'success');
+                  location.reload(); 
+              },
+              error: function(xhr) {
+                  var errorMsg = xhr.responseJSON ? xhr.responseJSON.error : "An error occurred";
+                  $('#step_4_append_msg').text(errorMsg).removeClass('text-info').addClass('text-danger');
+                  fileInput.value = "";
+              }
+          });
+      });
+  });
+
+  ////// ############################################# /////////
+  ////// ####### STEP 4 UPDATE SAMPLES ENDS HERE #### /////////
+  ////// ############################################# /////////
+
   ////// ############################################# /////////
   ////// ############ STEP 5 STARTS HERE ############# /////////
   ////// ############################################# /////////
@@ -2758,7 +2485,7 @@
                 console.error('Error updating file exclusion:', error);
             }
         });
-    });
+    }); 
 
   });
   ////// ############################################# /////////
@@ -2775,14 +2502,33 @@
       $('#step_7_form fieldset').attr('disabled', 'disabled');
   }
   $(document).ready(function () {
-    $('#step_7_delete_sequencer_ids_btn').on('click', function (e) {
-      e.preventDefault();
+    $('#step_7_delete_sequencer_ids_btn').on('click', function(e) {
+        e.preventDefault();
+        const processId = $(this).data('process-id');
+        const $btn = $(this);
 
-      if (confirm("Are you absolutely certain? This will delete your sequencer IDs and you will have to upload them again")) {
-        window.location.href = "/delete_sequencer_ids?process_id={{ process_data.id }}";
-      }
-    });
+        if (!confirm('Are you sure you want to delete the sequencer IDs for this process?')) return;
+
+        $btn.prop('disabled', true).text('Deleting...');
+
+        $.ajax({
+            url: `/delete_sequencer_ids?process_id=${processId}`,
+            type: 'GET',
+            success: function(response) {
+                sessionStorage.setItem('flashMessage', response.message);
+                sessionStorage.setItem('flashType', 'success');
+                location.reload(); 
+            },
+            error: function(xhr) {
+                const errorMsg = xhr.responseJSON ? xhr.responseJSON.error : "An error occurred";
+                showAlert(errorMsg, 'danger'); // Calls the global function
+                $btn.prop('disabled', false).text('Delete Sequencer IDs');
+            }
+        });
+    }); 
   });
+
+  
 
   function update_step7_missing_ids_div(missingSequencingIds) {
       if (missingSequencingIds && missingSequencingIds.length > 0) {

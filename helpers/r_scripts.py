@@ -80,7 +80,7 @@ def create_pdf_report(process_id):
     ssu_count_amf = 0
 
     for r_report in rscripts_reports:
-        if "ITS2" == r_report["analysis_type"]:
+        if r_report["analysis_type"] in ("ITS1", "ITS2"):
             its_report = r_report["analysis_type"]
             missing_samples_its = SequencingUpload.get_missing_its_files(
                 process_id
@@ -88,7 +88,6 @@ def create_pdf_report(process_id):
             its_command = r_report["lotus2_command"]
             its_region = r_report.get("region", "ITS")  # Use get for safety
             its_count_ecm = SequencingAnalysis.get_ecm_count(r_report["id"])
-
         elif "FULL_ITS_Eukaryome" == r_report["analysis_type"]:
             its_report = r_report["analysis_type"]
             missing_samples_its = SequencingUpload.get_missing_its_files(
@@ -359,13 +358,13 @@ def generate_rscripts_report(process_id, input_dir, region, analysis_type_id):
         # Run rscripts inside the 'spun-r_service' container
         container = client.containers.get("spun-r-service")
 
-        if region in ["ITS1", "ITS2", "Full_ITS"]:
+        if region in ["ITS1", "ITS2", "Full_ITS", "Full_ITS_LSU"]:
             r_script = "EcM_decontam_taxonomic_filtering.R"
 
         if region in ["SSU"]:
             r_script = "AMF_decontam_taxonomic_filtering.R"
 
-        if region in ["ITS1", "ITS2", "SSU", "Full_ITS"]:
+        if region in ["ITS1", "ITS2", "SSU", "Full_ITS", "Full_ITS_LSU"]:
             os.makedirs(
                 input_dir + "/r_output/" + analysis_type.name, exist_ok=True
             )

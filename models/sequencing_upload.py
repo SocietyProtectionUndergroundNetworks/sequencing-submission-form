@@ -687,6 +687,36 @@ class SequencingUpload:
             return sequencer_ids_list
 
     @classmethod
+    def get_associated_files_count(self, sequencingUploadId):
+        """
+        Returns the count of sequencing files associated with a specific
+        sequencingUploadId by joining through the samples and sequencer ID tables.
+        """
+        with session_scope() as session:
+            # We start at the files table and join upwards to the samples
+            # to find the link to the original sequencingUploadId
+            count = (
+                session.query(SequencingFilesUploadedTable)
+                .join(
+                    SequencingSequencerIDsTable,
+                    SequencingFilesUploadedTable.sequencerId
+                    == SequencingSequencerIDsTable.id,
+                )
+                .join(
+                    SequencingSamplesTable,
+                    SequencingSequencerIDsTable.sequencingSampleId
+                    == SequencingSamplesTable.id,
+                )
+                .filter(
+                    SequencingSamplesTable.sequencingUploadId
+                    == sequencingUploadId
+                )
+                .count()
+            )
+
+            return count
+
+    @classmethod
     def delete_sequencer_ids_for_upload(self, upload_id: int):
         with session_scope() as session:
             # Get all sequencer IDs linked to the upload
@@ -819,7 +849,7 @@ class SequencingUpload:
             JOIN sequencing_files_uploaded
                 AS sfu ON sfu.sequencerId = ssi.id
             WHERE ss.sequencingUploadId = :sequencingUploadId
-            AND ssi.Region IN ('ITS1', 'ITS2', 'Full_ITS')
+            AND ssi.Region IN ('ITS1', 'ITS2', 'Full_ITS', 'Full_ITS_LSU')
             GROUP BY ss.id
         )
         """
@@ -1142,7 +1172,6 @@ class SequencingUpload:
                 sample_data["sequencer_ids"] = sequencer_ids_dict.get(
                     sample_id, []
                 )
-
                 for sequencer in sample_data["sequencer_ids"]:
                     sequencer_id = sequencer["id"]
                     sequencer["uploaded_files"] = uploaded_files_dict.get(
