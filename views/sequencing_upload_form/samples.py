@@ -54,6 +54,11 @@ def metadata_validate_row():
     # Convert form data to a DataFrame
     df = pd.DataFrame([form_data])
 
+    expected_columns_data = get_columns_data(exclude=True)
+    for index, row in df.iterrows():
+        normalized_dict = normalize_row(row.to_dict(), expected_columns_data)
+        df.iloc[index] = pd.Series(normalized_dict)
+
     # Check metadata using the helper function
     if "Date_collected" in df.columns:
         # Attempt to convert 'Date_collected' to datetime
@@ -287,6 +292,10 @@ def update_sample():
 
     # Collect the data from the form
     datadict = request.form.to_dict()
+
+    # normalize capitalization
+    expected_columns_data = get_columns_data(exclude=False)
+    datadict = normalize_row(datadict, expected_columns_data)
 
     # Update the sample
     if SequencingSample.update(sample_id, datadict):

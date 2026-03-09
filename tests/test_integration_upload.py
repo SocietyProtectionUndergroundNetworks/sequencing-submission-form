@@ -146,6 +146,12 @@ def test_upload_process_common_fields_creation(
                 )
                 assert db_sample is not None
 
+                # Assert that 'no' (from the CSV) was normalized to 'No' in the DB
+                # This verifies the normalize_row helper is working as expected
+                assert db_sample.Agricultural_land == "No"
+                assert db_sample.Transport_refrigeration == "No"
+                assert db_sample.Drying == "No"
+
     # Step 7: Confirm the metadata upload
     response = client.post(
         "/sequencing_confirm_metadata",
