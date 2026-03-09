@@ -8,12 +8,13 @@ import logging
 # Import extensions without initializing them with an app yet
 from flask_sqlalchemy import SQLAlchemy
 from flask_session import Session
+from flask_wtf.csrf import CSRFProtect
 
 # Import your helpers and modules
 from db.db_conn import (
     get_database_uri,
 )
-from views import create_base_app
+
 from extensions import login_manager
 from celery_config import make_celery
 from celery.schedules import crontab
@@ -21,6 +22,7 @@ from celery.schedules import crontab
 # Initialize extensions as objects, to be bound to an app later
 db = SQLAlchemy()
 sess = Session()
+csrf = CSRFProtect()  # Initialized CSRFProtect object
 celery_app = (
     None  # Placeholder for your Celery instance, global for worker entry
 )
@@ -28,6 +30,10 @@ celery_app = (
 
 def create_app(test_config=None):
     global celery_app
+    from views import (
+        create_base_app,
+    )  # Moved here to break circular dependency
+
     app = create_base_app()
 
     # Clear current_app.logger handlers if any
@@ -95,6 +101,7 @@ def create_app(test_config=None):
     else:
         # Load the test configuration if passed in (e.g., from pytest)
         app.config.from_mapping(test_config)
+        app.config["WTF_CSRF_ENABLED"] = False  # Added to fix failed test
         app.config["CELERY_ALWAYS_EAGER"] = app.config.get(
             "CELERY_ALWAYS_EAGER", True
         )
@@ -121,6 +128,7 @@ def create_app(test_config=None):
     db.init_app(app)  # Initialize SQLAlchemy with the configured app
     sess.init_app(app)  # Initialize Flask-Session
     login_manager.init_app(app)  # Initialize Flask-Login
+    csrf.init_app(app)  # Initialized CSRF protection
 
     # 4. Other app setup that needs the app context or configuration
     # Initialize Earth Engine. This often needs to be mocked in tests.

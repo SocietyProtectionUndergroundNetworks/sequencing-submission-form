@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/resumable.js/1.1.0/resumable.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
@@ -39,6 +40,7 @@
       <h3> Step 1: Project ID allocated to user </h3>
       <form id="step_1_form">
         <fieldset>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           {% if process_data and process_data['project_id'] %}
             <div>Selected project id: <span class="fw-bold">{{ process_data['project_id'] }}</span></div>
           {% else %}
@@ -70,11 +72,13 @@
     <div id="step_2" class="form-step-item">
       <h3> Step 2: Tell us how you are going to run the sequencing</h3>
       <form id="step_2_form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <fieldset
           {% if my_buckets|length != 1 or process_data %}
            disabled="disabled"
           {% endif %}
         >
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           <div class="form-check">
             <input
               class="form-check-input"
@@ -113,6 +117,7 @@
       <h3> Step 3: Give us the common data for your project</h3>
       <form id="step_3_form">
         <fieldset {% if not is_admin %}disabled="disabled"{% endif %}>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           {% if my_buckets|length == 1 %}
             <input type="hidden" id="step_3_sequenceProjectId" name="project_id" value="{{ my_buckets|list|first }}"/>
           {% else %}
@@ -251,6 +256,7 @@
             disabled="disabled"
           {% endif %}
         >
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           <div class="form-check">
             <input class="form-check-input" type="radio" name="upload_method" id="upload_method_1" value="1">
             <label class="form-check-label" for="sequencing_method_1">
@@ -276,6 +282,7 @@
             enctype="multipart/form-data"
             id="step_4_file_upload"
         >
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           <input type="hidden" name="project_id" value="{{ project_id }}">
           <input type="hidden" name="process_id" value="{{ process_id }}">
           <input type="file" id="step_4_file_upload_button" accept=".csv, .xls, .xlsx">
@@ -293,6 +300,7 @@
 
     <div class="container">
       <form id="metadataForm" style="display:none">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <input type="hidden" name="process_id" value="{{ process_id }}">
         {% for column_key, column_values in expected_columns.items() %}
           {% if 'excludeFromTemplate' not in column_values or column_values['excludeFromTemplate'] != 'True' %}
@@ -429,6 +437,7 @@
         <h4>(Admin only) Append Extra Metadata Columns</h4>
         <p>Upload a CSV/XLS with a <strong>SampleID</strong> column. Any additional columns will be appended to the existing samples.</p>
         <form id="step_4_append_columns_form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           <input type="hidden" name="process_id" value="{{ process_id }}">
           <input type="file" id="step_4_append_file_button" accept=".csv, .xls, .xlsx" class="btn btn-secondary btn-sm">
         </form>
@@ -445,6 +454,7 @@
           {% endif %}
 
         >
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           <p>All my metadata have been uploaded and I have checked the map and all the samples seem to be in the correct locations.</p>
           <input type="hidden" name="process_id" value="{{ process_id }}">
           <input type="button" class="btn btn-primary" id="step_5_button" value="I confirm">
@@ -476,6 +486,7 @@
              disabled="disabled"
             {% endif %}
           >
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           <p>
             Based on the information you provided on step 3 (sequencing platform and primers)
             you have {{ process_data["Sequencing_regions_number"] }} regions, and we expect {{ nr_files_per_sequence }} files per region. 
@@ -582,12 +593,14 @@
               enctype="multipart/form-data"
               id="step_6_file_upload"
           >
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <input type="hidden" name="process_id" value="{{ process_id }}">
             <input type="file" id="step_6_file_upload_button" accept=".csv, .xls, .xlsx">
           </form>
         </div>
         <div id="step_6_case_2" class="explanation" style="display:none;">
           <form id="sequencerIdsForm" style="display:none">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <input type="hidden" name="process_id" value="{{ process_id }}">
             <div class="form-group row mb-3">
                 <label for="sequencer_sample_id" class="col-sm-3 col-form-label">SampleID</label>
@@ -803,6 +816,7 @@
             {% endif %}
 
           >
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <input type="hidden" name="process_id" value="{{ process_id }}">
             <input type="button" id="step_7_button" class="btn btn-primary" value="I confirm">
           </fieldset>
@@ -826,6 +840,7 @@
              disabled="disabled"
             {% endif %}
           >
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <input type="file" class="btn btn-primary" id="step_8_upload_file_button" name="file" multiple />
             <input type="hidden" name="process_id" value="{{ process_id }}">
           </fieldset>
@@ -840,6 +855,7 @@
             id="step_8_form_process_server_file"
             enctype="multipart/form-data"
           >
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             Directory: <input type="input" id="step_8_direct_directory" name="step_8_direct_directory" />
             <br>
             SequencingRun: <input type="input" id="step_8_sequencing_run" name="step_8_sequencing_run" />
@@ -856,6 +872,7 @@
                 enctype="multipart/form-data"
                 id="step_8_file_upload_migration"
             >
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
               <input type="hidden" name="process_id" value="{{ process_id }}">
               <input type="file" id="step_8_file_migration_upload_button" accept=".csv">
             </form>
@@ -879,6 +896,7 @@
              disabled="disabled"
             {% endif %}
           >
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>          
             <input type="submit" class="btn btn-primary" id="step_9_button">
             <input type="hidden" name="process_id" value="{{ process_id }}">
           </fieldset>
@@ -904,6 +922,7 @@
                disabled="disabled"
               {% endif %}
             >
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
               {% if is_admin %}
                 <input type="submit" class="btn btn-primary" id="step_10_button_fastqc">
                 <input type="hidden" name="process_id" value="{{ process_id }}">
@@ -922,6 +941,7 @@
                disabled="disabled"
               {% endif %}
             >
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
               <input type="submit" class="btn btn-primary" id="step_10_button">
               <input type="hidden" name="process_id" value="{{ process_id }}">
             </fieldset>
@@ -967,6 +987,7 @@
           action="/generate_mapping_files"
           id="step_11_form"
         >
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           <fieldset
             {% if ((process_data and not process_data.files_uploading_confirmed) or (mapping_files_exist)) %}
              disabled="disabled"
@@ -1054,6 +1075,7 @@
                         action="/generate_lotus2_report"
                         class="step_12_form_run_report"
                       >
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <fieldset>
                           Debug: <input type="checkbox" id="debug-checkbox" name="debug"> <br>
 
@@ -1111,6 +1133,7 @@
                         action="/delete_lotus2_report"
                         class="step_12_form_delete_report"
                       >
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <fieldset>
                           <input type="submit" class="btn btn-primary" value="Delete">
                           <input type="hidden" name="analysis_type_id" value="{{ region_data.analysis_type_id }}">
@@ -1248,6 +1271,7 @@
                         action="/generate_rscripts_report"
                         class="step_13_form_run_report"
                       >
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <fieldset>
                           Debug: <input type="checkbox" id="debug-checkbox" name="debug"> <br>
                           <input type="submit" class="btn btn-primary" value="Generate">
@@ -1263,6 +1287,7 @@
                         class="step_13_form_delete_report"
                       >
                         <fieldset>
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                           <input type="submit" class="btn btn-primary" value="Delete">
                           <input type="hidden" name="process_id" value="{{ process_id }}">
                           <input type="hidden" name="analysis_type_id" value="{{ region_data.analysis_type_id }}">
