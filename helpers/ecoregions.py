@@ -112,15 +112,15 @@ def return_ecoregion(coordinates_list=None):
     client = docker.from_env()
     container = client.containers.get("spun-geopandas")
 
-    # Construct the command_str dynamically
-    coordinates_str = " ".join(
-        [f"{lat} {lon}" for lat, lon in coordinates_list]
-    )
-    command_str = f"python app.py {coordinates_str}"
+    # Construct arguments list safely to prevent command injection
+    args = ["python", "app.py"]
+    for lat, lon in coordinates_list:
+        args.append(str(lat))
+        args.append(str(lon))
 
-    result = container.exec_run(["bash", "-c", command_str])
+    # Execute directly as a list of arguments, avoiding shell interpretation
+    result = container.exec_run(args)
 
-    # logger.info(result.output.decode())
     return result.output.decode()
 
 
