@@ -224,7 +224,7 @@ def get_sequencers_sample():
 
 
 @upload_form_bp.route(
-    "/delete_sequencer_ids", methods=["GET"], endpoint="delete_sequencer_ids"
+    "/delete_sequencer_ids", methods=["POST"], endpoint="delete_sequencer_ids"
 )
 @login_required
 @approved_required

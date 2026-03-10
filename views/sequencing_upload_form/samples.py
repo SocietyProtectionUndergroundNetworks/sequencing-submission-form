@@ -96,7 +96,7 @@ def metadata_validate_row():
 
 
 @upload_form_bp.route(
-    "/delete_metadata", methods=["GET"], endpoint="delete_metadata"
+    "/delete_metadata", methods=["POST"], endpoint="delete_metadata"
 )
 @login_required
 @approved_required

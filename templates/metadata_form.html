@@ -2144,7 +2144,7 @@
 
           $.ajax({
               url: `/delete_metadata?process_id=${processId}`,
-              type: 'GET',
+              type: 'POST',
               success: function(response) {
                   sessionStorage.setItem('flashMessage', response.message);
                   sessionStorage.setItem('flashType', 'success');
@@ -2513,7 +2513,7 @@
 
         $.ajax({
             url: `/delete_sequencer_ids?process_id=${processId}`,
-            type: 'GET',
+            type: 'POST',
             success: function(response) {
                 sessionStorage.setItem('flashMessage', response.message);
                 sessionStorage.setItem('flashType', 'success');
