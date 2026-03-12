@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">    
     <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnSuA4Ss2PkkikSOLtYs8BlYIeeIK1h99ty4YfvRPAlzr377vr3CXDb7sb7eEEBYjDtcYj+AjBH3FLv5uSJuXg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -39,6 +40,7 @@
           enctype="multipart/form-data"
           id="step_1_file_upload"
       >
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <input type="file" id="step_1_file_upload_button" accept=".csv">
         <input type="hidden" name="upload_id" value="{{ upload_id }}">
       </form>
@@ -122,6 +124,7 @@
           id="step_2_form_process_server_file"
           enctype="multipart/form-data"
       >
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           <input type="text" id="step_2_direct_directory" name="directory_name" value="{{ directory_name }}" placeholder="Enter directory name" />
           <input type="hidden" name="upload_id" value="{{ upload.id }}" />
           <button type="submit" class="btn btn-secondary" id="step_8_form_process_server_file_button" data-process_id="{{ process_id }}">
@@ -176,7 +179,7 @@
                       Bucket folder name: <input type="input" name="bucket_folder_name"><br>
                       Local folder with files: <input type="input" name="directory_name" value="{{ directory_name }}" /><br>
                       <input type="submit" class="btn btn-primary" value="Move">
-                      
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                       <input type="hidden" name="upload_id" value="{{ upload.id }}">
                       
                     </fieldset>
@@ -190,6 +193,7 @@
                   >
                     <fieldset>
                       Sequencing run: <input type="input" name="sequencing_run"><br>
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                       <input type="submit" class="btn btn-primary" value="Move">
                       <input type="hidden" name="upload_id" value="{{ upload.id }}">
                       <input type="hidden" name="directory_name" value="{{ directory_name }}" />
@@ -207,6 +211,25 @@
   </div>
 
   <script type="application/javascript">
+  ////// ############################################# /////////
+  ////// ## CSRF FOR ALL AJAX FORMS STARTS HERE ###### /////////
+  ////// ############################################# /////////
+  $(document).ready(function() {
+      var csrftoken = $('meta[name="csrf-token"]').attr('content');
+
+      $.ajaxSetup({
+          beforeSend: function(xhr, settings) {
+              // Only send the token to relative URLs (local to your site) and non-GET methods
+              if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                  xhr.setRequestHeader("X-CSRFToken", csrftoken);
+              }
+          }
+      });
+  });
+  ////// ############################################# /////////
+  ////// #### CSRF FOR ALL AJAX FORMS ENDS HERE ###### /////////
+  ////// ############################################# /////////
+
   ////// ############################################# /////////
   ////// ####### STEP 1 UPLOAD FILE STARTS HERE ###### /////////
   ////// ############################################# /////////
