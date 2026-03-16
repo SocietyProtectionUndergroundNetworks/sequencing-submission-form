@@ -125,7 +125,14 @@ class SequencingAnalysisTable(Base):
     __tablename__ = "sequencing_analysis"
     id = Column(Integer, primary_key=True)
     sequencingUploadId = Column(
-        Integer, ForeignKey("sequencing_uploads.id", ondelete="CASCADE")
+        Integer,
+        ForeignKey("sequencing_uploads.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    metaProjectId = Column(
+        Integer,
+        ForeignKey("meta_projects.id", ondelete="CASCADE"),
+        nullable=True,
     )
     sequencingAnalysisTypeId = Column(
         Integer, ForeignKey("sequencing_analysis_types.id")
@@ -514,3 +521,36 @@ class AppConfigurationTable(Base):
     label = Column(String(255), nullable=True)
     description = Column(String(255), nullable=True)
     value = Column(String(255), nullable=True)
+
+
+class MetaProjectsTable(Base):
+    __tablename__ = "meta_projects"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"))
+    results_folder = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(
+        DateTime, default=func.now(), onupdate=func.now(), nullable=True
+    )
+    # Many-to-Many relationship with SequencingUploadsTable
+    uploads = relationship(
+        "SequencingUploadsTable",
+        secondary="meta_project_uploads",
+        backref="meta_projects",
+    )
+
+
+class MetaProjectUploadsTable(Base):
+    __tablename__ = "meta_project_uploads"
+    id = Column(Integer, primary_key=True)
+    meta_project_id = Column(
+        Integer,
+        ForeignKey("meta_projects.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    sequencing_upload_id = Column(
+        Integer,
+        ForeignKey("sequencing_uploads.id", ondelete="CASCADE"),
+        nullable=False,
+    )

@@ -50,31 +50,36 @@ class SequencingAnalysis:
             return upload
 
     @classmethod
-    def create(cls, sequencingUploadId, sequencingAnalysisTypeId):
-        # Try to get an existing record using the get_by_upload_and_type method
-        existing_item = cls.get_by_upload_and_type(
-            sequencingUploadId, sequencingAnalysisTypeId
-        )
+    def create(cls, target_id, sequencingAnalysisTypeId, is_meta=False):
+        # 1. Branch the "get" logic based on is_meta
+        if is_meta:
+            existing_item = cls.get_by_meta_project_and_type(
+                target_id, sequencingAnalysisTypeId
+            )
+        else:
+            existing_item = cls.get_by_upload_and_type(
+                target_id, sequencingAnalysisTypeId
+            )
 
         if existing_item:
-            # If it exists, return the ID of the existing record
             return existing_item
 
-        # If it doesn't exist, create a new record
+        # 2. Create a new record with the correct foreign key
         with session_scope() as session:
+            # We use a dictionary to build the arguments dynamically
+            params = {"sequencingAnalysisTypeId": sequencingAnalysisTypeId}
 
-            new_item = SequencingAnalysisTable(
-                sequencingUploadId=sequencingUploadId,
-                sequencingAnalysisTypeId=sequencingAnalysisTypeId,
-            )
+            if is_meta:
+                params["metaProjectId"] = target_id
+            else:
+                params["sequencingUploadId"] = target_id
+
+            new_item = SequencingAnalysisTable(**params)
 
             session.add(new_item)
             session.commit()
 
-            # Get the ID of the newly created record
-            new_id = new_item.id
-
-            return new_id
+            return new_item.id
 
     @classmethod
     def get_by_upload_and_type(
@@ -485,3 +490,17 @@ class SequencingAnalysis:
             )
 
             return amf_count or 0
+
+    @classmethod
+    def get_by_meta_project_and_type(cls, meta_project_id, analysis_type_id):
+        """Retrieves the ID of an analysis for a meta project and type."""
+        with session_scope() as session:
+            analysis = (
+                session.query(SequencingAnalysisTable)
+                .filter_by(
+                    metaProjectId=meta_project_id,
+                    sequencingAnalysisTypeId=analysis_type_id,
+                )
+                .first()
+            )
+            return analysis.id if analysis else None

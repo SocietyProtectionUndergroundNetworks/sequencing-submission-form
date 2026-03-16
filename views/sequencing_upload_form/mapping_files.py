@@ -1,3 +1,5 @@
+from fileinput import filename
+
 from . import upload_form_bp
 import os
 import logging
@@ -7,7 +9,8 @@ from flask import (
     request,
     url_for,
     jsonify,
-    send_file,
+    send_from_directory,
+    current_app,
 )
 from helpers.decorators import (
     approved_required,
@@ -39,35 +42,42 @@ def generate_mapping_files():
     )
 
 
-@upload_form_bp.route(
-    "/show_mapping_file", methods=["GET"], endpoint="show_mapping_file"
-)
+@upload_form_bp.route("/show_mapping_file", endpoint="show_mapping_file")
 @login_required
 @approved_required
-@admin_or_owner_required
 def show_mapping_file():
+    logger.info(" here we are in show_mapping_file")
     process_id = request.args.get("process_id")
+    meta_id = request.args.get("meta_project_id")
     region = request.args.get("region")
 
-    # Fetch process data from SequencingUpload model
-    process_data = SequencingUpload.get(process_id)
+    # Logic to determine the relative path based on the ID provided
+    if meta_id:
+        from models.meta_project import MetaProject
 
-    # Extract uploads folder and project id from process data
-    uploads_folder = process_data["uploads_folder"]
-
-    if region in process_data["regions"]:
-        mapping_file = os.path.join(
-            "seq_processed",
-            uploads_folder,
-            "mapping_files",
-            f"{region}_Mapping.txt",
+        meta_data = MetaProject.get(meta_id)
+        if not meta_data:
+            return "Meta Project not found", 404
+        relative_path = os.path.join(
+            "seq_processed", meta_data["results_folder"], "mapping_files"
         )
-        abs_mapping_file = os.path.abspath(mapping_file)
+    else:
+        from models.sequencing_upload import SequencingUpload
 
-        if os.path.isfile(abs_mapping_file):
-            return send_file(abs_mapping_file, as_attachment=True)
+        process_data = SequencingUpload.get(process_id)
+        if not process_data:
+            return "Process not found", 404
+        relative_path = os.path.join(
+            "seq_processed", process_data["uploads_folder"], "mapping_files"
+        )
 
-    return []
+    # Construct the full absolute path for the directory
+    project_root = os.path.dirname(current_app.root_path)
+    directory = os.path.join(project_root, relative_path)
+    filename = f"{region}_Mapping.txt"
+    return send_from_directory(
+        directory, filename, as_attachment=True, mimetype="text/plain"
+    )
 
 
 @upload_form_bp.route(

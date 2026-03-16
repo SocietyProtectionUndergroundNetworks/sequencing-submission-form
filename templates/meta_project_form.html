@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" />
+    <title>Meta Project: {{ meta_data.name }}</title>
+</head>
+{% from "macros/_analysis_components.html" import lotus_analysis_section, rscripts_analysis_section %}
+<body>
+  <div class="content p-4">
+    <h1>Meta Project: {{ meta_data.name }}</h1>
+    <p>Results Folder: <code>{{ meta_data.results_folder }}</code></p>
+
+    <div class="card mb-4">
+        <div class="card-header">Step 1: Select Constituent Projects</div>
+        <div class="card-body">
+            <form id="add_uploads_form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="meta_project_id" value="{{ meta_id }}">
+                <div class="mb-3">
+                    <label class="form-label">Available Sequencing Projects</label>
+                    <div class="project-selector border p-3" style="max-height: 200px; overflow-y: auto;">
+                        {% for upload in available_uploads %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="upload_ids[]" 
+                                   value="{{ upload.id }}" id="upload_{{ upload.id }}"
+                                   {% if upload.id in meta_data.upload_ids %}checked{% endif %}>
+                            <label class="form-check-label" for="upload_{{ upload.id }}">
+                                [ID: {{ upload.id }}] {{ upload.project_id }} - {{ upload.created_at.strftime('%Y-%m-%d') }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Save Project Selection</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="form-step-item">
+        <h3>Step 2: Generate Combined Mapping Files</h3>
+        <form id="generate_meta_mapping_form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <input type="hidden" name="meta_project_id" value="{{ meta_id }}">
+            
+            <fieldset {% if mapping_files_exist %}disabled{% endif %}>
+                <h4>Analysis Mode:</h4>
+                <select name="mode" class="form-select mb-3" style="max-width: 300px;">
+                    <option value="all" selected>Forward and reverse</option>
+                    <option value="only_forward">Only Forward</option>
+                </select>
+                <button type="submit" class="btn btn-primary" id="meta_mapping_btn">
+                    {{ 'Mapping Files Generated' if mapping_files_exist else 'Generate Combined Mapping' }}
+                </button>
+            </fieldset>
+        </form>
+      
+        {% if mapping_files_exist %}
+        <table class="table table-bordered mt-3">
+            <thead><tr class="bg-gray"><th>Region</th><th>Actions</th></tr></thead>
+            <tbody>
+                {% for region in regions %}
+                <tr>
+                    <td>{{ region }}</td>
+                    <td>
+                        <a href="{{ url_for('upload_form_bp.show_mapping_file', meta_project_id=meta_id, region=region) }}" 
+                        target="_blank" class="link">View Mapping</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+
+    <div class="form-step-item">
+      <h3>Step 3: Run Combined Lotus Analysis</h3>
+      {{ lotus_analysis_section(lotus2_report, meta_id, is_meta=True, is_admin=is_admin) }}
+    </div>
+
+    <div class="form-step-item">
+      <h3>Step 4: Combined R-Scripts Results</h3>
+      {{ rscripts_analysis_section(rscripts_report, meta_id, is_meta=True, is_admin=is_admin) }}
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/analysis.js') }}"></script>
+  
+  <script>
+    $(document).ready(function() {
+        $('#add_uploads_form').submit(function(e) {
+            e.preventDefault();
+            var formData = new FormData(this);
+            $.ajax({
+                url: '/meta_project/add_uploads',
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function(response) {
+                    alert('Projects updated successfully');
+                    location.reload();
+                }
+            });
+        });
+    });
+    $('#generate_meta_mapping_form').submit(function(e) {
+        e.preventDefault();
+        var $btn = $('#meta_mapping_btn');
+        var formData = new FormData(this);
+
+        $btn.prop('disabled', true).text('Generating...');
+
+        $.ajax({
+            url: '{{ url_for("upload_form_bp.generate_meta_mapping") }}',
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function(response) {
+                if (response.result == "1") {
+                    location.reload();
+                } else {
+                    alert("Error: " + response.message);
+                    $btn.prop('disabled', false).text('Generate Combined Mapping');
+                }
+            },
+            error: function() {
+                alert("An internal server error occurred.");
+                $btn.prop('disabled', false).text('Generate Combined Mapping');
+            }
+        });
+    });    
+  </script>
+</body>
+</html>
