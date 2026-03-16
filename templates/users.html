@@ -1,6 +1,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">    
     <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnSuA4Ss2PkkikSOLtYs8BlYIeeIK1h99ty4YfvRPAlzr377vr3CXDb7sb7eEEBYjDtcYj+AjBH3FLv5uSJuXg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -59,6 +60,7 @@
               <td>
                 <form action="/update_admin_status" method="post" class="admin-form">
                   <input type="hidden" name="user_id" value="{{ user.user.id }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                   <div class="form-check">
                     <input class="form-check-input admin-checkbox" type="checkbox" name="admin" {% if user.user.admin %} checked {% endif %} {% if user.user.id == current_user.id %} disabled {% endif %}>
                   </div>
@@ -67,6 +69,7 @@
               <td>
                 <form action="/update_approved_status" method="post" class="approved-form">
                   <input type="hidden" name="user_id" value="{{ user.user.id }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                   <div class="form-check">
                     <input class="form-check-input approved-checkbox" type="checkbox" name="approved" {% if user.user.approved %} checked {% endif %}>
                   </div>
@@ -87,6 +90,7 @@
                 {% endif %}  
                 <form action="/add_user_to_group" method="post" class="groups-form">
                   <input type="hidden" name="user_id" value="{{ user.user.id }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                   <select name="group" id="groups_{{ user.user.id }}">
                     <option value="none"> - </option>
                     {% for group in all_groups %}
@@ -110,6 +114,7 @@
                 </ul>
                 <form action="/give_access_to_bucket" method="post" class="buckets-form">
                   <input type="hidden" name="user_id" value="{{ user.user.id }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                   <select name="bucket" id="buckets_{{ user.user.id }}">
                     <option value="none"> - </option>
                     {% for bucket in all_buckets %}
@@ -157,6 +162,7 @@
     <div>
         <h2>Add New Preapproved User</h2>
         <form action="/add_preapproved_user" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <div class="form-group">
                 <label for="user_email">User Email:</label>
                 <input type="text" id="user_email" name="user_email" class="form-control" required>
