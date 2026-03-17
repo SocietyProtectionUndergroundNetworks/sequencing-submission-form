@@ -171,11 +171,18 @@ class SequencingUpload:
                 upload.nr_fastq_files = 0  # Count of files on disk
                 uploads_folder = filtered_dict["uploads_folder"]
                 if uploads_folder:
-                    total_size, fastq_count = cls.get_directory_size(
-                        os.path.join("seq_processed", uploads_folder)
-                    )
-                    upload.total_uploads_file_size = total_size
-                    upload.nr_fastq_files = fastq_count
+                    full_path = os.path.join("seq_processed", uploads_folder)
+                    # Check existence silently
+                    if os.path.exists(full_path) and os.path.isdir(full_path):
+                        total_size, fastq_count = cls.get_directory_size(
+                            full_path
+                        )
+                        upload.total_uploads_file_size = total_size
+                        upload.nr_fastq_files = fastq_count
+                    else:
+                        # Silently set to 0 if directory is missing
+                        upload.total_uploads_file_size = 0
+                        upload.nr_fastq_files = 0
 
                 # Calculate the number of files reported by the database
                 db_reported_files = cls._get_uploaded_files_for_upload(
@@ -1339,171 +1346,182 @@ class SequencingUpload:
             return True
 
     @classmethod
-    def generate_mapping_files_for_process(self, process_id, mode):
+    def sanitize_mapping_string(cls, value):
+        """Sanitizes strings for Lotus3 mapping files (replaces spaces with underscores, etc.)."""
+        if value is None:
+            return "NA"
+        # First, transliterate Unicode characters to ASCII equivalents
+        transliterated = unidecode(str(value))
+        sanitized = re.sub(r"\s+", "_", transliterated.strip())
+        # Now, remove any remaining non-word, non-hyphen, non-underscore ASCII characters
+        sanitized = re.sub(r"[^\w\-_]", "", sanitized)
+        return sanitized
 
-        def sanitize_mapping_string(value):
-            if value is None:
-                return "NA"
-            # First, transliterate Unicode characters to ASCII equivalents
-            transliterated = unidecode(str(value))
-            sanitized = re.sub(r"\s+", "_", transliterated.strip())
-            # Now, remove any remaining non-word, non-hyphen, non-underscore ASCII characters
-            sanitized = re.sub(r"[^\w\-_]", "", sanitized)
-            return sanitized
-
-        samples_data_complete = self.get_samples_with_sequencers_and_files(
+    @classmethod
+    def generate_mapping_files_for_process(cls, process_id, mode):
+        """Wrapper for single-project mapping file generation."""
+        samples_data_complete = cls.get_samples_with_sequencers_and_files(
             process_id
         )
-        process_data = self.get(process_id)
-        uploads_folder = process_data["uploads_folder"]
-        bucket = process_data["project_id"]
-        sample_country = sanitize_mapping_string(process_data["Country"])
+        process_data = cls.get(process_id)
 
-        # Dictionary to hold data organized by region
-        region_data = defaultdict(list)
+        # Inject project-level metadata into sample data for the generator
+        for sample in samples_data_complete:
+            sample["project_country"] = process_data.get("Country")
 
-        # Get the primer sequences for regions
-        region_1_sequences = get_sequences_based_on_primers(
-            process_data["region_1_forward_primer"],
-            process_data["region_1_reverse_primer"],
-        )
-        region_2_sequences = get_sequences_based_on_primers(
-            process_data["region_2_forward_primer"],
-            process_data["region_2_reverse_primer"],
-        )
-
+        # Build the region/primer dictionary specific to this process
         region_dict = {}
-        if region_1_sequences:
-            region_dict[region_1_sequences["Region"]] = {
-                "Forward Primer": region_1_sequences["Forward Primer"],
-                "Reverse Primer": region_1_sequences["Reverse Primer"],
-            }
-        if region_2_sequences:
-            region_dict[region_2_sequences["Region"]] = {
-                "Forward Primer": region_2_sequences["Forward Primer"],
-                "Reverse Primer": region_2_sequences["Reverse Primer"],
-            }
+        for r_num in [1, 2]:
+            seqs = get_sequences_based_on_primers(
+                process_data.get(f"region_{r_num}_forward_primer"),
+                process_data.get(f"region_{r_num}_reverse_primer"),
+            )
+            if seqs:
+                region_dict[seqs["Region"]] = {
+                    "Forward Primer": seqs["Forward Primer"],
+                    "Reverse Primer": seqs["Reverse Primer"],
+                }
 
+        output_dir = (
+            f"seq_processed/{process_data['uploads_folder']}/mapping_files/"
+        )
+        bucket = process_data["project_id"]
+
+        return cls.generate_mapping_files_from_data(
+            samples_data_complete, output_dir, bucket, region_dict, mode
+        )
+
+    @classmethod
+    def generate_mapping_files_from_data(
+        cls, samples_data_complete, output_dir, bucket, region_dict, mode
+    ):
+        """Core logic to generate mapping files from any aggregated sample dataset."""
+        region_data = defaultdict(list)
         sample_info = {}
 
         # Process each sample data
         for sample_data in samples_data_complete:
             sample_id = sample_data["SampleID"]
-            site_name = sanitize_mapping_string(sample_data["Site_name"])
-            latitude = sample_data["Latitude"]
-            longitude = sample_data["Longitude"]
-            vegetation = sanitize_mapping_string(sample_data["Vegetation"])
-            land_use = sanitize_mapping_string(sample_data["Land_use"])
-            ecosystem = sanitize_mapping_string(sample_data["Ecosystem"])
-            sample_or_control = sample_data["Sample_or_Control"]
 
-            # Initialize sample_info dictionary if not already
             if sample_id not in sample_info:
                 sample_info[sample_id] = {
-                    "site_name": site_name,
-                    "latitude": latitude,
-                    "longitude": longitude,
-                    "vegetation": vegetation,
-                    "land_use": land_use,
-                    "ecosystem": ecosystem,
-                    "sample_or_control": sample_or_control,
-                    "files": defaultdict(list),  # Accumulate files by region
+                    "site_name": cls.sanitize_mapping_string(
+                        sample_data["Site_name"]
+                    ),
+                    "latitude": sample_data["Latitude"],
+                    "longitude": sample_data["Longitude"],
+                    "vegetation": cls.sanitize_mapping_string(
+                        sample_data["Vegetation"]
+                    ),
+                    "land_use": cls.sanitize_mapping_string(
+                        sample_data["Land_use"]
+                    ),
+                    "ecosystem": cls.sanitize_mapping_string(
+                        sample_data["Ecosystem"]
+                    ),
+                    "sample_or_control": sample_data["Sample_or_Control"],
+                    "project_country": cls.sanitize_mapping_string(
+                        sample_data.get("project_country")
+                    ),
+                    "project_uploads_folder": sample_data.get(
+                        "project_uploads_folder"
+                    ),
+                    "files_by_run": defaultdict(
+                        lambda: defaultdict(list)
+                    ),  # Structure: [region][run_id] = [files]
                 }
 
-            # Check if there are sequencers and uploaded files
             if "sequencer_ids" in sample_data:
                 for sequencer in sample_data["sequencer_ids"]:
                     region = sequencer["Region"]
-
-                    sequencing_run = sequencer.get("sequencing_run")
-                    if not sequencing_run:
-                        sequencing_run = "Run_1"
+                    # Use the actual sequencing_run name, defaulting to Run_1
+                    sequencing_run = sequencer.get("sequencing_run") or "Run_1"
 
                     if "uploaded_files" in sequencer:
-                        paired_files = []
-                        for file_data in sequencer["uploaded_files"]:
-                            fastq_file = file_data["new_name"]
-                            exclude_from_mapping = file_data.get(
-                                "exclude_from_mapping", False
-                            )
-
-                            # Only accumulate files that are not excluded
-                            if not exclude_from_mapping:
-                                paired_files.append(fastq_file)
-
-                        # Sort filenames alphabetically
+                        paired_files = [
+                            f["new_name"]
+                            for f in sequencer["uploaded_files"]
+                            if not f.get("exclude_from_mapping", False)
+                        ]
                         paired_files = sorted(paired_files)
 
-                        # Process files based on the mode
-                        if mode == "only_forward":
-                            # Always select the first file after sorting
-                            if paired_files:
-                                sample_info[sample_id]["files"][region].append(
-                                    paired_files[0]
-                                )
-                        else:
-                            # Ensure files are in pairs (forward and reverse)
-                            if len(paired_files) == 2:
-                                sample_info[sample_id]["files"][region].extend(
-                                    paired_files
-                                )
-
-        # Create directory for output files if it doesn't exist
-        output_dir = f"seq_processed/{uploads_folder}/mapping_files/"
-        os.makedirs(output_dir, exist_ok=True)
+                        if mode == "only_forward" and paired_files:
+                            sample_info[sample_id]["files_by_run"][region][
+                                sequencing_run
+                            ].append(paired_files[0])
+                        elif len(paired_files) == 2:
+                            sample_info[sample_id]["files_by_run"][region][
+                                sequencing_run
+                            ].extend(paired_files)
 
         # Write files for each region
+        os.makedirs(output_dir, exist_ok=True)
         for sample_id, info in sample_info.items():
-            site_name = info["site_name"]
-            latitude = info["latitude"]
-            longitude = info["longitude"]
-            vegetation = info["vegetation"]
-            land_use = info["land_use"]
-            ecosystem = info["ecosystem"]
-            sample_or_control = info["sample_or_control"]
-            if sample_or_control in ["True sample", "True Sample"]:
-                sample_or_control = "sample"
+            sample_or_control = (
+                "sample"
+                if info["sample_or_control"] in ["True sample", "True Sample"]
+                else info["sample_or_control"]
+            )
 
-            # Process files for each region
-            for region, files in info["files"].items():
-                # Sort filenames alphabetically and join with commas
-                sorted_files = sorted(files)
+            for region, runs in info["files_by_run"].items():
+                # Now we iterate through each run for this region
+                for run_id, files in runs.items():
+                    resolved_files = []
+                    folder_name = info.get("project_uploads_folder")
 
-                fastq_files_combined = ",".join(sorted_files)
+                    for f in sorted(files):
+                        if folder_name:
+                            abs_path = os.path.join(
+                                "/", "seq_processed", folder_name, f
+                            )
+                            resolved_files.append(abs_path)
+                        else:
+                            resolved_files.append(f)
 
-                forward_primer = region_dict[region]["Forward Primer"]
-                reverse_primer = region_dict[region]["Reverse Primer"]
+                    fastq_files_combined = ",".join(resolved_files)
 
-                # If Sample_or_Control is "Control"
-                # set the relevant fields to empty strings
-                if sample_or_control == "Control":
-                    latitude = ""
-                    longitude = ""
-                    sample_country = ""
-                    vegetation = ""
-                    land_use = ""
-                    ecosystem = ""
-
-                # Add row to region data
-                region_data[region].append(
-                    [
+                    row = [
                         sample_id,
                         fastq_files_combined,
-                        forward_primer,
-                        reverse_primer,
-                        site_name,
-                        latitude,
-                        longitude,
-                        sample_country,
-                        vegetation,
-                        land_use,
-                        ecosystem,
+                        region_dict[region]["Forward Primer"],
+                        region_dict[region]["Reverse Primer"],
+                        info["site_name"],
+                        (
+                            info["latitude"]
+                            if sample_or_control != "Control"
+                            else ""
+                        ),
+                        (
+                            info["longitude"]
+                            if sample_or_control != "Control"
+                            else ""
+                        ),
+                        (
+                            info["project_country"]
+                            if sample_or_control != "Control"
+                            else ""
+                        ),
+                        (
+                            info["vegetation"]
+                            if sample_or_control != "Control"
+                            else ""
+                        ),
+                        (
+                            info["land_use"]
+                            if sample_or_control != "Control"
+                            else ""
+                        ),
+                        (
+                            info["ecosystem"]
+                            if sample_or_control != "Control"
+                            else ""
+                        ),
                         sample_or_control,
-                        sequencing_run,
+                        run_id,  # FIXED: Using the actual run_id instead of hardcoded "Run_1"
                     ]
-                )
+                    region_data[region].append(row)
 
-        # Write each region's data to a TSV file
+        # Write TSVs and upload to bucket
         for region, rows in region_data.items():
             mapping_filename = f"{region}_Mapping.txt"
             output_file_path = os.path.join(output_dir, mapping_filename)
@@ -1528,7 +1546,6 @@ class SequencingUpload:
                 )
                 writer.writerows(rows)
 
-            # Copy the file to the correct bucket and folder
             init_bucket_chunked_upload_v2(
                 local_file_path=output_file_path,
                 destination_upload_directory=None,
@@ -1537,7 +1554,6 @@ class SequencingUpload:
                 bucket_name=bucket,
                 known_md5=None,
             )
-
         return []
 
     @classmethod
@@ -1647,6 +1663,7 @@ class SequencingUpload:
                             "demulti": False,
                             "LotuS_run": False,
                             "phyloseq": False,
+                            "lotus2_command_outcome": False,
                         },
                         "bucket_log_exists": False,
                         "lotus2_command_outcome": False,
@@ -1717,7 +1734,9 @@ class SequencingUpload:
                             region_result["log_files_exist"]["phyloseq"] = (
                                 os.path.isfile(phyloseq_file)
                             )
-
+                            region_result["log_files_exist"][
+                                "lotus2_command_outcome"
+                            ] = bool(analysis.lotus2_result)
                             # Check if we need to verify files in the bucket
                             bucket_directory = (
                                 f"lotus2_report/"
@@ -1910,6 +1929,7 @@ class SequencingUpload:
                             "metadata_chaorichness": False,
                             "contaminants": False,
                             "physeq_by_genus": False,
+                            "rscripts_command_outcome": False,
                         },
                         "bucket_log_exists": False,
                         "rscripts_command_outcome": False,
@@ -1933,6 +1953,9 @@ class SequencingUpload:
                         region_result["finished_at"] = (
                             analysis.rscripts_finished_at
                         )
+                        region_result["files_exist"][
+                            "rscripts_command_outcome"
+                        ] = bool(analysis.rscripts_result)
                         region_result["rscripts_command_outcome"] = (
                             analysis.rscripts_result
                         )

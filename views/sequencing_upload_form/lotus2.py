@@ -16,6 +16,9 @@ from helpers.lotus2 import (
     delete_generated_lotus2_report,
 )
 from models.sequencing_upload import SequencingUpload
+import logging
+
+logger = logging.getLogger("my_app_logger")
 
 
 @upload_form_bp.route(
@@ -28,11 +31,15 @@ from models.sequencing_upload import SequencingUpload
 @admin_required
 def generate_lotus2_report():
     process_id = request.form.get("process_id")
+    meta_id = request.form.get("meta_project_id")
+
+    # 1. Determine if we are in Meta Project mode
+    is_meta = bool(meta_id)
+    target_id = meta_id if is_meta else process_id
+
     debug = request.form.get("debug")
     analysis_type_id = request.form.get("analysis_type_id")
-    process_data = SequencingUpload.get(process_id)
     region = request.form.get("region")
-
     sdmopt = request.form.get("sdmopt")
     parameters = {}
     if sdmopt in [
@@ -43,9 +50,27 @@ def generate_lotus2_report():
         "sdm_miSeq2_250",
     ]:
         parameters["sdmopt"] = sdmopt
-    input_dir = "seq_processed/" + process_data["uploads_folder"]
+
+    # 3. Handle directory pathing based on type
+    if is_meta:
+        # For Meta Projects, the helper/task now derives the path internally
+        # so we can pass None or a dummy string here.
+        input_dir = None
+    else:
+        # Standard logic for single projects
+        process_data = SequencingUpload.get(target_id)
+        if not process_data:
+            return jsonify({"error": "Process not found"}), 404
+        input_dir = "seq_processed/" + process_data["uploads_folder"]
+
     init_generate_lotus2_report(
-        process_id, input_dir, region, debug, analysis_type_id, parameters
+        target_id,
+        input_dir,
+        region,
+        debug,
+        analysis_type_id,
+        parameters,
+        is_meta=is_meta,
     )
 
     return jsonify({"result": 1})
@@ -61,11 +86,11 @@ def generate_lotus2_report():
 @admin_required
 def delete_lotus2_report():
     process_id = request.form.get("process_id")
+    meta_project_id = request.form.get("meta_project_id")
     analysis_type_id = request.form.get("analysis_type_id")
-    process_data = SequencingUpload.get(process_id)
-
-    input_dir = "seq_processed/" + process_data["uploads_folder"]
-    delete_generated_lotus2_report(process_id, input_dir, analysis_type_id)
+    delete_generated_lotus2_report(
+        process_id, meta_project_id, analysis_type_id
+    )
 
     return jsonify({"result": 1})
 

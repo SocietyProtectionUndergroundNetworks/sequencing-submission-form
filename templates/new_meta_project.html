@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" />
+    <title>Create Meta Project</title>
+</head>
+<body>
+  <div class="app-navbar">
+    <a href="/" class="logo"></a>
+    <div class="menu">
+      <ul>
+        <li><a href="/">App homepage</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="content p-4">
+    <h1>Create New Meta Project</h1>
+    <p>A meta project allows you to combine existing sequencing uploads into a single aggregate analysis.</p>
+    
+    <div class="card col-md-6">
+      <div class="card-body">
+        <form action="{{ url_for('upload_form_bp.create_meta_project') }}" method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <div class="mb-3">
+            <label for="name" class="form-label">Meta Project Name</label>
+            <input type="text" class="form-control" id="name" name="name" placeholder="e.g., Summer 2025 Combined Analysis" required>
+            <div class="form-text">Give your aggregate project a descriptive name.</div>
+          </div>
+          <button type="submit" class="btn btn-primary">Create Project</button>
+          <a href="{{ url_for('upload_form_bp.meta_projects_list') }}" class="btn btn-link">Cancel</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

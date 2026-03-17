@@ -1,0 +1,193 @@
+{% macro lotus_analysis_section(reports, target_id, is_meta=False, is_admin=False) %}
+<table id="lotus2_reports" class="table-bordered mt-3">
+    <thead>
+      <tr>
+        <th scope="col" class="bg-gray">Region</th>
+        <th scope="col" class="bg-gray">Analysis Type</th>
+        <th scope="col" class="bg-gray">Lotus 2 report status</th>
+        <th scope="col" class="bg-gray">Duration</th>
+        <th scope="col" class="bg-gray">Command outcome</th>
+        <th scope="col" class="bg-gray">LotuS_progout.log</th>
+        <th scope="col" class="bg-gray">demulti.log</th>
+        <th scope="col" class="bg-gray">LotuS_run.log</th>
+        <th scope="col" class="bg-gray">phyloseq.Rdata</th>
+        {% if not is_meta %}
+          <th scope="col" class="bg-gray">Bucket</th>
+        {% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for region_data in reports %}
+        <tr>
+          <td>{{ region_data.region }}</td>
+          <td>{{ region_data.analysis_type }}</td>
+          <td>
+            {{ region_data.lotus2_status }}
+            {% if is_admin %}
+              {% if not region_data.lotus2_status %}
+                <form method="POST" action="/generate_lotus2_report" class="step_12_form_run_report">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <fieldset>
+                    Debug: <input type="checkbox" name="debug"> <br>
+                    {% if region_data.analysis_type in ['SSU_dada2', 'SSU_vsearch', 'SSU_eukaryome'] %}
+                      <h4> Sdmopt:</h4>
+                      <div>
+                        <select name="sdmopt">
+                          <option value="sdm_miSeq2_SSU_Spun" selected>sdm_miSeq2_SSU_Spun.txt</option>
+                          <option value="sdm_miSeq2_250">sdm_miSeq2_250.txt</option>
+                        </select>
+                      </div>                            
+                    {% elif region_data.analysis_type in ['ITS1', 'ITS1_eukaryome', 'ITS2', 'ITS2_eukaryome'] %}
+                      <h4> Sdmopt:</h4>
+                      <div>
+                        <select name="sdmopt">
+                          <option value="sdm_miSeq_ITS" selected>sdm_miSeq_ITS.txt</option>
+                          <option value="sdm_miSeq_ITS_200">sdm_miSeq_ITS_200.txt</option>
+                          <option value="sdm_miSeq_ITS_forward">sdm_miSeq_ITS_forward.txt</option>
+                        </select>
+                      </div>
+                    {% endif %}
+                    <input type="submit" class="btn btn-primary" value="Generate">
+                    <input type="hidden" name="analysis_type_id" value="{{ region_data.analysis_type_id }}">
+                    <input type="hidden" name="{{ 'meta_project_id' if is_meta else 'process_id' }}" value="{{ target_id }}">
+                    <input type="hidden" name="region" value="{{ region_data.region }}">
+                  </fieldset>
+                </form>
+              {% else %}
+                <form method="POST" action="/delete_lotus2_report" class="step_12_form_delete_report">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <fieldset>
+                    <input type="submit" class="btn btn-primary" value="Delete">
+                    <input type="hidden" name="analysis_type_id" value="{{ region_data.analysis_type_id }}">
+                    <input type="hidden" name="{{ 'meta_project_id' if is_meta else 'process_id' }}" value="{{ target_id }}">
+                    <input type="hidden" name="region" value="{{ region_data.region }}">
+                  </fieldset>
+                </form>
+              {% endif %}
+            {% endif %}
+          </td>
+          <td>
+            {% if region_data.started_at and region_data.finished_at %}
+                {% set duration = region_data.finished_at - region_data.started_at %}
+                {{ '%02d:%02d:%02d' | format(duration.seconds // 3600, (duration.seconds % 3600) // 60, duration.seconds % 60) }}
+            {% else %} Duration not available {% endif %}
+          </td>
+          {% for log in ['lotus2_command_outcome', 'LotuS_progout', 'demulti', 'LotuS_run', 'phyloseq'] %}
+          <td>
+            {% if region_data.log_files_exist[log] %}
+              <span class="text-success">
+                  <a href="{{ url_for('upload_form_bp.show_report_outcome', 
+                            analysis_type_id=region_data.analysis_type_id,
+                            process_id=(target_id if not is_meta else None),
+                            type=log,
+                            meta_project_id=(target_id if is_meta else None)) }}" 
+                    target="_blank" class="link">
+                    Exists
+                  </a>
+              </span>              
+            {% else %}<span class="text-danger">Not Found</span>{% endif %}
+          </td>
+          {% endfor %}
+          
+          {% if not is_meta %}
+            <td>
+              {% if region_data.lotus2_status == "Finished" %}
+                {{ 'A LotuS_progout.log file exists on the bucket' if region_data.bucket_log_exists else '' }}
+                {% if not region_data.bucket_log_exists and is_admin %}
+                  <a href="upload_report_to_bucket?process_id={{ target_id }}&report=lotus2&analysis_type_id={{ region_data.analysis_type_id }}" class="btn btn-primary">Upload to bucket</a>
+                {% endif %}
+              {% endif %}
+            </td>
+          {% endif %}
+        </tr>
+      {% endfor %}
+    </tbody>
+</table>
+{% endmacro %}
+
+{% macro rscripts_analysis_section(reports, target_id, is_meta=False, is_admin=False) %}
+<table id="rscripts_reports" class="table-bordered mt-3">
+    <thead>
+      <tr>
+        <th scope="col" class="bg-gray">Region</th>
+        <th scope="col" class="bg-gray">Analysis Type</th>
+        <th scope="col" class="bg-gray">R scripts report status</th>
+        <th scope="col" class="bg-gray">Command outcome</th>
+        <th scope="col" class="bg-gray">LibrarySize.pdf</th>
+        <th scope="col" class="bg-gray">control_vs_sample.pdf</th>
+        <th scope="col" class="bg-gray">filtered_rarefaction.pdf</th>
+        <th scope="col" class="bg-gray">physeq_decontam.Rdata</th>
+        <th scope="col" class="bg-gray">metadata_chaorichness.csv</th>
+        <th scope="col" class="bg-gray">contaminants.csv</th>
+        <th scope="col" class="bg-gray">(ecm_/amf_)physeq_by_genus.pdf</th>
+        {% if not is_meta %}
+          <th scope="col" class="bg-gray">Bucket</th>
+        {% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for region_data in reports %}
+        <tr>
+          <td>{{ region_data.region }}</td>
+          <td>{{ region_data.analysis_type }}</td>
+          <td>
+            {{ region_data.rscripts_status }}
+            {% if is_admin %}
+              {% if not region_data.rscripts_status %}
+                <form method="POST" action="/generate_rscripts_report" class="step_13_form_run_report">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <fieldset>
+                    Debug: <input type="checkbox" name="debug"> <br>
+                    <input type="submit" class="btn btn-primary" value="Generate">
+                    <input type="hidden" name="analysis_type_id" value="{{ region_data.analysis_type_id }}">
+                    <input type="hidden" name="{{ 'meta_project_id' if is_meta else 'process_id' }}" value="{{ target_id }}">
+                    <input type="hidden" name="region" value="{{ region_data.region }}">
+                  </fieldset>
+                </form>
+              {% else %}
+                <form method="POST" action="/delete_rscripts_report" class="step_13_form_delete_report">
+                  <fieldset>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <input type="submit" class="btn btn-primary" value="Delete">
+                    <input type="hidden" name="{{ 'meta_project_id' if is_meta else 'process_id' }}" value="{{ target_id }}">
+                    <input type="hidden" name="analysis_type_id" value="{{ region_data.analysis_type_id }}">
+                    <input type="hidden" name="region" value="{{ region_data.region }}">
+                  </fieldset>
+                </form>
+              {% endif %}
+            {% endif %}
+          </td>
+          {% for log in ['rscripts_command_outcome','LibrarySize', 'control_vs_sample', 'filtered_rarefaction', 'physeq_decontam', 'metadata_chaorichness', 'contaminants', 'physeq_by_genus'] %}
+          <td>
+            {% if region_data.files_exist[log] %}
+              <span class="text-success">
+                  <a href="{{ url_for('upload_form_bp.show_report_outcome', 
+                            analysis_type_id=region_data.analysis_type_id,
+                            process_id=(target_id if not is_meta else None),
+                            type=log,
+                            meta_project_id=(target_id if is_meta else None)) }}" 
+                    target="_blank" class="link">
+                    Exists
+                  </a>
+              </span>
+            {% else %}
+              <span class="text-danger">Not Found</span>
+            {% endif %}
+          </td>
+          {% endfor %}
+          {% if not is_meta %}
+            <td>
+              {% if region_data.rscripts_status == "Finished" %}
+                {% if region_data.bucket_log_exists %} A LotuS_progout.log file exists on the bucket {% else %}
+                  {% if is_admin %}
+                    <a href="upload_report_to_bucket?process_id={{ target_id }}&report=rscripts&analysis_type_id={{ region_data.analysis_type_id }}" class="btn btn-primary">Upload to bucket</a>
+                  {% endif %}  
+                {% endif %}
+              {% endif %}
+            </td>
+          {% endif %}
+        </tr>
+      {% endfor %}
+    </tbody>
+</table>
+{% endmacro %}

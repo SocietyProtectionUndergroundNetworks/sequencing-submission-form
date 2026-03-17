@@ -52,11 +52,16 @@ def redis_lock(lock_name, expire_time=86400):
 
 @celery_app.task
 def generate_lotus2_report_async(
-    process_id, input_dir, amplicon_type, debug, analysis_type_id, parameters
+    process_id,
+    input_dir,
+    amplicon_type,
+    debug,
+    analysis_type_id,
+    parameters,
+    is_meta=False,
 ):
-    lock_key = (
-        f"celery-lock:generate_lotus2_report:{process_id}:{analysis_type_id}"
-    )
+    prefix = "meta" if is_meta else "single"
+    lock_key = f"celery-lock:generate_lotus2_report:{prefix}:{process_id}:{analysis_type_id}"
 
     try:
         with redis_lock(lock_key):
@@ -67,6 +72,7 @@ def generate_lotus2_report_async(
                 debug,
                 analysis_type_id,
                 parameters,
+                is_meta=is_meta,
             )
 
     except LockError:
@@ -83,11 +89,30 @@ def generate_lotus2_report_async(
 
 @celery_app.task
 def generate_rscripts_report_async(
-    process_id, input_dir, amplicon_type, analysis_type_id
+    process_id, input_dir, amplicon_type, analysis_type_id, is_meta=False
 ):
-    generate_rscripts_report(
-        process_id, input_dir, amplicon_type, analysis_type_id
-    )
+    prefix = "meta" if is_meta else "single"
+    lock_key = f"celery-lock:generate_rscripts_report:{prefix}:{process_id}:{analysis_type_id}"
+
+    try:
+        with redis_lock(lock_key):
+
+            generate_rscripts_report(
+                process_id,
+                input_dir,
+                amplicon_type,
+                analysis_type_id,
+                is_meta=is_meta,
+            )
+    except LockError:
+        logger.info(
+            f"Skipping execution: R-scripts task already running for {prefix} ID: {process_id}"
+        )
+    except Exception as e:
+        logger.error(
+            f"Unexpected error in generate_rscripts_report_async: {e}"
+        )
+        raise
 
 
 @celery_app.task

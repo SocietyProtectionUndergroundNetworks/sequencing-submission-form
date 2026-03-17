@@ -50,7 +50,7 @@
                 <div> You can continue the previous process if possible </div>
               </div>
             </a>
-          {% endif %}
+          {% endif %}       
         {% endif %}
       {% endif %}
 
@@ -92,6 +92,21 @@
             <h3>View Map</h3>
           </div>
         </a>  
+
+
+        <h3> Meta Projects </h3>
+        <a href="{{ url_for('upload_form_bp.meta_projects_list') }}">
+          <div class="page-menu-item">
+            <h3>Existing Meta Projects</h3>
+            <div> View and manage your aggregate analysis projects. </div>
+          </div>
+        </a>
+        <a href="{{ url_for('upload_form_bp.new_meta_project') }}">
+          <div class="page-menu-item">
+            <h3>Create New Meta Project</h3>
+            <div> Start a new project by combining multiple existing ones. </div>
+          </div>
+        </a>   
 
       {% endif %}      
       

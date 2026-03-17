@@ -20,15 +20,19 @@ def init_generate_lotus2_report(
     debug=False,
     analysis_type_id="0",
     parameters={},
+    is_meta=False,
 ):
     from tasks import generate_lotus2_report_async
 
     from models.sequencing_analysis import SequencingAnalysis
 
     if analysis_type_id != 0:
-        analysis_id = SequencingAnalysis.create(process_id, analysis_type_id)
+        analysis_id = SequencingAnalysis.create(
+            process_id, analysis_type_id, is_meta=is_meta
+        )
         analysis = SequencingAnalysis.get(analysis_id)
         status = analysis.lotus2_status
+
         if status is None:
             try:
                 result = generate_lotus2_report_async.delay(
@@ -38,6 +42,7 @@ def init_generate_lotus2_report(
                     debug,
                     analysis_type_id,
                     parameters,
+                    is_meta=is_meta,
                 )
                 logger.info(
                     f"Celery generate_lotus2_report_async task "
@@ -51,7 +56,7 @@ def init_generate_lotus2_report(
 
             except Exception as e:
                 logger.error(
-                    "This is an error message from helpers/bucket.py "
+                    "This is an error message from helpers/lotus2.py "
                     " while trying to generate_lotus2_report_async"
                 )
                 logger.error(e)
@@ -72,7 +77,13 @@ def init_generate_lotus2_report(
 
 
 def generate_lotus2_report(
-    process_id, input_dir, region, debug, analysis_type_id, parameters
+    process_id,
+    input_dir,
+    region,
+    debug,
+    analysis_type_id,
+    parameters,
+    is_meta=False,
 ):
     import os
 
@@ -82,16 +93,22 @@ def generate_lotus2_report(
     from models.sequencing_analysis_type import SequencingAnalysisType
     from models.app_configuration import AppConfiguration
 
+    # Import MetaProject only if needed
+    if is_meta:
+        from models.meta_project import MetaProject
+
     def log(msg):
         logger.info(msg)
 
-    # Normalize input_dir (ensure leading slash)
-    input_dir = os.path.join("/", input_dir)
-
-    # Fetch database objects
-    analysis_id = SequencingAnalysis.get_by_upload_and_type(
-        process_id, analysis_type_id
-    )
+    # 1. FETCH DATABASE OBJECTS (Updated to handle Meta Project)
+    if is_meta:
+        analysis_id = SequencingAnalysis.get_by_meta_project_and_type(
+            process_id, analysis_type_id
+        )
+    else:
+        analysis_id = SequencingAnalysis.get_by_upload_and_type(
+            process_id, analysis_type_id
+        )
     analysis_type = SequencingAnalysisType.get(analysis_type_id)
 
     # Initial DB updates
@@ -101,7 +118,26 @@ def generate_lotus2_report(
     SequencingAnalysis.update_field(analysis_id, "lotus2_status", "Started")
     SequencingAnalysis.update_field(analysis_id, "parameters", parameters)
 
-    output_path = os.path.join(input_dir, "lotus2_report", analysis_type.name)
+    # 2. DEFINE PATHS (Updated for Meta Projects)
+    if is_meta:
+        meta_data = MetaProject.get(process_id)
+        # Results folder for meta projects is inside seq_processed
+        input_dir = os.path.join(
+            "/", "seq_processed", meta_data["results_folder"]
+        )
+        output_path = os.path.join(
+            input_dir, "lotus2_report", analysis_type.name
+        )
+        # CRITICAL: For meta projects, the mapping file contains absolute paths.
+        # We set the lotus3 -i parameter to / to resolve /seq_processed/...
+        lotus_i_param = "/"
+    else:
+        # Normalize input_dir for standard projects
+        input_dir = os.path.join("/", input_dir)
+        output_path = os.path.join(
+            input_dir, "lotus2_report", analysis_type.name
+        )
+        lotus_i_param = input_dir
 
     # Logging block
     log("Trying for:")
@@ -111,6 +147,7 @@ def generate_lotus2_report(
         "analysis_id": analysis_id,
         "input_dir": input_dir,
         "output_path": output_path,
+        "lotus_i_param": lotus_i_param,
         "region": region,
         "debug": debug,
         "parameters": parameters,
@@ -217,7 +254,7 @@ def generate_lotus2_report(
                 "lotus3",
                 debug_flag,
                 "-i",
-                input_dir,
+                lotus_i_param,
                 "-o",
                 output_path,
                 "-m",
@@ -288,7 +325,7 @@ def generate_lotus2_report(
                 "lotus3",
                 debug_flag,
                 "-i",
-                input_dir,
+                lotus_i_param,
                 "-o",
                 output_path,
                 "-m",
@@ -355,7 +392,7 @@ def generate_lotus2_report(
                     "lotus3",
                     debug_flag,
                     "-i",
-                    input_dir,
+                    lotus_i_param,
                     "-o",
                     output_path,
                     "-m",
@@ -420,7 +457,9 @@ def generate_lotus2_report(
         SequencingAnalysis.update_field(analysis_id, "lotus2_result", str(e))
 
 
-def delete_generated_lotus2_report(process_id, input_dir, analysis_type_id):
+def delete_generated_lotus2_report(
+    process_id, meta_project_id, analysis_type_id
+):
 
     if analysis_type_id != 0:
         from models.sequencing_analysis import SequencingAnalysis
@@ -428,9 +467,22 @@ def delete_generated_lotus2_report(process_id, input_dir, analysis_type_id):
 
         analysis_type = SequencingAnalysisType.get(analysis_type_id)
 
-        analysis_id = SequencingAnalysis.get_by_upload_and_type(
-            process_id, analysis_type_id
-        )
+        if meta_project_id:
+            analysis_id = SequencingAnalysis.get_by_meta_project_and_type(
+                meta_project_id, analysis_type_id
+            )
+            from models.meta_project import MetaProject
+
+            process_data = MetaProject.get(meta_project_id)
+            input_dir = "seq_processed/" + process_data["results_folder"]
+        else:
+            analysis_id = SequencingAnalysis.get_by_upload_and_type(
+                process_id, analysis_type_id
+            )
+            from models.sequencing_upload import SequencingUpload
+
+            process_data = SequencingUpload.get(process_id)
+            input_dir = "seq_processed/" + process_data["uploads_folder"]
 
         if analysis_id:
 
@@ -442,6 +494,9 @@ def delete_generated_lotus2_report(process_id, input_dir, analysis_type_id):
             )
             SequencingAnalysis.update_field(
                 analysis_id, "lotus2_finished_at", None
+            )
+            SequencingAnalysis.update_field(
+                analysis_id, "lotus2_command", None
             )
             SequencingAnalysis.update_field(analysis_id, "lotus2_status", None)
             SequencingAnalysis.update_field(analysis_id, "lotus2_result", None)

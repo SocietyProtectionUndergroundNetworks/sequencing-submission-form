@@ -43,7 +43,7 @@
     {% endfor %}
 
 <form method="POST" action="/admin/configuration/update" class="mt-4">
-
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     <div class="mb-3">
         <label for="remote_pipeline" class="form-label"><strong>Remote Pipeline</strong></label>
 
