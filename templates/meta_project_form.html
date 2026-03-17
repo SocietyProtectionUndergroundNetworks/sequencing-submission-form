@@ -24,11 +24,12 @@
                     <label class="form-label">Available Sequencing Projects</label>
                     <div class="project-selector border p-3" style="max-height: 200px; overflow-y: auto;">
                         {% for upload in available_uploads %}
-                        <div class="form-check">
+                        {% set is_checked = upload.id in meta_data.upload_ids %}
+                        <div class="form-check {% if is_checked %}bg-light border-bottom{% endif %}">
                             <input class="form-check-input" type="checkbox" name="upload_ids[]" 
-                                   value="{{ upload.id }}" id="upload_{{ upload.id }}"
-                                   {% if upload.id in meta_data.upload_ids %}checked{% endif %}>
-                            <label class="form-check-label" for="upload_{{ upload.id }}">
+                                value="{{ upload.id }}" id="upload_{{ upload.id }}" autocomplete="off"
+                                {% if is_checked %}checked{% endif %}>
+                            <label class="form-check-label {% if is_checked %}fw-bold text-primary{% endif %}" for="upload_{{ upload.id }}">
                                 [ID: {{ upload.id }}] {{ upload.project_id }} - {{ upload.created_at.strftime('%Y-%m-%d') }}
                             </label>
                         </div>

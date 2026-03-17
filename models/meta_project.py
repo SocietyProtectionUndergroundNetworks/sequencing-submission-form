@@ -6,7 +6,6 @@ from models.db_model import (
     SequencingAnalysisTypesTable,
     SequencingAnalysisTable,
 )
-from models.sequencing_sample import SequencingSample
 from models.sequencing_upload import SequencingUpload
 from models.sequencing_analysis import SequencingAnalysis
 import os
@@ -73,29 +72,6 @@ class MetaProject:
                 }
                 for p in projects
             ]
-
-    @classmethod
-    def add_uploads(cls, meta_project_id, sequencing_upload_ids):
-        """Links existing sequencing uploads to the meta project."""
-        with session_scope() as session:
-            # Clear existing links if necessary or just add new ones
-            for upload_id in sequencing_upload_ids:
-                # Verify link doesn't already exist
-                exists = (
-                    session.query(MetaProjectUploadsTable)
-                    .filter_by(
-                        meta_project_id=meta_project_id,
-                        sequencing_upload_id=upload_id,
-                    )
-                    .first()
-                )
-
-                if not exists:
-                    link = MetaProjectUploadsTable(
-                        meta_project_id=meta_project_id,
-                        sequencing_upload_id=upload_id,
-                    )
-                    session.add(link)
 
     @classmethod
     def get_combined_samples_data(cls, meta_project_id):
@@ -246,6 +222,7 @@ class MetaProject:
                                 "demulti",
                                 "LotuS_run",
                                 "phyloseq",
+                                "lotus2_command_outcome",
                             ]
                         },
                         "bucket_log_exists": False,
@@ -261,9 +238,7 @@ class MetaProject:
                             {
                                 "lotus2_status": analysis.lotus2_status,
                                 "parameters": analysis.parameters or {},
-                                "lotus2_command_outcome": bool(
-                                    analysis.lotus2_result
-                                ),
+                                "lotus2_command_outcome": analysis.lotus2_result,
                                 "started_at": analysis.lotus2_started_at,
                                 "finished_at": analysis.lotus2_finished_at,
                             }
@@ -290,6 +265,9 @@ class MetaProject:
                                 ),
                                 "phyloseq": os.path.isfile(
                                     os.path.join(report_path, "phyloseq.Rdata")
+                                ),
+                                "lotus2_command_outcome": bool(
+                                    analysis.lotus2_result
                                 ),
                             }
                     results.append(region_result)
@@ -328,6 +306,7 @@ class MetaProject:
                             "metadata_chaorichness": False,
                             "contaminants": False,
                             "physeq_by_genus": False,
+                            "rscripts_command_outcome": False,
                         },
                         "bucket_log_exists": False,  # Meta-projects may not have a single bucket yet
                         "rscripts_command_outcome": False,
@@ -351,11 +330,12 @@ class MetaProject:
                                 "rscripts_status": analysis.rscripts_status,
                                 "started_at": analysis.rscripts_started_at,
                                 "finished_at": analysis.rscripts_finished_at,
-                                "rscripts_command_outcome": bool(
-                                    analysis.rscripts_result
-                                ),
+                                "rscripts_command_outcome": analysis.rscripts_result,
                             }
                         )
+                        region_result["files_exist"][
+                            "rscripts_command_outcome"
+                        ] = bool(analysis.rscripts_result)
 
                         if analysis.rscripts_status == "Finished":
                             # Construct the path to the meta-project results folder
@@ -419,4 +399,44 @@ class MetaProject:
             )
             if not os.path.isfile(mapping_file):
                 return False
+        return True
+
+    @classmethod
+    def update_uploads(cls, meta_project_id, new_upload_ids):
+        """Syncs the junction table with the selected list of upload IDs."""
+
+        # Ensure new_upload_ids is a list of integers
+        new_upload_ids = [int(i) for i in new_upload_ids if i]
+
+        with session_scope() as session:
+            # 1. Fetch current links
+            current_links = (
+                session.query(MetaProjectUploadsTable)
+                .filter_by(meta_project_id=meta_project_id)
+                .all()
+            )
+            current_ids = [link.sequencing_upload_id for link in current_links]
+
+            # 2. Identify IDs to remove (currently in DB but not in new list)
+            to_remove = [i for i in current_ids if i not in new_upload_ids]
+            if to_remove:
+                session.query(MetaProjectUploadsTable).filter(
+                    MetaProjectUploadsTable.meta_project_id == meta_project_id,
+                    MetaProjectUploadsTable.sequencing_upload_id.in_(
+                        to_remove
+                    ),
+                ).delete(synchronize_session=False)
+
+            # 3. Identify IDs to add (in new list but not in DB)
+            to_add = [i for i in new_upload_ids if i not in current_ids]
+            for upload_id in to_add:
+                new_link = MetaProjectUploadsTable(
+                    meta_project_id=meta_project_id,
+                    sequencing_upload_id=upload_id,
+                )
+                session.add(new_link)
+
+            # 4. Commit all changes
+            session.commit()
+
         return True

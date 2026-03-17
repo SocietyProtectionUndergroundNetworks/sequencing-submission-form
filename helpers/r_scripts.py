@@ -261,29 +261,33 @@ def create_pdf_report(process_id):
 
 
 def init_generate_rscripts_report(
-    process_id,
-    input_dir,
-    region,
-    analysis_type_id="0",
+    process_id, input_dir, region, analysis_type_id="0", is_meta=False
 ):
-
     from tasks import generate_rscripts_report_async
     from models.sequencing_analysis import SequencingAnalysis
 
     if analysis_type_id != 0:
-        analysis_id = SequencingAnalysis.get_by_upload_and_type(
-            process_id, analysis_type_id
-        )
+        # Use the correct lookup based on project type
+        if is_meta:
+            analysis_id = SequencingAnalysis.get_by_meta_project_and_type(
+                process_id, analysis_type_id
+            )
+        else:
+            analysis_id = SequencingAnalysis.get_by_upload_and_type(
+                process_id, analysis_type_id
+            )
+
         if analysis_id:
             try:
                 result = generate_rscripts_report_async.delay(
-                    process_id, input_dir, region, analysis_type_id
-                )
-                logger.info(
-                    f"Celery generate_rscripts_report_async task "
-                    f"called successfully! Task ID: {result.id}"
+                    process_id,
+                    input_dir,
+                    region,
+                    analysis_type_id,
+                    is_meta=is_meta,
                 )
 
+                # Update DB using analysis_id
                 SequencingAnalysis.update_field(
                     analysis_id, "rscripts_celery_task_id", result.id
                 )
@@ -296,56 +300,66 @@ def init_generate_rscripts_report(
 
             except Exception as e:
                 logger.error(
-                    "This is an error message from helpers/bucket.py "
-                    " while trying to generate_rscripts_report_async"
+                    f"Error calling generate_rscripts_report_async: {e}"
                 )
-                logger.error(e)
-                return {
-                    "error": (
-                        "This is an error message from helpers/bucket.py "
-                        " while trying to generate_rscripts_report_async"
-                    ),
-                    "e": (e),
-                }
+                return {"error": str(e)}
 
             return {"msg": "Process initiated"}
-        else:
-            return {"error": "No relevant analysis found"}
-    else:
-        return {"error": "Wrong analysis type ID"}
+    return {"error": "Invalid configuration"}
 
 
-def generate_rscripts_report(process_id, input_dir, region, analysis_type_id):
+def generate_rscripts_report(
+    process_id, input_dir, region, analysis_type_id, is_meta=False
+):  # Add is_meta
     client = docker.from_env()
     from models.sequencing_upload import SequencingUpload
     from models.sequencing_analysis import SequencingAnalysis
     from models.sequencing_analysis_type import SequencingAnalysisType
 
-    process_data = SequencingUpload.get(process_id)
-    project_id = process_data["project_id"]
+    # 1. Handle Meta Project vs Single Project Data Fetching
+    if is_meta:
+        from models.meta_project import MetaProject
 
-    # Load the excluded_otus JSON file
-    with open("metadataconfig/excluded_otus.json", "r") as f:
-        excluded_otus = json.load(f)
+        process_data = MetaProject.get(process_id)
+        # Meta projects use 'results_folder' and don't typically have project-level exclusions
+        project_id = process_data.get("name")  # Or another identifying field
+        exclude_json = "[]"
 
-    # Filter relevant exclusions
-    filtered_exclusions = [
-        {"Taxonomy_level": entry["Taxonomy_level"], "Value": entry["Value"]}
-        for entry in excluded_otus
-        if entry["project_id"] == project_id
-    ]
+        # Get Analysis ID using the meta-specific lookup
+        analysis_id = SequencingAnalysis.get_by_meta_project_and_type(
+            process_id, analysis_type_id
+        )
+    else:
+        process_data = SequencingUpload.get(process_id)
+        project_id = process_data["project_id"]
 
-    # Convert to JSON string (ensure it's properly escaped for shell use)
-    exclude_json = json.dumps(filtered_exclusions)
+        # Load standard exclusions for single projects
+        with open("metadataconfig/excluded_otus.json", "r") as f:
+            excluded_otus = json.load(f)
 
-    analysis_id = SequencingAnalysis.get_by_upload_and_type(
-        process_id, analysis_type_id
-    )
+        filtered_exclusions = [
+            {
+                "Taxonomy_level": entry["Taxonomy_level"],
+                "Value": entry["Value"],
+            }
+            for entry in excluded_otus
+            if entry["project_id"] == project_id
+        ]
+        exclude_json = json.dumps(filtered_exclusions)
 
+        # Get Analysis ID using standard lookup
+        analysis_id = SequencingAnalysis.get_by_upload_and_type(
+            process_id, analysis_type_id
+        )
+
+    # 2. Construction of Paths
     analysis_type = SequencingAnalysisType.get(analysis_type_id)
 
-    lotus_2_dir = "/" + input_dir + "/lotus2_report/" + analysis_type.name
-    output_dir = "/" + input_dir + "/r_output/" + analysis_type.name
+    # Ensure leading slash for Docker execution
+    lotus_2_dir = os.path.join(
+        "/", input_dir, "lotus2_report", analysis_type.name
+    )
+    output_dir = os.path.join("/", input_dir, "r_output", analysis_type.name)
 
     logger.info("Trying for:")
     logger.info(" - analysis_type_id : " + str(analysis_type_id))
@@ -354,77 +368,60 @@ def generate_rscripts_report(process_id, input_dir, region, analysis_type_id):
     logger.info(" - region : " + str(region))
     logger.info(" - exclude : " + str(exclude_json))
 
+    logger.info("Running R-Scripts for %s (is_meta: %s)", project_id, is_meta)
+
     try:
-        # Run rscripts inside the 'spun-r_service' container
         container = client.containers.get("spun-r-service")
 
-        if region in ["ITS1", "ITS2", "Full_ITS", "Full_ITS_LSU"]:
-            r_script = "EcM_decontam_taxonomic_filtering.R"
+        # Determine R script based on region
+        r_script = (
+            "EcM_decontam_taxonomic_filtering.R"
+            if region != "SSU"
+            else "AMF_decontam_taxonomic_filtering.R"
+        )
 
-        if region in ["SSU"]:
-            r_script = "AMF_decontam_taxonomic_filtering.R"
+        # Ensure output directory exists (Flask side)
+        os.makedirs(
+            os.path.join(input_dir, "r_output", analysis_type.name),
+            exist_ok=True,
+        )
 
-        if region in ["ITS1", "ITS2", "SSU", "Full_ITS", "Full_ITS_LSU"]:
-            os.makedirs(
-                input_dir + "/r_output/" + analysis_type.name, exist_ok=True
-            )
+        # 3. Build Command
+        command = ["Rscript", r_script, "-l", lotus_2_dir, "-o", output_dir]
 
-            # Construct the Rscript command
-            command = [
-                "Rscript",
-                r_script,
-                "-l",
-                lotus_2_dir,
-                "-o",
-                output_dir,
-            ]
+        if not is_meta and filtered_exclusions:
+            command.extend(["--exclude", exclude_json])
 
-            # Only add -exclude parameter if there are exclusions
-            if filtered_exclusions:
-                exclude_json = json.dumps(filtered_exclusions)
-                command.extend(["--exclude", exclude_json])
+        command_str = " ".join(shlex.quote(arg) for arg in command)
+        logger.info(f"Executing command in container: {command_str}")
 
-            # Escape the command for safe execution
-            command_str = " ".join(shlex.quote(arg) for arg in command)
-            logger.info(" - Here we will try the command")
-            logger.info(command_str)
-            # Run the command inside the container
-            result = container.exec_run(["bash", "-c", command_str])
-            logger.info(result.output)
+        # 4. Execute
+        result = container.exec_run(["bash", "-c", command_str])
 
-            SequencingAnalysis.update_field(
-                analysis_id, "rscripts_status", "Finished"
-            )
-            SequencingAnalysis.update_field(
-                analysis_id, "rscripts_result", result.output
-            )
+        # 5. DB Updates and Data Import
+        SequencingAnalysis.update_field(
+            analysis_id, "rscripts_status", "Finished"
+        )
+        SequencingAnalysis.update_field(
+            analysis_id, "rscripts_result", result.output
+        )
+        if not is_meta:
             SequencingAnalysis.import_richness(analysis_id)
 
-            logger.info("And now we should import the OTUs")
-            otu_full_data = (
-                input_dir
-                + "/r_output/"
-                + analysis_type.name
-                + "/otu_full_data.csv"
+            otu_full_data = os.path.join(
+                "/",
+                input_dir,
+                "r_output",
+                analysis_type.name,
+                "otu_full_data.csv",
             )
+            # Ensure process_otu_data is updated to handle is_meta if necessary
             SequencingUpload.process_otu_data(
                 otu_full_data, process_id, analysis_id
             )
 
-        else:
-            logger.info(
-                "R scripts generation for amplicon "
-                + region
-                + " cannot be generated as it is not "
-                + " one of the regions we have programmed "
-            )
-            SequencingAnalysis.update_field(
-                analysis_id, "rscripts_status", "Abandoned. Unknown region."
-            )
-
     except Exception as e:
         logger.error(f"Error running r scripts: {str(e)}")
-
         SequencingAnalysis.update_field(
             analysis_id, "rscripts_status", "Error while generating."
         )
@@ -432,7 +429,7 @@ def generate_rscripts_report(process_id, input_dir, region, analysis_type_id):
 
 
 def delete_generated_rscripts_report(
-    process_id, input_dir, region, analysis_type_id
+    target_id, input_dir, region, analysis_type_id, is_meta=False
 ):
 
     if analysis_type_id != 0:
@@ -441,9 +438,14 @@ def delete_generated_rscripts_report(
 
         analysis_type = SequencingAnalysisType.get(analysis_type_id)
 
-        analysis_id = SequencingAnalysis.get_by_upload_and_type(
-            process_id, analysis_type_id
-        )
+        if is_meta:
+            analysis_id = SequencingAnalysis.get_by_meta_project_and_type(
+                target_id, analysis_type_id
+            )
+        else:
+            analysis_id = SequencingAnalysis.get_by_upload_and_type(
+                target_id, analysis_type_id
+            )
 
         if analysis_id:
             SequencingAnalysis.update_field(
@@ -461,8 +463,9 @@ def delete_generated_rscripts_report(
             SequencingAnalysis.update_field(
                 analysis_id, "rscripts_result", None
             )
-            SequencingAnalysis.delete_richness_data(analysis_id)
-            SequencingAnalysis.delete_otu_data(analysis_id)
+            if not is_meta:
+                SequencingAnalysis.delete_richness_data(analysis_id)
+                SequencingAnalysis.delete_otu_data(analysis_id)
 
             output_path = input_dir + "/r_output/" + analysis_type.name
             if os.path.exists(output_path):

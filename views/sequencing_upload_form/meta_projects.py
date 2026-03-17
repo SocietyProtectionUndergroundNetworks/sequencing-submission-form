@@ -68,6 +68,21 @@ def meta_project_form():
     meta_data = MetaProject.get(meta_id)
     available_uploads = SequencingUpload.get_all()
 
+    # --- Sorting Logic Start ---
+    # We sort by two criteria:
+    # 1. Is it selected? (0 if yes, 1 if no -> putting yes at the top)
+    # 2. Created date (descending -> newest projects first within their groups)
+    selected_ids = set(meta_data.get("upload_ids", []))
+
+    available_uploads.sort(
+        key=lambda x: (
+            0 if x.get("id") in selected_ids else 1,
+            -(x.get("created_at").timestamp() if x.get("created_at") else 0),
+            x.get("id"),  # Tertiary sort by ID to ensure a fixed order
+        )
+    )
+    # --- Sorting Logic End ---
+
     lotus2_report = MetaProject.check_lotus2_reports_exist(meta_id)
     rscripts_report = MetaProject.check_rscripts_reports_exist(meta_id)
     mapping_files_exist = MetaProject.check_mapping_files_exist(meta_id)
@@ -96,7 +111,7 @@ def meta_project_add_uploads():
     meta_id = request.form.get("meta_project_id")
     upload_ids = request.form.getlist("upload_ids[]")
 
-    MetaProject.add_uploads(meta_id, upload_ids)
+    MetaProject.update_uploads(meta_id, upload_ids)
     return jsonify({"result": "ok"})
 
 

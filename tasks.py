@@ -89,11 +89,30 @@ def generate_lotus2_report_async(
 
 @celery_app.task
 def generate_rscripts_report_async(
-    process_id, input_dir, amplicon_type, analysis_type_id
+    process_id, input_dir, amplicon_type, analysis_type_id, is_meta=False
 ):
-    generate_rscripts_report(
-        process_id, input_dir, amplicon_type, analysis_type_id
-    )
+    prefix = "meta" if is_meta else "single"
+    lock_key = f"celery-lock:generate_rscripts_report:{prefix}:{process_id}:{analysis_type_id}"
+
+    try:
+        with redis_lock(lock_key):
+
+            generate_rscripts_report(
+                process_id,
+                input_dir,
+                amplicon_type,
+                analysis_type_id,
+                is_meta=is_meta,
+            )
+    except LockError:
+        logger.info(
+            f"Skipping execution: R-scripts task already running for {prefix} ID: {process_id}"
+        )
+    except Exception as e:
+        logger.error(
+            f"Unexpected error in generate_rscripts_report_async: {e}"
+        )
+        raise
 
 
 @celery_app.task

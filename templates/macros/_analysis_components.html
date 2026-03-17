@@ -11,7 +11,9 @@
         <th scope="col" class="bg-gray">demulti.log</th>
         <th scope="col" class="bg-gray">LotuS_run.log</th>
         <th scope="col" class="bg-gray">phyloseq.Rdata</th>
-        <th scope="col" class="bg-gray">Bucket</th>
+        {% if not is_meta %}
+          <th scope="col" class="bg-gray">Bucket</th>
+        {% endif %}
       </tr>
     </thead>
     <tbody>
@@ -70,28 +72,33 @@
                 {{ '%02d:%02d:%02d' | format(duration.seconds // 3600, (duration.seconds % 3600) // 60, duration.seconds % 60) }}
             {% else %} Duration not available {% endif %}
           </td>
-          {# Command Outcome with Class link #}
-          <td>
-            {% if region_data.lotus2_command_outcome %}
-              <span class="text-success"><a href="show_report_outcome?type=lotus2_command_outcome&process_id={{ target_id }}&analysis_type_id={{ region_data.analysis_type_id }}" target="_blank" class="link">Exists</a></span>
-            {% else %}<span class="text-danger">Not generated</span>{% endif %}
-          </td>
-          {# Log Files with Class link #}
-          {% for log in ['LotuS_progout', 'demulti', 'LotuS_run', 'phyloseq'] %}
+          {% for log in ['lotus2_command_outcome', 'LotuS_progout', 'demulti', 'LotuS_run', 'phyloseq'] %}
           <td>
             {% if region_data.log_files_exist[log] %}
-              <span class="text-success"><a href="show_report_outcome?type={{ log }}&process_id={{ target_id }}&analysis_type_id={{ region_data.analysis_type_id }}" target="_blank" class="link">Exists</a></span>
+              <span class="text-success">
+                  <a href="{{ url_for('upload_form_bp.show_report_outcome', 
+                            analysis_type_id=region_data.analysis_type_id,
+                            process_id=(target_id if not is_meta else None),
+                            type=log,
+                            meta_project_id=(target_id if is_meta else None)) }}" 
+                    target="_blank" class="link">
+                    Exists
+                  </a>
+              </span>              
             {% else %}<span class="text-danger">Not Found</span>{% endif %}
           </td>
           {% endfor %}
-          <td>
-            {% if region_data.lotus2_status == "Finished" %}
-              {{ 'A LotuS_progout.log file exists on the bucket' if region_data.bucket_log_exists else '' }}
-              {% if not region_data.bucket_log_exists and is_admin %}
-                <a href="upload_report_to_bucket?process_id={{ target_id }}&report=lotus2&analysis_type_id={{ region_data.analysis_type_id }}" class="btn btn-primary">Upload to bucket</a>
+          
+          {% if not is_meta %}
+            <td>
+              {% if region_data.lotus2_status == "Finished" %}
+                {{ 'A LotuS_progout.log file exists on the bucket' if region_data.bucket_log_exists else '' }}
+                {% if not region_data.bucket_log_exists and is_admin %}
+                  <a href="upload_report_to_bucket?process_id={{ target_id }}&report=lotus2&analysis_type_id={{ region_data.analysis_type_id }}" class="btn btn-primary">Upload to bucket</a>
+                {% endif %}
               {% endif %}
-            {% endif %}
-          </td>
+            </td>
+          {% endif %}
         </tr>
       {% endfor %}
     </tbody>
@@ -113,7 +120,9 @@
         <th scope="col" class="bg-gray">metadata_chaorichness.csv</th>
         <th scope="col" class="bg-gray">contaminants.csv</th>
         <th scope="col" class="bg-gray">(ecm_/amf_)physeq_by_genus.pdf</th>
-        <th scope="col" class="bg-gray">Bucket</th>
+        {% if not is_meta %}
+          <th scope="col" class="bg-gray">Bucket</th>
+        {% endif %}
       </tr>
     </thead>
     <tbody>
@@ -148,27 +157,35 @@
               {% endif %}
             {% endif %}
           </td>
-          <td>
-            {% if region_data.rscripts_command_outcome %}
-              <span class="text-success"><a href="show_report_outcome?type=rscripts_command_outcome&process_id={{ target_id }}&analysis_type_id={{ region_data.analysis_type_id }}" target="_blank" class="link">Exists</a></span>
-            {% else %}<span class="text-danger">Not generated</span>{% endif %}
-          </td>
-          {% for log in ['LibrarySize', 'control_vs_sample', 'filtered_rarefaction', 'physeq_decontam', 'metadata_chaorichness', 'contaminants', 'physeq_by_genus'] %}
+          {% for log in ['rscripts_command_outcome','LibrarySize', 'control_vs_sample', 'filtered_rarefaction', 'physeq_decontam', 'metadata_chaorichness', 'contaminants', 'physeq_by_genus'] %}
           <td>
             {% if region_data.files_exist[log] %}
-              <span class="text-success"><a href="show_report_outcome?type={{ log }}&process_id={{ target_id }}&analysis_type_id={{ region_data.analysis_type_id }}" target="_blank" class="link">Exists</a></span>
-            {% else %}<span class="text-danger">Not Found</span>{% endif %}
-          </td>
-          {% endfor %}
-          <td>
-            {% if region_data.rscripts_status == "Finished" %}
-              {% if region_data.bucket_log_exists %} A LotuS_progout.log file exists on the bucket {% else %}
-                {% if is_admin %}
-                  <a href="upload_report_to_bucket?process_id={{ target_id }}&report=rscripts&analysis_type_id={{ region_data.analysis_type_id }}" class="btn btn-primary">Upload to bucket</a>
-                {% endif %}  
-              {% endif %}
+              <span class="text-success">
+                  <a href="{{ url_for('upload_form_bp.show_report_outcome', 
+                            analysis_type_id=region_data.analysis_type_id,
+                            process_id=(target_id if not is_meta else None),
+                            type=log,
+                            meta_project_id=(target_id if is_meta else None)) }}" 
+                    target="_blank" class="link">
+                    Exists
+                  </a>
+              </span>
+            {% else %}
+              <span class="text-danger">Not Found</span>
             {% endif %}
           </td>
+          {% endfor %}
+          {% if not is_meta %}
+            <td>
+              {% if region_data.rscripts_status == "Finished" %}
+                {% if region_data.bucket_log_exists %} A LotuS_progout.log file exists on the bucket {% else %}
+                  {% if is_admin %}
+                    <a href="upload_report_to_bucket?process_id={{ target_id }}&report=rscripts&analysis_type_id={{ region_data.analysis_type_id }}" class="btn btn-primary">Upload to bucket</a>
+                  {% endif %}  
+                {% endif %}
+              {% endif %}
+            </td>
+          {% endif %}
         </tr>
       {% endfor %}
     </tbody>

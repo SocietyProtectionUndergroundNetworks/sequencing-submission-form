@@ -1,5 +1,3 @@
-from fileinput import filename
-
 from . import upload_form_bp
 import os
 import logging
@@ -15,7 +13,6 @@ from flask import (
 from helpers.decorators import (
     approved_required,
     admin_required,
-    admin_or_owner_required,
 )
 from models.sequencing_upload import SequencingUpload
 from models.sequencing_files_uploaded import SequencingFileUploaded

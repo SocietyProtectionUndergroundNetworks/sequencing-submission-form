@@ -179,12 +179,9 @@ def delete_all_lotus2_reports():
                             == str(analysis["analysis_type_id"])
                         ):
                             logger.info("And we will delete it")
-                            input_dir = (
-                                "seq_processed/"
-                                + process_data["uploads_folder"]
-                            )
+
                             delete_generated_lotus2_report(
-                                process_data["id"], input_dir, analysis_type_id
+                                process_data["id"], None, analysis_type_id
                             )
     else:
         return jsonify({"result": "Not passing antinuke"})
