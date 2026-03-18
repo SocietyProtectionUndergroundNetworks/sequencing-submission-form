@@ -2604,3 +2604,71 @@ class SequencingUpload:
                     "Doing counting of adapters for " + str(row.upload_id)
                 )
                 cls.adapters_count(row.upload_id)
+
+    @classmethod
+    def get_excluded_ssu_files(cls, sequencingUploadId):
+        """Returns samples with excluded SSU files using standard ORM format."""
+        with session_scope() as session:
+            results = (
+                session.query(
+                    SequencingSamplesTable.id, SequencingSamplesTable.SampleID
+                )
+                .join(
+                    SequencingSequencerIDsTable,
+                    SequencingSamplesTable.id
+                    == SequencingSequencerIDsTable.sequencingSampleId,
+                )
+                .join(
+                    SequencingFilesUploadedTable,
+                    SequencingSequencerIDsTable.id
+                    == SequencingFilesUploadedTable.sequencerId,
+                )
+                .filter(
+                    SequencingSamplesTable.sequencingUploadId
+                    == sequencingUploadId,
+                    SequencingSequencerIDsTable.Region == "SSU",
+                    SequencingFilesUploadedTable.exclude_from_mapping.is_(
+                        True
+                    ),
+                )
+                .group_by(
+                    SequencingSamplesTable.id, SequencingSamplesTable.SampleID
+                )
+                .all()
+            )
+            return results
+
+    @classmethod
+    def get_excluded_its_files(cls, sequencingUploadId):
+        """Returns samples with excluded ITS files using standard ORM format."""
+        with session_scope() as session:
+            results = (
+                session.query(
+                    SequencingSamplesTable.id, SequencingSamplesTable.SampleID
+                )
+                .join(
+                    SequencingSequencerIDsTable,
+                    SequencingSamplesTable.id
+                    == SequencingSequencerIDsTable.sequencingSampleId,
+                )
+                .join(
+                    SequencingFilesUploadedTable,
+                    SequencingSequencerIDsTable.id
+                    == SequencingFilesUploadedTable.sequencerId,
+                )
+                .filter(
+                    SequencingSamplesTable.sequencingUploadId
+                    == sequencingUploadId,
+                    SequencingSequencerIDsTable.Region.in_(
+                        ["ITS1", "ITS2", "Full_ITS", "Full_ITS_LSU"]
+                    ),
+                    SequencingFilesUploadedTable.exclude_from_mapping.is_(
+                        True
+                    ),
+                )
+                .group_by(
+                    SequencingSamplesTable.id, SequencingSamplesTable.SampleID
+                )
+                .all()
+            )
+            return results

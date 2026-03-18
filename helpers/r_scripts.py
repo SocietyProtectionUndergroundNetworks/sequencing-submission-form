@@ -72,6 +72,8 @@ def create_pdf_report(process_id):
     ssu_report = None
     missing_samples_its = None
     missing_samples_ssu = None
+    excluded_samples_its = None
+    excluded_samples_ssu = None
     its_command = None
     ssu_command = None
     its_region = None
@@ -85,12 +87,18 @@ def create_pdf_report(process_id):
             missing_samples_its = SequencingUpload.get_missing_its_files(
                 process_id
             )
+            excluded_samples_its = SequencingUpload.get_excluded_its_files(
+                process_id
+            )
             its_command = r_report["lotus2_command"]
             its_region = r_report.get("region", "ITS")  # Use get for safety
             its_count_ecm = SequencingAnalysis.get_ecm_count(r_report["id"])
         elif "FULL_ITS_Eukaryome" == r_report["analysis_type"]:
             its_report = r_report["analysis_type"]
             missing_samples_its = SequencingUpload.get_missing_its_files(
+                process_id
+            )
+            excluded_samples_its = SequencingUpload.get_excluded_its_files(
                 process_id
             )
             its_command = r_report["lotus2_command"]
@@ -100,6 +108,9 @@ def create_pdf_report(process_id):
         elif "SSU_dada2" == r_report["analysis_type"]:
             ssu_report = r_report["analysis_type"]
             missing_samples_ssu = SequencingUpload.get_missing_ssu_files(
+                process_id
+            )
+            excluded_samples_ssu = SequencingUpload.get_excluded_ssu_files(
                 process_id
             )
             ssu_command = r_report["lotus2_command"]
@@ -194,6 +205,7 @@ def create_pdf_report(process_id):
         # ITS Data
         "its_analysis_exists": its_report is not None,
         "missing_samples_its": missing_samples_its,
+        "excluded_samples_its": excluded_samples_its,
         "its_formatted_command": format_lotus_command(its_command),
         "its_contaminants_file_exists": os.path.exists(
             os.path.join(app_root, its_contaminants_csv_rel_path)
@@ -210,6 +222,7 @@ def create_pdf_report(process_id):
         # SSU Data
         "ssu_analysis_exists": ssu_report is not None,
         "missing_samples_ssu": missing_samples_ssu,
+        "excluded_samples_ssu": excluded_samples_ssu,
         "ssu_formatted_command": format_lotus_command(ssu_command),
         "ssu_contaminants_file_exists": os.path.exists(
             os.path.join(app_root, ssu_contaminants_csv_rel_path)

@@ -182,6 +182,13 @@
             <p>No missing files: all {{ its_region }} files expected according to the metadata file were found.</p>
         {% endif %}
 
+        {% if excluded_samples_its %}
+            <p class="text-warning">
+                The following samples had files uploaded for ITS, but were manually excluded from analysis (usually because they had 0 reads):
+                {{ excluded_samples_its|map(attribute='SampleID')|join(', ') }}
+            </p>
+        {% endif %}
+
         <h2>{{ its_region }} Library size</h2>
         <p>
             Figure below displays the library size (i.e., the number of sequencing reads per sample) of True Samples vs Control 
@@ -270,6 +277,13 @@
             </ul>
         {% else %}
             <p>No missing files: all {{ ssu_region }} files expected according to the metadata file were found.</p>
+        {% endif %}
+
+        {% if excluded_samples_ssu %}
+            <p class="text-warning">
+                The following samples had files uploaded for SSU, but were manually excluded from analysis (usually because they had 0 reads):
+                {{ excluded_samples_ssu|map(attribute='SampleID')|join(', ') }}
+            </p>
         {% endif %}
 
         <h2>SSU Library size</h2>
