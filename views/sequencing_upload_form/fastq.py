@@ -65,11 +65,10 @@ def delete_multiqc_report():
 
     # Extract uploads folder and project id from process data
     uploads_folder = process_data["uploads_folder"]
-    bucket = process_data["project_id"]
 
     if region in process_data["regions"]:
         multiqc_folder = os.path.join(
-            "seq_processed", uploads_folder, "fastqc", bucket, region
+            "seq_processed", uploads_folder, "fastqc", region
         )
 
         # Remove the html file
@@ -78,6 +77,7 @@ def delete_multiqc_report():
             "multiqc_report.html",
         )
         abs_html_file = os.path.abspath(multiqc_file)
+
         if os.path.isfile(abs_html_file):
             os.remove(abs_html_file)
 
