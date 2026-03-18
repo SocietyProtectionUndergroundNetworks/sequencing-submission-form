@@ -374,6 +374,10 @@ def generate_rscripts_report(
     )
     output_dir = os.path.join("/", input_dir, "r_output", analysis_type.name)
 
+    # DOCKER PATHS (Absolute, used inside the R container)
+    lotus_2_dir = "/" + input_dir + "/lotus2_report/" + analysis_type.name
+    output_dir = "/" + input_dir + "/r_output/" + analysis_type.name
+
     logger.info("Trying for:")
     logger.info(" - analysis_type_id : " + str(analysis_type_id))
     logger.info(" - process_id : " + str(process_id))
@@ -421,13 +425,14 @@ def generate_rscripts_report(
         if not is_meta:
             SequencingAnalysis.import_richness(analysis_id)
 
+            # LOCAL PATHS (Relative to app root, used by Flask container)
             otu_full_data = os.path.join(
-                "/",
                 input_dir,
                 "r_output",
                 analysis_type.name,
                 "otu_full_data.csv",
             )
+
             # Ensure process_otu_data is updated to handle is_meta if necessary
             SequencingUpload.process_otu_data(
                 otu_full_data, process_id, analysis_id
