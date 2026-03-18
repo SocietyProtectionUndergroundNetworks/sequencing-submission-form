@@ -648,12 +648,12 @@ def sanitize_string(s):
     if isinstance(s, str):
         # Transliterate non-Latin characters to Latin equivalents
         s = unidecode(s)
+        # Escape backslashes
+        s = s.replace("\\", "\\\\")
         # Escape double quotes
         s = s.replace('"', '\\"')
         # Escape newline characters
         s = s.replace("\n", "\\n")
-        # Escape backslashes
-        s = s.replace("\\", "\\\\")
     return s
 
 
