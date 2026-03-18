@@ -1599,38 +1599,22 @@ class SequencingUpload:
     @classmethod
     def check_mapping_files_exist(self, process_id):
         process_data = self.get(process_id)
-
-        # Extract uploads folder and project id from process data
         uploads_folder = process_data["uploads_folder"]
-
-        # Construct the path to the mappings folder
         mappings_folder = os.path.join(
             "seq_processed", uploads_folder, "mapping_files"
         )
+        existing_mappings = []
 
-        # Check if regions are specified
         if process_data["regions"]:
-            # Iterate through each region
             for region in process_data["regions"]:
-
-                # Construct the path to the potential mappings file
                 mapping_file = os.path.join(
                     mappings_folder, f"{region}_Mapping.txt"
                 )
-
-                # Check if the mapping file exists
-                if not os.path.isfile(mapping_file):
-                    # If any mapping file does not exist, return
-                    # False immediately
-                    return False
-
-            # If all reports exist, return True
-            return True
-
+                if os.path.isfile(mapping_file):
+                    existing_mappings.append(region)
+            return existing_mappings
         else:
-            # If there are no regions specified, we can assume
-            # mappings do not exist
-            return False
+            return []
 
     @classmethod
     def check_lotus2_reports_exist(cls, process_id):

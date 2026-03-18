@@ -909,19 +909,14 @@
 
 
     {% if is_admin or is_staff %}
-
       <div id="step_10" class="form-step-item">
         <h3> Step 10: Generate MultiQC report</h3>
         {% if has_empty_fastqc_report %}
           <div> There are missing fastqc report files. Generate them first </div>
-          <form
-            method="POST"
-            action="/generate_fastqc_reports"
-            id="step_10_form_fastqc"
-          >
+          <form method="POST" action="/generate_fastqc_reports" id="step_10_form_fastqc">
             <fieldset
-              {% if ((process_data and not process_data.files_uploading_confirmed) or (multiqc_report_exists)) %}
-               disabled="disabled"
+              {% if ((process_data and not process_data.files_uploading_confirmed) or (multiqc_report_exists|length == process_data.regions|length)) %}
+              disabled="disabled"
               {% endif %}
             >
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
@@ -933,14 +928,10 @@
           </form>
         {% else %}
           <div> All fastqc report files accounted for. Generate the multiqc report </div>
-          <form
-            method="POST"
-            action="/generate_multiqc_report"
-            id="step_10_form"
-          >
+          <form method="POST" action="/generate_multiqc_report" id="step_10_form">
             <fieldset
-              {% if ((process_data and not process_data.files_uploading_confirmed) or (multiqc_report_exists)) %}
-               disabled="disabled"
+              {% if ((process_data and not process_data.files_uploading_confirmed) or (multiqc_report_exists|length == process_data.regions|length)) %}
+              disabled="disabled"
               {% endif %}
             >
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
@@ -955,7 +946,6 @@
 
     {% if multiqc_report_exists %}
       {% if process_data and process_data.regions %}
-
         <table id="multiqc_reports" class="table-bordered mt-3">
             <thead>
               <tr>
@@ -964,35 +954,32 @@
               </tr>
             </thead>
             {% for region in process_data.regions %}
+              {% if region in multiqc_report_exists %}
               <tbody>
                 <tr>
-                  <td>{{ region }}</th>
+                  <td>{{ region }}</td>
                   <td>
                     <a href="show_multiqc_report?process_id={{ process_data.id }}&region={{ region }}" target="_blank" class="link">Link</a>
                     {% if is_admin %}
                       <a href="delete_multiqc_report?process_id={{ process_data.id }}&region={{ region }}" class="link text-danger">X</a>
                     {% endif %}
-                  </th>
+                  </td>
                 </tr>
               </tbody>
+              {% endif %}
             {% endfor %}
         </table>
       {% endif %}
     {% endif %}
 
     {% if is_admin or is_staff %}
-
       <div id="step_11" class="form-step-item">
         <h3> Step 11: Mapping files</h3>
-        <form
-          method="POST"
-          action="/generate_mapping_files"
-          id="step_11_form"
-        >
+        <form method="POST" action="/generate_mapping_files" id="step_11_form">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           <fieldset
-            {% if ((process_data and not process_data.files_uploading_confirmed) or (mapping_files_exist)) %}
-             disabled="disabled"
+            {% if ((process_data and not process_data.files_uploading_confirmed) or (mapping_files_exist|length == process_data.regions|length)) %}
+            disabled="disabled"
             {% endif %}
           >
             <h4> Sdmopt:</h4>
@@ -1008,13 +995,9 @@
         </form>
         <div id="step_11_msg" class="explanation"></div>
       </div>
-      <div>
-        <a href="adapters_count?process_id={{ process_data.id }}" class="btn btn-primary" target="_blank"> Count adapters </a>
-      </div>
     {% endif %}
     {% if mapping_files_exist %}
       {% if process_data and process_data.regions %}
-
         <table id="multiqc_reports" class="table-bordered mt-3">
             <thead>
               <tr>
@@ -1024,15 +1007,17 @@
             </thead>
             <tbody>
               {% for region in process_data.regions %}
+                {% if region in mapping_files_exist %}
                 <tr>
-                  <td>{{ region }}</th>
+                  <td>{{ region }}</td>
                   <td>
                     <a href="show_mapping_file?process_id={{ process_data.id }}&region={{ region }}" target="_blank" class="link">Link</a>
                     {% if is_admin %}
                       <a href="delete_mapping_file?process_id={{ process_data.id }}&region={{ region }}" class="link text-danger">X</a>
                     {% endif %}
-                  </th>
+                  </td>
                 </tr>
+                {% endif %}
               {% endfor %}
             </tbody>
         </table>
@@ -1040,7 +1025,9 @@
     {% endif %}
 
     {% if is_admin or is_staff %}
-
+      <div>
+        <a href="adapters_count?process_id={{ process_data.id }}" class="btn btn-primary" target="_blank"> Count adapters </a>
+      </div>
       <div id="step_12" class="form-step-item">
         <h3> Step 12: Generate lotus2 report</h3>
       </div>

@@ -161,39 +161,29 @@ def init_create_multiqc_report(process_id):
 def check_multiqc_report(process_id):
     from models.sequencing_upload import SequencingUpload
 
-    # Fetch process data from SequencingUpload model
     process_data = SequencingUpload.get(process_id)
-
-    # Extract uploads folder and project id from process data
     uploads_folder = process_data["uploads_folder"]
+    existing_reports = []  # Changed from True/False logic
 
-    # Check if regions are specified
     if process_data["regions"]:
-        # Iterate through each region
         for region in process_data["regions"]:
-            # Construct the path to the multiqc folder
             # ensure region name is safe for folder naming
             clean_region = re.sub(r"\s+", "_", region)
-            multiqc_folder = os.path.join(
-                "seq_processed", uploads_folder, "fastqc", clean_region
-            )
-
-            # Construct the path to the potential multiqc report file
             multiqc_report_file = os.path.join(
-                multiqc_folder, "multiqc_report.html"
+                "seq_processed",
+                uploads_folder,
+                "fastqc",
+                clean_region,
+                "multiqc_report.html",
             )
 
             # Check if the multiqc report file exists
-            if not os.path.isfile(multiqc_report_file):
-                # If any report does not exist, return False immediately
-                return False
+            if os.path.isfile(multiqc_report_file):
+                existing_reports.append(region)
 
-        # If all reports exist, return True
-        return True
-
+        return existing_reports  # Returns a list (truthy if not empty)
     else:
-        # If there are no regions specified, we can assume reports do not exist
-        return False
+        return []
 
 
 def extract_total_sequences_from_fastqc_zip(abs_zip_path):
