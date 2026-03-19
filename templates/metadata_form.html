@@ -2254,12 +2254,17 @@
         var step_8_form = $('#step_8_upload_file_button').closest('form');
         var process_id = step_8_form.find('input[name="process_id"]').val();
         var allowedExtensions = ['gz']; // Define allowed file extensions
+        // Get the CSRF token
+        var csrftoken = $('meta[name="csrf-token"]').attr('content');        
         var commonOptions = {
             target: '/sequencing_upload_chunk',
             chunkSize: 10 * 1024 * 1024,
             testChunks: true,
             uploadMethod: 'POST',
             fileType: allowedExtensions,
+            headers: {
+              'X-CSRFToken': csrftoken
+            },            
             fileTypeErrorCallback: function(file, errorCount) {
                 var fileExtension = file.name.split('.').pop().toLowerCase();
                 if (!allowedExtensions.includes(fileExtension)) {
