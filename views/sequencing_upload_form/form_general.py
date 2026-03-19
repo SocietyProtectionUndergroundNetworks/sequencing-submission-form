@@ -56,8 +56,8 @@ def metadata_form():
     samples_data_complete = []
     extra_data = {}
     extra_data_keys = set()
-    multiqc_report_exists = False
-    mapping_files_exist = False
+    multiqc_report_exists = []
+    mapping_files_exist = []
     has_empty_fastqc_report = False
     lotus2_report = []
     rscripts_report = []
