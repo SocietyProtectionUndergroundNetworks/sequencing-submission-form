@@ -370,14 +370,13 @@ def generate_lotus2_report(
                 "FULL_ITS_LSU_Eukaryome",
             ]:
                 sdmopt = "/lotus2_files/sdm_PacBio_ITS.txt"
-                platform = ""
+                platform = " -p PacBio"
 
                 if analysis_type.name in [
                     "FULL_ITS_LSU_UNITE",
                     "FULL_ITS_LSU_Eukaryome",
                 ]:
                     sdmopt = "/lotus2_files/sdm_PacBio_ITS_3000.txt"
-                    platform = " -p PacBio"
 
                 if analysis_type.name in [
                     "FULL_ITS_UNITE",
