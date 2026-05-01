@@ -371,7 +371,8 @@ def generate_lotus2_report(
             ]:
                 sdmopt = "/lotus2_files/sdm_PacBio_ITS.txt"
                 platform = " -p PacBio"
-
+                derepMin = " -derepMin 2:1 "
+                LCA_cover = " -LCA_cover 0.3 "
                 if analysis_type.name in [
                     "FULL_ITS_LSU_UNITE",
                     "FULL_ITS_LSU_Eukaryome",
@@ -410,12 +411,10 @@ def generate_lotus2_report(
                     "blast",
                     "-clustering",
                     "vsearch",
-                    "-LCA_cover",
-                    "0.97",
+                    LCA_cover,
                     "-sdmThreads",
                     "1",
-                    "-derepMin",
-                    "10:1,5:2,3:3",
+                    derepMin,
                     "-sdmopt",
                     sdmopt,
                     platform,
