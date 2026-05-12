@@ -4,9 +4,16 @@ import logging
 import uuid
 import os
 import io
+from collections import defaultdict
 
 from helpers.dbm import session_scope
-from models.db_model import SequencingUploadsTable, SequencingSamplesTable
+from models.db_model import (
+    SequencingUploadsTable,
+    SequencingSamplesTable,
+    SequencingSequencerIDsTable,
+    SequencingAnalysisTable,
+    SequencingAnalysisSampleRichnessTable,
+)
 
 logger = logging.getLogger("my_app_logger")
 
@@ -40,8 +47,54 @@ def create_samples_gpkg():
             .all()
         )
 
+        sample_ids = [sample.id for sample, _ in rows]
+
+        # Distinct DNA regions per sample
+        region_rows = (
+            session.query(
+                SequencingSequencerIDsTable.sequencingSampleId,
+                SequencingSequencerIDsTable.Region,
+            )
+            .filter(
+                SequencingSequencerIDsTable.sequencingSampleId.in_(sample_ids),
+                SequencingSequencerIDsTable.Region.isnot(None),
+            )
+            .distinct()
+            .all()
+        )
+
+        regions_by_sample = defaultdict(set)
+        for r in region_rows:
+            regions_by_sample[r.sequencingSampleId].add(r.Region)
+
+        # Richness data for sequencingAnalysisTypeId = 1, latest analysis per sample
+        richness_rows = (
+            session.query(SequencingAnalysisSampleRichnessTable)
+            .join(
+                SequencingAnalysisTable,
+                SequencingAnalysisSampleRichnessTable.analysis_id
+                == SequencingAnalysisTable.id,
+            )
+            .filter(
+                SequencingAnalysisTable.sequencingAnalysisTypeId == 1,
+                SequencingAnalysisSampleRichnessTable.sample_id.in_(
+                    sample_ids
+                ),
+            )
+            .order_by(SequencingAnalysisSampleRichnessTable.analysis_id.desc())
+            .all()
+        )
+
+        richness_by_sample = {}
+        for r in richness_rows:
+            if r.sample_id not in richness_by_sample:
+                richness_by_sample[r.sample_id] = r
+
         data = []
         for sample, upload in rows:
+            regions = regions_by_sample.get(sample.id, set())
+            richness = richness_by_sample.get(sample.id)
+
             data.append(
                 {
                     # Upload-level fields
@@ -77,6 +130,29 @@ def create_samples_gpkg():
                     "Sample_or_Control": sample.Sample_or_Control,
                     "IndigenousPartnership": sample.IndigenousPartnership,
                     "Notes": sample.Notes,
+                    # DNA regions (comma-separated, e.g. "ITS1,SSU")
+                    "dna_regions": (
+                        ",".join(sorted(regions)) if regions else None
+                    ),
+                    # Richness fields (from sequencingAnalysisTypeId = 1)
+                    "richness_observed": (
+                        richness.observed if richness else None
+                    ),
+                    "richness_estimator": (
+                        richness.estimator if richness else None
+                    ),
+                    "richness_est_s_e": (
+                        richness.est_s_e if richness else None
+                    ),
+                    "richness_95pct_lower": (
+                        richness.x95_percent_lower if richness else None
+                    ),
+                    "richness_95pct_upper": (
+                        richness.x95_percent_upper if richness else None
+                    ),
+                    "richness_seq_depth": (
+                        richness.seq_depth if richness else None
+                    ),
                 }
             )
 
