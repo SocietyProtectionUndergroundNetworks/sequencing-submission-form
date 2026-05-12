@@ -1,5 +1,5 @@
 import logging
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, send_file
 from flask_login import login_required
 from helpers.statistics import (
     get_cohorts_data,
@@ -49,3 +49,22 @@ def generate_map():
 def show_map():
     geojson_path = "/static/data.geojson"
     return render_template("map_dynamic.html", geojson_path=geojson_path)
+
+
+@data_bp.route("/data/export/gpkg", endpoint="export_gpkg")
+@login_required
+@approved_required
+@staff_required
+def export_gpkg():
+    from helpers.gpkg import create_samples_gpkg
+
+    buf = create_samples_gpkg()
+    if buf is None:
+        return {"error": "Failed to create GPKG file"}, 500
+
+    return send_file(
+        buf,
+        as_attachment=True,
+        download_name="samples.gpkg",
+        mimetype="application/geopackage+sqlite3",
+    )
