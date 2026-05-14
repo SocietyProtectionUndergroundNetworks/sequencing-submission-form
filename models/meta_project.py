@@ -88,10 +88,13 @@ class MetaProject:
             folder = project_info.get("uploads_folder")
             country = project_info.get("Country")
 
+            prefix = f"P{upload_id}_"
             for sample in project_samples:
                 # We must attach these at the top level of the sample dict
                 sample["project_uploads_folder"] = folder
                 sample["project_country"] = country
+                if sample.get("SampleID"):
+                    sample["SampleID"] = prefix + sample["SampleID"]
                 combined_data.append(sample)
 
         return combined_data
