@@ -371,8 +371,8 @@ def generate_lotus2_report(
             ]:
                 sdmopt = "/lotus2_files/sdm_PacBio_ITS.txt"
                 platform = " -p PacBio"
-                derepMin = " -derepMin 2:1 "
-                LCA_cover = " -LCA_cover 0.3 "
+                derepMin = " -derepMin 10:1,5:2,3:3 "
+                LCA_cover = " -LCA_cover 0.5 "
                 if analysis_type.name in [
                     "FULL_ITS_LSU_UNITE",
                     "FULL_ITS_LSU_Eukaryome",
