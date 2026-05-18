@@ -130,6 +130,11 @@ def create_app(test_config=None):
     login_manager.init_app(app)  # Initialize Flask-Login
     csrf.init_app(app)  # Initialized CSRF protection
 
+    # The mobile API uses API key auth, not sessions — CSRF doesn't apply
+    from views.mobile_api import mobile_api_bp
+
+    csrf.exempt(mobile_api_bp)
+
     # 4. Other app setup that needs the app context or configuration
     # Initialize Earth Engine. This often needs to be mocked in tests.
     # Conditionally initialize Earth Engine only if NOT disabled
