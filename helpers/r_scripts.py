@@ -5,6 +5,7 @@ import os
 import json
 import shlex
 from datetime import datetime
+from helpers.vtx import generate_vtx_file
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML
 from urllib.request import pathname2url
@@ -437,6 +438,10 @@ def generate_rscripts_report(
             SequencingUpload.process_otu_data(
                 otu_full_data, process_id, analysis_id
             )
+
+        # For SSU_dada2, generate the VTX file:
+        if str(analysis_type_id) == "1":
+            generate_vtx_file(lotus_2_dir, output_dir)
 
     except Exception as e:
         logger.error(f"Error running r scripts: {str(e)}")
