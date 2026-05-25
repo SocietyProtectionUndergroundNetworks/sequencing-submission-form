@@ -591,3 +591,35 @@ class MobileAppStagingSampleTable(Base):
         Index("idx_mss_submitter_id", "submitter_id"),
         Index("idx_mss_date_collected", "date_collected"),
     )
+
+
+class MobileAppProjectTable(Base):
+    __tablename__ = "mobile_app_projects"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    project_id = Column(String(36), nullable=False, unique=True)
+    name = Column(String(255), nullable=False)
+    submitter_id = Column(String(255), nullable=False)
+    created_at = Column(DateTime, nullable=False, default=func.now())
+    updated_at = Column(
+        DateTime, nullable=False, default=func.now(), onupdate=func.now()
+    )
+
+    __table_args__ = (Index("idx_map_project_id", "project_id"),)
+
+
+class MobileAppStagingPhotoTable(Base):
+    __tablename__ = "mobile_app_staging_photos"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    sample_id = Column(String(100), nullable=False)
+    project_id = Column(String(36), nullable=True)
+    submitter_id = Column(String(255), nullable=False)
+    file_path = Column(String(500), nullable=False)
+    original_filename = Column(String(255), nullable=True)
+    received_at = Column(DateTime, nullable=False, default=func.now())
+
+    __table_args__ = (
+        Index("idx_msph_sample_id", "sample_id"),
+        Index("idx_msph_submitter_id", "submitter_id"),
+    )
