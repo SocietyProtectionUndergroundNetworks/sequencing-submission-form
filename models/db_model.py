@@ -11,6 +11,9 @@ from sqlalchemy import (
     Float,
     JSON,
     Index,
+    Numeric,
+    Text,
+    Date,
 )
 
 from sqlalchemy.orm import relationship, declarative_base
@@ -553,4 +556,70 @@ class MetaProjectUploadsTable(Base):
         Integer,
         ForeignKey("sequencing_uploads.id", ondelete="CASCADE"),
         nullable=False,
+    )
+
+
+class MobileAppStagingSampleTable(Base):
+    __tablename__ = "mobile_app_staging_samples"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    sample_id = Column(String(100), nullable=False)
+    project_id = Column(String(36), nullable=False)
+    project_name = Column(String(255), nullable=True)
+    submitter_id = Column(String(255), nullable=False)
+    date_collected = Column(Date, nullable=False)
+    latitude = Column(Numeric(10, 6), nullable=True)
+    longitude = Column(Numeric(10, 6), nullable=True)
+    elevation = Column(Numeric(8, 2), nullable=True)
+    sample_type = Column(String(50), nullable=True)
+    sample_or_control = Column(
+        String(20), nullable=False, default="True sample"
+    )
+    transport = Column(String(100), nullable=True)
+    drying = Column(String(100), nullable=True)
+    soil_depth = Column(String(20), nullable=True)
+    grid_size = Column(String(20), nullable=True)
+    land_use = Column(String(50), nullable=True)
+    agricultural = Column(String(10), nullable=True)
+    vegetation = Column(String(500), nullable=True)
+    notes = Column(Text, nullable=True)
+    dna_concentration_ng_ul = Column(String(50), nullable=True)
+    received_at = Column(DateTime, nullable=False, default=func.now())
+
+    __table_args__ = (
+        Index("idx_mss_project_id", "project_id"),
+        Index("idx_mss_submitter_id", "submitter_id"),
+        Index("idx_mss_date_collected", "date_collected"),
+    )
+
+
+class MobileAppProjectTable(Base):
+    __tablename__ = "mobile_app_projects"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    project_id = Column(String(36), nullable=False, unique=True)
+    name = Column(String(255), nullable=False)
+    submitter_id = Column(String(255), nullable=False)
+    created_at = Column(DateTime, nullable=False, default=func.now())
+    updated_at = Column(
+        DateTime, nullable=False, default=func.now(), onupdate=func.now()
+    )
+
+    __table_args__ = (Index("idx_map_project_id", "project_id"),)
+
+
+class MobileAppStagingPhotoTable(Base):
+    __tablename__ = "mobile_app_staging_photos"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    sample_id = Column(String(100), nullable=False)
+    project_id = Column(String(36), nullable=True)
+    submitter_id = Column(String(255), nullable=False)
+    file_path = Column(String(500), nullable=False)
+    original_filename = Column(String(255), nullable=True)
+    received_at = Column(DateTime, nullable=False, default=func.now())
+
+    __table_args__ = (
+        Index("idx_msph_sample_id", "sample_id"),
+        Index("idx_msph_submitter_id", "submitter_id"),
     )

@@ -11,22 +11,21 @@ http {
         server_name [my-domain.com] www.[my-domain.com];
         server_tokens off;
 
-        location / {
-            proxy_pass http://flask:56733;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            # Additional proxy settings if needed...
-        }
+        # Redirect all plain HTTP to HTTPS
+        return 301 https://$host$request_uri;
     }
     server {
         listen 443 ssl;
         server_name [my-domain.com];
         ssl_certificate /etc/letsencrypt/live/[my-domain.com]/fullchain.pem;
-        ssl_certificate_key /etc/letsencrypt/live/[my-domain.com]/privkey.pem;        
+        ssl_certificate_key /etc/letsencrypt/live/[my-domain.com]/privkey.pem;
         client_max_body_size 20M;
-        index index.html;
+
         location / {
-            proxy_pass http://[my-domain.com]/;
+            proxy_pass http://flask:56733;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-Proto $scheme;
         }
     }
 }
