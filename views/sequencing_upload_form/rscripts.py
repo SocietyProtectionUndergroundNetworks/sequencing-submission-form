@@ -78,6 +78,7 @@ def show_report_outcome():
         "metadata_chaorichness",
         "physeq_by_genus",
         "contaminants",
+        "vtx_table",
     ]:
 
         if file_type in [
@@ -154,6 +155,7 @@ def show_report_outcome():
             "metadata_chaorichness",
             "physeq_by_genus",
             "contaminants",
+            "vtx_table",
         ]:
 
             if is_meta:
@@ -225,6 +227,13 @@ def show_report_outcome():
                         file_path = os.path.join(
                             report_folder, "amf_physeq_by_genus.pdf"
                         )
+                    return send_file(file_path, as_attachment=True)
+
+                elif file_type == "vtx_table":
+                    file_path = os.path.join(
+                        report_folder,
+                        "SSU_dada2_ASV_VTX_tophit_pident97_qcov98.tsv",
+                    )
                     return send_file(file_path, as_attachment=True)
 
                 elif file_type == "rscripts_command_outcome":

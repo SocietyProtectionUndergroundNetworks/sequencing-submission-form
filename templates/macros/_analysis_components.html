@@ -120,6 +120,7 @@
         <th scope="col" class="bg-gray">metadata_chaorichness.csv</th>
         <th scope="col" class="bg-gray">contaminants.csv</th>
         <th scope="col" class="bg-gray">(ecm_/amf_)physeq_by_genus.pdf</th>
+        <th scope="col" class="bg-gray">SSU_data_VTX_tophit_pident97_qcov98.tsv</th>
         {% if not is_meta %}
           <th scope="col" class="bg-gray">Bucket</th>
         {% endif %}
@@ -157,7 +158,7 @@
               {% endif %}
             {% endif %}
           </td>
-          {% for log in ['rscripts_command_outcome','LibrarySize', 'control_vs_sample', 'filtered_rarefaction', 'physeq_decontam', 'metadata_chaorichness', 'contaminants', 'physeq_by_genus'] %}
+          {% for log in ['rscripts_command_outcome','LibrarySize', 'control_vs_sample', 'filtered_rarefaction', 'physeq_decontam', 'metadata_chaorichness', 'contaminants', 'physeq_by_genus', 'vtx_table'] %}
           <td>
             {% if region_data.files_exist[log] %}
               <span class="text-success">
