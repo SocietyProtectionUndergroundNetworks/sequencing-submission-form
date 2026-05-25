@@ -29,5 +29,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index("idx_msph_project_id", table_name="mobile_app_staging_photos")
+    op.drop_index(
+        "idx_msph_project_id", table_name="mobile_app_staging_photos"
+    )
     op.drop_column("mobile_app_staging_photos", "project_id")
