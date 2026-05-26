@@ -16,6 +16,7 @@ from .projects import projects_bp
 from .sequencing_upload_form import upload_form_bp
 from .documentation import documentation_bp
 from .mobile_api import mobile_api_bp
+from .mobile import mobile_bp
 
 
 def create_base_app():  # Renamed from create_app
@@ -68,5 +69,6 @@ def create_base_app():  # Renamed from create_app
     app.register_blueprint(upload_form_bp)
     app.register_blueprint(documentation_bp)
     app.register_blueprint(mobile_api_bp)
+    app.register_blueprint(mobile_bp)
 
     return app

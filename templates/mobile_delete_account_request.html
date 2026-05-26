@@ -1,0 +1,69 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/static/css/google_login.css" rel="stylesheet" type="text/css" />
+    <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnSuA4Ss2PkkikSOLtYs8BlYIeeIK1h99ty4YfvRPAlzr377vr3CXDb7sb7eEEBYjDtcYj+AjBH3FLv5uSJuXg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <title>Delete Account — SPUN Field App</title>
+</head>
+<body>
+  <div class="app-navbar">
+    <a href="https://spun.earth" class="logo"></a>
+    <div class="menu">
+      <ul>
+        <li><a href="https://spun.earth">SPUN Website</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="content" style="padding: 3rem;">
+    <div class="row justify-content-center">
+      <div class="col-12 col-md-6">
+
+        <h1 class="mb-3">Request Account Deletion</h1>
+        <p class="text-muted mb-4">
+          Use this form to request that your SPUN Field app account and all
+          associated data be deleted. We will process your request and contact
+          you to confirm.
+        </p>
+
+        {% if success %}
+          <div class="alert alert-success" role="alert">
+            <strong>Request received.</strong> We will review your request and
+            follow up at the email address you provided.
+          </div>
+        {% else %}
+          {% if error %}
+            <div class="alert alert-danger" role="alert">
+              {{ error }}
+            </div>
+          {% endif %}
+
+          <form method="POST" action="/mobile/delete_account_request_form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <div class="mb-3">
+              <label for="email" class="form-label">Email address</label>
+              <input
+                type="email"
+                class="form-control"
+                id="email"
+                name="email"
+                placeholder="you@example.com"
+                required
+              />
+              <div class="form-text">
+                Enter the email address associated with your SPUN Field account.
+              </div>
+            </div>
+            <button type="submit" class="btn btn-danger">
+              Submit deletion request
+            </button>
+          </form>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+</body>
+</html>
