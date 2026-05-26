@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnSuA4Ss2PkkikSOLtYs8BlYIeeIK1h99ty4YfvRPAlzr377vr3CXDb7sb7eEEBYjDtcYj+AjBH3FLv5uSJuXg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <title>Project — {{ project.name }}</title>
+</head>
+<body>
+  <div class="app-navbar">
+    <a href="/" class="logo"></a>
+    <div class="menu">
+      <ul>
+        <li><a href="{{ url_for('mobile.mobile_projects_list') }}">Mobile Projects</a></li>
+        <li><a href="/">App homepage</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="content p-4">
+
+    <a href="{{ url_for('mobile.mobile_projects_list') }}" class="btn btn-sm btn-outline-secondary mb-3">&larr; All projects</a>
+
+    <h1 class="mb-1">{{ project.name }}</h1>
+    <p class="text-muted mb-4"><code>{{ project.project_id }}</code></p>
+
+    <div class="card mb-4">
+      <div class="card-header"><strong>Project details</strong></div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-3">Submitter</dt>
+          <dd class="col-sm-9">{{ project.submitter_id }}</dd>
+
+          <dt class="col-sm-3">Created</dt>
+          <dd class="col-sm-9">{{ project.created_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+
+          <dt class="col-sm-3">Last updated</dt>
+          <dd class="col-sm-9">{{ project.updated_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+        </dl>
+      </div>
+    </div>
+
+    <h2 class="mb-3">Samples <span class="badge bg-secondary">{{ samples | length }}</span></h2>
+
+    {% if samples %}
+      {% for s in samples %}
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <strong>{{ s.sample_id }}</strong>
+          <span class="text-muted small">collected {{ s.date_collected }}</span>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-sm-3">Submitter</dt>
+            <dd class="col-sm-9">{{ s.submitter_id }}</dd>
+
+            {% if s.latitude is not none and s.longitude is not none %}
+            <dt class="col-sm-3">Coordinates</dt>
+            <dd class="col-sm-9">{{ s.latitude }}, {{ s.longitude }}{% if s.elevation is not none %} &middot; {{ s.elevation }} m{% endif %}</dd>
+            {% endif %}
+
+            {% if s.sample_type %}
+            <dt class="col-sm-3">Sample type</dt>
+            <dd class="col-sm-9">{{ s.sample_type }}</dd>
+            {% endif %}
+
+            <dt class="col-sm-3">Sample / control</dt>
+            <dd class="col-sm-9">{{ s.sample_or_control }}</dd>
+
+            {% if s.transport %}
+            <dt class="col-sm-3">Transport</dt>
+            <dd class="col-sm-9">{{ s.transport }}</dd>
+            {% endif %}
+
+            {% if s.drying %}
+            <dt class="col-sm-3">Drying</dt>
+            <dd class="col-sm-9">{{ s.drying }}</dd>
+            {% endif %}
+
+            {% if s.soil_depth %}
+            <dt class="col-sm-3">Soil depth</dt>
+            <dd class="col-sm-9">{{ s.soil_depth }}</dd>
+            {% endif %}
+
+            {% if s.grid_size %}
+            <dt class="col-sm-3">Grid size</dt>
+            <dd class="col-sm-9">{{ s.grid_size }}</dd>
+            {% endif %}
+
+            {% if s.land_use %}
+            <dt class="col-sm-3">Land use</dt>
+            <dd class="col-sm-9">{{ s.land_use }}</dd>
+            {% endif %}
+
+            {% if s.agricultural %}
+            <dt class="col-sm-3">Agricultural</dt>
+            <dd class="col-sm-9">{{ s.agricultural }}</dd>
+            {% endif %}
+
+            {% if s.vegetation %}
+            <dt class="col-sm-3">Vegetation</dt>
+            <dd class="col-sm-9">{{ s.vegetation }}</dd>
+            {% endif %}
+
+            {% if s.dna_concentration_ng_ul %}
+            <dt class="col-sm-3">DNA conc. (ng/µl)</dt>
+            <dd class="col-sm-9">{{ s.dna_concentration_ng_ul }}</dd>
+            {% endif %}
+
+            {% if s.notes %}
+            <dt class="col-sm-3">Notes</dt>
+            <dd class="col-sm-9">{{ s.notes }}</dd>
+            {% endif %}
+
+            <dt class="col-sm-3">Received</dt>
+            <dd class="col-sm-9">{{ s.received_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+          </dl>
+
+          {% if s.photos %}
+          <hr>
+          <h6 class="mb-2">Photos <span class="badge bg-secondary">{{ s.photos | length }}</span></h6>
+          <div class="d-flex flex-wrap gap-2">
+            {% for ph in s.photos %}
+            <a href="{{ url_for('mobile.mobile_photo', photo_id=ph.id) }}" target="_blank">
+              <img
+                src="{{ url_for('mobile.mobile_photo_thumbnail', photo_id=ph.id) }}"
+                alt="{{ ph.original_filename or 'photo' }}"
+                title="{{ ph.original_filename or '' }} — {{ ph.received_at.strftime('%Y-%m-%d %H:%M') }}"
+                style="width: 120px; height: 120px; object-fit: cover; border-radius: 4px;"
+              />
+            </a>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="alert alert-info">No samples have been submitted for this project yet.</div>
+    {% endif %}
+
+  </div>
+</body>
+</html>

@@ -3,8 +3,16 @@ import smtplib
 import logging
 from email.message import EmailMessage
 
-from flask import Blueprint, request, render_template
+from flask import Blueprint, request, render_template, abort, send_file
+from flask_login import login_required
 from helpers.slack import send_message_to_slack
+from helpers.dbm import session_scope
+from helpers.decorators import approved_required, staff_required
+from models.db_model import (
+    MobileAppProjectTable,
+    MobileAppStagingSampleTable,
+    MobileAppStagingPhotoTable,
+)
 
 logger = logging.getLogger("my_app_logger")
 
@@ -39,6 +47,152 @@ def _send_deletion_request_email(requester_email, admin_email):
         smtp.starttls()
         smtp.login(smtp_user, smtp_password)
         smtp.send_message(msg)
+
+
+@mobile_bp.route("/projects", methods=["GET"])
+@login_required
+@staff_required
+@approved_required
+def mobile_projects_list():
+    with session_scope() as session:
+        projects = (
+            session.query(MobileAppProjectTable)
+            .order_by(MobileAppProjectTable.created_at.desc())
+            .all()
+        )
+        projects_data = [
+            {
+                "id": p.id,
+                "project_id": p.project_id,
+                "name": p.name,
+                "submitter_id": p.submitter_id,
+                "created_at": p.created_at,
+                "updated_at": p.updated_at,
+            }
+            for p in projects
+        ]
+    return render_template("mobile_projects_list.html", projects=projects_data)
+
+
+@mobile_bp.route("/projects/<string:project_id>", methods=["GET"])
+@login_required
+@staff_required
+@approved_required
+def mobile_project_detail(project_id):
+    with session_scope() as session:
+        project = (
+            session.query(MobileAppProjectTable)
+            .filter_by(project_id=project_id)
+            .first()
+        )
+        if project is None:
+            abort(404)
+        project_data = {
+            "id": project.id,
+            "project_id": project.project_id,
+            "name": project.name,
+            "submitter_id": project.submitter_id,
+            "created_at": project.created_at,
+            "updated_at": project.updated_at,
+        }
+        samples = (
+            session.query(MobileAppStagingSampleTable)
+            .filter_by(project_id=project_id)
+            .order_by(MobileAppStagingSampleTable.date_collected.desc())
+            .all()
+        )
+        samples_data = []
+        for s in samples:
+            photos = (
+                session.query(MobileAppStagingPhotoTable)
+                .filter_by(sample_id=s.sample_id, project_id=project_id)
+                .all()
+            )
+            samples_data.append(
+                {
+                    "id": s.id,
+                    "sample_id": s.sample_id,
+                    "submitter_id": s.submitter_id,
+                    "date_collected": s.date_collected,
+                    "latitude": s.latitude,
+                    "longitude": s.longitude,
+                    "elevation": s.elevation,
+                    "sample_type": s.sample_type,
+                    "sample_or_control": s.sample_or_control,
+                    "transport": s.transport,
+                    "drying": s.drying,
+                    "soil_depth": s.soil_depth,
+                    "grid_size": s.grid_size,
+                    "land_use": s.land_use,
+                    "agricultural": s.agricultural,
+                    "vegetation": s.vegetation,
+                    "notes": s.notes,
+                    "dna_concentration_ng_ul": s.dna_concentration_ng_ul,
+                    "received_at": s.received_at,
+                    "photos": [
+                        {
+                            "id": ph.id,
+                            "original_filename": ph.original_filename,
+                            "received_at": ph.received_at,
+                        }
+                        for ph in photos
+                    ],
+                }
+            )
+    return render_template(
+        "mobile_project_detail.html",
+        project=project_data,
+        samples=samples_data,
+    )
+
+
+@mobile_bp.route("/photos/<int:photo_id>", methods=["GET"])
+@login_required
+@staff_required
+@approved_required
+def mobile_photo(photo_id):
+    with session_scope() as session:
+        photo = (
+            session.query(MobileAppStagingPhotoTable)
+            .filter_by(id=photo_id)
+            .first()
+        )
+        if photo is None:
+            abort(404)
+        file_path = photo.file_path
+    return send_file(os.path.abspath(file_path))
+
+
+@mobile_bp.route("/photos/<int:photo_id>/thumbnail", methods=["GET"])
+@login_required
+@staff_required
+@approved_required
+def mobile_photo_thumbnail(photo_id):
+    with session_scope() as session:
+        photo = (
+            session.query(MobileAppStagingPhotoTable)
+            .filter_by(id=photo_id)
+            .first()
+        )
+        if photo is None:
+            abort(404)
+        file_path = photo.file_path
+
+    abs_path = os.path.abspath(file_path)
+    photo_dir = os.path.dirname(abs_path)
+    thumb_dir = os.path.join(photo_dir, "thumbnails")
+    thumb_path = os.path.join(thumb_dir, os.path.basename(abs_path))
+
+    if not os.path.exists(thumb_path):
+        from PIL import Image
+
+        os.makedirs(thumb_dir, exist_ok=True)
+        with Image.open(abs_path) as img:
+            img = img.convert("RGB")
+            img.thumbnail((240, 240))
+            img.save(thumb_path, "JPEG", quality=75)
+
+    return send_file(thumb_path, mimetype="image/jpeg")
 
 
 @mobile_bp.route("/delete_account_request_form", methods=["GET", "POST"])

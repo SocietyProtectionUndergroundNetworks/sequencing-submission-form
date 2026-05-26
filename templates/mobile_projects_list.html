@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnSuA4Ss2PkkikSOLtYs8BlYIeeIK1h99ty4YfvRPAlzr377vr3CXDb7sb7eEEBYjDtcYj+AjBH3FLv5uSJuXg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <title>Mobile App Projects</title>
+</head>
+<body>
+  <div class="app-navbar">
+    <a href="/" class="logo"></a>
+    <div class="menu">
+      <ul>
+        <li><a href="/">App homepage</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="content p-4">
+    <h1 class="mb-4">Mobile App Projects</h1>
+
+    {% if projects %}
+      <table class="table table-striped table-bordered">
+        <thead class="table-dark">
+          <tr>
+            <th>ID</th>
+            <th>Project UUID</th>
+            <th>Name</th>
+            <th>Submitter</th>
+            <th>Created</th>
+            <th>Updated</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in projects %}
+          <tr>
+            <td>{{ "%04d" | format(p.id) }}</td>
+            <td><code>{{ p.project_id }}</code></td>
+            <td><strong>{{ p.name }}</strong></td>
+            <td>{{ p.submitter_id }}</td>
+            <td>{{ p.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>{{ p.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>
+              <a href="{{ url_for('mobile.mobile_project_detail', project_id=p.project_id) }}" class="btn btn-sm btn-primary">View</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="alert alert-info">No mobile app projects have been submitted yet.</div>
+    {% endif %}
+  </div>
+</body>
+</html>
