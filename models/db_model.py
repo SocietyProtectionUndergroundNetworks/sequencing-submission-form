@@ -578,7 +578,7 @@ class MobileAppStagingSampleTable(Base):
     transport = Column(String(100), nullable=True)
     drying = Column(String(100), nullable=True)
     soil_depth = Column(String(20), nullable=True)
-    grid_size = Column(String(20), nullable=True)
+    grid_size = Column(String(24), nullable=True)
     land_use = Column(String(50), nullable=True)
     agricultural = Column(String(10), nullable=True)
     vegetation = Column(String(500), nullable=True)
