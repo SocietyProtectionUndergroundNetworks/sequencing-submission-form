@@ -66,7 +66,7 @@ def process_uploaded_file(
         )
 
         if existing_file_id:
-            return None  # File already exists, return None to skip processing
+            return new_filename  # File already processed — return name so caller reports success
 
         # Create a new entry in the database for the file
         new_file_uploaded_id = SequencingFileUploaded.create(
@@ -242,6 +242,12 @@ def sequencing_file_upload_completed():
 
         actual_md5 = calculate_md5(temp_file_path)
         # Compare MD5 hashes
+        if expected_md5 != actual_md5:
+            logger.error(
+                f"MD5 mismatch for {form_filename}: "
+                f"expected={expected_md5} actual={actual_md5} "
+                f"temp_size={os.path.getsize(temp_file_path)}"
+            )
         if expected_md5 == actual_md5:
             # MD5 hashes match, file integrity verified
             os.rename(temp_file_path, final_file_path)
@@ -303,6 +309,15 @@ def sequencing_upload_chunk_check():
         )
 
         if os.path.exists(chunk_path):
+            expected_size = request.args.get("resumableCurrentChunkSize")
+            if expected_size:
+                actual_size = os.path.getsize(chunk_path)
+                if actual_size != int(expected_size):
+                    logger.warning(
+                        f"Chunk {chunk_number} size mismatch at {chunk_path}:"
+                        f" expected {expected_size}, got {actual_size}"
+                    )
+                    return "", 204  # Wrong size — force re-upload
             logger.info(f"Chunk {chunk_number} exists at {chunk_path}")
             return "", 200  # Chunk already uploaded, return 200
         else:
@@ -327,10 +342,10 @@ def sequencing_upload_chunk_check():
 @approved_required
 def sequencing_upload_chunk():
     process_id = request.args.get("process_id")
-    file = request.files.get("file")
+    resumable_filename = request.args.get("resumableFilename")
 
-    if file and process_id:
-        filename = secure_filename(file.filename)
+    if resumable_filename and process_id:
+        filename = secure_filename(resumable_filename)
         process_data = SequencingUpload.get(process_id)
         uploads_folder = process_data["uploads_folder"]
 
@@ -343,11 +358,16 @@ def sequencing_upload_chunk():
             f"seq_uploads/{uploads_folder}/" f"{filename}.part{chunk_number}"
         )
 
-        # Reset pointer before saving
-        file.seek(0)
+        chunk_data = request.get_data()
+        with open(save_path, "wb") as f:
+            f.write(chunk_data)
 
-        # Save file chunk once
-        file.save(save_path)
+        saved_size = os.path.getsize(save_path)
+        expected_chunk_size = request.args.get("resumableCurrentChunkSize")
+        logger.info(
+            f"Chunk {chunk_number} saved: {saved_size} bytes "
+            f"(resumableCurrentChunkSize={expected_chunk_size})"
+        )
 
         return jsonify({"message": f"Chunk {chunk_number} uploaded"}), 200
 

@@ -1,5 +1,4 @@
 import pytest
-import io
 import os
 import hashlib
 import json
@@ -259,23 +258,22 @@ def test_upload_process_common_fields_creation(
 
         # Step 4: Upload each chunk
         for idx, chunk in enumerate(chunks, start=1):
-            # Using query params like your JS sends in r.opts.query
+            # Using query params like resumable.js sends with method: 'octet'
             query_params = {
                 "process_id": process_id,
-                "filename": filename,
+                "resumableFilename": filename,
                 "resumableChunkNumber": idx,
                 "resumableTotalChunks": len(chunks),
+                "resumableCurrentChunkSize": len(chunk),
             }
-            # Send chunk as multipart form file under 'file'
-            data = {"file": (io.BytesIO(chunk), filename)}
-            # Compose URL with query parameters
+            # Send chunk as raw octet-stream (not multipart)
             url = "/sequencing_upload_chunk?" + "&".join(
                 f"{k}={v}" for k, v in query_params.items()
             )
             chunk_resp = client.post(
                 url,
-                data=data,
-                content_type="multipart/form-data",
+                data=chunk,
+                content_type="application/octet-stream",
             )
             assert chunk_resp.status_code == 200
 
