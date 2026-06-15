@@ -164,6 +164,7 @@ def batch_submit_samples():
                 date_collected=collected,
                 latitude=sample.get("latitude"),
                 longitude=sample.get("longitude"),
+                accuracy=sample.get("accuracy"),
                 elevation=sample.get("elevation"),
                 sample_type=sample.get("sample_type"),
                 sample_or_control=sample.get(

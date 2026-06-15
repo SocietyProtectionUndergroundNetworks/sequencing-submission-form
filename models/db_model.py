@@ -570,6 +570,7 @@ class MobileAppStagingSampleTable(Base):
     date_collected = Column(Date, nullable=False)
     latitude = Column(Numeric(10, 6), nullable=True)
     longitude = Column(Numeric(10, 6), nullable=True)
+    accuracy = Column(Numeric(10, 2), nullable=True)
     elevation = Column(Numeric(8, 2), nullable=True)
     sample_type = Column(String(50), nullable=True)
     sample_or_control = Column(
