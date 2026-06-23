@@ -66,7 +66,10 @@ def process_uploaded_file(
         )
 
         if existing_file_id:
-            return new_filename  # File already processed — return name so caller reports success
+            return (
+                new_filename,
+                False,
+            )  # Already processed — success but not newly created
 
         # Create a new entry in the database for the file
         new_file_uploaded_id = SequencingFileUploaded.create(
@@ -99,9 +102,9 @@ def process_uploaded_file(
                 bucket_name=bucket,
                 known_md5=expected_md5,
             )
-            return new_filename
+            return new_filename, True
 
-    return None  # No matching sequencer ID or no processing occurred
+    return None, False  # No matching sequencer ID or no processing occurred
 
 
 @upload_form_bp.route(
@@ -149,13 +152,13 @@ def sequencing_process_server_files():
 
         # Initialize the report list and a counter for processed files
         report = []
-        processed_files_count = 0
+        visited_files_count = 0
         max_files_to_process = 150
 
         # Loop through files in the directory
-        for file_path in full_directory_path.iterdir():
+        for file_path in sorted(full_directory_path.iterdir()):
             # Stop processing if we've reached the limit
-            if processed_files_count >= max_files_to_process:
+            if visited_files_count >= max_files_to_process:
                 logger.info(
                     f"Maximum of {max_files_to_process} files processed."
                 )
@@ -166,11 +169,12 @@ def sequencing_process_server_files():
                 file_path.name.endswith(".fastq.gz")
                 or file_path.name.endswith(".fq.gz")
             ):
+                visited_files_count += 1
 
                 actual_md5 = calculate_md5(file_path)
 
                 # Process and rename the file
-                new_filename = process_uploaded_file(
+                new_filename, is_new = process_uploaded_file(
                     process_id=process_id,
                     source_directory=directory_name,
                     filename=file_path.name,
@@ -179,21 +183,19 @@ def sequencing_process_server_files():
                     sequencing_run=sequencing_run,
                 )
 
-                # Only increment the counter if file was successfully processed
-                if new_filename:
+                if is_new:
                     report.append(
                         {
                             "original_filename": file_path.name,
                             "new_filename": new_filename,
                         }
                     )
-                    processed_files_count += 1
 
         # Return the report as part of the response
         return {
             "message": (
                 f"Files processed successfully. "
-                f"Processed {processed_files_count} files."
+                f"Processed {len(report)} new files ({visited_files_count} visited)."
             ),
             "report": report,
         }, 200
@@ -259,7 +261,7 @@ def sequencing_file_upload_completed():
                 os.remove(chunk_path)
 
             source_directory = f"seq_uploads/{uploads_folder}"
-            new_filename = process_uploaded_file(
+            new_filename, _ = process_uploaded_file(
                 process_id=process_id,
                 source_directory=source_directory,
                 filename=form_filename,
