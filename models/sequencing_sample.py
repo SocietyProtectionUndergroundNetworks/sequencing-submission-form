@@ -168,6 +168,7 @@ class SequencingSample:
                         SequencingSamplesTable.Land_use == "",
                         SequencingSamplesTable.BaileysEcoregion.is_(None),
                         SequencingSamplesTable.BaileysEcoregion == "",
+                        SequencingSamplesTable.resolve_ecoregion_id.is_(None),
                     ),
                     # Ensuring Latitude and Longitude are valid
                     # and not empty or 'nan'
@@ -341,6 +342,7 @@ class SequencingSample:
                     SequencingSamplesTable.Land_use == "",
                     SequencingSamplesTable.BaileysEcoregion.is_(None),
                     SequencingSamplesTable.BaileysEcoregion == "",
+                    SequencingSamplesTable.resolve_ecoregion_id.is_(None),
                 ),
                 SequencingSamplesTable.Latitude.isnot(None),
                 SequencingSamplesTable.Latitude != "",
