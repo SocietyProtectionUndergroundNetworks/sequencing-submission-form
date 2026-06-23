@@ -41,12 +41,39 @@ def get_ecoregions(coords):
     # Perform spatial join to find matching ecoregions
     matched = gpd.sjoin(points, ecoregions, predicate="within")
 
+    # For points that didn't fall within any polygon, snap to nearest.
+    # Project to Equal Earth (EPSG:6933) so distance is in metres, not degrees.
+    unmatched_idx = [i for i in range(len(coords)) if i not in matched.index]
+    nearest = {}
+    if unmatched_idx:
+        unmatched_points = gpd.GeoDataFrame(
+            geometry=[points.geometry[i] for i in unmatched_idx],
+            index=unmatched_idx,
+            crs=ecoregions.crs,
+        )
+        projected_points = unmatched_points.to_crs(epsg=6933)
+        projected_ecoregions = ecoregions.to_crs(epsg=6933)
+        snapped = gpd.sjoin_nearest(projected_points, projected_ecoregions)
+        for i in unmatched_idx:
+            if i in snapped.index:
+                nearest[i] = snapped.loc[i]
+
     results = []
     for i, (lat, lon) in enumerate(coords):
         if i in matched.index:
             ecoregion_info = matched.loc[i].drop("geometry").to_dict()
             results.append(
                 {"lat": lat, "lon": lon, "ecoregion": ecoregion_info}
+            )
+        elif i in nearest:
+            ecoregion_info = nearest[i].drop("geometry").to_dict()
+            results.append(
+                {
+                    "lat": lat,
+                    "lon": lon,
+                    "ecoregion": ecoregion_info,
+                    "snapped": True,
+                }
             )
         else:
             results.append(
