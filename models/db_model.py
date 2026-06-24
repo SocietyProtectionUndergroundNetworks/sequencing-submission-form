@@ -265,6 +265,9 @@ class SequencingSequencerIDsTable(Base):
     rev_read_rev_adap = Column(Integer, nullable=True)
     fwd_rev_adap = Column(Integer, nullable=True)
     fwd_rev_mrg_adap = Column(Integer, nullable=True)
+    read_length_min = Column(Integer, nullable=True)
+    read_length_max = Column(Integer, nullable=True)
+    read_length_avg = Column(Float, nullable=True)
 
 
 class SequencingFilesUploadedTable(Base):

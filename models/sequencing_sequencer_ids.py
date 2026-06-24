@@ -8,6 +8,7 @@ from helpers.cutadapt import (
     parse_detect_single_read_primers_output,
     detect_merged_read_primers,
     parse_detect_merged_read_primers_output,
+    get_read_length_stats,
     find_forward_reverse_files,
 )
 from models.db_model import (
@@ -393,7 +394,8 @@ class SequencingSequencerId:
             )
 
             # If nothing to do, skip
-            if not (need_single_read or need_merged_read):
+            need_read_length = sequencer_record.read_length_min is None
+            if not (need_single_read or need_merged_read or need_read_length):
                 logger.info("Adapters already counted, skipping.")
                 return
 
@@ -434,6 +436,24 @@ class SequencingSequencerId:
             file_2_path = os.path.join(
                 "seq_processed", process_folder, reverse_file
             )
+
+            # Run read length stats on R1 if not yet recorded
+            if sequencer_record.read_length_min is None:
+                try:
+                    length_stats = get_read_length_stats(file_1_path)
+                    if length_stats:
+                        sequencer_record.read_length_min = length_stats[
+                            "read_length_min"
+                        ]
+                        sequencer_record.read_length_max = length_stats[
+                            "read_length_max"
+                        ]
+                        sequencer_record.read_length_avg = length_stats[
+                            "read_length_avg"
+                        ]
+                        session.commit()
+                except RuntimeError as e:
+                    logger.error(f"Read length stats failed: {e}")
 
             # Run single-read adapter counting if needed
             if need_single_read:

@@ -694,6 +694,7 @@
                       <th scope="col" class="bg-gray">Report</th>
                       <th scope="col" class="bg-gray">Storage</th>
                       <th scope="col" class="bg-gray">Sequences Count</th>
+                      <th scope="col" class="bg-gray">Read Length (min/avg/max)</th>
                       <th scope="col" class="bg-gray">Primer Count</th>
                       <th scope="col" class="bg-gray">Primer Pair Count</th>
                       <th scope="col" class="bg-gray">Merged Read Primer Pair Count</th>
@@ -746,6 +747,15 @@
                             <td>
                                 {{ current_file.total_sequences_number if current_file and current_file.total_sequences_number else '' }}
                             </td>
+
+                            {# Read length stats — shown once per sequencer on the first file row #}
+                            {% if file_idx == 0 %}
+                                <td rowspan="{{ nr_files_per_sequence }}">
+                                    {% if sequencer and sequencer.read_length_min is not none %}
+                                        {{ sequencer.read_length_min }}/{{ sequencer.read_length_avg|int }}/{{ sequencer.read_length_max }}
+                                    {% endif %}
+                                </td>
+                            {% endif %}
 
                             {# Metrics / Primer data #}
                             <td>

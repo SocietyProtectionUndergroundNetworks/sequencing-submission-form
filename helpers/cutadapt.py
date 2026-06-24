@@ -122,6 +122,28 @@ def parse_detect_merged_read_primers_output(log_output):
     return reads
 
 
+def get_read_length_stats(file_path):
+    cmd = [
+        "bash",
+        "-c",
+        f"zcat {file_path} | awk 'NR%4==2{{sum+=length($0); if(NR==2)min=length($0); if(length($0)<min)min=length($0); if(length($0)>max)max=length($0); count++}} END{{print min, max, sum/count}}'",
+    ]
+    try:
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, check=True
+        )
+        parts = result.stdout.strip().split()
+        if len(parts) == 3:
+            return {
+                "read_length_min": int(parts[0]),
+                "read_length_max": int(parts[1]),
+                "read_length_avg": float(parts[2]),
+            }
+        return None
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"Read length stats failed: {e.stderr}") from e
+
+
 def find_forward_reverse_files(filename1, filename2):
     """
     Given two filenames, return them as forward and reverse files
