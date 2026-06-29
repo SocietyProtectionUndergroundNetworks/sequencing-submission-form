@@ -30,7 +30,7 @@
                                 value="{{ upload.id }}" id="upload_{{ upload.id }}" autocomplete="off"
                                 {% if is_checked %}checked{% endif %}>
                             <label class="form-check-label {% if is_checked %}fw-bold text-primary{% endif %}" for="upload_{{ upload.id }}">
-                                [ID: {{ upload.id }}] {{ upload.project_id }} - {{ upload.created_at.strftime('%Y-%m-%d') }}
+                                [ID: {{ upload.id }}] {{ upload.project_id }} - {{ upload.created_at.strftime('%Y-%m-%d') if upload.created_at else 'N/A' }}
                             </label>
                         </div>
                         {% endfor %}
