@@ -7,6 +7,7 @@ from functools import wraps
 from flask import Blueprint, request, jsonify
 from werkzeug.utils import secure_filename
 from helpers.dbm import session_scope
+from helpers.slack import send_message_to_slack_mobile
 from models.db_model import (
     MobileAppProjectTable,
     MobileAppStagingSampleTable,
@@ -97,6 +98,7 @@ def upsert_project():
                 project_id,
                 submitter_id,
             )
+            is_new = True
         else:
             project.name = name[:255]
             logger.info(
@@ -104,6 +106,14 @@ def upsert_project():
                 name,
                 project_id,
             )
+            is_new = False
+
+    if is_new:
+        send_message_to_slack_mobile(
+            f"New mobile project created\n"
+            f"*Project:* {name}\n"
+            f"*Submitted by:* {submitter_id}"
+        )
 
     return jsonify({"status": "ok"}), 200
 
@@ -186,6 +196,7 @@ def batch_submit_samples():
         return jsonify({"error": "Validation failed", "details": errors}), 422
 
     first_submitter = samples[0].get("submitter_id", "unknown")
+    first_project_name = rows[0].project_name or rows[0].project_id
 
     with session_scope() as session:
         session.add_all(rows)
@@ -195,6 +206,21 @@ def batch_submit_samples():
         len(rows),
         first_submitter,
     )
+
+    sample_lines = []
+    for row in rows:
+        if row.latitude is not None and row.longitude is not None:
+            coords = f"lat: {row.latitude}, lon: {row.longitude}"
+        else:
+            coords = "coordinates not provided"
+        sample_lines.append(f"• {row.sample_id} — {coords}")
+
+    send_message_to_slack_mobile(
+        f"{len(rows)} new sample(s) uploaded from mobile app\n"
+        f"*Project:* {first_project_name}\n"
+        f"*Submitted by:* {first_submitter}\n" + "\n".join(sample_lines)
+    )
+
     return jsonify({"inserted": len(rows)}), 200
 
 

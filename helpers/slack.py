@@ -13,3 +13,15 @@ def send_message_to_slack(text):
         response = requests.post(SLACK_WEBHOOK_URL, json=payload)
         return response
     return None
+
+
+def send_message_to_slack_mobile(text):
+    url = os.environ.get("SLACK_WEBHOOK_URL_MOBILE")
+    if not url:
+        return None
+    try:
+        response = requests.post(url, json={"text": text})
+        return response
+    except Exception:
+        logger.exception("Failed to send mobile Slack notification")
+        return None
