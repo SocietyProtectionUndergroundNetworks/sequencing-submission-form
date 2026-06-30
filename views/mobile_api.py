@@ -208,12 +208,14 @@ def batch_submit_samples():
     )
 
     sample_lines = []
-    for row in rows:
-        if row.latitude is not None and row.longitude is not None:
-            coords = f"lat: {row.latitude}, lon: {row.longitude}"
+    for sample in samples:
+        lat = sample.get("latitude")
+        lon = sample.get("longitude")
+        if lat is not None and lon is not None:
+            coords = f"lat: {lat}, lon: {lon}"
         else:
             coords = "coordinates not provided"
-        sample_lines.append(f"• {row.sample_id} — {coords}")
+        sample_lines.append(f"• {sample['sample_id']} — {coords}")
 
     send_message_to_slack_mobile(
         f"{len(rows)} new sample(s) uploaded from mobile app\n"
