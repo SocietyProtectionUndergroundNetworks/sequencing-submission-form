@@ -196,7 +196,6 @@ def batch_submit_samples():
         return jsonify({"error": "Validation failed", "details": errors}), 422
 
     first_submitter = samples[0].get("submitter_id", "unknown")
-    first_project_name = rows[0].project_name or rows[0].project_id
 
     with session_scope() as session:
         session.add_all(rows)
@@ -207,21 +206,30 @@ def batch_submit_samples():
         first_submitter,
     )
 
-    sample_lines = []
+    by_project = {}
     for sample in samples:
+        pid = str(sample.get("project_id", "unknown"))
+        if pid not in by_project:
+            by_project[pid] = {
+                "name": sample.get("project_name") or pid,
+                "submitter": sample.get("submitter_id", "unknown"),
+                "lines": [],
+            }
         lat = sample.get("latitude")
         lon = sample.get("longitude")
-        if lat is not None and lon is not None:
-            coords = f"lat: {lat}, lon: {lon}"
-        else:
-            coords = "coordinates not provided"
-        sample_lines.append(f"• {sample['sample_id']} — {coords}")
+        coords = (
+            f"lat: {lat}, lon: {lon}"
+            if lat is not None and lon is not None
+            else "coordinates not provided"
+        )
+        by_project[pid]["lines"].append(f"• {sample['sample_id']} — {coords}")
 
-    send_message_to_slack_mobile(
-        f"{len(rows)} new sample(s) uploaded from mobile app\n"
-        f"*Project:* {first_project_name}\n"
-        f"*Submitted by:* {first_submitter}\n" + "\n".join(sample_lines)
-    )
+    for proj in by_project.values():
+        send_message_to_slack_mobile(
+            f"{len(proj['lines'])} new sample(s) uploaded from mobile app\n"
+            f"*Project:* {proj['name']}\n"
+            f"*Submitted by:* {proj['submitter']}\n" + "\n".join(proj["lines"])
+        )
 
     return jsonify({"inserted": len(rows)}), 200
 
