@@ -195,16 +195,53 @@ def batch_submit_samples():
     if errors:
         return jsonify({"error": "Validation failed", "details": errors}), 422
 
-    first_submitter = samples[0].get("submitter_id", "unknown")
+    # Collect unique projects referenced in this batch
+    unique_projects = {}
+    for sample in samples:
+        pid = str(sample.get("project_id", ""))[:36]
+        if pid and pid not in unique_projects:
+            unique_projects[pid] = {
+                "name": (sample.get("project_name") or pid)[:255],
+                "submitter_id": str(sample.get("submitter_id", ""))[:255],
+            }
 
+    newly_created_projects = []
     with session_scope() as session:
+        for pid, info in unique_projects.items():
+            if (
+                session.query(MobileAppProjectTable)
+                .filter_by(project_id=pid)
+                .first()
+                is None
+            ):
+                session.add(
+                    MobileAppProjectTable(
+                        project_id=pid,
+                        name=info["name"],
+                        submitter_id=info["submitter_id"],
+                    )
+                )
+                newly_created_projects.append(info)
+                logger.info(
+                    "Mobile API: auto-created project '%s' (uuid=%s) for submitter '%s'",
+                    info["name"],
+                    pid,
+                    info["submitter_id"],
+                )
         session.add_all(rows)
 
     logger.info(
         "Mobile API: inserted %d staging sample(s) from submitter '%s'",
         len(rows),
-        first_submitter,
+        samples[0].get("submitter_id", "unknown"),
     )
+
+    for info in newly_created_projects:
+        send_message_to_slack_mobile(
+            f"New mobile project created\n"
+            f"*Project:* {info['name']}\n"
+            f"*Submitted by:* {info['submitter_id']}"
+        )
 
     by_project = {}
     for sample in samples:
