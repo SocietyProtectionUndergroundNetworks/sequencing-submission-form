@@ -122,14 +122,28 @@
           <h6 class="mb-2">Photos <span class="badge bg-secondary">{{ s.photos | length }}</span></h6>
           <div class="d-flex flex-wrap gap-2">
             {% for ph in s.photos %}
-            <a href="{{ url_for('mobile.mobile_photo', photo_id=ph.id) }}" target="_blank">
-              <img
-                src="{{ url_for('mobile.mobile_photo_thumbnail', photo_id=ph.id) }}"
-                alt="{{ ph.original_filename or 'photo' }}"
-                title="{{ ph.original_filename or '' }} — {{ ph.received_at.strftime('%Y-%m-%d %H:%M') }}"
-                style="width: 120px; height: 120px; object-fit: cover; border-radius: 4px;"
-              />
-            </a>
+            <div class="position-relative">
+              <a href="{{ url_for('mobile.mobile_photo', photo_id=ph.id) }}" target="_blank">
+                <img
+                  src="{{ url_for('mobile.mobile_photo_thumbnail', photo_id=ph.id) }}"
+                  alt="{{ ph.original_filename or 'photo' }}"
+                  title="{{ ph.original_filename or '' }} — {{ ph.received_at.strftime('%Y-%m-%d %H:%M') }}"
+                  style="width: 120px; height: 120px; object-fit: cover; border-radius: 4px;"
+                />
+              </a>
+              {% if current_user.admin %}
+              <form method="POST"
+                    action="{{ url_for('mobile.mobile_photo_delete', photo_id=ph.id) }}"
+                    onsubmit="return confirm('Delete this photo? This cannot be undone.');"
+                    class="position-absolute top-0 end-0 m-1">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit"
+                        class="btn btn-danger btn-sm p-0 lh-1"
+                        style="width: 22px; height: 22px; font-size: 14px;"
+                        title="Delete photo">&times;</button>
+              </form>
+              {% endif %}
+            </div>
             {% endfor %}
           </div>
           {% endif %}

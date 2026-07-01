@@ -3,11 +3,23 @@ import smtplib
 import logging
 from email.message import EmailMessage
 
-from flask import Blueprint, request, render_template, abort, send_file
+from flask import (
+    Blueprint,
+    request,
+    render_template,
+    abort,
+    send_file,
+    redirect,
+    url_for,
+)
 from flask_login import login_required
 from helpers.slack import send_message_to_slack
 from helpers.dbm import session_scope
-from helpers.decorators import approved_required, staff_required
+from helpers.decorators import (
+    approved_required,
+    staff_required,
+    admin_required,
+)
 from models.db_model import (
     MobileAppProjectTable,
     MobileAppStagingSampleTable,
@@ -267,4 +279,35 @@ def delete_account_request_form():
         "mobile_delete_account_request.html",
         success=success,
         error=error,
+    )
+
+
+@mobile_bp.route("/photos/<int:photo_id>/delete", methods=["POST"])
+@login_required
+@admin_required
+def mobile_photo_delete(photo_id):
+    with session_scope() as session:
+        photo = (
+            session.query(MobileAppStagingPhotoTable)
+            .filter_by(id=photo_id)
+            .first()
+        )
+        if photo is None:
+            abort(404)
+        project_id = photo.project_id
+        file_path = photo.file_path
+        session.delete(photo)
+
+    abs_path = os.path.abspath(file_path)
+    if os.path.exists(abs_path):
+        os.remove(abs_path)
+    thumb_path = os.path.join(
+        os.path.dirname(abs_path), "thumbnails", os.path.basename(abs_path)
+    )
+    if os.path.exists(thumb_path):
+        os.remove(thumb_path)
+
+    logger.info("Admin deleted photo %d (file: %s)", photo_id, file_path)
+    return redirect(
+        url_for("mobile.mobile_project_detail", project_id=project_id)
     )
