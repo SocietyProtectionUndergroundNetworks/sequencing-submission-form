@@ -130,8 +130,12 @@ def mobile_project_detail(project_id):
                     "sample_id": s.sample_id,
                     "submitter_id": s.submitter_id,
                     "date_collected": s.date_collected,
-                    "latitude": s.latitude,
-                    "longitude": s.longitude,
+                    "latitude": (
+                        float(s.latitude) if s.latitude is not None else None
+                    ),
+                    "longitude": (
+                        float(s.longitude) if s.longitude is not None else None
+                    ),
                     "elevation": s.elevation,
                     "sample_type": s.sample_type,
                     "sample_or_control": s.sample_or_control,

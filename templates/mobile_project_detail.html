@@ -155,7 +155,7 @@
                 {% else %}
                 <button class="btn btn-outline-secondary btn-sm py-0 px-1"
                         style="font-size: 0.75em; width: 120px;"
-                        onclick="extractCoords({{ ph.id }}, {{ s.id }}, this)">
+                        onclick="extractCoords({{ ph.id }}, {{ s.id }}, {{ s.latitude|tojson }}, {{ s.longitude|tojson }}, this)">
                   Extract coords
                 </button>
                 {% endif %}
@@ -177,7 +177,17 @@
   </div>
 
 <script>
-async function extractCoords(photoId, sampleIntId, btn) {
+function haversineMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const toRad = x => x * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.asin(Math.sqrt(a));
+}
+
+async function extractCoords(photoId, sampleIntId, sampleLat, sampleLon, btn) {
   const resultDiv = document.getElementById('coords-result-' + photoId);
   const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
@@ -197,12 +207,25 @@ async function extractCoords(photoId, sampleIntId, btn) {
     } else {
       const lat = parseFloat(data.latitude).toFixed(6);
       const lon = parseFloat(data.longitude).toFixed(6);
+
       const rawHtml = data.raw
         ? '<div class="text-muted" style="word-break:break-all;">' + data.raw + '</div>'
         : '';
+
+      let distHtml = '';
+      if (sampleLat !== null && sampleLon !== null) {
+        const dist = haversineMeters(sampleLat, sampleLon, parseFloat(lat), parseFloat(lon));
+        const distLabel = dist < 1000
+          ? dist.toFixed(1) + ' m'
+          : (dist / 1000).toFixed(2) + ' km';
+        const distColor = dist <= 50 ? 'text-success' : dist <= 200 ? 'text-warning' : 'text-danger';
+        distHtml = '<div class="' + distColor + '">&#8596; ' + distLabel + ' from sample coords</div>';
+      }
+
       resultDiv.innerHTML =
         rawHtml +
         '<div class="text-success fw-semibold">' + lat + ', ' + lon + '</div>' +
+        distHtml +
         '<form method="POST" action="/mobile/samples/' + sampleIntId + '/update_coords" class="mt-1">' +
           '<input type="hidden" name="csrf_token" value="' + csrfToken + '">' +
           '<input type="hidden" name="latitude" value="' + lat + '">' +
