@@ -621,6 +621,7 @@ class MobileAppStagingPhotoTable(Base):
     submitter_id = Column(String(255), nullable=False)
     file_path = Column(String(500), nullable=False)
     original_filename = Column(String(255), nullable=True)
+    content_hash = Column(String(32), nullable=True)
     received_at = Column(DateTime, nullable=False, default=func.now())
 
     __table_args__ = (

@@ -1,3 +1,4 @@
+import hashlib
 import os
 import uuid
 import logging
@@ -301,6 +302,9 @@ def upload_photo():
     if not photo.content_type or not photo.content_type.startswith("image/"):
         return jsonify({"error": "uploaded file must be an image"}), 400
 
+    photo_bytes = photo.read()
+    content_hash = hashlib.md5(photo_bytes).hexdigest()
+
     with session_scope() as session:
         project = (
             session.query(MobileAppProjectTable)
@@ -310,6 +314,19 @@ def upload_photo():
         if project is None:
             return jsonify({"error": "project not found"}), 404
         numeric_project_id = project.id
+
+        duplicate = (
+            session.query(MobileAppStagingPhotoTable)
+            .filter_by(sample_id=sample_id, content_hash=content_hash)
+            .first()
+        )
+        if duplicate is not None:
+            logger.info(
+                "Mobile API: duplicate photo skipped for sample '%s' (hash %s)",
+                sample_id,
+                content_hash,
+            )
+            return jsonify({"status": "ok"}), 200
 
     project_folder = f"{numeric_project_id:04d}"
     try:
@@ -324,7 +341,8 @@ def upload_photo():
     original_filename = secure_filename(photo.filename or "photo.jpg")
     unique_filename = f"{uuid.uuid4().hex}.jpg"
     file_path = os.path.join(save_dir, unique_filename)
-    photo.save(file_path)
+    with open(file_path, "wb") as f:
+        f.write(photo_bytes)
 
     with session_scope() as session:
         session.add(
@@ -334,6 +352,7 @@ def upload_photo():
                 submitter_id=submitter_id[:255],
                 file_path=file_path,
                 original_filename=original_filename,
+                content_hash=content_hash,
             )
         )
 
