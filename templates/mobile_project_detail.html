@@ -6,6 +6,7 @@
     <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnSuA4Ss2PkkikSOLtYs8BlYIeeIK1h99ty4YfvRPAlzr377vr3CXDb7sb7eEEBYjDtcYj+AjBH3FLv5uSJuXg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <title>Project — {{ project.name }}</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 <body>
   <div class="app-navbar">
@@ -143,6 +144,24 @@
                         title="Delete photo">&times;</button>
               </form>
               {% endif %}
+              {% if current_user.admin %}
+              <div class="text-center mt-1">
+                {% if ph.coords_extracted %}
+                <button class="btn btn-outline-success btn-sm py-0 px-1"
+                        style="font-size: 0.75em; width: 120px;"
+                        disabled title="Coordinates already extracted">
+                  ✓ Extracted
+                </button>
+                {% else %}
+                <button class="btn btn-outline-secondary btn-sm py-0 px-1"
+                        style="font-size: 0.75em; width: 120px;"
+                        onclick="extractCoords({{ ph.id }}, {{ s.id }}, this)">
+                  Extract coords
+                </button>
+                {% endif %}
+                <div id="coords-result-{{ ph.id }}" class="mt-1" style="font-size: 0.75em; width: 120px;"></div>
+              </div>
+              {% endif %}
             </div>
             {% endfor %}
           </div>
@@ -156,5 +175,49 @@
     {% endif %}
 
   </div>
+
+<script>
+async function extractCoords(photoId, sampleIntId, btn) {
+  const resultDiv = document.getElementById('coords-result-' + photoId);
+  const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+  btn.disabled = true;
+  btn.textContent = 'Extracting…';
+  resultDiv.innerHTML = '';
+
+  try {
+    const resp = await fetch('/mobile/photos/' + photoId + '/extract_coords', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken },
+    });
+    const data = await resp.json();
+
+    if (data.error) {
+      resultDiv.innerHTML = '<span class="text-danger">' + data.error + '</span>';
+    } else {
+      const lat = parseFloat(data.latitude).toFixed(6);
+      const lon = parseFloat(data.longitude).toFixed(6);
+      const rawHtml = data.raw
+        ? '<div class="text-muted" style="word-break:break-all;">' + data.raw + '</div>'
+        : '';
+      resultDiv.innerHTML =
+        rawHtml +
+        '<div class="text-success fw-semibold">' + lat + ', ' + lon + '</div>' +
+        '<form method="POST" action="/mobile/samples/' + sampleIntId + '/update_coords" class="mt-1">' +
+          '<input type="hidden" name="csrf_token" value="' + csrfToken + '">' +
+          '<input type="hidden" name="latitude" value="' + lat + '">' +
+          '<input type="hidden" name="longitude" value="' + lon + '">' +
+          '<button type="submit" class="btn btn-success btn-sm py-0 px-1" style="font-size:0.75em;">Save to sample</button>' +
+        '</form>';
+    }
+  } catch (e) {
+    resultDiv.innerHTML = '<span class="text-danger">Request failed</span>';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Extract coords';
+  }
+}
+</script>
+
 </body>
 </html>

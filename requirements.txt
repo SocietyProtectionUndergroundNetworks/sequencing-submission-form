@@ -54,3 +54,6 @@ paramiko==4.0.0
 weasyprint
 jinja2
 pdf2image
+
+# Required for Anthropic API
+anthropic==0.115.0

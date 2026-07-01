@@ -1,10 +1,14 @@
+import base64
+import json
 import os
 import smtplib
 import logging
 from email.message import EmailMessage
 
+import anthropic as anthropic_sdk
 from flask import (
     Blueprint,
+    jsonify,
     request,
     render_template,
     abort,
@@ -146,6 +150,7 @@ def mobile_project_detail(project_id):
                             "id": ph.id,
                             "original_filename": ph.original_filename,
                             "received_at": ph.received_at,
+                            "coords_extracted": bool(ph.coords_extracted),
                         }
                         for ph in photos
                     ],
@@ -278,6 +283,138 @@ def mobile_photo_delete(photo_id):
         os.remove(thumb_path)
 
     logger.info("Admin deleted photo %d (file: %s)", photo_id, file_path)
+    return redirect(
+        url_for("mobile.mobile_project_detail", project_id=project_id)
+    )
+
+
+@mobile_bp.route("/photos/<int:photo_id>/extract_coords", methods=["POST"])
+@login_required
+@admin_required
+def mobile_photo_extract_coords(photo_id):
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        return (
+            jsonify({"error": "ANTHROPIC_API_KEY not configured on server"}),
+            500,
+        )
+
+    with session_scope() as session:
+        photo = (
+            session.query(MobileAppStagingPhotoTable)
+            .filter_by(id=photo_id)
+            .first()
+        )
+        if photo is None:
+            abort(404)
+        file_path = photo.file_path
+
+    abs_path = os.path.abspath(file_path)
+    if not os.path.exists(abs_path):
+        return jsonify({"error": "Photo file not found on disk"}), 404
+
+    with open(abs_path, "rb") as f:
+        photo_bytes = f.read()
+
+    image_data = base64.standard_b64encode(photo_bytes).decode("utf-8")
+
+    client = anthropic_sdk.Anthropic(api_key=api_key)
+    message = client.messages.create(
+        model="claude-opus-4-8",
+        max_tokens=256,
+        thinking={"type": "adaptive"},
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": "image/jpeg",
+                            "data": image_data,
+                        },
+                    },
+                    {
+                        "type": "text",
+                        "text": (
+                            "This photo shows a GPS device display. "
+                            "Extract the GPS coordinates visible on the screen. "
+                            "Return ONLY a JSON object with three keys: "
+                            "'raw' (the exact coordinate text as it appears on the screen, e.g. \"N 41°36.7141' E 001°54.3456'\"), "
+                            "'latitude' (decimal degrees float, positive = North), "
+                            "'longitude' (decimal degrees float, positive = East). "
+                            "If the coordinates are in degrees/minutes/seconds or degrees/decimal-minutes format, convert to decimal degrees. "
+                            'If you cannot read coordinates clearly, return {"error": "could not extract coordinates"}. '
+                            "Return nothing else — just the JSON object."
+                        ),
+                    },
+                ],
+            }
+        ],
+    )
+
+    raw_text = next(
+        (block.text for block in message.content if hasattr(block, "text")),
+        "",
+    ).strip()
+
+    try:
+        result = json.loads(raw_text)
+    except json.JSONDecodeError:
+        import re
+
+        match = re.search(r"\{.*\}", raw_text, re.DOTALL)
+        if match:
+            try:
+                result = json.loads(match.group())
+            except json.JSONDecodeError:
+                result = {"error": f"Could not parse response: {raw_text}"}
+        else:
+            result = {"error": f"Unexpected response: {raw_text}"}
+
+    if "error" not in result:
+        with session_scope() as session:
+            photo = (
+                session.query(MobileAppStagingPhotoTable)
+                .filter_by(id=photo_id)
+                .first()
+            )
+            if photo:
+                photo.coords_extracted = True
+
+    logger.info("GPS extraction for photo %d: %s", photo_id, result)
+    return jsonify(result)
+
+
+@mobile_bp.route("/samples/<int:sample_id>/update_coords", methods=["POST"])
+@login_required
+@admin_required
+def mobile_sample_update_coords(sample_id):
+    try:
+        latitude = float(request.form["latitude"])
+        longitude = float(request.form["longitude"])
+    except (KeyError, ValueError, TypeError):
+        abort(400)
+
+    with session_scope() as session:
+        sample = (
+            session.query(MobileAppStagingSampleTable)
+            .filter_by(id=sample_id)
+            .first()
+        )
+        if sample is None:
+            abort(404)
+        project_id = sample.project_id
+        sample.latitude = latitude
+        sample.longitude = longitude
+
+    logger.info(
+        "Staff updated coords for sample pk=%d: lat=%s, lon=%s",
+        sample_id,
+        latitude,
+        longitude,
+    )
     return redirect(
         url_for("mobile.mobile_project_detail", project_id=project_id)
     )
