@@ -567,7 +567,9 @@ class MobileAppStagingSampleTable(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     sample_id = Column(String(100), nullable=False)
-    project_id = Column(String(36), nullable=False)
+    project_id = Column(
+        Integer, ForeignKey("mobile_app_projects.id"), nullable=False
+    )
     project_name = Column(String(255), nullable=True)
     submitter_id = Column(String(255), nullable=False)
     date_collected = Column(Date, nullable=False)
@@ -617,7 +619,9 @@ class MobileAppStagingPhotoTable(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     sample_id = Column(String(100), nullable=False)
-    project_id = Column(String(36), nullable=True)
+    project_id = Column(
+        Integer, ForeignKey("mobile_app_projects.id"), nullable=True
+    )
     submitter_id = Column(String(255), nullable=False)
     file_path = Column(String(500), nullable=False)
     original_filename = Column(String(255), nullable=True)

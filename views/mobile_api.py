@@ -141,7 +141,7 @@ def batch_submit_samples():
     if not isinstance(samples, list) or len(samples) == 0:
         return jsonify({"error": "'samples' must be a non-empty array"}), 400
 
-    rows = []
+    validated = []  # list of (sample_dict, parsed_date)
     errors = []
 
     for i, sample in enumerate(samples):
@@ -166,10 +166,52 @@ def batch_submit_samples():
             )
             continue
 
-        rows.append(
+        validated.append((sample, collected))
+
+    if errors:
+        return jsonify({"error": "Validation failed", "details": errors}), 422
+
+    # Collect unique projects referenced in this batch
+    unique_projects = {}
+    for sample, _ in validated:
+        pid = str(sample.get("project_id", ""))[:36]
+        if pid and pid not in unique_projects:
+            unique_projects[pid] = {
+                "name": (sample.get("project_name") or pid)[:255],
+                "submitter_id": str(sample.get("submitter_id", ""))[:255],
+            }
+
+    newly_created_projects = []
+    with session_scope() as session:
+        # Resolve or auto-create each project; flush to get integer ids
+        project_id_map = {}  # uuid → integer id
+        for pid, info in unique_projects.items():
+            project = (
+                session.query(MobileAppProjectTable)
+                .filter_by(project_id=pid)
+                .first()
+            )
+            if project is None:
+                project = MobileAppProjectTable(
+                    project_id=pid,
+                    name=info["name"],
+                    submitter_id=info["submitter_id"],
+                )
+                session.add(project)
+                session.flush()
+                newly_created_projects.append(info)
+                logger.info(
+                    "Mobile API: auto-created project '%s' (uuid=%s) for submitter '%s'",
+                    info["name"],
+                    pid,
+                    info["submitter_id"],
+                )
+            project_id_map[pid] = project.id
+
+        rows = [
             MobileAppStagingSampleTable(
                 sample_id=str(sample["sample_id"])[:100],
-                project_id=str(sample["project_id"])[:36],
+                project_id=project_id_map[str(sample["project_id"])[:36]],
                 project_name=sample.get("project_name"),
                 submitter_id=str(sample["submitter_id"])[:255],
                 date_collected=collected,
@@ -191,44 +233,8 @@ def batch_submit_samples():
                 notes=sample.get("notes"),
                 dna_concentration_ng_ul=sample.get("dna_concentration_ng_ul"),
             )
-        )
-
-    if errors:
-        return jsonify({"error": "Validation failed", "details": errors}), 422
-
-    # Collect unique projects referenced in this batch
-    unique_projects = {}
-    for sample in samples:
-        pid = str(sample.get("project_id", ""))[:36]
-        if pid and pid not in unique_projects:
-            unique_projects[pid] = {
-                "name": (sample.get("project_name") or pid)[:255],
-                "submitter_id": str(sample.get("submitter_id", ""))[:255],
-            }
-
-    newly_created_projects = []
-    with session_scope() as session:
-        for pid, info in unique_projects.items():
-            if (
-                session.query(MobileAppProjectTable)
-                .filter_by(project_id=pid)
-                .first()
-                is None
-            ):
-                session.add(
-                    MobileAppProjectTable(
-                        project_id=pid,
-                        name=info["name"],
-                        submitter_id=info["submitter_id"],
-                    )
-                )
-                newly_created_projects.append(info)
-                logger.info(
-                    "Mobile API: auto-created project '%s' (uuid=%s) for submitter '%s'",
-                    info["name"],
-                    pid,
-                    info["submitter_id"],
-                )
+            for sample, collected in validated
+        ]
         session.add_all(rows)
 
     logger.info(
@@ -348,7 +354,7 @@ def upload_photo():
         session.add(
             MobileAppStagingPhotoTable(
                 sample_id=sample_id[:100],
-                project_id=project_id[:36],
+                project_id=numeric_project_id,
                 submitter_id=submitter_id[:255],
                 file_path=file_path,
                 original_filename=original_filename,

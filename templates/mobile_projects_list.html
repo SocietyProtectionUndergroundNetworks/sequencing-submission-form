@@ -43,7 +43,7 @@
             <td>{{ p.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
             <td>{{ p.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
             <td>
-              <a href="{{ url_for('mobile.mobile_project_detail', project_id=p.project_id) }}" class="btn btn-sm btn-primary">View</a>
+              <a href="{{ url_for('mobile.mobile_project_detail', project_id=p.id) }}" class="btn btn-sm btn-primary">View</a>
             </td>
           </tr>
           {% endfor %}

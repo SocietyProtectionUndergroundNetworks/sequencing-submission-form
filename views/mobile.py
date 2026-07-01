@@ -67,36 +67,6 @@ def _send_deletion_request_email(requester_email, admin_email):
 @approved_required
 def mobile_projects_list():
     with session_scope() as session:
-        # Auto-create any projects referenced in staging samples but not yet registered
-        existing_ids = {
-            r[0] for r in session.query(MobileAppProjectTable.project_id).all()
-        }
-        orphan_projects = (
-            session.query(
-                MobileAppStagingSampleTable.project_id,
-                MobileAppStagingSampleTable.project_name,
-                MobileAppStagingSampleTable.submitter_id,
-            )
-            .filter(
-                MobileAppStagingSampleTable.project_id.notin_(existing_ids)
-            )
-            .distinct()
-            .all()
-        )
-        for pid, pname, submitter in orphan_projects:
-            session.add(
-                MobileAppProjectTable(
-                    project_id=pid,
-                    name=(pname or pid)[:255],
-                    submitter_id=(submitter or "")[:255],
-                )
-            )
-            logger.info(
-                "mobile_projects_list: auto-created project '%s' (uuid=%s)",
-                pname or pid,
-                pid,
-            )
-
         projects = (
             session.query(MobileAppProjectTable)
             .order_by(MobileAppProjectTable.created_at.desc())
@@ -116,7 +86,7 @@ def mobile_projects_list():
     return render_template("mobile_projects_list.html", projects=projects_data)
 
 
-@mobile_bp.route("/projects/<string:project_id>", methods=["GET"])
+@mobile_bp.route("/projects/<int:project_id>", methods=["GET"])
 @login_required
 @staff_required
 @approved_required
@@ -124,7 +94,7 @@ def mobile_project_detail(project_id):
     with session_scope() as session:
         project = (
             session.query(MobileAppProjectTable)
-            .filter_by(project_id=project_id)
+            .filter_by(id=project_id)
             .first()
         )
         if project is None:
