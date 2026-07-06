@@ -190,15 +190,19 @@ def create_meta_share_link():
 
     from helpers.share_directory import create_share
 
-    share_url = create_share(
-        meta_data["results_folder"] + "/share",
-        meta_data["name"],
-    )
+    remote_path = "seq_processed/" + meta_data["results_folder"] + "/share"
+    logger.info("Creating share link for remote path: %s", remote_path)
+
+    share_url = create_share(remote_path, meta_data["name"])
+    logger.info("create_share returned: %s", share_url)
+
     if share_url:
-        logger.info("Meta project share url: " + share_url)
         MetaProject.update_field(meta_project_id, "share_url", share_url)
+        logger.info(
+            "Saved share_url to DB for meta project %s", meta_project_id
+        )
     else:
-        logger.info("Meta project share url could not be returned")
+        logger.error("create_share returned None for path: %s", remote_path)
 
     return redirect(
         url_for(

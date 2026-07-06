@@ -183,6 +183,9 @@ def sync_meta_project(meta_project_id):
     remote_path = results_folder + "/share"
     local_path = "/app/seq_processed/" + remote_path
 
+    os.makedirs(local_path, exist_ok=True)
+    MetaProject.create_symlinks(meta_project_id)
+
     sync_folder(local_path, remote_path)
     MetaProject.update_field(meta_project_id, "share_sync_completed", True)
     logger.info("Finished syncing meta project " + str(meta_project_id))

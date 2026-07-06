@@ -407,6 +407,148 @@ class MetaProject:
         return True
 
     @classmethod
+    def create_symlinks(cls, meta_project_id):
+        """Create symlinks in the share folder pointing to analysis outputs."""
+        meta_data = cls.get(meta_project_id)
+        base_path = os.path.join(
+            "/app", "seq_processed", meta_data["results_folder"]
+        )
+        share_folder = os.path.join(base_path, "share")
+        os.makedirs(share_folder, exist_ok=True)
+
+        lotus2_base = os.path.join(base_path, "lotus2_report")
+        r_output_base = os.path.join(base_path, "r_output")
+
+        # Discover analysis types from whichever output folders already exist
+        analysis_types = set()
+        if os.path.isdir(lotus2_base):
+            analysis_types.update(os.listdir(lotus2_base))
+        if os.path.isdir(r_output_base):
+            analysis_types.update(os.listdir(r_output_base))
+
+        for at_name in sorted(analysis_types):
+            results_folder = os.path.join(share_folder, at_name, "results")
+            predecontam_folder = os.path.join(results_folder, "predecontam")
+            report_images_folder = os.path.join(
+                results_folder, "report_images"
+            )
+            os.makedirs(results_folder, exist_ok=True)
+            os.makedirs(predecontam_folder, exist_ok=True)
+            os.makedirs(report_images_folder, exist_ok=True)
+
+            base_lotus = os.path.join(base_path, "lotus2_report", at_name)
+            base_r = os.path.join(base_path, "r_output", at_name)
+
+            # Relative paths from share/<at>/results/
+            r3 = os.path.join("..", "..", "..", "r_output", at_name)
+            l3 = os.path.join("..", "..", "..", "lotus2_report", at_name)
+            r4 = os.path.join("..", "..", "..", "..", "r_output", at_name)
+            l4 = os.path.join("..", "..", "..", "..", "lotus2_report", at_name)
+
+            # (source_on_disk, relative_symlink_target)
+            mappings = {
+                "contaminants.csv": (
+                    os.path.join(base_r, "contaminants.csv"),
+                    os.path.join(r3, "contaminants.csv"),
+                ),
+                "physeq_decontam.Rdata": (
+                    os.path.join(base_r, "physeq_decontam.Rdata"),
+                    os.path.join(r3, "physeq_decontam.Rdata"),
+                ),
+                "ExtraFiles": (
+                    os.path.join(base_lotus, "ExtraFiles"),
+                    os.path.join(l3, "ExtraFiles"),
+                ),
+                "hiera_BLAST.txt": (
+                    os.path.join(base_lotus, "hiera_BLAST.txt"),
+                    os.path.join(l3, "hiera_BLAST.txt"),
+                ),
+                "higherLvl": (
+                    os.path.join(base_lotus, "higherLvl"),
+                    os.path.join(l3, "higherLvl"),
+                ),
+                "LotuSLogS": (
+                    os.path.join(base_lotus, "LotuSLogS"),
+                    os.path.join(l3, "LotuSLogS"),
+                ),
+                "OTU.biom": (
+                    os.path.join(base_lotus, "OTU.biom"),
+                    os.path.join(l3, "OTU.biom"),
+                ),
+                "OTU.fna": (
+                    os.path.join(base_lotus, "OTU.fna"),
+                    os.path.join(l3, "OTU.fna"),
+                ),
+                "OTUphylo.nwk": (
+                    os.path.join(base_lotus, "OTUphylo.nwk"),
+                    os.path.join(l3, "OTUphylo.nwk"),
+                ),
+                "OTU.txt": (
+                    os.path.join(base_lotus, "OTU.txt"),
+                    os.path.join(l3, "OTU.txt"),
+                ),
+                "primary": (
+                    os.path.join(base_lotus, "primary"),
+                    os.path.join(l3, "primary"),
+                ),
+                "predecontam/phyloseq_predecontam.Rdata": (
+                    os.path.join(base_lotus, "phyloseq.Rdata"),
+                    os.path.join(l4, "phyloseq.Rdata"),
+                ),
+                "report_images/LibrarySize.pdf": (
+                    os.path.join(base_r, "LibrarySize.pdf"),
+                    os.path.join(r4, "LibrarySize.pdf"),
+                ),
+                "report_images/control_vs_sample.pdf": (
+                    os.path.join(base_r, "control_vs_sample.pdf"),
+                    os.path.join(r4, "control_vs_sample.pdf"),
+                ),
+                "report_images/filtered_rarefaction.pdf": (
+                    os.path.join(base_r, "filtered_rarefaction.pdf"),
+                    os.path.join(r4, "filtered_rarefaction.pdf"),
+                ),
+            }
+
+            if "SSU" in at_name:
+                mappings["amf_physeq.Rdata"] = (
+                    os.path.join(base_r, "amf_physeq.Rdata"),
+                    os.path.join(r3, "amf_physeq.Rdata"),
+                )
+                mappings["report_images/amf_physeq_by_genus.pdf"] = (
+                    os.path.join(base_r, "amf_physeq_by_genus.pdf"),
+                    os.path.join(r4, "amf_physeq_by_genus.pdf"),
+                )
+            elif "ITS" in at_name:
+                mappings["physeq_fungi.Rdata"] = (
+                    os.path.join(base_r, "physeq_fungi.Rdata"),
+                    os.path.join(r3, "physeq_fungi.Rdata"),
+                )
+                mappings["ecm_physeq.Rdata"] = (
+                    os.path.join(base_r, "ecm_physeq.Rdata"),
+                    os.path.join(r3, "ecm_physeq.Rdata"),
+                )
+                mappings["report_images/ecm_physeq_by_genus.pdf"] = (
+                    os.path.join(base_r, "ecm_physeq_by_genus.pdf"),
+                    os.path.join(r4, "ecm_physeq_by_genus.pdf"),
+                )
+
+            for file_name, (source, rel_target) in mappings.items():
+                symlink_path = os.path.join(results_folder, file_name)
+                if os.path.exists(source):
+                    if os.path.islink(symlink_path) and not os.path.exists(
+                        symlink_path
+                    ):
+                        os.unlink(symlink_path)
+                    if not os.path.islink(symlink_path):
+                        os.symlink(rel_target, symlink_path)
+
+        logger.info(
+            "Created share symlinks for meta project %s (%s analysis types)",
+            meta_project_id,
+            len(analysis_types),
+        )
+
+    @classmethod
     def update_field(cls, meta_project_id, field, value):
         with session_scope() as session:
             meta = (
