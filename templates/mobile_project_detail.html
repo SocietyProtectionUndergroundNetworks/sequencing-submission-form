@@ -49,7 +49,7 @@
       <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
           <strong>{{ s.sample_id }}</strong>
-          <span class="text-muted small">collected {{ s.date_collected }}</span>
+          <span class="text-muted small">submitted {{ s.received_at.strftime('%Y-%m-%d %H:%M') }} &middot; collected {{ s.date_collected }}</span>
         </div>
         <div class="card-body">
           <dl class="row mb-0">

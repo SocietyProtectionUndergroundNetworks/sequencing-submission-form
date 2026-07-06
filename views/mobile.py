@@ -114,7 +114,7 @@ def mobile_project_detail(project_id):
         samples = (
             session.query(MobileAppStagingSampleTable)
             .filter_by(project_id=project_id)
-            .order_by(MobileAppStagingSampleTable.date_collected.desc())
+            .order_by(MobileAppStagingSampleTable.id.desc())
             .all()
         )
         samples_data = []
