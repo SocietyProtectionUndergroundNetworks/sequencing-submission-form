@@ -208,33 +208,58 @@ def batch_submit_samples():
                 )
             project_id_map[pid] = project.id
 
-        rows = [
-            MobileAppStagingSampleTable(
-                sample_id=str(sample["sample_id"])[:100],
-                project_id=project_id_map[str(sample["project_id"])[:36]],
-                project_name=sample.get("project_name"),
-                submitter_id=str(sample["submitter_id"])[:255],
-                date_collected=collected,
-                latitude=sample.get("latitude"),
-                longitude=sample.get("longitude"),
-                accuracy=sample.get("accuracy"),
-                elevation=sample.get("elevation"),
-                sample_type=sample.get("sample_type"),
-                sample_or_control=sample.get(
-                    "sample_or_control", "True sample"
-                ),
-                transport=sample.get("transport"),
-                drying=sample.get("drying"),
-                soil_depth=sample.get("soil_depth"),
-                grid_size=sample.get("grid_size"),
-                land_use=sample.get("land_use"),
-                agricultural=sample.get("agricultural"),
-                vegetation=sample.get("vegetation"),
-                notes=sample.get("notes"),
-                dna_concentration_ng_ul=sample.get("dna_concentration_ng_ul"),
+        # Build a set of (sample_id, project_int_id) that already exist
+        existing = {
+            (r.sample_id, r.project_id)
+            for r in session.query(
+                MobileAppStagingSampleTable.sample_id,
+                MobileAppStagingSampleTable.project_id,
+            ).filter(
+                MobileAppStagingSampleTable.project_id.in_(
+                    project_id_map.values()
+                )
             )
-            for sample, collected in validated
-        ]
+        }
+
+        rows = []
+        for sample, collected in validated:
+            pid_int = project_id_map[str(sample["project_id"])[:36]]
+            sid = str(sample["sample_id"])[:100]
+            if (sid, pid_int) in existing:
+                logger.info(
+                    "Mobile API: skipping duplicate sample '%s' for project %d",
+                    sid,
+                    pid_int,
+                )
+                continue
+            rows.append(
+                MobileAppStagingSampleTable(
+                    sample_id=sid,
+                    project_id=pid_int,
+                    project_name=sample.get("project_name"),
+                    submitter_id=str(sample["submitter_id"])[:255],
+                    date_collected=collected,
+                    latitude=sample.get("latitude"),
+                    longitude=sample.get("longitude"),
+                    accuracy=sample.get("accuracy"),
+                    elevation=sample.get("elevation"),
+                    sample_type=sample.get("sample_type"),
+                    sample_or_control=sample.get(
+                        "sample_or_control", "True sample"
+                    ),
+                    transport=sample.get("transport"),
+                    drying=sample.get("drying"),
+                    soil_depth=sample.get("soil_depth"),
+                    grid_size=sample.get("grid_size"),
+                    land_use=sample.get("land_use"),
+                    agricultural=sample.get("agricultural"),
+                    vegetation=sample.get("vegetation"),
+                    notes=sample.get("notes"),
+                    dna_concentration_ng_ul=sample.get(
+                        "dna_concentration_ng_ul"
+                    ),
+                )
+            )
         session.add_all(rows)
 
     logger.info(
