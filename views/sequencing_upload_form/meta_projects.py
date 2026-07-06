@@ -1,7 +1,11 @@
 from . import upload_form_bp
 from flask import render_template, request, jsonify, redirect, url_for, flash
 from flask_login import login_required, current_user
-from helpers.decorators import approved_required, staff_required
+from helpers.decorators import (
+    approved_required,
+    staff_required,
+    admin_required,
+)
 from models.meta_project import MetaProject
 from models.sequencing_upload import SequencingUpload
 import logging
@@ -148,3 +152,58 @@ def generate_meta_mapping():
     except Exception as e:
         logger.error(f"Error generating meta mapping for ID {meta_id}: {e}")
         return jsonify({"result": "error", "message": str(e)}), 500
+
+
+@upload_form_bp.route(
+    "/meta_project/start_sync",
+    methods=["GET"],
+    endpoint="start_sync_meta_project",
+)
+@login_required
+@approved_required
+@admin_required
+def start_sync_meta_project():
+    meta_project_id = request.args.get("meta_project_id")
+    from helpers.share_directory import init_sync_meta_project
+
+    init_sync_meta_project(meta_project_id)
+    return redirect(
+        url_for(
+            "upload_form_bp.meta_project_form",
+            meta_project_id=meta_project_id,
+        )
+        + "#step_share"
+    )
+
+
+@upload_form_bp.route(
+    "/meta_project/create_share_link",
+    methods=["GET"],
+    endpoint="create_meta_share_link",
+)
+@login_required
+@approved_required
+@admin_required
+def create_meta_share_link():
+    meta_project_id = request.args.get("meta_project_id")
+    meta_data = MetaProject.get(meta_project_id)
+
+    from helpers.share_directory import create_share
+
+    share_url = create_share(
+        meta_data["results_folder"] + "/share",
+        meta_data["name"],
+    )
+    if share_url:
+        logger.info("Meta project share url: " + share_url)
+        MetaProject.update_field(meta_project_id, "share_url", share_url)
+    else:
+        logger.info("Meta project share url could not be returned")
+
+    return redirect(
+        url_for(
+            "upload_form_bp.meta_project_form",
+            meta_project_id=meta_project_id,
+        )
+        + "#step_share"
+    )

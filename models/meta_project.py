@@ -54,6 +54,8 @@ class MetaProject:
                 "name": meta.name,
                 "user_id": meta.user_id,
                 "results_folder": meta.results_folder,
+                "share_url": meta.share_url,
+                "share_sync_completed": bool(meta.share_sync_completed),
                 "upload_ids": [u.id for u in meta.uploads],
             }
 
@@ -403,6 +405,17 @@ class MetaProject:
             if not os.path.isfile(mapping_file):
                 return False
         return True
+
+    @classmethod
+    def update_field(cls, meta_project_id, field, value):
+        with session_scope() as session:
+            meta = (
+                session.query(MetaProjectsTable)
+                .filter_by(id=meta_project_id)
+                .first()
+            )
+            if meta:
+                setattr(meta, field, value)
 
     @classmethod
     def update_uploads(cls, meta_project_id, new_upload_ids):

@@ -172,3 +172,28 @@ def init_sync_project(process_id):
         f"Celery sync_project_async task "
         f"called successfully! Task ID: {result.id}"
     )
+
+
+def sync_meta_project(meta_project_id):
+    from models.meta_project import MetaProject
+
+    meta_data = MetaProject.get(meta_project_id)
+    results_folder = meta_data["results_folder"]
+
+    remote_path = results_folder + "/share"
+    local_path = "/app/seq_processed/" + remote_path
+
+    sync_folder(local_path, remote_path)
+    MetaProject.update_field(meta_project_id, "share_sync_completed", True)
+    logger.info("Finished syncing meta project " + str(meta_project_id))
+
+
+def init_sync_meta_project(meta_project_id):
+    from tasks import sync_meta_project_async
+
+    logger.info("Starting sync for meta project " + str(meta_project_id))
+    result = sync_meta_project_async.delay(meta_project_id)
+    logger.info(
+        f"Celery sync_meta_project_async task "
+        f"called successfully! Task ID: {result.id}"
+    )

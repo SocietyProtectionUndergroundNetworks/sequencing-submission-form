@@ -535,6 +535,8 @@ class MetaProjectsTable(Base):
     name = Column(String(255), nullable=False)
     user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"))
     results_folder = Column(String(255), nullable=True)
+    share_url = Column(String(255), nullable=True)
+    share_sync_completed = Column(Boolean, default=False)
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(
         DateTime, default=func.now(), onupdate=func.now(), nullable=True

@@ -21,7 +21,7 @@ from helpers.r_scripts import (
     generate_all_rscripts_reports,
 )
 from helpers.ecoregions import update_external_samples_with_ecoregions
-from helpers.share_directory import sync_project
+from helpers.share_directory import sync_project, sync_meta_project
 from helpers.hetzner_vm import send_vm_status_to_slack
 
 logger = logging.getLogger("my_app_logger")
@@ -196,6 +196,25 @@ def sync_project_async(process_id):
 
     except Exception as e:
         logger.error(f"Unexpected error in sync_project_async: {e}")
+        raise
+
+
+@celery_app.task
+def sync_meta_project_async(meta_project_id):
+    lock_key = f"celery-lock:sync_meta_project:{meta_project_id}"
+    logger.info("The lock key is " + lock_key)
+    try:
+        with redis_lock(lock_key):
+            sync_meta_project(meta_project_id)
+
+    except LockError:
+        logger.info(
+            f"Skipping execution: Task sync_meta_project_async "
+            f"is already running for meta_project_id: {meta_project_id}"
+        )
+
+    except Exception as e:
+        logger.error(f"Unexpected error in sync_meta_project_async: {e}")
         raise
 
 

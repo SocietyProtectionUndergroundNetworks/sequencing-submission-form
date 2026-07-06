@@ -86,6 +86,32 @@
       <h3>Step 4: Combined R-Scripts Results</h3>
       {{ rscripts_analysis_section(rscripts_report, meta_id, is_meta=True, is_admin=is_admin) }}
     </div>
+
+    {% if is_admin %}
+    <div class="form-step-item" id="step_share">
+      <h3>Step 5: Share Results</h3>
+      <div class="mb-3">
+        <a href="{{ url_for('upload_form_bp.start_sync_meta_project', meta_project_id=meta_id) }}"
+           class="btn btn-primary me-2"
+           onclick="return confirm('This will sync the share folder to Nextcloud. Continue?');">
+          {% if meta_data.share_sync_completed %}Sync Again{% else %}Sync to Nextcloud{% endif %}
+        </a>
+        {% if meta_data.share_sync_completed %}
+          <span class="text-success me-3">&#10003; Synced</span>
+        {% endif %}
+        <a href="{{ url_for('upload_form_bp.create_meta_share_link', meta_project_id=meta_id) }}"
+           class="btn btn-secondary">
+          {% if meta_data.share_url %}Regenerate Share Link{% else %}Create Share Link{% endif %}
+        </a>
+      </div>
+      {% if meta_data.share_url %}
+      <div class="alert alert-success">
+        <strong>Share URL:</strong>
+        <a href="{{ meta_data.share_url }}" target="_blank">{{ meta_data.share_url }}</a>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
   </div>
 
   <script src="{{ url_for('static', filename='js/analysis.js') }}"></script>
