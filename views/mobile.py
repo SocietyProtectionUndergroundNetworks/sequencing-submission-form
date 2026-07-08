@@ -1,6 +1,7 @@
 import base64
 import json
 import os
+import shutil
 import smtplib
 import logging
 from datetime import datetime
@@ -31,6 +32,7 @@ from models.db_model import (
     MobileAppStagingSampleTable,
     MobileAppStagingPhotoTable,
     SequencingUploadsTable,
+    SequencingSamplePhotoTable,
 )
 from models.sequencing_sample import SequencingSample
 from models.sequencing_upload import SequencingUpload
@@ -201,36 +203,55 @@ def mobile_transfer_samples(project_id):
         if target is None:
             abort(404)
         target_label = f"{target.project_id} ({target.uploads_folder})"
+        target_uploads_folder = target.uploads_folder
 
         pending_samples = (
             session.query(MobileAppStagingSampleTable)
             .filter_by(project_id=project_id, transferred_to_upload_id=None)
             .all()
         )
-        pending_data = [
-            {
-                "id": s.id,
-                "sample_id": s.sample_id,
-                "date_collected": s.date_collected,
-                "latitude": s.latitude,
-                "longitude": s.longitude,
-                "elevation": s.elevation,
-                "sample_type": s.sample_type,
-                "sample_or_control": s.sample_or_control,
-                "transport": s.transport,
-                "drying": s.drying,
-                "soil_depth": s.soil_depth,
-                "grid_size": s.grid_size,
-                "land_use": s.land_use,
-                "agricultural": s.agricultural,
-                "vegetation": s.vegetation,
-                "notes": s.notes,
-                "dna_concentration_ng_ul": s.dna_concentration_ng_ul,
-            }
-            for s in pending_samples
-        ]
+        pending_data = []
+        for s in pending_samples:
+            photos = (
+                session.query(MobileAppStagingPhotoTable)
+                .filter_by(sample_id=s.sample_id, project_id=project_id)
+                .all()
+            )
+            pending_data.append(
+                {
+                    "id": s.id,
+                    "sample_id": s.sample_id,
+                    "date_collected": s.date_collected,
+                    "latitude": s.latitude,
+                    "longitude": s.longitude,
+                    "elevation": s.elevation,
+                    "sample_type": s.sample_type,
+                    "sample_or_control": s.sample_or_control,
+                    "transport": s.transport,
+                    "drying": s.drying,
+                    "soil_depth": s.soil_depth,
+                    "grid_size": s.grid_size,
+                    "land_use": s.land_use,
+                    "agricultural": s.agricultural,
+                    "vegetation": s.vegetation,
+                    "notes": s.notes,
+                    "dna_concentration_ng_ul": s.dna_concentration_ng_ul,
+                    "photos": [
+                        {
+                            "id": ph.id,
+                            "file_path": ph.file_path,
+                            "original_filename": ph.original_filename,
+                            "content_hash": ph.content_hash,
+                            "coords_extracted": bool(ph.coords_extracted),
+                            "received_at": ph.received_at,
+                        }
+                        for ph in photos
+                    ],
+                }
+            )
 
     transferred_ids = []
+    transferred_photo_count = 0
     for sample in pending_data:
         datadict = {
             "SampleID": sample["sample_id"],
@@ -267,8 +288,13 @@ def mobile_transfer_samples(project_id):
             "DNA_concentration_ng_ul": sample["dna_concentration_ng_ul"],
         }
         datadict = {k: v for k, v in datadict.items() if v is not None}
-        SequencingSample.create(target_upload_id, datadict)
+        new_sample_id = SequencingSample.create(target_upload_id, datadict)
         transferred_ids.append(sample["id"])
+
+        if sample["photos"] and target_uploads_folder:
+            transferred_photo_count += _copy_mobile_photos_to_sample(
+                sample["photos"], target_uploads_folder, new_sample_id
+            )
 
     if transferred_ids:
         with session_scope() as session:
@@ -283,18 +309,69 @@ def mobile_transfer_samples(project_id):
             )
 
     logger.info(
-        "Admin transferred %d mobile sample(s) from project %d to upload %d",
+        "Admin transferred %d mobile sample(s) and %d photo(s) "
+        "from project %d to upload %d",
         len(transferred_ids),
+        transferred_photo_count,
         project_id,
         target_upload_id,
     )
     flash(
-        f"Transferred {len(transferred_ids)} sample(s) to {target_label}.",
+        f"Transferred {len(transferred_ids)} sample(s) "
+        f"({transferred_photo_count} photo(s)) to {target_label}.",
         "success",
     )
     return redirect(
         url_for("mobile.mobile_project_detail", project_id=project_id)
     )
+
+
+def _copy_mobile_photos_to_sample(
+    photos, uploads_folder, sequencing_sample_id
+):
+    """
+    Copies the given mobile staging photos onto disk under the normal
+    project's directory and records them in sequencing_sample_photos.
+    Returns the number of photos successfully copied.
+    """
+    dest_dir = os.path.join(
+        "seq_processed",
+        uploads_folder,
+        "sample_photos",
+        f"{sequencing_sample_id:06d}",
+    )
+    os.makedirs(dest_dir, exist_ok=True)
+
+    photo_rows = []
+    for photo in photos:
+        src_path = photo["file_path"]
+        if not os.path.isfile(src_path):
+            logger.warning(
+                "Mobile photo id=%s missing on disk at '%s', skipping copy",
+                photo["id"],
+                src_path,
+            )
+            continue
+
+        dest_path = os.path.join(dest_dir, os.path.basename(src_path))
+        shutil.copy2(src_path, dest_path)
+        photo_rows.append(
+            SequencingSamplePhotoTable(
+                sequencing_sample_id=sequencing_sample_id,
+                source_mobile_photo_id=photo["id"],
+                file_path=dest_path,
+                original_filename=photo["original_filename"],
+                content_hash=photo["content_hash"],
+                coords_extracted=photo["coords_extracted"],
+                received_at=photo["received_at"],
+            )
+        )
+
+    if photo_rows:
+        with session_scope() as session:
+            session.add_all(photo_rows)
+
+    return len(photo_rows)
 
 
 @mobile_bp.route("/photos/<int:photo_id>", methods=["GET"])

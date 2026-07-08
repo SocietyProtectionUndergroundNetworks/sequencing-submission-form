@@ -250,6 +250,32 @@ class SequencingSamplesTable(Base):
     )
 
 
+class SequencingSamplePhotoTable(Base):
+    __tablename__ = "sequencing_sample_photos"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    sequencing_sample_id = Column(
+        Integer,
+        ForeignKey("sequencing_samples.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    source_mobile_photo_id = Column(
+        Integer,
+        ForeignKey("mobile_app_staging_photos.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    file_path = Column(String(500), nullable=False)
+    original_filename = Column(String(255), nullable=True)
+    content_hash = Column(String(32), nullable=True)
+    coords_extracted = Column(Boolean, nullable=True, default=False)
+    received_at = Column(DateTime, nullable=True)
+    transferred_at = Column(DateTime, nullable=False, default=func.now())
+
+    __table_args__ = (
+        Index("idx_ssp_sequencing_sample_id", "sequencing_sample_id"),
+    )
+
+
 class SequencingSequencerIDsTable(Base):
     __tablename__ = "sequencing_sequencer_ids"
     id = Column(Integer, primary_key=True)
