@@ -75,6 +75,15 @@
   max-width: 500px;
 }
 
+/* Constrain the link's clickable area to the visible box instead of
+   the full page width (anchors auto-blockify to 100% width when they
+   wrap a block-level child like .page-menu-item). */
+.content a:has(> .page-menu-item) {
+  display: block;
+  width: 100%;
+  max-width: 500px;
+}
+
 .content #files_body a {
   color: blue;
   text-decoration: underline;

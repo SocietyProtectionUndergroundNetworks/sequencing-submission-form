@@ -3,6 +3,7 @@ import json
 import os
 import smtplib
 import logging
+from datetime import datetime
 from email.message import EmailMessage
 
 import anthropic as anthropic_sdk
@@ -15,6 +16,7 @@ from flask import (
     send_file,
     redirect,
     url_for,
+    flash,
 )
 from flask_login import login_required
 from helpers.slack import send_message_to_slack
@@ -28,7 +30,10 @@ from models.db_model import (
     MobileAppProjectTable,
     MobileAppStagingSampleTable,
     MobileAppStagingPhotoTable,
+    SequencingUploadsTable,
 )
+from models.sequencing_sample import SequencingSample
+from models.sequencing_upload import SequencingUpload
 
 logger = logging.getLogger("my_app_logger")
 
@@ -149,6 +154,7 @@ def mobile_project_detail(project_id):
                     "notes": s.notes,
                     "dna_concentration_ng_ul": s.dna_concentration_ng_ul,
                     "received_at": s.received_at,
+                    "transferred_to_upload_id": s.transferred_to_upload_id,
                     "photos": [
                         {
                             "id": ph.id,
@@ -160,10 +166,134 @@ def mobile_project_detail(project_id):
                     ],
                 }
             )
+
+    transfer_projects = SequencingUpload.list_for_transfer_picker()
+    project_label_by_id = {
+        p["id"]: f'{p["project_id"]} ({p["uploads_folder"]})'
+        for p in transfer_projects
+    }
+
     return render_template(
         "mobile_project_detail.html",
         project=project_data,
         samples=samples_data,
+        transfer_projects=transfer_projects,
+        project_label_by_id=project_label_by_id,
+    )
+
+
+@mobile_bp.route(
+    "/projects/<int:project_id>/transfer_samples", methods=["POST"]
+)
+@login_required
+@admin_required
+def mobile_transfer_samples(project_id):
+    target_upload_id = request.form.get("target_upload_id", type=int)
+    if not target_upload_id:
+        abort(400)
+
+    with session_scope() as session:
+        target = (
+            session.query(SequencingUploadsTable)
+            .filter_by(id=target_upload_id)
+            .first()
+        )
+        if target is None:
+            abort(404)
+        target_label = f"{target.project_id} ({target.uploads_folder})"
+
+        pending_samples = (
+            session.query(MobileAppStagingSampleTable)
+            .filter_by(project_id=project_id, transferred_to_upload_id=None)
+            .all()
+        )
+        pending_data = [
+            {
+                "id": s.id,
+                "sample_id": s.sample_id,
+                "date_collected": s.date_collected,
+                "latitude": s.latitude,
+                "longitude": s.longitude,
+                "elevation": s.elevation,
+                "sample_type": s.sample_type,
+                "sample_or_control": s.sample_or_control,
+                "transport": s.transport,
+                "drying": s.drying,
+                "soil_depth": s.soil_depth,
+                "grid_size": s.grid_size,
+                "land_use": s.land_use,
+                "agricultural": s.agricultural,
+                "vegetation": s.vegetation,
+                "notes": s.notes,
+                "dna_concentration_ng_ul": s.dna_concentration_ng_ul,
+            }
+            for s in pending_samples
+        ]
+
+    transferred_ids = []
+    for sample in pending_data:
+        datadict = {
+            "SampleID": sample["sample_id"],
+            "Date_collected": (
+                sample["date_collected"].isoformat()
+                if sample["date_collected"]
+                else None
+            ),
+            "Latitude": (
+                str(sample["latitude"])
+                if sample["latitude"] is not None
+                else None
+            ),
+            "Longitude": (
+                str(sample["longitude"])
+                if sample["longitude"] is not None
+                else None
+            ),
+            "Elevation": (
+                str(sample["elevation"])
+                if sample["elevation"] is not None
+                else None
+            ),
+            "Sample_type": sample["sample_type"],
+            "Sample_or_Control": sample["sample_or_control"],
+            "Transport_refrigeration": sample["transport"],
+            "Drying": sample["drying"],
+            "Soil_depth": sample["soil_depth"],
+            "Grid_Size": sample["grid_size"],
+            "Land_use": sample["land_use"],
+            "Agricultural_land": sample["agricultural"],
+            "Vegetation": sample["vegetation"],
+            "Notes": sample["notes"],
+            "DNA_concentration_ng_ul": sample["dna_concentration_ng_ul"],
+        }
+        datadict = {k: v for k, v in datadict.items() if v is not None}
+        SequencingSample.create(target_upload_id, datadict)
+        transferred_ids.append(sample["id"])
+
+    if transferred_ids:
+        with session_scope() as session:
+            session.query(MobileAppStagingSampleTable).filter(
+                MobileAppStagingSampleTable.id.in_(transferred_ids)
+            ).update(
+                {
+                    "transferred_to_upload_id": target_upload_id,
+                    "transferred_at": datetime.utcnow(),
+                },
+                synchronize_session=False,
+            )
+
+    logger.info(
+        "Admin transferred %d mobile sample(s) from project %d to upload %d",
+        len(transferred_ids),
+        project_id,
+        target_upload_id,
+    )
+    flash(
+        f"Transferred {len(transferred_ids)} sample(s) to {target_label}.",
+        "success",
+    )
+    return redirect(
+        url_for("mobile.mobile_project_detail", project_id=project_id)
     )
 
 

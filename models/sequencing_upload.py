@@ -955,6 +955,39 @@ class SequencingUpload:
             return upload_ids if upload_ids else []
 
     @classmethod
+    def list_for_transfer_picker(cls):
+        """
+        Lightweight list of uploads (id, project label, sample count) used
+        to populate the "transfer mobile samples into a project" picker.
+        """
+        with session_scope() as session:
+            rows = (
+                session.query(
+                    SequencingUploadsTable.id,
+                    SequencingUploadsTable.project_id,
+                    SequencingUploadsTable.uploads_folder,
+                    func.count(SequencingSamplesTable.id).label("nr_samples"),
+                )
+                .outerjoin(
+                    SequencingSamplesTable,
+                    SequencingSamplesTable.sequencingUploadId
+                    == SequencingUploadsTable.id,
+                )
+                .group_by(SequencingUploadsTable.id)
+                .order_by(desc(SequencingUploadsTable.id))
+                .all()
+            )
+            return [
+                {
+                    "id": r.id,
+                    "project_id": r.project_id,
+                    "uploads_folder": r.uploads_folder,
+                    "nr_samples": r.nr_samples,
+                }
+                for r in rows
+            ]
+
+    @classmethod
     def delete_upload_and_files(cls, upload_id):
         with session_scope() as session:
 

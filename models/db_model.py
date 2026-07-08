@@ -593,11 +593,18 @@ class MobileAppStagingSampleTable(Base):
     notes = Column(Text, nullable=True)
     dna_concentration_ng_ul = Column(String(50), nullable=True)
     received_at = Column(DateTime, nullable=False, default=func.now())
+    transferred_to_upload_id = Column(
+        Integer,
+        ForeignKey("sequencing_uploads.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    transferred_at = Column(DateTime, nullable=True)
 
     __table_args__ = (
         Index("idx_mss_project_id", "project_id"),
         Index("idx_mss_submitter_id", "submitter_id"),
         Index("idx_mss_date_collected", "date_collected"),
+        Index("idx_mss_transferred_to_upload_id", "transferred_to_upload_id"),
     )
 
 
