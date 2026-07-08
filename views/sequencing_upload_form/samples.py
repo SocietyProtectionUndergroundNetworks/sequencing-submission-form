@@ -13,6 +13,8 @@ from flask import (
     Response,
     url_for,
     redirect,
+    send_file,
+    abort,
 )
 from helpers.decorators import (
     approved_required,
@@ -25,6 +27,9 @@ from helpers.metadata_check import (
     get_columns_data,
     normalize_row,
 )
+from helpers.dbm import session_scope
+from helpers.photos import get_or_create_thumbnail
+from models.db_model import SequencingSamplePhotoTable
 from models.sequencing_upload import SequencingUpload
 from models.sequencing_sample import SequencingSample
 from werkzeug.utils import secure_filename
@@ -268,6 +273,92 @@ def edit_sample():
         expected_columns=expected_columns,
         sample=sample,
     )
+
+
+@upload_form_bp.route(
+    "/sample_photos",
+    methods=["GET"],
+    endpoint="sample_photos",
+)
+@login_required
+@approved_required
+@staff_or_owner_required
+def sample_photos():
+    process_id = request.args.get("process_id")
+    sample_id = request.args.get("sample_id")
+
+    sample = SequencingSample.get(sample_id)
+    if not sample or (
+        process_id and int(sample.sequencingUploadId) != int(process_id)
+    ):
+        return jsonify({"result": "Incorrect sample or process_id"}), 404
+
+    with session_scope() as session:
+        photos = (
+            session.query(SequencingSamplePhotoTable)
+            .filter_by(sequencing_sample_id=sample_id)
+            .order_by(SequencingSamplePhotoTable.id)
+            .all()
+        )
+        photos_data = [
+            {
+                "id": p.id,
+                "original_filename": p.original_filename,
+                "received_at": p.received_at,
+            }
+            for p in photos
+        ]
+
+    return render_template(
+        "sample_photos.html",
+        sample=sample,
+        process_id=process_id,
+        photos=photos_data,
+    )
+
+
+@upload_form_bp.route(
+    "/sample_photos/<int:photo_id>/file",
+    methods=["GET"],
+    endpoint="sample_photo_file",
+)
+@login_required
+@approved_required
+@staff_or_owner_required
+def sample_photo_file(photo_id):
+    with session_scope() as session:
+        photo = (
+            session.query(SequencingSamplePhotoTable)
+            .filter_by(id=photo_id)
+            .first()
+        )
+        if photo is None:
+            abort(404)
+        file_path = photo.file_path
+    return send_file(os.path.abspath(file_path))
+
+
+@upload_form_bp.route(
+    "/sample_photos/<int:photo_id>/thumbnail",
+    methods=["GET"],
+    endpoint="sample_photo_thumbnail",
+)
+@login_required
+@approved_required
+@staff_or_owner_required
+def sample_photo_thumbnail(photo_id):
+    with session_scope() as session:
+        photo = (
+            session.query(SequencingSamplePhotoTable)
+            .filter_by(id=photo_id)
+            .first()
+        )
+        if photo is None:
+            abort(404)
+        file_path = photo.file_path
+
+    thumb_path = get_or_create_thumbnail(file_path)
+    return send_file(thumb_path, mimetype="image/jpeg")
 
 
 @upload_form_bp.route(

@@ -22,6 +22,7 @@ from flask import (
 from flask_login import login_required
 from helpers.slack import send_message_to_slack
 from helpers.dbm import session_scope
+from helpers.photos import get_or_create_thumbnail
 from helpers.decorators import (
     approved_required,
     staff_required,
@@ -406,20 +407,7 @@ def mobile_photo_thumbnail(photo_id):
             abort(404)
         file_path = photo.file_path
 
-    abs_path = os.path.abspath(file_path)
-    photo_dir = os.path.dirname(abs_path)
-    thumb_dir = os.path.join(photo_dir, "thumbnails")
-    thumb_path = os.path.join(thumb_dir, os.path.basename(abs_path))
-
-    if not os.path.exists(thumb_path):
-        from PIL import Image
-
-        os.makedirs(thumb_dir, exist_ok=True)
-        with Image.open(abs_path) as img:
-            img = img.convert("RGB")
-            img.thumbnail((240, 240))
-            img.save(thumb_path, "JPEG", quality=75)
-
+    thumb_path = get_or_create_thumbnail(file_path)
     return send_file(thumb_path, mimetype="image/jpeg")
 
 

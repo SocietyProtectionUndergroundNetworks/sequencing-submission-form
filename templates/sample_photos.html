@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnSuA4Ss2PkkikSOLtYs8BlYIeeIK1h99ty4YfvRPAlzr377vr3CXDb7sb7eEEBYjDtcYj+AjBH3FLv5uSJuXg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <title>Photos — {{ sample.SampleID }}</title>
+</head>
+<body>
+  <div class="app-navbar">
+    <a href="/" class="logo"></a>
+    <div class="menu">
+      <ul>
+        <li><a href="/">App homepage</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="content p-4">
+
+    <a href="{{ url_for('upload_form_bp.metadata_form', process_id=process_id) }}" class="btn btn-sm btn-outline-secondary mb-3">&larr; Back to project</a>
+
+    <h1 class="mb-1">Photos for sample {{ sample.SampleID }}</h1>
+    <p class="text-muted mb-4">{{ photos | length }} photo{{ 's' if photos | length != 1 else '' }}</p>
+
+    {% if photos %}
+      <div class="d-flex flex-wrap gap-3">
+        {% for ph in photos %}
+        <div class="text-center">
+          <a href="{{ url_for('upload_form_bp.sample_photo_file', photo_id=ph.id, process_id=process_id) }}" target="_blank">
+            <img
+              src="{{ url_for('upload_form_bp.sample_photo_thumbnail', photo_id=ph.id, process_id=process_id) }}"
+              alt="{{ ph.original_filename or 'photo' }}"
+              title="{{ ph.original_filename or '' }}{% if ph.received_at %} — {{ ph.received_at.strftime('%Y-%m-%d %H:%M') }}{% endif %}"
+              style="width: 180px; height: 180px; object-fit: cover; border-radius: 4px;"
+            />
+          </a>
+          {% if ph.received_at %}
+          <div class="text-muted small mt-1">{{ ph.received_at.strftime('%Y-%m-%d %H:%M') }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="alert alert-info">No photos for this sample.</div>
+    {% endif %}
+
+  </div>
+</body>
+</html>

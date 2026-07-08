@@ -352,6 +352,7 @@
                   <th scope="col" class="bg-gray">DbID</th>
                   <th scope="col" class="bg-gray"><span class="grey">____</span>Sequencer_IDs<span class="grey">____</span></th>
                   <th scope="col" class="bg-gray"><span class="grey">____</span>OTU<span class="grey">____</span></th>
+                  <th scope="col" class="bg-gray">Photos</th>
                   {% for expectedColumn in expected_columns.keys() %}
                       <th scope="col">{{ expectedColumn }}</th>
                   {% endfor %}
@@ -405,6 +406,13 @@
                                   {{ analysis_data.name }}
                                 </a>
                               {% endfor %}
+                            {% endif %}
+                          </td>
+                          <td class="bg-gray">
+                            {% if row.photo_count %}
+                              <a href="sample_photos?process_id={{ process_id }}&sample_id={{ row.id }}" target="_blank" class="link">
+                                {{ row.photo_count }} photo{{ 's' if row.photo_count != 1 else '' }}
+                              </a>
                             {% endif %}
                           </td>
                           {% for column in expected_columns.keys() %}
@@ -1552,6 +1560,7 @@
                 headerRow += '<th class="bg-gray">DbID</th>';
                 headerRow += '<th class="bg-gray"><span class="grey">____</span>Sequencer_IDs<span class="grey">____</span></th>';
                 headerRow += '<th class="bg-gray"><span class="grey">____</span>OTUs<span class="grey">____</span></th>';
+                headerRow += '<th class="bg-gray">Photos</th>';
                 expectedColumns.forEach(function(column) {
                     var hasIssues = result[column] && result[column].missing;
                     headerRow += '<th' + (hasIssues ? ' class="text-danger"' : '') + '>' + column + '</th>';
@@ -1589,6 +1598,10 @@
                     } else {
                       tableRow += '<td class="bg-gray">' + row['sequencers'] + '</td>';
                     }
+
+                    // Photos are only ever attached via the mobile-sample
+                    // transfer, never present on freshly uploaded/validated rows
+                    tableRow += '<td class="bg-gray">-</td>';
 
                     expectedColumns.forEach(function(column) {
                         var cellValue = row[column];

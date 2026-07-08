@@ -29,6 +29,7 @@ from models.db_model import (
     SequencingFilesUploadedTable,
     SequencingAnalysisTable,
     SequencingAnalysisTypesTable,
+    SequencingSamplePhotoTable,
     Taxonomy,
     UserTable,
     OTU,
@@ -531,6 +532,26 @@ class SequencingUpload:
                 .all()
             )
 
+            # Precompute photo counts grouped by sample, so we don't
+            # run a per-sample query for it below
+            photo_counts = dict(
+                session.query(
+                    SequencingSamplePhotoTable.sequencing_sample_id,
+                    func.count(SequencingSamplePhotoTable.id),
+                )
+                .join(
+                    SequencingSamplesTable,
+                    SequencingSamplesTable.id
+                    == SequencingSamplePhotoTable.sequencing_sample_id,
+                )
+                .filter(
+                    SequencingSamplesTable.sequencingUploadId
+                    == sequencingUploadId
+                )
+                .group_by(SequencingSamplePhotoTable.sequencing_sample_id)
+                .all()
+            )
+
             # Define the as_dict method within this function
             def as_dict(instance):
                 """Convert SQLAlchemy model instance to a dictionary."""
@@ -586,6 +607,7 @@ class SequencingUpload:
 
                 # Add the otu_counts dictionary to the sample data
                 sample_data["otu_counts"] = otu_counts
+                sample_data["photo_count"] = photo_counts.get(sample_id, 0)
 
                 # Append the updated sample data to the list
                 samples_list.append(sample_data)
