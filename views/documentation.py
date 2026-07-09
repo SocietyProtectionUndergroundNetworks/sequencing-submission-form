@@ -6,6 +6,8 @@ from flask import (
     render_template,
     jsonify,
     send_file,
+    make_response,
+    Response,
 )
 from pathlib import Path
 from helpers.create_xls_template import create_template_one_drive_and_excel
@@ -19,6 +21,32 @@ from helpers.decorators import (
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
 documentation_bp = Blueprint("documentation", __name__)
+
+
+@documentation_bp.route("/robots.txt", endpoint="robots_txt")
+def robots_txt():
+    return Response(
+        "User-agent: *\nDisallow: /mobile_app_instructions\n",
+        mimetype="text/plain",
+    )
+
+
+@documentation_bp.route(
+    "/mobile_app_instructions",
+    endpoint="mobile_app_instructions",
+)
+def mobile_app_instructions():
+    response = make_response(
+        render_template(
+            "mobile_app_instructions.html",
+            play_link=os.environ.get("RESEARCHER_GUIDE_PLAY_LINK", ""),
+            support_email=os.environ.get("RESEARCHER_GUIDE_SUPPORT_EMAIL", ""),
+        )
+    )
+    # Not linked from anywhere crawlable; belt-and-suspenders alongside
+    # the robots.txt disallow above for crawlers that ignore it.
+    response.headers["X-Robots-Tag"] = "noindex, nofollow"
+    return response
 
 
 @documentation_bp.route(
