@@ -651,9 +651,14 @@ class SequencingUpload:
                 )
 
             # Dynamically set attributes from datadict
+            boolean_yes_no_fields = (
+                "using_scripps",
+                "belongs_to_community",
+                "permits_confirmed",
+            )
             for key, value in datadict.items():
-                if key == "using_scripps":
-                    value = value.lower() == "yes"
+                if key in boolean_yes_no_fields:
+                    value = str(value).lower() == "yes"
                 if hasattr(new_upload, key):
                     setattr(new_upload, key, value)
 

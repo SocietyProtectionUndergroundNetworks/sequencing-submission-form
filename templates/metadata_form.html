@@ -129,8 +129,27 @@
             <input type="hidden" name="process_id" value="{{ process_id }}">
           </div>
 
+          {% set is_customary_territory = process_data and process_data['indigenous_territory_status'] == 'Customary/Traditional Tenure' %}
+          {% set is_titled_territory = process_data and process_data['indigenous_territory_status'] == 'Titled/Legally Recognized' %}
+          {% set is_land_status_selected = process_data and process_data['indigenous_territory_status'] %}
+          {% set is_codesigned_collaboration = process_data and process_data['collaboration_type'] == 'Co-Designed/Partnered' %}
           {% for column_key, column_values in project_common_data.items() %}
-            <div class="form-group row mb-3" data-condition="{{ column_values.get('required', '') }}">
+            {% if column_key == "collaboration_type" %}
+              <h5 class="mt-2" id="collaboration_type_heading" {% if not is_land_status_selected %}style="display:none;"{% endif %}>Engagement with indigenous communities</h5>
+            {% endif %}
+            <div class="form-group row mb-3" id="{{ column_key }}_row" data-condition="{{ column_values.get('required', '') }}"
+              {% if column_key == "territory_name" and not is_customary_territory %}
+                style="display: none;"
+              {% elif column_key == "belongs_to_community" and not is_land_status_selected %}
+                style="display: none;"
+              {% elif column_key == "collaboration_type" and not is_land_status_selected %}
+                style="display: none;"
+              {% elif column_key == "permits_confirmed" and not is_titled_territory %}
+                style="display: none;"
+              {% elif column_key == "community_contact_info" and not is_codesigned_collaboration %}
+                style="display: none;"
+              {% endif %}
+            >
               <small class="form-text text-danger error-message" style="display: none;"></small>
               <label for="{{ column_key }}" class="col-sm-3 col-form-label">
                 {% if 'label' in column_values %}
@@ -211,10 +230,49 @@
                             >{{ reverse }}</option>
                         {% endfor %}
                       {% endif %}
-                    </select>              
+                    </select>
+                {% elif column_key == "indigenous_territory_status" %}
+                    <select class="form-control" id="indigenous_territory_status" name="indigenous_territory_status">
+                      <option value=""
+                        {% if not (process_data and process_data['indigenous_territory_status']) %}
+                          selected
+                        {% endif %}
+                      >None / not applicable</option>
+                      {% for option in ['Titled/Legally Recognized', 'Customary/Traditional Tenure'] %}
+                        <option value="{{ option }}"
+                          {% if process_data and process_data['indigenous_territory_status'] == option %}
+                            selected
+                          {% endif %}
+                        >{{ option }}</option>
+                      {% endfor %}
+                    </select>
+                {% elif column_key == "collaboration_type" %}
+                    <select class="form-control" id="collaboration_type" name="collaboration_type">
+                      <option value=""
+                        {% if not (process_data and process_data['collaboration_type']) %}
+                          selected
+                        {% endif %}
+                      >------</option>
+                      {% for option in column_values['options'] %}
+                        <option value="{{ option }}"
+                          {% if process_data and process_data['collaboration_type'] == option %}
+                            selected
+                          {% endif %}
+                        >{{ option }}</option>
+                      {% endfor %}
+                    </select>
                 {% else %}
 
-                  {% if 'options' in column_values %}
+                  {% if column_values.get('field_type') == 'checkbox' %}
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="{{ column_key }}" name="{{ column_key }}" value="yes"
+                        {% if process_data and process_data[column_key] %}
+                          checked
+                        {% endif %}
+                      >
+                      <label class="form-check-label" for="{{ column_key }}">{{ column_values.get('checkbox_text', '') }}</label>
+                    </div>
+                  {% elif 'options' in column_values %}
                     <select class="form-control" id="{{ column_key }}" name="{{ column_key }}">
                       <option value="0">------</option>
                       {% for option in column_values['options'] %}
@@ -1286,7 +1344,41 @@
       }
     });
   }
+  function toggleRow(rowSelector, show, fieldSelector, isCheckbox) {
+    if (show) {
+      $(rowSelector).show();
+    } else {
+      $(rowSelector).hide();
+      if (isCheckbox) {
+        $(fieldSelector).prop('checked', false);
+      } else {
+        $(fieldSelector).val('');
+      }
+    }
+  }
+  function updateCommunityContactVisibility() {
+    var showContactInfo = $('#collaboration_type').val() === 'Co-Designed/Partnered';
+    toggleRow('#community_contact_info_row', showContactInfo, '#community_contact_info');
+  }
+  function updateIndigenousFieldsVisibility() {
+    var status = $('#indigenous_territory_status').val();
+    var isLandSelected = status !== '';
+    var isTitled = status === 'Titled/Legally Recognized';
+    var isCustomary = status === 'Customary/Traditional Tenure';
+
+    toggleRow('#territory_name_row', isCustomary, '#territory_name');
+    toggleRow('#belongs_to_community_row', isLandSelected, '#belongs_to_community', true);
+    toggleRow('#permits_confirmed_row', isTitled, '#permits_confirmed', true);
+    toggleRow('#collaboration_type_row', isLandSelected, '#collaboration_type');
+    $('#collaboration_type_heading').toggle(isLandSelected);
+
+    updateCommunityContactVisibility();
+  }
   $(document).ready(function() {
+      $('#indigenous_territory_status').change(updateIndigenousFieldsVisibility);
+      $('#collaboration_type').change(updateCommunityContactVisibility);
+      updateIndigenousFieldsVisibility();
+
       // Listen for changes in the select drop down project_id (bucket)
       $('#sequence-project-id').change(function() {
           var selectedValue = $(this).val();
@@ -1328,9 +1420,14 @@
                   });
               }
               var fieldName = input.attr('name');
-              var fieldValue = input.val();
+              var fieldValue;
+              if (input.is(':checkbox')) {
+                  fieldValue = input.is(':checked') ? 'yes' : '';
+              } else {
+                  fieldValue = input.val();
+              }
               formData.append(fieldName, fieldValue);
-              
+
               var errorMessage = $(this).find('.error-message');
 
               if ((condition === "True") || (condition === "IfNotScripps" && $('#using_scripps_no').is(':checked'))) {
@@ -1354,6 +1451,15 @@
                   errorMessage.text('').hide(); // Clear error message if condition is not met
               }
           });
+
+          // Titled/Legally Recognized requires an explicit permits confirmation
+          var permitsErrorMessage = $('#permits_confirmed_row .error-message');
+          if ($('#indigenous_territory_status').val() === 'Titled/Legally Recognized' && !$('#permits_confirmed').is(':checked')) {
+              isValid = false;
+              permitsErrorMessage.text('You must confirm you have obtained the necessary permits.').show();
+          } else {
+              permitsErrorMessage.text('').hide();
+          }
 
           if (isValid) {
             $.ajax({

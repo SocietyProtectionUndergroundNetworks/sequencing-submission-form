@@ -122,6 +122,12 @@ class SequencingUploadsTable(Base):
     files_uploading_confirmed = Column(Boolean, default=False)
     share_url = Column(String(255), nullable=True)
     share_sync_completed = Column(Boolean, default=False)
+    indigenous_territory_status = Column(String(255), nullable=True)
+    territory_name = Column(String(255), nullable=True)
+    belongs_to_community = Column(Boolean, default=False)
+    permits_confirmed = Column(Boolean, default=False)
+    collaboration_type = Column(String(255), nullable=True)
+    community_contact_info = Column(String(255), nullable=True)
 
 
 class SequencingAnalysisTable(Base):

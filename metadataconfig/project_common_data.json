@@ -62,5 +62,37 @@
     "lookup_file": "dna_conc_instrument.json",
     "help_tip": "Instrument/machine used to quantify DNA",
     "required": "True"
+  },
+  "indigenous_territory_status": {
+    "label": "Indigenous territory status",
+    "help_tip": "Select 'None / not applicable' if this does not apply."
+  },
+  "territory_name": {
+    "label": "Territory name",
+    "help_tip": "Only fill in if Indigenous territory status is 'Customary/Traditional Tenure'."
+  },
+  "belongs_to_community": {
+    "label": "Do you belong to the community holding the land described above?",
+    "field_type": "checkbox",
+    "checkbox_text": "Yes, we belong to this community"
+  },
+  "permits_confirmed": {
+    "label": "Permits confirmation",
+    "field_type": "checkbox",
+    "checkbox_text": "By selecting 'Titled/Legally Recognized,' you confirm that you have obtained the necessary permits from the relevant Indigenous Authority."
+  },
+  "collaboration_type": {
+    "label": "Engagement with indigenous communities",
+    "help_tip": "How is this project engaging with the community holding the land?",
+    "options": [
+      "No Collaboration",
+      "Consulted",
+      "Co-Designed/Partnered",
+      "Indigenous-Led"
+    ]
+  },
+  "community_contact_info": {
+    "label": "Community contact info",
+    "help_tip": "Only fill in if Engagement is 'Co-Designed/Partnered'."
   }
 }

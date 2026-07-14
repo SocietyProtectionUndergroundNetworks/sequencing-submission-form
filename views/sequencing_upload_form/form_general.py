@@ -240,6 +240,10 @@ def upload_process_common_fields():
                 for column in inspect(SequencingUploadsTable).columns
             }
             # Loop through form_data keys and update fields that are valid
+            boolean_yes_no_fields = (
+                "belongs_to_community",
+                "permits_confirmed",
+            )
             for key, value in form_data.items():
                 logger.info(
                     "The key is " + str(key) + " and the value " + str(value)
@@ -248,6 +252,8 @@ def upload_process_common_fields():
                     "using_scripps",
                     "project_id",
                 ]:
+                    if key in boolean_yes_no_fields:
+                        value = str(value).lower() == "yes"
                     SequencingUpload.update_field(
                         id=process_id, fieldname=key, value=value
                     )
