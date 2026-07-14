@@ -199,7 +199,7 @@ if (args$exclude != "") {
   filter_expr_combined <- "TRUE"
 }
 
-##### Extract out ECMs from FungalTraits database and phyloseq object. For this step, you need to have downloaded the file "EcM_guild_assignment_13225_2020_466_MOESM4_ESM.csv" from the SPUN 'project_bioinformatics_and_processing' Github repository
+##### Extract out ECMs from FungalTraits database and phyloseq object. For this step, you need to have downloaded the file "13225_2020_466_MOESM4_ESM.csv" from the same folder as this script and placed it in the working directory. 
 
 fungaltraits <- read.csv("/usr/src/app/13225_2020_466_MOESM4_ESM.csv")
 
