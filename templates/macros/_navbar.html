@@ -1,0 +1,12 @@
+{% macro render_navbar(logo_href, links=[]) %}
+<div class="app-navbar">
+  <a href="{{ logo_href }}" class="logo"></a>
+  <div class="menu">
+    <ul>
+      {% for link in links %}
+      <li><a href="{{ link.url }}">{{ link.label }}</a></li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endmacro %}

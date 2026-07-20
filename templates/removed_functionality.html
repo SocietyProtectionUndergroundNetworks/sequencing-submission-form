@@ -8,15 +8,11 @@
     <title>Removed functionality</title>
 </head>
 <body>
-  <div class="app-navbar">
-    <a href="https://spun.earth" class="logo"></a>
-    <div class="menu">
-      <ul>
-        <li><a href="https://spun.earth">Spun Website</a></li>
-        <li><a href="/">App homepage</a></li>
-      </ul>
-    </div>
-  </div>  
+  {% import 'macros/_navbar.html' as nav %}
+  {{ nav.render_navbar(logo_href='https://spun.earth', links=[
+      {'url': 'https://spun.earth', 'label': 'Spun Website'},
+      {'url': '/', 'label': 'App homepage'},
+  ]) }}  
   <div class="content">    
     <h1>Removed functionality</h1>
     <div class="p-4">

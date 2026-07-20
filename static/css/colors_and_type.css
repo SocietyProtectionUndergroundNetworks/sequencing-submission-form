@@ -1,0 +1,513 @@
+/* =============================================================================
+   colors_and_type.css — GENERATED. DO NOT EDIT BY HAND.
+   = dist/tokens.generated.css (from tokens.json via Style Dictionary)
+   + src/system.css           (hand-authored system layer)
+   Edit token VALUES in tokens.json; edit fonts/aliases/rules in src/system.css.
+   Rebuild: `npm run build`. CI fails if this file drifts from those sources.
+   ============================================================================= */
+
+/**
+ * SPUN Design System — GENERATED primitive tokens. DO NOT EDIT.
+ * Source: tokens.json. Regenerate with `npm run build:tokens`.
+ * Composed into colors_and_type.css by `npm run build:css`.
+ */
+
+:root {
+  --space-0: 0px;
+  --space-micro: 4px;
+  --space-xs: 10px;
+  --space-sm: 20px;
+  --space-md: 30px;
+  --space-lg: 40px;
+  --space-xl: 60px;
+  --space-2xl: 80px;
+  --space-3xl: 120px;
+  --space-4xl: 160px;
+  --radius-none: 0px;
+  --radius-image: 10px;
+  --radius-soft: 10px;
+  --radius-block: 20px;
+  --radius-pill: 9999px;
+  --ts-xsmall: 10px;
+  --ts-small: 12px;
+  --ts-base: 16px;
+  --ts-medium: 32px;
+  --ts-large: 48px;
+  --ts-xlarge: 64px;
+  --ts-xxlarge: 80px;
+  --ts-huge: 96px;
+  --ts-xhuge: 112px;
+  --ts-xxhuge: 160px;
+  --ls-default: 0px;
+  --ls-tight: -1px;
+  --ls-medium: 2px;
+  --ls-wide: 5px;
+  --lh-display: 88;
+  --lh-heading: 120;
+  --lh-body: 130;
+  --ff-title: Söhne Schmal;
+  --ff-body: Neue Haas Unica;
+  --ff-mono: MD IO;
+  --fw-regular: 400;
+  --fw-bold: 700;
+  --black: #000000;
+  --white: #ffffff;
+  --spun-grellow: #d3ff33; /** The only saturated brand color. */
+  --light-gray-light: #f7f7f7; /** Page tint, hover surfaces. */
+  --light-gray-medium: #ebebeb; /** Hairline rules, dividers, default border. */
+  --light-gray-dark: #b9b9b9; /** Disabled surfaces, soft borders on dark photo. */
+  --dark-gray-light: #4c4c4c; /** Secondary text on light. */
+  --dark-gray-medium: #333333; /** Surface above ink (charts, code). */
+  --dark-gray-dark: #202020; /** Dark-mode page background. */
+  --black-25: rgba(0, 0, 0, 0.25);
+  --black-50: rgba(0, 0, 0, 0.5);
+  --white-25: rgba(255, 255, 255, 0.25);
+  --white-50: rgba(255, 255, 255, 0.5);
+  --paper-warm: #e1ddd2; /** brand/sand — separate from the neutral ramp. */
+  --midnight-blue: #231f4b;
+  --blueish: #414289;
+  --light-blueish: #9f9ebd;
+  --plum: #5c53a5;
+  --orchid: #8c56a3;
+  --rose: #b15c9d;
+  --coral: #ce6693;
+  --melon: #e3768a;
+  --salmon: #f18982;
+  --peach: #f8a07e;
+  --apricot: #fab880;
+  --sand: #f8d08a;
+  --cream: #f3e79b;
+  --lichen-green: #324536;
+  --moss: #749c56;
+  --pale-green: #9ed06c;
+  --clay-red: #b64b4e;
+  --link: #4a2ba9;
+  --atlas-richness-hotspot: #ffff66;
+  --atlas-endemism-hotspot: #f3e79b;
+  --atlas-protected-fill: #d4e8c8;
+  --atlas-protected-stroke: #9ed06c;
+  --atlas-uncertainty-fill: #ffffff;
+  --atlas-uncertainty-stroke: #a8a8a8;
+  --tag-1: #cdfed1; /** mint */
+  --tag-2: #dadbd5; /** warm gray */
+  --tag-3: #e9e9ed; /** lavender gray */
+  --tag-4: #d3d2db; /** lilac gray */
+  --tag-5: #e6e0f8; /** lilac */
+  --tag-6: #ccffd1; /** mint 2 */
+  --tag-7: #ffbaba; /** rose */
+  --tag-8: #e9ff99; /** pale grellow */
+  --grad-richness: linear-gradient(90deg,#1a33b3 0%,#2242ab 10%,#2a53a3 20%,#346499 30%,#41738c 40%,#518480 50%,#689b79 60%,#82b572 70%,#9ed06c 80%,#c8eb67 90%,#ffff66 100%);
+  --grad-endemism: linear-gradient(90deg,#5c53a5 0%,#8c56a3 11.11%,#b15c9d 22.22%,#ce6693 33.33%,#e3768a 44.44%,#f18982 55.56%,#f8a07e 66.67%,#fab880 77.78%,#f8d08a 88.89%,#f3e79b 100%);
+  --gutter-min: var(--space-sm);
+  --fg: var(--black);
+  --fg-muted: var(--dark-gray-light);
+  --fg-disabled: var(--black-50);
+  --fg-inverse: var(--white);
+  --bg: var(--white);
+  --bg-tint: var(--light-gray-light);
+  --bg-inverse: var(--black);
+  --bg-accent: var(--spun-grellow);
+  --border: var(--light-gray-medium);
+  --border-strong: var(--black);
+  --focus-ring: var(--spun-grellow);
+  --selection-bg: var(--spun-grellow);
+  --selection-fg: var(--black);
+}
+
+/* =============================================================================
+   src/system.css — SPUN Design System hand-authored system layer.
+   Edit fonts, calc() aliases, semantic tokens, and element rules here.
+   Primitive raw values (colors, raw px sizes) live in tokens.json.
+   Rebuild with `npm run build`.
+   ============================================================================= */
+
+/* ---------- Webfonts ---------- */
+
+@font-face {
+  font-family: "MD IO";
+  src: url("/static/fonts/MDIO-Regular.woff2") format("woff2"),
+       url("/static/fonts/MDIO-Regular.woff")  format("woff"),
+       url("/static/fonts/MDIO-Regular.otf")   format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  /* Registered under BOTH the umlaut spelling (used by --ff-title/--font-display)
+     and the "oe" spelling (used by --font-graphic) so every variable resolves. */
+  font-family: "Söhne Schmal";
+  src: url("/static/fonts/SoehneSchmal-Fett.woff2") format("woff2"),
+       url("/static/fonts/SoehneSchmal-Fett.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Soehne Schmal";
+  src: url("/static/fonts/SoehneSchmal-Fett.woff2") format("woff2"),
+       url("/static/fonts/SoehneSchmal-Fett.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Neue Haas Unica Pro — Regular & Bold + paired italics.
+   Restricted to the two weights the brand actually uses; lighter and
+   heavier OTFs were removed in v3.2 to keep the system lean. Aliased to
+   the short name "Neue Haas Unica" for backwards-compatible component CSS. */
+@font-face { font-family: "Neue Haas Unica"; src: url("/static/fonts/NeueHaasUnicaPro-Regular.otf")     format("opentype"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Neue Haas Unica"; src: url("/static/fonts/NeueHaasUnicaPro-Italic.otf")      format("opentype"); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: "Neue Haas Unica"; src: url("/static/fonts/NeueHaasUnicaPro-Bold.otf")        format("opentype"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Neue Haas Unica"; src: url("/static/fonts/NeueHaasUnicaPro-BoldItalic.otf")  format("opentype"); font-weight: 700; font-style: italic; font-display: swap; }
+
+@font-face {
+  font-family: "Girott";
+  src: url("/static/fonts/girott.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* =============================================================================
+   System layer — overrides and aliases built on top of dist/tokens.generated.css
+   ============================================================================= */
+
+:root {
+
+  /* ---------- Legacy color aliases (backwards-compatible; prefer canonical names) ---------- */
+  --ink:              var(--black);
+  --paper:            var(--white);
+  --paper-tint:       var(--light-gray-light);
+  --rule:             var(--light-gray-medium);
+  --rule-strong:      var(--light-gray-dark);
+  --ink-muted:        var(--dark-gray-light);
+  --ink-disabled:     var(--black-50);
+  --ink-soft:         var(--dark-gray-dark);
+
+  /* ---------- Font-family full stacks ---------- */
+  /* Overrides the bare names from tokens.generated.css with full fallback stacks. */
+  --ff-title:  "Söhne Schmal", "Anton", "Oswald", Impact, sans-serif;
+  --ff-body:   "Neue Haas Unica", "Neue Haas Unica Pro", "Helvetica Neue", "Inter", system-ui, sans-serif;
+  --ff-mono:   "MD IO", "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
+
+  /* ---------- Font-weight extras ---------- */
+  --fw-italic:      400;
+  --fw-bold-italic: 700;
+
+  /* ---------- Type-size calc() aliases ---------- */
+  /* A per-scope --ts-mul multiplier lets .big / .huge classes scale all
+     text inside a region without redefining every token. These override
+     the raw px values from tokens.generated.css.
+     html { font-size: 16px } below is the rem anchor. */
+  --ts-mul:     1;
+  --ts-xsmall:  calc(0.625rem * var(--ts-mul)); /* 10 */
+  --ts-small:   calc(0.75rem  * var(--ts-mul)); /* 12 */
+  --ts-base:    calc(1rem     * var(--ts-mul)); /* 16 */
+  --ts-medium:  calc(2rem     * var(--ts-mul)); /* 32 */
+  --ts-large:   calc(3rem     * var(--ts-mul)); /* 48 */
+  --ts-xlarge:  calc(4rem     * var(--ts-mul)); /* 64 */
+  --ts-xxlarge: calc(5rem     * var(--ts-mul)); /* 80 */
+  --ts-huge:    calc(6rem     * var(--ts-mul)); /* 96 */
+  --ts-xhuge:   calc(7rem     * var(--ts-mul)); /* 112 */
+  --ts-xxhuge:  calc(10rem    * var(--ts-mul)); /* 160 */
+
+  /* ---------- Letter-spacing calc() aliases ---------- */
+  --ls-default:  0;
+  --ls-tight:    -0.0625rem;  /* -1px @ 16 base */
+  --ls-medium:   0.125rem;    /* +2px @ 16 base */
+  --ls-wide:     0.3125rem;   /* +5px @ 16 base */
+
+  /* ---------- Line-height convenience values ---------- */
+  --lh-display-r:  calc(var(--lh-display) / 100);
+  --lh-heading-r:  calc(var(--lh-heading) / 100);
+  --lh-body-r:     calc(var(--lh-body)    / 100);
+
+  /* ---------- Text-transform ---------- */
+  --tt-default:    none;
+  --tt-uppercase:  uppercase;
+  --tt-titlecase:  capitalize;
+
+  /* ---------- Semantic font aliases ---------- */
+  --font-display:   var(--ff-title);
+  --font-body:      var(--ff-body);
+  --font-mono:      var(--ff-mono);
+  --font-graphic:   "Girott", "Soehne Schmal", Impact, sans-serif;
+
+  /* ---------- Heading / type-role scale ---------- */
+  /* Sizes snapped to the Figma token scale where possible.
+     Gaps (h3/h4 sit between Figma's 16 and 32) are filled with off-scale values. */
+  --fs-big:         var(--ts-huge);    /* 96 — ALL CAPS Söhne Schmal poster */
+  --fs-h1:          var(--ts-xlarge);  /* 64 — sentence-case Söhne Schmal */
+  --fs-h2:          calc(2.5rem   * var(--ts-mul));  /* 40 — off-scale */
+  --fs-h3:          var(--ts-medium);  /* 32 */
+  --fs-h4:          calc(1.5rem   * var(--ts-mul));  /* 24 — off-scale */
+  --fs-h5:          calc(1.125rem * var(--ts-mul));  /* 18 — off-scale */
+  --fs-h6:          var(--ts-small);   /* 12 — MD IO uppercase eyebrow */
+  --fs-display:     var(--ts-xxhuge);  /* 160 — full poster scale */
+  --fs-lede:        var(--ts-medium);  /* 32 */
+  --fs-body:        var(--ts-base);    /* 16 */
+  --fs-body-small:  var(--ts-small);   /* 12 */
+  --fs-small:       calc(0.875rem * var(--ts-mul));  /* 14 — off-scale */
+  --fs-tiny:        var(--ts-small);
+  --fs-caption:     var(--ts-small);
+  --fs-eyebrow:     var(--ts-small);
+
+  /* ---------- Tracking aliases ---------- */
+  --tracking-big:    var(--ls-default);
+  --tracking-h1:     var(--ls-default);
+  --tracking-body:   var(--ls-default);
+  --tracking-mono:   var(--ls-medium);
+  --tracking-loop:   var(--ls-medium);
+  --tracking-wide:   var(--ls-wide);
+
+  /* ---------- Space calc() aliases ---------- */
+  /* Override the raw px values from tokens.generated.css with scalable calc(). */
+  --space-0:        0;
+  --space-micro:    calc(0.25rem  * var(--ts-mul)); /* 4 */
+  --space-xs:       calc(0.625rem * var(--ts-mul)); /* 10 */
+  --space-sm:       calc(1.25rem  * var(--ts-mul)); /* 20 */
+  --space-md:       calc(1.875rem * var(--ts-mul)); /* 30 */
+  --space-lg:       calc(2.5rem   * var(--ts-mul)); /* 40 */
+  --space-xl:       calc(3.75rem  * var(--ts-mul)); /* 60 */
+  --space-2xl:      calc(5rem     * var(--ts-mul)); /* 80 */
+  --space-3xl:      calc(7.5rem   * var(--ts-mul)); /* 120 */
+  --space-4xl:      calc(10rem    * var(--ts-mul)); /* 160 */
+
+  /* Short aliases (preferred in component CSS) */
+  --sp-micro: var(--space-micro);
+  --sp-xs:    var(--space-xs);
+  --sp-sm:    var(--space-sm);
+  --sp-md:    var(--space-md);
+  --sp-lg:    var(--space-lg);
+  --sp-xl:    var(--space-xl);
+  --sp-2xl:   var(--space-2xl);
+  --sp-3xl:   var(--space-3xl);
+  --sp-4xl:   var(--space-4xl);
+
+  /* Legacy spacing alias */
+  --sp-xxs: var(--space-micro);   /* 4 */
+
+  /* ---------- Responsive breakpoints + padding ---------- */
+  --bp-mobile:        320px;
+  --bp-mobile-l:      480px;
+  --bp-tablet:        768px;
+  --bp-desktop:       992px;
+  --bp-desktop-large: 1280px;
+
+  --padding-global-mobile:    16px;
+  --padding-global-mobile-l:  24px;
+  --padding-global-tablet:    38px;
+  --padding-global-desktop:   50px;
+  --padding-global-large:     64px;
+  --padding-global: var(--padding-global-desktop);
+
+  /* ---------- Radii (deprecated aliases) ---------- */
+  --radius-card:   var(--radius-soft);
+  --radius-full:   var(--radius-pill);
+
+  /* ---------- Borders ---------- */
+  --bw-hair:   1px;
+  --bw-rule:   2px;
+  --bw-heavy:  3px;
+
+  /* ---------- Shadow ---------- */
+  --shadow-card:  0 1px 0 rgba(0,0,0,0.05);
+  --shadow-pop:   0 8px 24px rgba(0,0,0,0.08);
+
+  /* ---------- Motion ---------- */
+  --motion-instant: 0.12s;
+  --motion-fast:    0.2s;
+  --motion-base:    0.4s;
+  --motion-slow:    0.8s;
+  --motion-count:   1.2s;
+  --ease-out:    cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spun:   cubic-bezier(0.16, 1, 0.30, 1);
+
+  /* ---------- Layout ---------- */
+  --max-content:  80rem;
+  --container-x:  clamp(1rem, 4vw, 3rem);
+  --nav-height:   54px;
+}
+
+@media (min-width: 480px)  { :root { --padding-global: var(--padding-global-mobile-l); } }
+@media (min-width: 768px)  { :root { --padding-global: var(--padding-global-tablet); } }
+@media (min-width: 992px)  { :root { --padding-global: var(--padding-global-desktop); } }
+@media (min-width: 1280px) { :root { --padding-global: var(--padding-global-large); } }
+
+/* =============================================================================
+   Dark mode — CANONICAL.
+   Flip semantic surface tokens AND legacy --ink / --paper aliases so any consumer
+   gets dark mode by setting [data-theme="dark"] on a root element.
+   Brand colors stay CONSTANT. Apps opt in explicitly (no auto prefers-color-scheme).
+   ============================================================================= */
+[data-theme="dark"] {
+  --bg:            #000000;
+  --fg:            #FFFFFF;
+  --rule:          #333333;
+  --rule-strong:   #4C4C4C;
+  --ink:           #FFFFFF;
+  --paper:         #000000;
+  --ink-muted:     #B9B9B9;
+  --ink-soft:      #B9B9B9;
+  --ink-disabled:  rgba(255,255,255,0.4);
+  --paper-tint:    #202020;
+  --border:        #4C4C4C;
+}
+
+/* =============================================================================
+   Base elements
+   ============================================================================= */
+
+html { box-sizing: border-box; font-size: 16px; }
+*, *::before, *::after { box-sizing: inherit; }
+
+/* Region scalers — bump --ts-mul to scale ALL text + spacing inside a region. */
+.text-scale-big   { --ts-mul: 1.25; }
+.text-scale-huge  { --ts-mul: 1.5; }
+.text-scale-small { --ts-mul: 0.875; }
+
+::selection { background: var(--selection-bg); color: var(--selection-fg); }
+
+body {
+  margin: 0;
+  color: var(--fg);
+  background: var(--bg);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  font-weight: 400;
+  line-height: var(--lh-body-r);
+  letter-spacing: var(--tracking-body);
+  -webkit-font-smoothing: subpixel-antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, .h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-h1);
+  line-height: var(--lh-display-r);
+  letter-spacing: var(--tracking-h1);
+  margin: 0 0 0.4em;
+}
+
+.big, h1.big {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-big);
+  line-height: var(--lh-display-r);
+  letter-spacing: var(--tracking-big);
+  text-transform: uppercase;
+  margin: 0 0 0.3em;
+}
+
+h2, .h2 {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--fs-h2);
+  line-height: var(--lh-heading-r);
+  letter-spacing: var(--tracking-body);
+  margin: 1.25rem 0 0.5rem;
+}
+
+h3, .h3 {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--fs-h3);
+  line-height: var(--lh-heading-r);
+  letter-spacing: var(--tracking-body);
+  margin: 1.25rem 0 0.5rem;
+}
+
+h4, .h4 {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--fs-h4);
+  line-height: var(--lh-body-r);
+  letter-spacing: var(--tracking-body);
+  margin: 0.75rem 0 0.5rem;
+}
+
+h5, .h5 {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: var(--fs-h5);
+  line-height: var(--lh-body-r);
+  letter-spacing: var(--tracking-body);
+  margin: 0.75rem 0 0.5rem;
+}
+
+h6, .h6, .eyebrow {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: var(--fs-eyebrow);
+  line-height: var(--lh-body-r);
+  letter-spacing: var(--tracking-mono);
+  text-transform: uppercase;
+  margin: 0.75rem 0 0.5rem;
+}
+
+p {
+  margin: 0 0 1.25rem;
+  max-width: var(--max-content);
+}
+
+a {
+  color: var(--fg);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  transition: color 0.2s ease, background-color 0.2s ease, opacity 0.2s ease;
+}
+a:hover { color: #666; }
+
+small, .text-small { font-size: var(--fs-small); line-height: var(--lh-body-r); }
+.text-tiny { font-size: var(--fs-tiny); }
+.lede { font-size: var(--fs-lede); line-height: var(--lh-body-r); }
+
+code, kbd, samp, .mono {
+  font-family: var(--font-mono);
+  font-size: 0.95em;
+  letter-spacing: 0.02em;
+}
+
+hr {
+  border: 0;
+  border-top: var(--bw-hair) solid var(--border);
+  margin: var(--sp-xl) 0;
+}
+
+/* "Punk poster" hero number/word — uppercase display for one-liners */
+.poster {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  line-height: 0.88;
+  letter-spacing: 0;
+}
+
+/* Atlas/data labels — monospaced caps */
+.label-mono {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Block quote */
+blockquote, .text-style-quote {
+  border-left: 6px solid var(--spun-grellow);
+  margin: 0 0 var(--sp-md);
+  padding: var(--sp-sm) 14px;
+  font-size: var(--fs-lede);
+  line-height: 1.5;
+}
+
+/* =============================================================================
+   Breathing space utilities — adjacent elements must never touch.
+   ============================================================================= */
+.breathe-x { display: flex; gap: var(--gutter-min); }
+.breathe-y { display: flex; flex-direction: column; gap: var(--gutter-min); }
+.breathe   { gap: var(--gutter-min); }

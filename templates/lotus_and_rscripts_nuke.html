@@ -15,14 +15,11 @@
     <!-- Removed <style> block as CSS is now in general.css -->
 </head>
 <body>
-    <div class="app-navbar">
-        <a href="https://spun.earth" class="logo"></a>
-        <div class="menu">
-            <ul>
-                <li><a href="https://spun.earth">Spun Website</a></li>
-            </ul>
-        </div>
-    </div>
+    {% import 'macros/_navbar.html' as nav %}
+    {{ nav.render_navbar(logo_href='https://spun.earth', links=[
+        {'url': 'https://spun.earth', 'label': 'Spun Website'},
+        {'url': '/', 'label': 'App homepage'},
+    ]) }}
 
     <div class="content">
         <h1 class="text-center mb-8 text-3xl font-bold">Admin Nuke Operations</h1>

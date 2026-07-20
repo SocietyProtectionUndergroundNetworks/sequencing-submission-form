@@ -10,16 +10,12 @@
     <title>Primers chart</title>
 </head>
 <body>
-  <div class="app-navbar">
-    <a href="https://spun.earth" class="logo"></a>
-    <div class="menu">
-      <ul>
-        <li><a href="https://spun.earth">Spun Website</a></li>
-        <li><a href="/">App homepage</a></li>
-        <li><a href="/logout">Logout</a></li>
-      </ul>
-    </div>
-  </div>
+  {% import 'macros/_navbar.html' as nav %}
+  {{ nav.render_navbar(logo_href='https://spun.earth', links=[
+      {'url': 'https://spun.earth', 'label': 'Spun Website'},
+      {'url': '/', 'label': 'App homepage'},
+      {'url': '/logout', 'label': 'Logout'},
+  ]) }}
   <div class="content" class="p-4">
     <h1> Primers count chart for {{ project_id }} for region {{ region }}</h1>
     <div id="msg" class="text-info">{{ msg }}</div>

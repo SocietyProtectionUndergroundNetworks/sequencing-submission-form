@@ -1,8 +1,10 @@
+@import url("colors_and_type.css");
+
 .app-navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: black;
+  background: var(--bg-inverse);
   padding-left: 5%;
   padding-right: 5%;
 }
@@ -28,6 +30,10 @@
   text-decoration: none;
   padding: 10px 15px; /* Add some padding for better click area */
   display: block; /* Make the whole area clickable */
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: var(--fs-body-small);
 }
 
 .app-navbar .menu a:hover {
@@ -44,28 +50,30 @@
 }
 
 .content a {
-  color: black;
+  color: var(--fg);
   text-decoration: none;
 }
 
 .content .page-menu-item,
 .content .form-step-item {
-  border-radius: 10px;
+  border-radius: var(--radius-soft);
   margin-bottom: 10px;
   padding: 20px;
-  background-color: #EBEBEB;
-  color: black;
+  background-color: var(--bg-tint);
+  border: var(--bw-hair) solid var(--border);
+  color: var(--fg);
   text-decoration: none;
 }
 
 .content .explanation a {
-  color: blue;
+  color: var(--link);
   text-decoration: underline;
 }
 
 .content .form-step-item {
   max-width: 900px;
   margin-top: 20px;
+  border-radius: var(--radius-block);
   /* REMOVED: margin-left: auto; */
   /* REMOVED: margin-right: auto; */
   box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.1); /* Retain shadow */
@@ -85,7 +93,7 @@
 }
 
 .content #files_body a {
-  color: blue;
+  color: var(--link);
   text-decoration: underline;
 }
 
@@ -99,14 +107,73 @@
 }
 
 .content .link {
-  color: blue;
+  color: var(--link);
   text-decoration: underline;
+}
+
+/* ---- Brand button system ----
+   Overrides Bootstrap's own .btn/.btn-primary/.btn-secondary classes in
+   place (no template markup changes) so every existing button reskins
+   automatically. Adapted from the design system's preview/_card.css .btn
+   reference implementation. */
+.btn {
+  border-radius: var(--radius-pill);
+  border: var(--bw-hair) solid var(--black);
+  font-family: var(--font-mono);
+  font-size: var(--fs-body-small);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1;
+  transition: transform 0.12s ease, box-shadow 0.12s ease,
+    background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.btn-primary {
+  background: var(--spun-grellow);
+  color: var(--black);
+  border-color: var(--black);
+}
+.btn-primary:hover,
+.btn-primary:focus {
+  background: var(--ink);
+  color: var(--spun-grellow);
+  border-color: var(--ink);
+}
+.btn-secondary,
+.btn-outline-secondary {
+  background: transparent;
+  color: var(--fg);
+  border-color: var(--fg);
+}
+.btn-secondary:hover,
+.btn-secondary:focus,
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus {
+  background: var(--ink);
+  color: var(--spun-grellow);
+  border-color: var(--ink);
+}
+.btn-danger {
+  background: var(--clay-red);
+  color: var(--white);
+  border-color: var(--clay-red);
+}
+.btn-danger:hover,
+.btn-danger:focus {
+  filter: brightness(0.85);
+}
+.btn:disabled,
+.btn.disabled {
+  background: var(--light-gray-medium);
+  color: var(--ink-disabled);
+  border-color: var(--light-gray-dark);
+  cursor: not-allowed;
 }
 
 /* Custom styles for the admin nuke forms page */
 body {
-    font-family: 'Inter', sans-serif; /* Keep Inter font */
-    background-color: #f0f2f5; /* Light gray background */
+    font-family: var(--font-body);
+    background-color: var(--bg-tint);
+    color: var(--fg);
 }
 
 /* This new container will center its children (the form-step-items) */
@@ -165,29 +232,34 @@ body {
     gap: 1rem;
     margin-top: 1.5rem;
 }
-.btn-confirm {
-    background-color: #dc3545; /* Red for destructive action */
-    color: white;
-    border: none;
+.btn-confirm,
+.btn-cancel {
+    font-family: var(--font-mono);
+    font-size: var(--fs-body-small);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border-radius: var(--radius-pill);
     padding: 0.75rem 1.5rem;
-    border-radius: 0.375rem;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.btn-confirm {
+    background-color: var(--clay-red); /* Red for destructive action */
+    color: var(--white);
+    border: var(--bw-hair) solid var(--clay-red);
 }
 .btn-confirm:hover {
-    background-color: #c82333;
+    filter: brightness(0.85);
 }
 .btn-cancel {
-    background-color: #6c757d; /* Gray for cancel */
-    color: white;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.375rem;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
+    background-color: transparent;
+    color: var(--fg);
+    border: var(--bw-hair) solid var(--fg);
 }
 .btn-cancel:hover {
-    background-color: #5a6268;
+    background-color: var(--ink);
+    color: var(--spun-grellow);
+    border-color: var(--ink);
 }
 
 /* Custom button styles to override Bootstrap for specific actions */
@@ -195,7 +267,6 @@ body {
     padding: 0.75rem 1.5rem; /* Larger buttons */
     font-size: 1.125rem; /* Larger font for buttons */
     font-weight: 600; /* Bolder button text */
-    border-radius: 0.5rem; /* Rounded buttons */
     transition: all 0.2s ease-in-out;
     box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
 }
@@ -207,7 +278,7 @@ body {
 /* Adjustments for form-step-item to maintain visual consistency */
 .form-step-item h2 {
     text-align: center;
-    color: #333;
+    color: var(--fg);
     margin-bottom: 1.5rem;
     font-weight: 700;
     font-size: 1.75rem;

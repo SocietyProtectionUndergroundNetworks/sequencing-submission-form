@@ -7,14 +7,10 @@
     <title>Create Meta Project</title>
 </head>
 <body>
-  <div class="app-navbar">
-    <a href="/" class="logo"></a>
-    <div class="menu">
-      <ul>
-        <li><a href="/">App homepage</a></li>
-      </ul>
-    </div>
-  </div>
+  {% import 'macros/_navbar.html' as nav %}
+  {{ nav.render_navbar(logo_href='/', links=[
+      {'url': '/', 'label': 'App homepage'},
+  ]) }}
   <div class="content p-4">
     <h1>Create New Meta Project</h1>
     <p>A meta project allows you to combine existing sequencing uploads into a single aggregate analysis.</p>

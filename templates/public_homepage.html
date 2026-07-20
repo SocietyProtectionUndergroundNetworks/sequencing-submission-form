@@ -8,14 +8,10 @@
     <title>SPUN sequencing data submission form</title>
 </head>
 <body>
-  <div class="app-navbar">
-    <a href="https://spun.earth" class="logo"></a>
-    <div class="menu">
-      <ul>
-        <li><a href="https://spun.earth">Spun Website</a></li>
-      </ul>
-    </div>
-  </div>   
+  {% import 'macros/_navbar.html' as nav %}
+  {{ nav.render_navbar(logo_href='https://spun.earth', links=[
+      {'url': 'https://spun.earth', 'label': 'Spun Website'},
+  ]) }}   
   <div class="content" style="padding: 3rem;">
     <h1>SPUN sequencing data submission form</h1>
     <div>

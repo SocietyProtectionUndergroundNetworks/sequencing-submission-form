@@ -10,16 +10,12 @@
     <title>Upload data</title>
 </head>
 <body>
-  <div class="app-navbar">
-    <a href="https://spun.earth" class="logo"></a>
-    <div class="menu">
-      <ul>
-        <li><a href="https://spun.earth">Spun Website</a></li>
-        <li><a href="/">App homepage</a></li>
-        <li><a href="/logout">Logout</a></li>
-      </ul>
-    </div>
-  </div>
+  {% import 'macros/_navbar.html' as nav %}
+  {{ nav.render_navbar(logo_href='https://spun.earth', links=[
+      {'url': 'https://spun.earth', 'label': 'Spun Website'},
+      {'url': '/', 'label': 'App homepage'},
+      {'url': '/logout', 'label': 'Logout'},
+  ]) }}
   <div class="content" style="p-4">
     <h1> Sequencing Files Submission Form </h1>
     <div id="msg" class="text-info">{{ msg }}</div>

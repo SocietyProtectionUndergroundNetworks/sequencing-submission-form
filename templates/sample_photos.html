@@ -8,14 +8,10 @@
     <title>Photos — {{ sample.SampleID }}</title>
 </head>
 <body>
-  <div class="app-navbar">
-    <a href="/" class="logo"></a>
-    <div class="menu">
-      <ul>
-        <li><a href="/">App homepage</a></li>
-      </ul>
-    </div>
-  </div>
+  {% import 'macros/_navbar.html' as nav %}
+  {{ nav.render_navbar(logo_href='/', links=[
+      {'url': '/', 'label': 'App homepage'},
+  ]) }}
 
   <div class="content p-4">
 

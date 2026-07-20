@@ -7,14 +7,10 @@
     <title>Your Meta Projects</title>
 </head>
 <body>
-  <div class="app-navbar">
-    <a href="/" class="logo"></a>
-    <div class="menu">
-      <ul>
-        <li><a href="/">App homepage</a></li>
-      </ul>
-    </div>
-  </div>
+  {% import 'macros/_navbar.html' as nav %}
+  {{ nav.render_navbar(logo_href='/', links=[
+      {'url': '/', 'label': 'App homepage'},
+  ]) }}
   <div class="content p-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>Your Meta Projects</h1>

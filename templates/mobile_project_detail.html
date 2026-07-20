@@ -9,15 +9,11 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 <body>
-  <div class="app-navbar">
-    <a href="/" class="logo"></a>
-    <div class="menu">
-      <ul>
-        <li><a href="{{ url_for('mobile.mobile_projects_list') }}">Mobile Projects</a></li>
-        <li><a href="/">App homepage</a></li>
-      </ul>
-    </div>
-  </div>
+  {% import 'macros/_navbar.html' as nav %}
+  {{ nav.render_navbar(logo_href='/', links=[
+      {'url': url_for('mobile.mobile_projects_list'), 'label': 'Mobile Projects'},
+      {'url': '/', 'label': 'App homepage'},
+  ]) }}
 
   <div class="content p-4">
 
