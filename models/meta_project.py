@@ -312,6 +312,7 @@ class MetaProject:
                             "contaminants": False,
                             "physeq_by_genus": False,
                             "rscripts_command_outcome": False,
+                            "vtx_table": False,
                         },
                         "bucket_log_exists": False,  # Meta-projects may not have a single bucket yet
                         "rscripts_command_outcome": False,
@@ -376,6 +377,14 @@ class MetaProject:
                                 "SSU_eukaryome",
                             ]:
                                 genus_file = "amf_physeq_by_genus.pdf"
+
+                                vtx_table_file = os.path.join(
+                                    report_folder,
+                                    "SSU_dada2_ASV_VTX_tophit_pident97_qcov98.tsv",
+                                )
+                                region_result["files_exist"]["vtx_table"] = (
+                                    os.path.isfile(vtx_table_file)
+                                )
 
                             region_result["files_exist"]["physeq_by_genus"] = (
                                 os.path.isfile(
