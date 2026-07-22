@@ -20,7 +20,7 @@ from helpers.decorators import (
     approved_required,
     admin_or_owner_required,
     admin_required,
-    staff_or_owner_required,
+    staff_or_granted_permission_required,
 )
 from helpers.metadata_check import (
     check_metadata,
@@ -282,7 +282,7 @@ def edit_sample():
 )
 @login_required
 @approved_required
-@staff_or_owner_required
+@staff_or_granted_permission_required
 def sample_photos():
     process_id = request.args.get("process_id")
     sample_id = request.args.get("sample_id")
@@ -324,7 +324,7 @@ def sample_photos():
 )
 @login_required
 @approved_required
-@staff_or_owner_required
+@staff_or_granted_permission_required
 def sample_photo_file(photo_id):
     with session_scope() as session:
         photo = (
@@ -345,7 +345,7 @@ def sample_photo_file(photo_id):
 )
 @login_required
 @approved_required
-@staff_or_owner_required
+@staff_or_granted_permission_required
 def sample_photo_thumbnail(photo_id):
     with session_scope() as session:
         photo = (
@@ -402,7 +402,7 @@ def update_sample():
 )
 @login_required
 @approved_required
-@staff_or_owner_required
+@staff_or_granted_permission_required
 def download_metadata():
     process_id = request.args.get("process_id")
     process_data = SequencingUpload.get(process_id)

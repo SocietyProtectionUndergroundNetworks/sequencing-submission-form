@@ -11,7 +11,7 @@ from flask import (
 from helpers.decorators import (
     approved_required,
     admin_required,
-    staff_or_owner_required,
+    staff_or_granted_permission_required,
 )
 from helpers.r_scripts import (
     init_generate_rscripts_report,
@@ -27,7 +27,7 @@ logger = logging.getLogger("my_app_logger")
 )
 @login_required
 @approved_required
-@staff_or_owner_required
+@staff_or_granted_permission_required
 def show_report_outcome():
     process_id = request.args.get("process_id")
     meta_id = request.args.get("meta_project_id")

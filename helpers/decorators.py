@@ -52,10 +52,13 @@ def admin_or_owner_required(view_func):
     return decorated_view
 
 
-# Custom staff or owner decorator
+# Custom staff or granted-permission decorator
+# Grants access to: the upload's owner, SPUN staff, admins, or any user
+# who has been explicitly granted access to the upload's project (i.e.
+# the project's bucket is in current_user.buckets, set via the Users screen).
 # Note: if no process_id is passed, the view returns the page
 # If no process_id is passed, then the page has no owner
-def staff_or_owner_required(view_func):
+def staff_or_granted_permission_required(view_func):
     @wraps(view_func)
     def decorated_view(*args, **kwargs):
         if not current_user.is_authenticated:
@@ -71,7 +74,8 @@ def staff_or_owner_required(view_func):
 
         from models.sequencing_upload import SequencingUpload
 
-        # If process_id is provided, check ownership or admin rights
+        # If process_id is provided, check ownership, staff/admin rights,
+        # or explicitly granted access to the project
         process_data = SequencingUpload.get(process_id)
         if process_data and current_user.id == process_data["user_id"]:
             return view_func(*args, **kwargs)
@@ -80,6 +84,9 @@ def staff_or_owner_required(view_func):
             return view_func(*args, **kwargs)
 
         if current_user.admin:
+            return view_func(*args, **kwargs)
+
+        if process_data and process_data["project_id"] in current_user.buckets:
             return view_func(*args, **kwargs)
 
         return redirect(url_for("user.only_staff"))

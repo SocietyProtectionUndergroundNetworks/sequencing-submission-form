@@ -194,6 +194,11 @@ def only_admins():
     return render_template("only_admins.html")
 
 
+@user_bp.route("/only_staff")
+def only_staff():
+    return render_template("only_staff.html")
+
+
 @user_bp.route("/only_approved")
 def only_approved():
     admin_contact_email = os.environ.get("ADMIN_CONTACT_EMAIL", "")
