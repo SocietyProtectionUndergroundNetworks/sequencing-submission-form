@@ -155,6 +155,11 @@ def sequencing_process_server_files():
         visited_files_count = 0
         max_files_to_process = 150
 
+        # Files that get successfully matched/processed are moved here,
+        # so re-running this action doesn't keep re-visiting them and the
+        # source directory stays clean.
+        processed_subdir = full_directory_path / "processed"
+
         # Loop through files in the directory
         for file_path in sorted(full_directory_path.iterdir()):
             # Stop processing if we've reached the limit
@@ -190,6 +195,23 @@ def sequencing_process_server_files():
                             "new_filename": new_filename,
                         }
                     )
+
+                # A non-empty new_filename means the file was matched to a
+                # sequencer ID and handled (whether just now or in a
+                # previous run) — move it out of the way so it isn't
+                # re-visited next time this action is run.
+                if new_filename:
+                    processed_subdir.mkdir(exist_ok=True)
+                    try:
+                        shutil.move(
+                            str(file_path),
+                            str(processed_subdir / file_path.name),
+                        )
+                    except OSError as e:
+                        logger.error(
+                            f"Failed to move {file_path} into "
+                            f"'processed' subdirectory: {e}"
+                        )
 
         # Return the report as part of the response
         return {
