@@ -221,10 +221,27 @@ def batch_submit_samples():
             )
         }
 
-        rows = []
+        # Deduplicate within the batch itself. The mobile client can queue
+        # multiple pending entries for the same sample as it's edited
+        # locally, then flush them all in one sync — keep only the last
+        # one per (sample_id, project_id), since it reflects the final
+        # edited state.
+        deduped = {}
         for sample, collected in validated:
             pid_int = project_id_map[str(sample["project_id"])[:36]]
             sid = str(sample["sample_id"])[:100]
+            key = (sid, pid_int)
+            if key in deduped:
+                logger.info(
+                    "Mobile API: multiple entries for sample '%s' in "
+                    "project %d within the same batch — keeping the last one",
+                    sid,
+                    pid_int,
+                )
+            deduped[key] = (sample, collected)
+
+        rows = []
+        for (sid, pid_int), (sample, collected) in deduped.items():
             if (sid, pid_int) in existing:
                 logger.info(
                     "Mobile API: skipping duplicate sample '%s' for project %d",
