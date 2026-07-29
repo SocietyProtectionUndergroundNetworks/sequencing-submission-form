@@ -1,6 +1,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnSuA4Ss2PkkikSOLtYs8BlYIeeIK1h99ty4YfvRPAlzr377vr3CXDb7sb7eEEBYjDtcYj+AjBH3FLv5uSJuXg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -62,10 +63,12 @@
     const newCohort = cohortInput.val();    // Get the new cohort value
 
     // Send the updated cohort via AJAX
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
     $.ajax({
       url: '/set_bucket_cohort',
       type: 'POST',
       contentType: 'application/json',
+      headers: { 'X-CSRFToken': csrfToken },
       data: JSON.stringify({ id: bucketId, cohort: newCohort }),
       success: function(response) {
         alert('Cohort updated successfully!');
