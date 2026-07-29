@@ -150,9 +150,10 @@ def sequencing_process_server_files():
             logger.error(f"Directory not found: {full_directory_path}")
             return {"error": "Directory not found"}, 404
 
-        # Initialize the report list and a counter for processed files
+        # Initialize the report list and counters
         report = []
-        visited_files_count = 0
+        matched_files_count = 0
+        scanned_files_count = 0
         max_files_to_process = 150
 
         # Files that get successfully matched/processed are moved here,
@@ -162,10 +163,17 @@ def sequencing_process_server_files():
 
         # Loop through files in the directory
         for file_path in sorted(full_directory_path.iterdir()):
-            # Stop processing if we've reached the limit
-            if visited_files_count >= max_files_to_process:
+            # Stop once we've found & handled enough MATCHING files — not
+            # after merely scanning 150 filesystem entries. A directory can
+            # contain many .fastq.gz files that don't belong to this
+            # project at all (no matching sequencer ID); those shouldn't
+            # count against the limit, or a run could exhaust it entirely
+            # on irrelevant files and stop before reaching real matches
+            # further down the sorted listing.
+            if matched_files_count >= max_files_to_process:
                 logger.info(
-                    f"Maximum of {max_files_to_process} files processed."
+                    f"Reached the limit of {max_files_to_process} "
+                    "matching files processed."
                 )
                 break
 
@@ -174,7 +182,7 @@ def sequencing_process_server_files():
                 file_path.name.endswith(".fastq.gz")
                 or file_path.name.endswith(".fq.gz")
             ):
-                visited_files_count += 1
+                scanned_files_count += 1
 
                 actual_md5 = calculate_md5(file_path)
 
@@ -198,9 +206,11 @@ def sequencing_process_server_files():
 
                 # A non-empty new_filename means the file was matched to a
                 # sequencer ID and handled (whether just now or in a
-                # previous run) — move it out of the way so it isn't
-                # re-visited next time this action is run.
+                # previous run) — count it towards the processing limit,
+                # and move it out of the way so it isn't re-visited next
+                # time this action is run.
                 if new_filename:
+                    matched_files_count += 1
                     processed_subdir.mkdir(exist_ok=True)
                     try:
                         shutil.move(
@@ -217,7 +227,9 @@ def sequencing_process_server_files():
         return {
             "message": (
                 f"Files processed successfully. "
-                f"Processed {len(report)} new files ({visited_files_count} visited)."
+                f"Processed {len(report)} new files "
+                f"({matched_files_count} matched, "
+                f"{scanned_files_count} scanned)."
             ),
             "report": report,
         }, 200
