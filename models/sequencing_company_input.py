@@ -1,6 +1,7 @@
 import logging
 import pandas as pd
 import os
+from collections import defaultdict
 from helpers.dbm import session_scope
 from helpers.bucket import list_buckets, init_bucket_chunked_upload_v2
 from models.db_model import (
@@ -154,6 +155,25 @@ class SequencingCompanyInput:
                     record_dict["sequencer_id_exists_in_project"] = True
 
                 all_records.append(record_dict)
+
+            # Flag records that share the same (SampleID, region) within
+            # this same upload batch. copy_sequencer_ids_to_metadata_upload
+            # only ever keeps the first one it sees for a given sample/
+            # region, silently skipping the rest — surface that here, at
+            # review time, so it's visible before "Move sequencer ids to
+            # project" is ever clicked.
+            sample_region_counts = defaultdict(int)
+            for record_dict in all_records:
+                if record_dict.get("SampleID"):
+                    key = (record_dict["SampleID"], record_dict.get("region"))
+                    sample_region_counts[key] += 1
+
+            for record_dict in all_records:
+                key = (record_dict.get("SampleID"), record_dict.get("region"))
+                record_dict["duplicate_in_batch"] = (
+                    bool(record_dict.get("SampleID"))
+                    and sample_region_counts[key] > 1
+                )
 
             return all_records
 

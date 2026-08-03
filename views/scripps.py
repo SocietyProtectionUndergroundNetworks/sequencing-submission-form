@@ -63,11 +63,13 @@ def scripps_form():
             sequencer_id_exists_in_project = line.get(
                 "sequencer_id_exists_in_project", False
             )
+            duplicate_in_batch = line.get("duplicate_in_batch", False)
             group_key = (
                 line["project"],
                 line["metadata_upload_id"],
                 sample_region_taken,
                 sequencer_id_exists_in_project,
+                duplicate_in_batch,
             )
             grouped_data[group_key].append(line)
 
@@ -77,6 +79,7 @@ def scripps_form():
             metadata_upload_id,
             sample_region_taken,
             sequencer_id_exists_in_project,
+            duplicate_in_batch,
         ), records in grouped_data.items():
             total_records = len(records)
             matched_records = sum(
@@ -91,6 +94,7 @@ def scripps_form():
                     "sequencer_id_exists_in_project": (
                         sequencer_id_exists_in_project
                     ),
+                    "duplicate_in_batch": duplicate_in_batch,
                     "total": total_records,
                     "matched": matched_records,
                     "unmatched": unmatched_records,
