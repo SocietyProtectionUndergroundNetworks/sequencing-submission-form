@@ -408,7 +408,12 @@
                   <th scope="col" class="bg-gray"><span class="grey">____</span>OTU<span class="grey">____</span></th>
                   <th scope="col" class="bg-gray">Photos</th>
                   {% for expectedColumn in expected_columns.keys() %}
-                      <th scope="col">{{ expectedColumn }}</th>
+                      <th scope="col">
+                        {{ expectedColumn }}
+                        {% if expectedColumn == 'SampleID' %}
+                          <a href="#" class="copy-sampleids-link" title="Copy all SampleIDs to clipboard">.</a>
+                        {% endif %}
+                      </th>
                   {% endfor %}
                   {% for extra_col in extra_col_names %}
                       <th scope="col" class="table-info">{{ extra_col }}</th>
@@ -1206,6 +1211,26 @@
       });
   });
 
+  // Copies every SampleID currently shown in #dataTable to the clipboard,
+  // so it can be pasted straight into a spreadsheet (Delegated, since the
+  // header is sometimes rebuilt via JS after an AJAX metadata upload).
+  $(document).on('click', '.copy-sampleids-link', function(e) {
+      e.preventDefault();
+      var colIndex = $(this).closest('th').index();
+      var sampleIds = [];
+      $(this).closest('table').find('tbody tr').each(function() {
+          var value = $(this).find('td').eq(colIndex).text().trim();
+          if (value) {
+              sampleIds.push(value);
+          }
+      });
+      navigator.clipboard.writeText(sampleIds.join('\n')).then(function() {
+          showAlert('Copied ' + sampleIds.length + ' SampleID(s) to clipboard.', 'success');
+      }).catch(function(err) {
+          showAlert('Could not copy to clipboard: ' + err, 'danger');
+      });
+  });
+
   $(document).ready(function() {
       const msg = sessionStorage.getItem('flashMessage');
       const type = sessionStorage.getItem('flashType');
@@ -1665,7 +1690,8 @@
                 headerRow += '<th class="bg-gray">Photos</th>';
                 expectedColumns.forEach(function(column) {
                     var hasIssues = result[column] && result[column].missing;
-                    headerRow += '<th' + (hasIssues ? ' class="text-danger"' : '') + '>' + column + '</th>';
+                    var copyLink = column === 'SampleID' ? ' <a href="#" class="copy-sampleids-link" title="Copy all SampleIDs to clipboard">.</a>' : '';
+                    headerRow += '<th' + (hasIssues ? ' class="text-danger"' : '') + '>' + column + copyLink + '</th>';
                 });
                 headerRow += '</tr>';
                 $('#dataTable thead').html(headerRow);
@@ -3060,6 +3086,12 @@
     }
     #dataTable {
         table-layout: auto;
+    }
+    .copy-sampleids-link {
+        display: inline-block;
+        width: 1em;
+        font-weight: bold;
+        text-decoration: none;
     }
 
     #step_6-container {
