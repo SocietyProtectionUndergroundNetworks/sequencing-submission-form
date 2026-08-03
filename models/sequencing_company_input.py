@@ -293,6 +293,13 @@ class SequencingCompanyInput:
                 .all()
             )
 
+            # Tracks (sequencingSampleId, Region) pairs already committed
+            # by an earlier record in THIS batch. Belt-and-suspenders
+            # alongside the session.flush() below: two staging rows for
+            # the same sample/region (with different sequencer IDs) must
+            # not both be turned into SequencingSequencerIDsTable rows.
+            claimed_sample_regions = set()
+
             for record in input_records:
                 # Check if the corresponding sample exists
                 sample_id, sequencingUploadId = cls.check_sample_exists(
@@ -301,6 +308,18 @@ class SequencingCompanyInput:
 
                 if not sample_id:
                     # If the sample does not exist, continue to the next record
+                    continue
+
+                sample_region_key = (sample_id, record.region)
+                if sample_region_key in claimed_sample_regions:
+                    logger.warning(
+                        "Skipping sequencer_id '%s' for sample_id %s "
+                        "region %s: another row in this same upload "
+                        "batch already claimed this sample/region.",
+                        record.sequencer_id,
+                        sample_id,
+                        record.region,
+                    )
                     continue
 
                 # Check if a record already exists
@@ -342,6 +361,11 @@ class SequencingCompanyInput:
                     )
 
                     session.add(new_sequencer_entry)
+                    # session_scope() disables autoflush, so without this
+                    # the existing_entry check above would not see this
+                    # pending insert on the next iteration of this loop.
+                    session.flush()
+                    claimed_sample_regions.add(sample_region_key)
 
             # Commit the new entries to the database
             session.commit()
