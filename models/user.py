@@ -361,26 +361,3 @@ class User(UserMixin):
                     "message": "Not deleted. Uploads exist",
                 }
             return to_return
-
-    @classmethod
-    def get_user_groups(cls, user_id):
-        with session_scope() as session:
-            user = (
-                session.query(UserTable)
-                .filter_by(id=user_id)
-                .options(
-                    subqueryload(UserTable.groups)
-                )  # Use subqueryload to load related groups
-                .first()
-            )
-
-            if not user:
-                raise ValueError(f"User with ID '{user_id}' not found")
-
-            # Return a list of dictionaries representing the group details
-            user_groups_list = [
-                {"id": group.id, "name": group.name, "version": group.version}
-                for group in user.groups
-            ]
-
-            return user_groups_list

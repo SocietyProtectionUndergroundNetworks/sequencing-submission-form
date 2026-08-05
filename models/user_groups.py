@@ -9,10 +9,9 @@ logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
 
 
 class UserGroups(UserMixin):
-    def __init__(self, _id, name, version):
+    def __init__(self, _id, name):
         self.id = _id
         self.name = name
-        self.version = version
 
     @classmethod
     def get(cls, group_id):
@@ -24,21 +23,21 @@ class UserGroups(UserMixin):
             )
 
             if group:
-                return cls(group.id, group.name, group.version)
+                return cls(group.id, group.name)
             else:
                 return None
 
     @classmethod
-    def create(cls, name, version):
+    def create(cls, name):
         with session_scope() as session:
             # logger.info(name)
             # Create a new UserGroupsTable record
-            new_group = UserGroupsTable(name=name, version=version)
+            new_group = UserGroupsTable(name=name)
             session.add(new_group)
             session.commit()
 
             # Return the created UserGroups instance
-            return cls(new_group.id, new_group.name, new_group.version)
+            return cls(new_group.id, new_group.name)
 
     @classmethod
     def get_all_with_user_count(cls):
@@ -49,7 +48,6 @@ class UserGroups(UserMixin):
                 session.query(
                     UserGroupsTable.id,
                     UserGroupsTable.name,
-                    UserGroupsTable.version,
                     func.count(UserTable.id).label("users_count"),
                 )
                 .outerjoin(
@@ -69,7 +67,6 @@ class UserGroups(UserMixin):
                 {
                     "id": group.id,
                     "name": group.name,
-                    "version": group.version,
                     "users_count": group.users_count,
                 }
                 for group in result

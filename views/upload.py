@@ -10,7 +10,6 @@ from flask_login import (
 from helpers.decorators import (
     approved_required,
 )
-from models.user import User
 from models.sequencing_upload import SequencingUpload
 from models.sequencing_sample import SequencingSample
 
@@ -33,20 +32,12 @@ def index():
         user_metadata_uploads = SequencingUpload.get_by_user_id(
             current_user.id
         )
-        user_groups = User.get_user_groups(current_user.id)
 
-        user_should_see_v2 = False
-        logger.info(user_groups)
         samples_with_missing_fields_nr = 0
         if current_user.admin:
             samples_with_missing_fields_nr = (
                 SequencingSample.count_missing_fields()
             )
-
-        for group in user_groups:
-            if group["version"] == 2:
-                user_should_see_v2 = True
-                break  # No need to check further, since we found a match
 
         return render_template(
             "index.html",
@@ -54,8 +45,6 @@ def index():
             user_id=current_user.id,
             email=current_user.email,
             sys_info=sys_info,
-            user_groups=user_groups,
-            user_should_see_v2=user_should_see_v2,
             user_metadata_uploads=user_metadata_uploads,
             samples_with_missing_fields_nr=samples_with_missing_fields_nr,
         )

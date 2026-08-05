@@ -262,8 +262,7 @@ def user_groups():
 @admin_required
 def add_user_group():
     group_name = request.form.get("name")
-    version = request.form.get("version")
-    UserGroups.create(group_name, version)
+    UserGroups.create(group_name)
 
     return redirect(url_for("user.user_groups"))
 
