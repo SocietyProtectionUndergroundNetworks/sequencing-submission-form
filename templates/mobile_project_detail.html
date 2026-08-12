@@ -168,6 +168,13 @@
             <dd class="col-sm-9">{{ s.notes }}</dd>
             {% endif %}
 
+            {% if s.extra_data %}
+            {% for key, value in s.extra_data.items() %}
+            <dt class="col-sm-3">{{ key }}</dt>
+            <dd class="col-sm-9">{{ value }}</dd>
+            {% endfor %}
+            {% endif %}
+
             <dt class="col-sm-3">Received</dt>
             <dd class="col-sm-9">{{ s.received_at.strftime('%Y-%m-%d %H:%M') }}</dd>
           </dl>
