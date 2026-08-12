@@ -623,6 +623,7 @@ class MobileAppStagingSampleTable(Base):
     vegetation = Column(String(500), nullable=True)
     notes = Column(Text, nullable=True)
     dna_concentration_ng_ul = Column(String(50), nullable=True)
+    extra_data = Column(JSON(none_as_null=True))
     received_at = Column(DateTime, nullable=False, default=func.now())
     transferred_to_upload_id = Column(
         Integer,

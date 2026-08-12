@@ -156,6 +156,7 @@ def mobile_project_detail(project_id):
                     "vegetation": s.vegetation,
                     "notes": s.notes,
                     "dna_concentration_ng_ul": s.dna_concentration_ng_ul,
+                    "extra_data": s.extra_data,
                     "received_at": s.received_at,
                     "transferred_to_upload_id": s.transferred_to_upload_id,
                     "photos": [
@@ -237,6 +238,7 @@ def mobile_transfer_samples(project_id):
                     "vegetation": s.vegetation,
                     "notes": s.notes,
                     "dna_concentration_ng_ul": s.dna_concentration_ng_ul,
+                    "extra_data": s.extra_data,
                     "photos": [
                         {
                             "id": ph.id,
@@ -288,6 +290,12 @@ def mobile_transfer_samples(project_id):
             "Notes": sample["notes"],
             "DNA_concentration_ng_ul": sample["dna_concentration_ng_ul"],
         }
+        # Extra fields don't match any real column on SequencingSamplesTable,
+        # so SequencingSample.create() automatically routes them into
+        # extracolumns_json. Core fields above always take precedence in case
+        # a researcher happens to name an extra field the same as a built-in one.
+        for key, value in (sample.get("extra_data") or {}).items():
+            datadict.setdefault(key, value)
         datadict = {k: v for k, v in datadict.items() if v is not None}
         new_sample_id = SequencingSample.create(target_upload_id, datadict)
         transferred_ids.append(sample["id"])

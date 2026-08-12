@@ -166,6 +166,16 @@ def batch_submit_samples():
             )
             continue
 
+        extra_data = sample.get("extra_data")
+        if extra_data is not None and not isinstance(extra_data, dict):
+            errors.append(
+                {
+                    "index": i,
+                    "error": "extra_data must be a JSON object",
+                }
+            )
+            continue
+
         validated.append((sample, collected))
 
     if errors:
@@ -275,6 +285,7 @@ def batch_submit_samples():
                     dna_concentration_ng_ul=sample.get(
                         "dna_concentration_ng_ul"
                     ),
+                    extra_data=sample.get("extra_data"),
                 )
             )
         session.add_all(rows)
