@@ -5,6 +5,7 @@ from models.db_model import (
     SequencingSamplesTable,
     ExternalSamplingTable,
     SequencingSequencerIDsTable,
+    SequencingUploadsTable,
 )
 from helpers.dbm import session_scope
 
@@ -23,6 +24,7 @@ class Ecoregion:
             ss = SequencingSamplesTable
             es = ExternalSamplingTable
             ssi = SequencingSequencerIDsTable
+            su = SequencingUploadsTable
 
             # Original total count
             num_sequencing_samples = func.count(func.distinct(ss.id)).label(
@@ -69,6 +71,50 @@ class Ecoregion:
                 )
             ).label("num_external_samples_SSU")
 
+            # Samples belonging to Spun Led projects (project id starts
+            # with "sl-")
+            num_spun_led_samples = func.count(
+                func.distinct(
+                    case(
+                        (su.project_id.ilike("sl-%"), ss.id),
+                        else_=None,
+                    )
+                )
+            ).label("num_spun_led_samples")
+
+            # Samples belonging to UEP projects (project id starts
+            # with "ue-")
+            num_uep_samples = func.count(
+                func.distinct(
+                    case(
+                        (su.project_id.ilike("ue-%"), ss.id),
+                        else_=None,
+                    )
+                )
+            ).label("num_uep_samples")
+
+            # Samples belonging to SPUN Third Party programs (project id
+            # starts with "tp-")
+            num_third_party_samples = func.count(
+                func.distinct(
+                    case(
+                        (su.project_id.ilike("tp-%"), ss.id),
+                        else_=None,
+                    )
+                )
+            ).label("num_third_party_samples")
+
+            # Samples belonging to BZ projects (project id starts
+            # with "bz-")
+            num_bz_samples = func.count(
+                func.distinct(
+                    case(
+                        (su.project_id.ilike("bz-%"), ss.id),
+                        else_=None,
+                    )
+                )
+            ).label("num_bz_samples")
+
             # Query
             query = (
                 session.query(
@@ -78,12 +124,17 @@ class Ecoregion:
                     num_sequencing_samples_SSU,
                     num_external_samples_ITS,
                     num_external_samples_SSU,
+                    num_spun_led_samples,
+                    num_uep_samples,
+                    num_third_party_samples,
+                    num_bz_samples,
                 )
                 .outerjoin(ss, ss.resolve_ecoregion_id == re.id)
                 .outerjoin(
                     ssi, ssi.sequencingSampleId == ss.id
                 )  # Join to Sequencer IDs
                 .outerjoin(es, es.resolve_ecoregion_id == re.id)
+                .outerjoin(su, su.id == ss.sequencingUploadId)
                 .group_by(re.ecoregion_name)
             )
 

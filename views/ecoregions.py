@@ -33,6 +33,10 @@ def download_ecoregions():
         "num_sequencing_samples_SSU",
         "num_external_samples_ITS",
         "num_external_samples_SSU",
+        "num_spun_led_samples",
+        "num_uep_samples",
+        "num_third_party_samples",
+        "num_bz_samples",
     ]
 
     # Create CSV data
@@ -50,6 +54,10 @@ def download_ecoregions():
                 ),
                 "num_external_samples_ITS": ecoregion.num_external_samples_ITS,
                 "num_external_samples_SSU": ecoregion.num_external_samples_SSU,
+                "num_spun_led_samples": ecoregion.num_spun_led_samples,
+                "num_uep_samples": ecoregion.num_uep_samples,
+                "num_third_party_samples": ecoregion.num_third_party_samples,
+                "num_bz_samples": ecoregion.num_bz_samples,
             }
         )
 
