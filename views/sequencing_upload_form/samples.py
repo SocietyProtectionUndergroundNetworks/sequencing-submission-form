@@ -2,6 +2,7 @@ from . import upload_form_bp
 import os
 import logging
 import csv
+import zipfile
 import pandas as pd
 import numpy as np
 import datetime
@@ -29,7 +30,10 @@ from helpers.metadata_check import (
 )
 from helpers.dbm import session_scope
 from helpers.photos import get_or_create_thumbnail
-from models.db_model import SequencingSamplePhotoTable
+from models.db_model import (
+    SequencingSamplePhotoTable,
+    SequencingSamplesTable,
+)
 from models.sequencing_upload import SequencingUpload
 from models.sequencing_sample import SequencingSample
 from werkzeug.utils import secure_filename
@@ -482,6 +486,70 @@ def download_metadata():
         generate(),
         mimetype="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@upload_form_bp.route(
+    "/download_sample_photos",
+    methods=["GET"],
+    endpoint="download_sample_photos",
+)
+@login_required
+@approved_required
+@staff_or_granted_permission_required
+def download_sample_photos():
+    process_id = request.args.get("process_id")
+    process_data = SequencingUpload.get(process_id)
+
+    if process_data is None:
+        return "Process data not found", 404
+
+    with session_scope() as session:
+        photos = (
+            session.query(
+                SequencingSamplePhotoTable.file_path,
+                SequencingSamplePhotoTable.sequencing_sample_id,
+                SequencingSamplesTable.SampleID,
+            )
+            .join(
+                SequencingSamplesTable,
+                SequencingSamplePhotoTable.sequencing_sample_id
+                == SequencingSamplesTable.id,
+            )
+            .filter(SequencingSamplesTable.sequencingUploadId == process_id)
+            .all()
+        )
+
+    if not photos:
+        return "No photos found for this project", 404
+
+    uploads_folder = process_data["uploads_folder"]
+    project_dir = os.path.join("seq_processed", uploads_folder)
+    os.makedirs(project_dir, exist_ok=True)
+    zip_path = os.path.join(project_dir, "sample_photos.zip")
+
+    # Photos are written straight from their existing location into the
+    # zip under a renamed arcname (sample id + SampleID) - no need to
+    # copy them to a temp directory and rename/delete them on disk first.
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for file_path, sample_id, sample_label in photos:
+            if not os.path.isfile(file_path):
+                logger.warning(
+                    "Sample photo missing on disk at '%s', skipping "
+                    "from photos zip",
+                    file_path,
+                )
+                continue
+            folder_name = "{:06d}_{}".format(
+                sample_id, secure_filename(sample_label or "unknown")
+            )
+            arcname = os.path.join(folder_name, os.path.basename(file_path))
+            zip_file.write(file_path, arcname=arcname)
+
+    return send_file(
+        os.path.abspath(zip_path),
+        as_attachment=True,
+        download_name=f"{uploads_folder}_photos.zip",
     )
 
 
