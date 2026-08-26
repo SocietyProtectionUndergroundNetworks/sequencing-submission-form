@@ -107,6 +107,16 @@
                     <a href="https://github.com/SocietyProtectionUndergroundNetworks/sequencing-submission-form/tree/master/r_scripts">SPUN Github</a>, 
                     and information on how this was generated is described below. *Use this if you are only interested in analysing ectomycorrhizal fungi from your ITS data.*
                 </li>
+                <li>
+                    <strong>physeq_fungi.Rdata</strong>- A Phyloseq object derived from the <strong>phyloseq_decontam.Rdata</strong>
+                    object for <strong>{{ its_region }}</strong>, after removing samples with fewer than 10 reads 
+                    and restricting the taxa to only those whose Domain is Fungi (excluding non-fungal, off-target taxa such as
+                    metazoans or plants that can be amplified by ITS primers). This Phyloseq object can be found inside only the
+                    '{{ its_region }}' folder. The script used to generate this can be found on the
+                    <a href="https://github.com/SocietyProtectionUndergroundNetworks/sequencing-submission-form/tree/master/r_scripts">SPUN Github</a>.
+                    *Use this if you want the full fungal community (not just ectomycorrhizal fungi) from your {{ its_region }} data,
+                    already decontaminated and filtered to well-sequenced samples.*
+                </li>
             {% endif %}
             {% if ssu_region %}
                 <li>
