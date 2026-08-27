@@ -190,10 +190,6 @@ def check_expedition_lead(value):
     return check_field_length_value(value, 150)
 
 
-def check_notes(value):
-    return check_field_length_value(value, 200)
-
-
 def check_collaborators_value(value):
     return check_field_length_value(value, 150)
 

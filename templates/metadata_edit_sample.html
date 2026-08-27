@@ -45,6 +45,8 @@
                                     id="{{ column_key }}"
                                     name="{{ column_key }}"
                                     value="{{ sample[column_key].split(' ')[0] if sample[column_key] else '' }}">
+                            {% elif column_key == 'Notes' %}
+                                <textarea class="form-control" id="{{ column_key }}" name="{{ column_key }}" rows="4" placeholder="{{ column_key }}">{{ sample[column_key] or '' }}</textarea>
                             {% else %}
                                 <input type="text" class="form-control" id="{{ column_key }}" name="{{ column_key }}" placeholder="{{ column_key }}" value="{{ sample[column_key] }}">
                             {% endif %}

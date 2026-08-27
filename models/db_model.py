@@ -17,7 +17,7 @@ from sqlalchemy import (
 )
 
 from sqlalchemy.orm import relationship, declarative_base
-from sqlalchemy.dialects.mysql import MEDIUMTEXT
+from sqlalchemy.dialects.mysql import MEDIUMTEXT, TEXT as MySQLText
 import uuid
 
 Base = declarative_base()
@@ -240,7 +240,10 @@ class SequencingSamplesTable(Base):
     Sample_type = Column(String(255), nullable=True)
     Sample_or_Control = Column(String(255), nullable=True)
     IndigenousPartnership = Column(Boolean, default=False)
-    Notes = Column(String(255), nullable=True)
+    Notes = Column(
+        MySQLText(charset="utf8mb4", collation="utf8mb4_unicode_ci"),
+        nullable=True,
+    )
     sequencer_ids = relationship(
         "SequencingSequencerIDsTable", backref="sample"
     )

@@ -100,7 +100,6 @@
     "required": "True"
   },
   "Notes": {
-    "help_tip": "Any additional notes about the sample.",
-    "check_function": "check_notes"
+    "help_tip": "Any additional notes about the sample."
   }
 }
