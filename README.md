@@ -8,7 +8,6 @@ and uploads the data to the correct google buckets.
 
 To run the application locally, you will need: 
 - [Docker running](https://www.docker.com/products/docker-desktop/)
-- Access to a google cloud project with buckets. Do not use the production project and bucket for this!
 
 Optional (but really helpfull)
 - [Gnu Make](https://www.gnu.org/software/make/)  . (If you are using mac and homebrew: [Gnu Make For Mac](https://formulae.brew.sh/formula/make) )
@@ -20,9 +19,10 @@ The solution was adopted by the following article: https://qmacro.org/blog/posts
 
 ## Preparation:
 
-#### The following two steps you can avoid by asking an other developer the json credentials of the existing service account used for development
-- On your google cloud project, create a service account with necessary permissions to access the buckets. Or ask an other developer to give you access to an existing one. 
-- Download the json file with the credentials of the service account and store it
+#### Google Cloud + Earth Engine (optional for local development)
+- If you want to use Google Cloud resources and Earth Engine locally, ask another developer for the existing development service account JSON credentials. 
+- Download the json file with the credentials of the service account and store it.
+- Make sure to set `DEV_MODE=false` to opt out and run locally with dummy buckets (no JSON credentials required).
 
 #### The following three steps you can avoid by asking an other developer for the necessary GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET used for development
 - In your google cloud project-> API & Services -> OAuth consent screen , create a concent screen to use for local development authentication 
@@ -31,7 +31,7 @@ The solution was adopted by the following article: https://qmacro.org/blog/posts
 
 #### Setup your .env
 - Copy your `.env.example` file to `.env`
-- Fill in the variables in the `.env` file. 
+- Fill in the variables in the `.env` file.
 - The variable GOOGLE_APPLICATION_CREDENTIALS_PATH is only used on the development environment. Point it to the json file you downloaded above with the credentials of the service account. This happens so that your application has access to the buckets. Note: This is not needed on the production environment. On the production environment it is set from the docker-compose file to /google_auth_file/key_file.json always
 - Set GOOGLE_CLIENT_CALLBACK_URL=http://127.0.0.1/login/callback
 - The GOOGLE_VM_PROPERTY is not needed for the application, only to create a shortcut for sshing to the virtual machine. You can safely ignore it.
