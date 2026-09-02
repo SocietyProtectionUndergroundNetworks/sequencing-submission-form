@@ -260,6 +260,49 @@ def delete_sequencer_ids():
 
 
 @upload_form_bp.route(
+    "/prepend_run_name_to_sequencer_ids",
+    methods=["POST"],
+    endpoint="prepend_run_name_to_sequencer_ids",
+)
+@login_required
+@approved_required
+@admin_required
+def prepend_run_name_to_sequencer_ids():
+    process_id = request.form.get("process_id")
+
+    if not process_id:
+        return jsonify({"error": "process_id is required"}), 400
+
+    updated_count, skipped_no_run_count = (
+        SequencingUpload.prepend_run_name_to_sequencer_ids(process_id)
+    )
+    logger.info(
+        f"Prepended the sequencing run name to {updated_count} sequencer "
+        f"ID(s) for process_id: {process_id} "
+        f"({skipped_no_run_count} skipped, no sequencing run set)"
+    )
+    message = (
+        f"Prepended the sequencing run name to {updated_count} sequencer "
+        "ID(s) (already-prefixed ones were left unchanged)."
+    )
+    if skipped_no_run_count:
+        message += (
+            f" {skipped_no_run_count} sequencer ID(s) have no sequencing "
+            "run set and were skipped."
+        )
+    return (
+        jsonify(
+            {
+                "message": message,
+                "updated_count": updated_count,
+                "skipped_no_run_count": skipped_no_run_count,
+            }
+        ),
+        200,
+    )
+
+
+@upload_form_bp.route(
     "/upload_sequencer_ids_file",
     methods=["POST"],
     endpoint="upload_sequencer_ids_file",

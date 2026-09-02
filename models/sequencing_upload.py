@@ -43,7 +43,7 @@ from pathlib import Path
 from flask_login import current_user
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import desc, func, text, or_, case
+from sqlalchemy import desc, func, text, or_, and_, case
 
 
 # Get the logger instance from app.py
@@ -770,6 +770,68 @@ class SequencingUpload:
             session.query(SequencingSequencerIDsTable).filter(
                 SequencingSequencerIDsTable.id.in_(sequencer_ids_subquery)
             ).delete(synchronize_session=False)
+
+    @classmethod
+    def prepend_run_name_to_sequencer_ids(self, upload_id: int):
+        """
+        For every sequencer ID row belonging to this upload, prepends the
+        row's own `sequencing_run` value (e.g. "Run_1_") to its
+        SequencerID, skipping rows that already start with it (so this is
+        safe to run more than once) and rows that have no sequencing_run
+        set. Used when a project has multiple sequencing runs and the
+        sequencer ID filenames from different runs clash.
+
+        Returns (updated_count, skipped_no_run_count).
+        """
+        with session_scope() as session:
+            samples_subquery = (
+                session.query(SequencingSamplesTable.id)
+                .filter(SequencingSamplesTable.sequencingUploadId == upload_id)
+                .subquery()
+            )
+
+            base_filter = SequencingSequencerIDsTable.sequencingSampleId.in_(
+                samples_subquery
+            )
+
+            has_run_name = and_(
+                SequencingSequencerIDsTable.sequencing_run.isnot(None),
+                SequencingSequencerIDsTable.sequencing_run != "",
+            )
+
+            skipped_no_run_count = (
+                session.query(SequencingSequencerIDsTable)
+                .filter(base_filter, ~has_run_name)
+                .count()
+            )
+
+            prefix = func.concat(
+                SequencingSequencerIDsTable.sequencing_run, "_"
+            )
+            # Compare via LEFT()/LENGTH() rather than LIKE, since the
+            # pattern here comes from a column (the run name) rather
+            # than a literal, so it can't be safely wildcard-escaped.
+            already_prefixed = (
+                func.left(
+                    SequencingSequencerIDsTable.SequencerID,
+                    func.length(prefix),
+                )
+                == prefix
+            )
+
+            updated_count = (
+                session.query(SequencingSequencerIDsTable)
+                .filter(base_filter, has_run_name, ~already_prefixed)
+                .update(
+                    {
+                        SequencingSequencerIDsTable.SequencerID: func.concat(
+                            prefix, SequencingSequencerIDsTable.SequencerID
+                        )
+                    },
+                    synchronize_session=False,
+                )
+            )
+            return updated_count, skipped_no_run_count
 
     @classmethod
     def mark_upload_confirmed_as_true(cls, process_id):

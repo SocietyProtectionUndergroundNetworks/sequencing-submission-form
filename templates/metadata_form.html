@@ -861,7 +861,12 @@
         class="btn btn-danger">
         Delete sequencer IDs
       </button>
-    {% endif %}    
+      <button id="step_7_prepend_run_name_btn"
+        data-process-id="{{ process_id }}"
+        class="btn btn-secondary">
+        Prepend run name to sequencer IDs
+      </button>
+    {% endif %}
     <div>   
       {% if process_data and process_data.regions %}
         {% for region in process_data.regions %}
@@ -2337,7 +2342,35 @@
                 $btn.prop('disabled', false).text('Delete Sequencer IDs');
             }
         });
-    }); 
+    });
+  });
+
+  $(document).ready(function () {
+    $('#step_7_prepend_run_name_btn').on('click', function(e) {
+        e.preventDefault();
+        const processId = $(this).data('process-id');
+        const $btn = $(this);
+
+        if (!confirm('Prepend each sequencer ID\'s own Sequencing Run to it (from the table above)? Sequencer IDs that already start with their run name are left unchanged.')) return;
+
+        $btn.prop('disabled', true).text('Updating...');
+
+        $.ajax({
+            url: '/prepend_run_name_to_sequencer_ids',
+            type: 'POST',
+            data: { process_id: processId },
+            success: function(response) {
+                sessionStorage.setItem('flashMessage', response.message);
+                sessionStorage.setItem('flashType', 'success');
+                location.reload();
+            },
+            error: function(xhr) {
+                const errorMsg = xhr.responseJSON ? xhr.responseJSON.error : "An error occurred";
+                showAlert(errorMsg, 'danger'); // Calls the global function
+                $btn.prop('disabled', false).text('Prepend run name to sequencer IDs');
+            }
+        });
+    });
   });
 
   
