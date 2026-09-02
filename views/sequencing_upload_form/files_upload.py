@@ -157,9 +157,13 @@ def sequencing_process_server_files():
         max_files_to_process = 150
 
         # Files that get successfully matched/processed are moved here,
-        # so re-running this action doesn't keep re-visiting them and the
-        # source directory stays clean.
-        processed_subdir = full_directory_path / "processed"
+        # under a per-project subdirectory, so re-running this action
+        # doesn't keep re-visiting them, the source directory stays
+        # clean, and files from different projects sharing the same
+        # source directory don't get mixed together.
+        processed_subdir = (
+            full_directory_path / "processed" / process_data["project_id"]
+        )
 
         # Loop through files in the directory
         for file_path in sorted(full_directory_path.iterdir()):
@@ -211,7 +215,7 @@ def sequencing_process_server_files():
                 # time this action is run.
                 if new_filename:
                     matched_files_count += 1
-                    processed_subdir.mkdir(exist_ok=True)
+                    processed_subdir.mkdir(parents=True, exist_ok=True)
                     try:
                         shutil.move(
                             str(file_path),
