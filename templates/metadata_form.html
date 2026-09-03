@@ -512,7 +512,20 @@
           <input type="file" id="step_4_append_file_button" accept=".csv, .xls, .xlsx" class="btn btn-secondary btn-sm">
         </form>
         <div id="step_4_append_msg" class="mt-2"></div>
-      </div>      
+      </div>
+    {% endif %}
+
+    {% if is_admin or is_owner %}
+      <div id="step_4_update_dna_concentration" class="form-step-item mt-4 border p-3">
+        <h4>Update DNA Concentration</h4>
+        <p>Upload a CSV/XLS with <strong>SampleID</strong> and <strong>DNA_concentration_ng_ul</strong> columns. Every SampleID must already exist in this project, or nothing will be updated.</p>
+        <form id="step_4_update_dna_concentration_form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <input type="hidden" name="process_id" value="{{ process_id }}">
+          <input type="file" id="step_4_update_dna_concentration_file_button" accept=".csv, .xls, .xlsx" class="btn btn-secondary btn-sm">
+        </form>
+        <div id="step_4_update_dna_concentration_msg" class="mt-2"></div>
+      </div>
     {% endif %}
 
     <div id="step_5" class="form-step-item">
@@ -2025,6 +2038,51 @@
 
   ////// ############################################# /////////
   ////// ####### STEP 4 UPDATE SAMPLES ENDS HERE #### /////////
+  ////// ############################################# /////////
+
+  ////// ############################################# /////////
+  ////// ##### STEP 4 UPDATE DNA CONCENTRATION START ## /////////
+  ////// ############################################# /////////
+  $(document).ready(function() {
+      $('#step_4_update_dna_concentration_file_button').on('change', function() {
+          var fileInput = this;
+          var file = fileInput.files[0];
+          var processId = $('#step_4_update_dna_concentration_form input[name="process_id"]').val();
+
+          if (!file) return;
+
+          if (!confirm('This will update the DNA concentration of all matching samples in this process. Proceed?')) {
+              fileInput.value = "";
+              return;
+          }
+
+          var formData = new FormData();
+          formData.append('file', file);
+          formData.append('process_id', processId);
+
+          $('#step_4_update_dna_concentration_msg').text('Processing...').removeClass('text-danger text-success').addClass('text-info');
+
+          $.ajax({
+              url: '/update_dna_concentration',
+              type: 'POST',
+              data: formData,
+              contentType: false,
+              processData: false,
+              success: function(response) {
+                  sessionStorage.setItem('flashMessage', response.message);
+                  sessionStorage.setItem('flashType', 'success');
+                  location.reload();
+              },
+              error: function(xhr) {
+                  var errorMsg = xhr.responseJSON ? xhr.responseJSON.error : "An error occurred";
+                  $('#step_4_update_dna_concentration_msg').text(errorMsg).removeClass('text-info').addClass('text-danger');
+                  fileInput.value = "";
+              }
+          });
+      });
+  });
+  ////// ############################################# /////////
+  ////// ##### STEP 4 UPDATE DNA CONCENTRATION END #### /////////
   ////// ############################################# /////////
 
   ////// ############################################# /////////

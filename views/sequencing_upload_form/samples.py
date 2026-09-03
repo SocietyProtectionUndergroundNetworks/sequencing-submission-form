@@ -691,3 +691,90 @@ def admin_append_metadata_columns():
         ),
         200,
     )
+
+
+@upload_form_bp.route(
+    "/update_dna_concentration",
+    methods=["POST"],
+    endpoint="update_dna_concentration",
+)
+@login_required
+@approved_required
+@admin_or_owner_required
+def update_dna_concentration():
+    file = request.files.get("file")
+    process_id = request.form.get("process_id")
+
+    if not file or not process_id:
+        return jsonify({"error": "File or Process ID missing"}), 400
+
+    # Read file
+    file_extension = os.path.splitext(file.filename)[1].lower()
+    if file_extension == ".csv":
+        df = pd.read_csv(file, sep=None, engine="python")
+    elif file_extension in [".xls", ".xlsx"]:
+        df = pd.read_excel(file, engine="openpyxl")
+    else:
+        return jsonify({"error": "Unsupported file type"}), 400
+
+    required_columns = {"SampleID", "DNA_concentration_ng_ul"}
+    if not required_columns.issubset(df.columns):
+        return (
+            jsonify(
+                {
+                    "error": (
+                        "File must contain 'SampleID' and "
+                        "'DNA_concentration_ng_ul' columns"
+                    )
+                }
+            ),
+            400,
+        )
+
+    df = df.replace({np.nan: None})
+    df["SampleID"] = df["SampleID"].apply(
+        lambda v: str(v).strip() if v is not None else v
+    )
+
+    # Get existing samples for this process to match against
+    existing_samples = SequencingUpload.get_samples(process_id)
+    sample_map = {s["SampleID"]: s["id"] for s in existing_samples}
+
+    # Validate every SampleID before applying any updates — an upload
+    # that references an unknown sample is rejected in full, rather
+    # than silently applying a partial update.
+    invalid_sample_ids = sorted(
+        {sid for sid in df["SampleID"] if sid not in sample_map}
+    )
+    if invalid_sample_ids:
+        return (
+            jsonify(
+                {
+                    "error": (
+                        "The following SampleID(s) were not found in "
+                        f"this project: {', '.join(invalid_sample_ids)}"
+                    )
+                }
+            ),
+            400,
+        )
+
+    update_count = 0
+    for _, row in df.iterrows():
+        db_id = sample_map[row["SampleID"]]
+        if SequencingSample.update(
+            db_id, {"DNA_concentration_ng_ul": row["DNA_concentration_ng_ul"]}
+        ):
+            update_count += 1
+
+    return (
+        jsonify(
+            {
+                "message": (
+                    f"Successfully updated DNA concentration for "
+                    f"{update_count} sample(s)."
+                )
+            }
+        ),
+        200,
+    )
