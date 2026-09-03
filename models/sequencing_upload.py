@@ -655,6 +655,7 @@ class SequencingUpload:
                 "using_scripps",
                 "belongs_to_community",
                 "permits_confirmed",
+                "exclude_from_global_mapping",
             )
             for key, value in datadict.items():
                 if key in boolean_yes_no_fields:

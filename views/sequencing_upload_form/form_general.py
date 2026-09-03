@@ -40,6 +40,8 @@ def metadata_form():
         my_buckets[my_bucket] = Bucket.get(my_bucket)
     expected_columns = get_columns_data(exclude=False)
     project_common_data = get_project_common_data()
+    if not current_user.admin:
+        project_common_data.pop("exclude_from_global_mapping", None)
     process_data = None
     process_id = request.args.get("process_id", "")
     primer_set_regions = get_primer_sets_regions()
@@ -243,6 +245,7 @@ def upload_process_common_fields():
             boolean_yes_no_fields = (
                 "belongs_to_community",
                 "permits_confirmed",
+                "exclude_from_global_mapping",
             )
             for key, value in form_data.items():
                 logger.info(

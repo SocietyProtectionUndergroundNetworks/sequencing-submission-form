@@ -127,6 +127,7 @@ class SequencingUploadsTable(Base):
     permits_confirmed = Column(Boolean, default=False)
     collaboration_type = Column(String(255), nullable=True)
     community_contact_info = Column(String(255), nullable=True)
+    exclude_from_global_mapping = Column(Boolean, default=False)
 
 
 class SequencingAnalysisTable(Base):

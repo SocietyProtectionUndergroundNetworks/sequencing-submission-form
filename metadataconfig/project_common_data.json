@@ -94,5 +94,11 @@
   "community_contact_info": {
     "label": "Community contact info",
     "help_tip": "Only fill in if Engagement is 'Co-Designed/Partnered'."
+  },
+  "exclude_from_global_mapping": {
+    "label": "Exclude from global mapping",
+    "field_type": "checkbox",
+    "checkbox_text": "Exclude this project from the global mapping",
+    "help_tip": "If checked, this project's samples are excluded from the global mapping."
   }
 }

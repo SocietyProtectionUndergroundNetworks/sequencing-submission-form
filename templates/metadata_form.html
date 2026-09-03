@@ -133,6 +133,7 @@
             {% if column_key == "collaboration_type" %}
               <h5 class="mt-2" id="collaboration_type_heading" {% if not is_land_status_selected %}style="display:none;"{% endif %}>Engagement with indigenous communities</h5>
             {% endif %}
+            {% if column_key != "exclude_from_global_mapping" or is_admin %}
             <div class="form-group row mb-3" id="{{ column_key }}_row" data-condition="{{ column_values.get('required', '') }}"
               {% if column_key == "territory_name" and not is_customary_territory %}
                 style="display: none;"
@@ -296,6 +297,7 @@
                 {% endif %}
               </div>
             </div>
+            {% endif %}
           {% endfor %}
           <button type="button" class="btn btn-secondary" id="step_3_button">Process</button>
         </fieldset>
