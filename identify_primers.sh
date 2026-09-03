@@ -182,6 +182,29 @@ fi
 # We build it up first and format/sort it for display afterwards, rather
 # than printing as we go, so we can sort by match count and show per-file
 # summaries at the end.
+# Expands IUPAC nucleotide ambiguity codes (R, Y, S, W, K, M, B, D, H, V, N,
+# and I for inosine) into regex character classes, e.g. "R" -> "[AG]".
+# Primer sequences routinely contain these -- they mean "any of these bases
+# at this position" -- but they never appear literally in a real sequenced
+# read (which only ever contains A/C/G/T/N), so grepping for the raw primer
+# string would silently never match any primer set that has an ambiguous
+# position, no matter how correct it actually is.
+iupac_to_regex() {
+  echo "$1" | sed \
+    -e 's/R/[AG]/g' \
+    -e 's/Y/[CT]/g' \
+    -e 's/S/[GC]/g' \
+    -e 's/W/[AT]/g' \
+    -e 's/K/[GT]/g' \
+    -e 's/M/[AC]/g' \
+    -e 's/B/[CGT]/g' \
+    -e 's/D/[AGT]/g' \
+    -e 's/H/[ACT]/g' \
+    -e 's/V/[ACG]/g' \
+    -e 's/N/[ACGT]/g' \
+    -e 's/I/[ACGT]/g'
+}
+
 RESULTS="$(mktemp)"
 trap 'rm -f "$RESULTS"' EXIT   # clean up the temp file no matter how we exit
 
@@ -219,13 +242,18 @@ for f in "${FILES[@]}"; do
       seq=$(jq -r --arg n "$name" --arg f "$field" '.[$n][$f] // empty' "$PRIMERS_FILE")
       [ -z "$seq" ] && continue
 
+      # Expand any IUPAC ambiguity codes into regex character classes
+      # before matching -- see iupac_to_regex() above. $seq itself (the
+      # raw, human-readable primer sequence) is kept for display below.
+      pattern=$(iupac_to_regex "$seq")
+
       # Total: how many reads contain this sequence anywhere.
       # At_start: how many reads have it right at the beginning (i.e. the
       # primer hasn't been trimmed off yet). `|| true` prevents `set -e`
       # from killing the script when grep finds zero matches (grep exits
       # non-zero in that case, which is not an error condition for us).
-      total=$(grep -c -- "$seq" "$SEQ_LINES" || true)
-      at_start=$(grep -c -- "^$seq" "$SEQ_LINES" || true)
+      total=$(grep -c -- "$pattern" "$SEQ_LINES" || true)
+      at_start=$(grep -c -- "^$pattern" "$SEQ_LINES" || true)
 
       # Only record a result row if we actually found something -- this
       # keeps the final table free of primer sets/fields with zero hits.
