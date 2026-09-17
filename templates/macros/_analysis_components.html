@@ -11,6 +11,7 @@
         <th scope="col" class="bg-gray">demulti.log</th>
         <th scope="col" class="bg-gray">LotuS_run.log</th>
         <th scope="col" class="bg-gray">phyloseq.Rdata</th>
+        <th scope="col" class="bg-gray">Reads processed / accepted / rejected</th>
         {% if not is_meta %}
           <th scope="col" class="bg-gray">Bucket</th>
         {% endif %}
@@ -88,7 +89,14 @@
             {% else %}<span class="text-danger">Not Found</span>{% endif %}
           </td>
           {% endfor %}
-          
+          <td>
+            {% if region_data.read_stats %}
+              {{ "{:,}".format(region_data.read_stats.starting_reads) }} processed<br>
+              {{ "{:,}".format(region_data.read_stats.accepted) }} accepted ({{ region_data.read_stats.accepted_pct }}%)<br>
+              {{ "{:,}".format(region_data.read_stats.rejected) }} rejected ({{ region_data.read_stats.rejected_pct }}%)
+            {% endif %}
+          </td>
+
           {% if not is_meta %}
             <td>
               {% if region_data.lotus2_status == "Finished" %}

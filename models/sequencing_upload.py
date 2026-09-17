@@ -11,6 +11,7 @@ import pandas as pd
 from unidecode import unidecode
 from collections import defaultdict
 from helpers.dbm import session_scope
+from helpers.lotus2 import parse_lotus2_read_stats
 from helpers.fastqc import init_create_fastqc_report, check_fastqc_report
 from helpers.metadata_check import (
     get_sequences_based_on_primers,
@@ -1774,6 +1775,7 @@ class SequencingUpload:
                         },
                         "bucket_log_exists": False,
                         "lotus2_command_outcome": False,
+                        "read_stats": None,
                         "analysis_type": analysis_type_name,
                         "analysis_type_id": analysis_type.id,
                         "parameters": {},
@@ -1788,6 +1790,9 @@ class SequencingUpload:
                         region_result["lotus2_status"] = analysis.lotus2_status
                         region_result["parameters"] = analysis.parameters
                         region_result["lotus2_command_outcome"] = (
+                            analysis.lotus2_result
+                        )
+                        region_result["read_stats"] = parse_lotus2_read_stats(
                             analysis.lotus2_result
                         )
                         region_result["started_at"] = (

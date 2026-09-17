@@ -1,5 +1,6 @@
 import docker
 import logging
+import re
 import shutil
 import os
 from datetime import datetime
@@ -11,6 +12,75 @@ from helpers.hetzner_vm import run_lotus3_on_vm
 
 # PROCESS_DIR =
 logger = logging.getLogger("my_app_logger")
+
+
+def parse_lotus2_read_stats(lotus2_result_text):
+    """
+    Extracts read-count stats from the sdm summary block lotus2/lotus3
+    prints partway through its console output, e.g.:
+
+        Reads processed: 4,957,343; 4,957,343 (pair 1;pair 2)
+        Accepted (High qual): 4,182,802; 4,440,985 (4,092; 951,604
+        end-trimmed)
+        Accepted (Mid qual): 174;0
+        Rejected: 774,367; 516,358
+
+    That full console output (stdout+stderr) is already saved verbatim as
+    SequencingAnalysisTable.lotus2_result when a run finishes, so this
+    parses the value already in hand -- no extra file reads or DB storage
+    needed.
+
+    "Reads processed" reports the same read-pair count for both mates
+    (pair 1 / pair 2), but accept/reject decisions are made per-mate, so
+    the pool being classified is 2x that pair count -- Accepted(High) +
+    Accepted(Mid) + Rejected always sums to exactly that.
+
+    Returns None if the text is empty or doesn't contain this block --
+    e.g. a run that errored before reaching this stage, so lotus2_result
+    holds an error message instead.
+    """
+    if not lotus2_result_text:
+        return None
+
+    def pair(label):
+        match = re.search(
+            rf"{label}:\s*([\d,]+)\s*;\s*([\d,]+)", lotus2_result_text
+        )
+        if not match:
+            return None
+        return (
+            int(match.group(1).replace(",", "")),
+            int(match.group(2).replace(",", "")),
+        )
+
+    processed = pair("Reads processed")
+    high_qual = pair(r"Accepted \(High qual\)")
+    mid_qual = pair(r"Accepted \(Mid qual\)")
+    rejected = pair("Rejected")
+
+    if not (processed and high_qual and mid_qual and rejected):
+        return None
+
+    starting_reads = processed[0]
+    total_accepted = sum(high_qual) + sum(mid_qual)
+    total_rejected = sum(rejected)
+    total_classified = total_accepted + total_rejected
+
+    return {
+        "starting_reads": starting_reads,
+        "accepted": total_accepted,
+        "accepted_pct": (
+            round(total_accepted / total_classified * 100, 1)
+            if total_classified
+            else None
+        ),
+        "rejected": total_rejected,
+        "rejected_pct": (
+            round(total_rejected / total_classified * 100, 1)
+            if total_classified
+            else None
+        ),
+    }
 
 
 def init_generate_lotus2_report(

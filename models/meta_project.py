@@ -1,5 +1,6 @@
 # models/meta_project.py
 from helpers.dbm import session_scope
+from helpers.lotus2 import parse_lotus2_read_stats
 from models.db_model import (
     MetaProjectsTable,
     MetaProjectUploadsTable,
@@ -232,6 +233,7 @@ class MetaProject:
                         },
                         "bucket_log_exists": False,
                         "lotus2_command_outcome": False,
+                        "read_stats": None,
                         "parameters": {},
                         "started_at": None,
                         "finished_at": None,
@@ -244,6 +246,9 @@ class MetaProject:
                                 "lotus2_status": analysis.lotus2_status,
                                 "parameters": analysis.parameters or {},
                                 "lotus2_command_outcome": analysis.lotus2_result,
+                                "read_stats": parse_lotus2_read_stats(
+                                    analysis.lotus2_result
+                                ),
                                 "started_at": analysis.lotus2_started_at,
                                 "finished_at": analysis.lotus2_finished_at,
                             }
