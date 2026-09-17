@@ -182,6 +182,15 @@
             {% else %}
               <span class="text-danger">Not Found</span>
             {% endif %}
+            {% if log == 'physeq_by_genus' and region_data.files_exist['physeq_by_genus_png'] %}
+              <br>
+              <img src="{{ url_for('upload_form_bp.show_report_outcome',
+                        analysis_type_id=region_data.analysis_type_id,
+                        process_id=(target_id if not is_meta else None),
+                        type='physeq_by_genus_png',
+                        meta_project_id=(target_id if is_meta else None)) }}"
+                width="200" height="200" alt="physeq_by_genus preview">
+            {% endif %}
           </td>
           {% endfor %}
           {% if not is_meta %}

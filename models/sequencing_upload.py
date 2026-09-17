@@ -2041,6 +2041,7 @@ class SequencingUpload:
                             "metadata_chaorichness": False,
                             "contaminants": False,
                             "physeq_by_genus": False,
+                            "physeq_by_genus_png": False,
                             "rscripts_command_outcome": False,
                             "vtx_table": False,
                         },
@@ -2154,6 +2155,13 @@ class SequencingUpload:
                             region_result["files_exist"]["physeq_by_genus"] = (
                                 os.path.isfile(physeq_by_genus_file)
                             )
+                            physeq_by_genus_png_file = (
+                                os.path.splitext(physeq_by_genus_file)[0]
+                                + ".png"
+                            )
+                            region_result["files_exist"][
+                                "physeq_by_genus_png"
+                            ] = os.path.isfile(physeq_by_genus_png_file)
 
                             # Check if we need to verify files in the bucket
                             bucket_directory = (

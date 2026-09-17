@@ -316,6 +316,7 @@ class MetaProject:
                             "metadata_chaorichness": False,
                             "contaminants": False,
                             "physeq_by_genus": False,
+                            "physeq_by_genus_png": False,
                             "rscripts_command_outcome": False,
                             "vtx_table": False,
                         },
@@ -395,6 +396,14 @@ class MetaProject:
                                 os.path.isfile(
                                     os.path.join(report_folder, genus_file)
                                 )
+                            )
+                            genus_png_file = (
+                                os.path.splitext(genus_file)[0] + ".png"
+                            )
+                            region_result["files_exist"][
+                                "physeq_by_genus_png"
+                            ] = os.path.isfile(
+                                os.path.join(report_folder, genus_png_file)
                             )
 
                     results.append(region_result)

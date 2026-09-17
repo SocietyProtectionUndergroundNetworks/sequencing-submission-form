@@ -77,6 +77,7 @@ def show_report_outcome():
         "physeq_decontam",
         "metadata_chaorichness",
         "physeq_by_genus",
+        "physeq_by_genus_png",
         "contaminants",
         "vtx_table",
     ]:
@@ -154,6 +155,7 @@ def show_report_outcome():
             "physeq_decontam",
             "metadata_chaorichness",
             "physeq_by_genus",
+            "physeq_by_genus_png",
             "contaminants",
             "vtx_table",
         ]:
@@ -228,6 +230,21 @@ def show_report_outcome():
                             report_folder, "amf_physeq_by_genus.pdf"
                         )
                     return send_file(file_path, as_attachment=True)
+
+                elif file_type == "physeq_by_genus_png":
+                    file_path = os.path.join(
+                        report_folder, "ecm_physeq_by_genus.png"
+                    )
+                    if rscipts_region_data["analysis_type"] in [
+                        "SSU_dada2",
+                        "SSU_vsearch",
+                        "SSU_eukaryome",
+                    ]:
+                        file_path = os.path.join(
+                            report_folder, "amf_physeq_by_genus.png"
+                        )
+                    # Not as_attachment: this is embedded inline as <img src=...>
+                    return send_file(file_path)
 
                 elif file_type == "vtx_table":
                     file_path = os.path.join(
