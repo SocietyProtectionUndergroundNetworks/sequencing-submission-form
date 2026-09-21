@@ -781,6 +781,7 @@
                       <th scope="col" class="bg-gray">Primer Count</th>
                       <th scope="col" class="bg-gray">Primer Pair Count</th>
                       <th scope="col" class="bg-gray">Merged Read Primer Pair Count</th>
+                      <th scope="col" class="bg-gray">Accepted Reads (High/Mid/Total)</th>
                       <th scope="col" class="bg-gray">Exclude from mapping</th>
                   </tr>
               </thead>
@@ -850,6 +851,21 @@
                             
                             {# Use your existing macro for the percent cell #}
                             {{ macros.percent_cell(sequencer.fwd_rev_mrg_adap, current_file.total_sequences_number if current_file else 0) }}
+
+                            <td>
+                                {% if sequencer %}
+                                    {% if sequencer.progout_accepted_high_qual is not none %}
+                                        High: {{ "{:,}".format(sequencer.progout_accepted_high_qual) }}<br>
+                                        Mid: {{ "{:,}".format(sequencer.progout_accepted_mid_qual) }}<br>
+                                        Total: {{ "{:,}".format(sequencer.progout_accepted_high_qual + sequencer.progout_accepted_mid_qual) }}
+                                    {% elif sequencer.progout_stats_by_analysis_type %}
+                                        <span class="text-danger">Differs across analyses:</span><br>
+                                        {% for analysis_type_name, stats in sequencer.progout_stats_by_analysis_type.items() %}
+                                            {{ analysis_type_name }}: High {{ "{:,}".format(stats.high_qual) }}, Mid {{ "{:,}".format(stats.mid_qual) }}, Total {{ "{:,}".format(stats.high_qual + stats.mid_qual) }}<br>
+                                        {% endfor %}
+                                    {% endif %}
+                                {% endif %}
+                            </td>
 
                             <td>
                                 {% if current_file %}

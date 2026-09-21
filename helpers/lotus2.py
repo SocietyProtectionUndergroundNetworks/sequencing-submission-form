@@ -83,6 +83,271 @@ def parse_lotus2_read_stats(lotus2_result_text):
     }
 
 
+def parse_lotus2_progout_sample_blocks(text):
+    """
+    Parses a LotuS_progout.log file's per-sample blocks (sdm processes and
+    reports on one input file pair at a time), returning accepted-read
+    counts (high qual / mid qual) keyed by each sample's R1 AND R2
+    filenames as lotus2 itself refers to them -- i.e. the app's own
+    standardized new_name (e.g. "P_whitesand_01_ITS2_1.fastq.gz"), not the
+    original filename the user uploaded:
+
+        {"P_whitesand_01_ITS2_1.fastq.gz": {"high_qual": 344440, "mid_qual": 6},
+         "P_whitesand_01_ITS2_2.fastq.gz": {"high_qual": 344440, "mid_qual": 6}}
+
+    Both filenames map to the same values (the block covers the pair
+    together), so callers can look up by whichever of the two new_name
+    values they have on hand without needing to know which one is R1 vs
+    R2.
+
+    A typical block looks like:
+        Input File:  /seq_processed/.../P_whitesand_01_ITS2_1.fastq.gz,P_whitesand_01_ITS2_2.fastq.gz
+        Output File: /tmp/demulti.1.fna
+
+        Reads processed: 202,800; 202,800 (pair 1;pair 2)
+        58;58 reads reverse-translated, 58 read pairs swapped
+        Rejected: 42,879; 18,275
+        Accepted (High qual): 159,915; 184,525 (259; 15,187 end-trimmed)
+        Accepted (Mid qual): 6;0
+    """
+    block_re = re.compile(
+        r"Input File:\s*(\S+?)\s*,\s*(\S+?)\s*\n"
+        r".*?Accepted \(High qual\):\s*([\d,]+)\s*;\s*([\d,]+)"
+        r".*?Accepted \(Mid qual\):\s*([\d,]+)\s*;\s*([\d,]+)",
+        re.DOTALL,
+    )
+
+    def num(value):
+        return int(value.replace(",", ""))
+
+    results = {}
+    for match in block_re.finditer(text):
+        r1_path, r2_name, h1, h2, m1, m2 = match.groups()
+        stats = {
+            "high_qual": num(h1) + num(h2),
+            "mid_qual": num(m1) + num(m2),
+        }
+        results[os.path.basename(r1_path)] = stats
+        results[os.path.basename(r2_name)] = stats
+    return results
+
+
+def update_sequencer_read_stats_from_progout(
+    process_id, flask_relative_input_dir, region, analysis_type_name
+):
+    """
+    Parses the LotuS_progout.log just produced by a finished lotus2 run and
+    merges each sample's Accepted (High/Mid qual) counts onto its matching
+    SequencingSequencerIDsTable row for this project+region.
+
+    This is called once, right when an analysis finishes (see
+    generate_lotus2_report below), rather than re-parsed on every page
+    view: LotuS_progout.log files run 70KB-250KB+ each and a project can
+    have several per region (one per analysis type), so re-reading and
+    regexing all of them on every metadata_form page load would be far
+    more expensive than the rare, one-off cost of parsing once here.
+
+    A project's region is typically processed by more than one analysis
+    type (e.g. ITS2 and ITS2_eukaryome), each producing its own
+    LotuS_progout.log from the same underlying sdm step -- so the numbers
+    are expected to agree, but aren't assumed to: every analysis type's
+    result for a sample is accumulated in that row's
+    progout_stats_by_analysis_type JSON column, and the flat
+    progout_accepted_high_qual/progout_accepted_mid_qual columns are kept
+    populated only while every analysis type seen so far agrees; as soon as
+    two disagree, those flat columns are cleared (set back to None) so the
+    UI knows to fall back to showing the full per-analysis-type breakdown
+    from the JSON column instead of a single (potentially misleading)
+    number.
+
+    Only meaningful for real projects, not meta-projects (which combine
+    already-uploaded samples from other projects rather than owning their
+    own SequencingSequencerIDsTable rows) -- callers should skip this for
+    is_meta runs.
+    """
+    progout_log_path = os.path.join(
+        flask_relative_input_dir,
+        "lotus2_report",
+        analysis_type_name,
+        "LotuSLogS",
+        "LotuS_progout.log",
+    )
+    if not os.path.isfile(progout_log_path):
+        logger.warning(
+            "Cannot update per-sample read stats: %s not found",
+            progout_log_path,
+        )
+        return
+
+    with open(progout_log_path) as f:
+        parsed = parse_lotus2_progout_sample_blocks(f.read())
+
+    if not parsed:
+        logger.warning(
+            "No parseable sample blocks found in %s", progout_log_path
+        )
+        return
+
+    from helpers.dbm import session_scope
+    from models.db_model import (
+        SequencingSequencerIDsTable,
+        SequencingSamplesTable,
+        SequencingFilesUploadedTable,
+    )
+
+    with session_scope() as session:
+        sequencer_rows = (
+            session.query(SequencingSequencerIDsTable)
+            .join(
+                SequencingSamplesTable,
+                SequencingSamplesTable.id
+                == SequencingSequencerIDsTable.sequencingSampleId,
+            )
+            .filter(
+                SequencingSamplesTable.sequencingUploadId == process_id,
+                SequencingSequencerIDsTable.Region == region,
+            )
+            .all()
+        )
+        for seq in sequencer_rows:
+            file_names = [
+                row[0]
+                for row in session.query(SequencingFilesUploadedTable.new_name)
+                .filter(SequencingFilesUploadedTable.sequencerId == seq.id)
+                .all()
+            ]
+            stats = next(
+                (parsed[name] for name in file_names if name in parsed),
+                None,
+            )
+            if stats is None:
+                continue
+
+            existing = dict(seq.progout_stats_by_analysis_type or {})
+            existing[analysis_type_name] = stats
+            seq.progout_stats_by_analysis_type = existing
+
+            unique_values = {
+                (v["high_qual"], v["mid_qual"]) for v in existing.values()
+            }
+            if len(unique_values) == 1:
+                seq.progout_accepted_high_qual = stats["high_qual"]
+                seq.progout_accepted_mid_qual = stats["mid_qual"]
+            else:
+                seq.progout_accepted_high_qual = None
+                seq.progout_accepted_mid_qual = None
+
+
+def backfill_progout_read_stats_for_all_projects():
+    """
+    One-off maintenance sweep: for every real-project (non-meta) lotus2
+    analysis that has already finished, (re-)parses its LotuS_progout.log
+    and populates SequencingSequencerIDsTable's progout_accepted_high_qual
+    / progout_accepted_mid_qual / progout_stats_by_analysis_type columns --
+    the same columns update_sequencer_read_stats_from_progout() populates
+    automatically the moment each *new* analysis finishes.
+
+    Meant to backfill projects that were analysed before that feature
+    existed. Run once from the shell (not via a web route -- sweeping
+    every project's every finished analysis type reads/regexes a lot of
+    on-disk log files and would very plausibly exceed a normal HTTP
+    request timeout):
+
+        docker-compose exec flask python backfill_progout_read_stats.py
+
+    or directly against a running production container:
+
+        docker exec -it spun-flask python3 backfill_progout_read_stats.py
+
+    Safe to re-run -- each analysis type's contribution is simply
+    recomputed and overwritten in place, same as the live per-analysis
+    update does, so an interrupted run can just be started again.
+    """
+    from helpers.dbm import session_scope
+    from models.db_model import (
+        SequencingAnalysisTable,
+        SequencingAnalysisTypesTable,
+        SequencingUploadsTable,
+    )
+
+    with session_scope() as session:
+        rows = (
+            session.query(
+                SequencingAnalysisTable.sequencingUploadId,
+                SequencingAnalysisTypesTable.region,
+                SequencingAnalysisTypesTable.name,
+                SequencingUploadsTable.uploads_folder,
+            )
+            .join(
+                SequencingAnalysisTypesTable,
+                SequencingAnalysisTypesTable.id
+                == SequencingAnalysisTable.sequencingAnalysisTypeId,
+            )
+            .join(
+                SequencingUploadsTable,
+                SequencingUploadsTable.id
+                == SequencingAnalysisTable.sequencingUploadId,
+            )
+            .filter(
+                # Meta-project analyses have sequencingUploadId NULL and
+                # metaProjectId set instead -- they don't own their own
+                # SequencingSequencerIDsTable rows, so skip them.
+                SequencingAnalysisTable.sequencingUploadId.isnot(None),
+                SequencingAnalysisTable.lotus2_status == "Finished",
+            )
+            .all()
+        )
+
+    total = len(rows)
+    print(f"Found {total} finished (non-meta) lotus2 analyses to backfill.")
+
+    succeeded = 0
+    skipped = 0
+    failed = 0
+    for i, (
+        process_id,
+        region,
+        analysis_type_name,
+        uploads_folder,
+    ) in enumerate(rows, start=1):
+        flask_relative_input_dir = os.path.join(
+            "seq_processed", uploads_folder
+        )
+        progout_log_path = os.path.join(
+            flask_relative_input_dir,
+            "lotus2_report",
+            analysis_type_name,
+            "LotuSLogS",
+            "LotuS_progout.log",
+        )
+        label = (
+            f"[{i}/{total}] process_id={process_id} region={region} "
+            f"analysis_type={analysis_type_name}"
+        )
+        if not os.path.isfile(progout_log_path):
+            print(f"{label}: SKIP -- {progout_log_path} not found")
+            skipped += 1
+            continue
+        try:
+            update_sequencer_read_stats_from_progout(
+                process_id,
+                flask_relative_input_dir,
+                region,
+                analysis_type_name,
+            )
+            print(f"{label}: OK")
+            succeeded += 1
+        except Exception as e:
+            print(f"{label}: FAILED -- {e}")
+            logger.exception("Backfill failed for %s", label)
+            failed += 1
+
+    print(
+        f"\nDone. {succeeded} succeeded, {skipped} skipped (no log file "
+        f"on disk), {failed} failed, out of {total} total."
+    )
+
+
 def init_generate_lotus2_report(
     process_id,
     input_dir,
@@ -188,6 +453,13 @@ def generate_lotus2_report(
     SequencingAnalysis.update_field(analysis_id, "lotus2_status", "Started")
     SequencingAnalysis.update_field(analysis_id, "parameters", parameters)
 
+    # Flask-side relative path (e.g. "seq_processed/00289_.../"), captured
+    # before input_dir gets rewritten below into the absolute path lotus3's
+    # own container expects on its side of the mount. Used later to read
+    # LotuS_progout.log back from this process (only meaningful/used for
+    # non-meta runs -- see update_sequencer_read_stats_from_progout below).
+    flask_relative_input_dir = input_dir
+
     # 2. DEFINE PATHS (Updated for Meta Projects)
     if is_meta:
         meta_data = MetaProject.get(process_id)
@@ -244,6 +516,31 @@ def generate_lotus2_report(
 
             remote_pipeline = AppConfiguration.get_value("remote_pipeline")
 
+            def update_read_stats():
+                # Meta-projects don't own SequencingSequencerIDsTable rows
+                # (they combine samples already uploaded to other
+                # projects), so there's nothing to update for them.
+                if is_meta:
+                    return
+                try:
+                    update_sequencer_read_stats_from_progout(
+                        process_id,
+                        flask_relative_input_dir,
+                        region,
+                        analysis_type.name,
+                    )
+                except Exception:
+                    # Never let a parsing hiccup here fail an otherwise
+                    # successfully finished lotus2 run.
+                    logger.exception(
+                        "Failed to update per-sample read stats from "
+                        "LotuS_progout.log for process_id=%s region=%s "
+                        "analysis_type=%s",
+                        process_id,
+                        region,
+                        analysis_type.name,
+                    )
+
             # -------------------------------------------------------
             # REMOTE PIPELINE LOGIC
             # -------------------------------------------------------
@@ -274,6 +571,7 @@ def generate_lotus2_report(
                 SequencingAnalysis.update_field(
                     analysis_id, "lotus2_finished_at", datetime.utcnow()
                 )
+                update_read_stats()
 
                 return
 
@@ -292,6 +590,7 @@ def generate_lotus2_report(
             SequencingAnalysis.update_field(
                 analysis_id, "lotus2_result", result.output
             )
+            update_read_stats()
 
         # ------------------------------
         #          REGION = ITS1/ITS2

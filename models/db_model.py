@@ -303,6 +303,18 @@ class SequencingSequencerIDsTable(Base):
     read_length_min = Column(Integer, nullable=True)
     read_length_max = Column(Integer, nullable=True)
     read_length_avg = Column(Float, nullable=True)
+    # Accepted (High/Mid qual) read counts parsed from LotuS_progout.log
+    # when a lotus2 analysis finishes (see
+    # helpers/lotus2.py::update_sequencer_read_stats_from_progout).
+    # Populated only while every analysis type run for this region agrees;
+    # if any two disagree these are cleared back to NULL and the full
+    # per-analysis-type breakdown in progout_stats_by_analysis_type should
+    # be shown instead.
+    progout_accepted_high_qual = Column(Integer, nullable=True)
+    progout_accepted_mid_qual = Column(Integer, nullable=True)
+    # {analysis_type_name: {"high_qual": int, "mid_qual": int}}, accumulated
+    # across every analysis type run for this sample/region so far.
+    progout_stats_by_analysis_type = Column(JSON(none_as_null=True))
 
 
 class SequencingFilesUploadedTable(Base):

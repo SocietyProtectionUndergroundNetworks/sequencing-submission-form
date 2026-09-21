@@ -86,6 +86,9 @@ migration:
 delete_expired_files:
 	docker-compose exec flask python delete_expired_files.py
 
+backfill_progout_read_stats:
+	docker-compose exec flask python backfill_progout_read_stats.py
+
 migrate:
 	docker-compose exec flask alembic upgrade head
 
