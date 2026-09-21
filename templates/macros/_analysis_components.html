@@ -91,9 +91,7 @@
           {% endfor %}
           <td>
             {% if region_data.read_stats %}
-              {{ "{:,}".format(region_data.read_stats.starting_reads) }} processed<br>
-              {{ "{:,}".format(region_data.read_stats.accepted) }} accepted ({{ region_data.read_stats.accepted_pct }}%)<br>
-              {{ "{:,}".format(region_data.read_stats.rejected) }} rejected ({{ region_data.read_stats.rejected_pct }}%)
+              <pre class="mb-0">{{ region_data.read_stats }}</pre>
             {% endif %}
           </td>
 

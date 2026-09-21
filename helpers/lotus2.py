@@ -16,8 +16,8 @@ logger = logging.getLogger("my_app_logger")
 
 def parse_lotus2_read_stats(lotus2_result_text):
     """
-    Extracts read-count stats from the sdm summary block lotus2/lotus3
-    prints partway through its console output, e.g.:
+    Extracts the sdm summary block lotus2/lotus3 prints partway through
+    its console output, verbatim, e.g.:
 
         Reads processed: 4,957,343; 4,957,343 (pair 1;pair 2)
         Accepted (High qual): 4,182,802; 4,440,985 (4,092; 951,604
@@ -30,10 +30,13 @@ def parse_lotus2_read_stats(lotus2_result_text):
     parses the value already in hand -- no extra file reads or DB storage
     needed.
 
-    "Reads processed" reports the same read-pair count for both mates
-    (pair 1 / pair 2), but accept/reject decisions are made per-mate, so
-    the pool being classified is 2x that pair count -- Accepted(High) +
-    Accepted(Mid) + Rejected always sums to exactly that.
+    Returned as-is (not re-derived into our own accepted/rejected totals
+    or percentages) so the numbers shown always match exactly what lotus3
+    itself reported -- "Reads processed" is a read-*pair* count while
+    Accepted/Rejected are per-mate (each mate is independently accepted
+    or rejected), and presenting our own computed percentages next to the
+    pair count read as contradictory (e.g. an "accepted" count exceeding
+    "processed").
 
     Returns None if the text is empty or doesn't contain this block --
     e.g. a run that errored before reaching this stage, so lotus2_result
@@ -42,45 +45,12 @@ def parse_lotus2_read_stats(lotus2_result_text):
     if not lotus2_result_text:
         return None
 
-    def pair(label):
-        match = re.search(
-            rf"{label}:\s*([\d,]+)\s*;\s*([\d,]+)", lotus2_result_text
-        )
-        if not match:
-            return None
-        return (
-            int(match.group(1).replace(",", "")),
-            int(match.group(2).replace(",", "")),
-        )
-
-    processed = pair("Reads processed")
-    high_qual = pair(r"Accepted \(High qual\)")
-    mid_qual = pair(r"Accepted \(Mid qual\)")
-    rejected = pair("Rejected")
-
-    if not (processed and high_qual and mid_qual and rejected):
-        return None
-
-    starting_reads = processed[0]
-    total_accepted = sum(high_qual) + sum(mid_qual)
-    total_rejected = sum(rejected)
-    total_classified = total_accepted + total_rejected
-
-    return {
-        "starting_reads": starting_reads,
-        "accepted": total_accepted,
-        "accepted_pct": (
-            round(total_accepted / total_classified * 100, 1)
-            if total_classified
-            else None
-        ),
-        "rejected": total_rejected,
-        "rejected_pct": (
-            round(total_rejected / total_classified * 100, 1)
-            if total_classified
-            else None
-        ),
-    }
+    match = re.search(
+        r"Reads processed:.*?Rejected:\s*[\d,]+\s*;\s*[\d,]+",
+        lotus2_result_text,
+        re.DOTALL,
+    )
+    return match.group(0) if match else None
 
 
 def parse_lotus2_progout_sample_blocks(text):
