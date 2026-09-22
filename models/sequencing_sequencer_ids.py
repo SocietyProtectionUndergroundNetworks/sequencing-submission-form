@@ -283,6 +283,19 @@ class SequencingSequencerId:
                 )
             )
 
+            # When a sequencing run is specified, only consider sequencer
+            # IDs tagged with that same run -- otherwise a file could get
+            # matched to a sequencer ID from an unrelated run that
+            # happens to share the same filename prefix. Left blank (the
+            # field is optional), matching stays run-agnostic, same as
+            # before this filter existed.
+            sequencing_run = sequencing_run.strip() if sequencing_run else None
+            if sequencing_run:
+                query = query.filter(
+                    SequencingSequencerIDsTable.sequencing_run
+                    == sequencing_run
+                )
+
             # Execute the query and retrieve results
             sequencer_ids = query.all()
 
