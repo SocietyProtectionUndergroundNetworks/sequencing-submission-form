@@ -519,8 +519,9 @@
 
     {% if is_admin or is_owner %}
       <div id="step_4_update_dna_concentration" class="form-step-item mt-4 border p-3">
-        <h4>Update DNA Concentration</h4>
-        <p>Upload a CSV/XLS with <strong>SampleID</strong> and <strong>DNA_concentration_ng_ul</strong> columns. Every SampleID must already exist in this project, or nothing will be updated.</p>
+        <h4>Update DNA Concentration <span class="text-muted">(optional)</span></h4>
+        <p><strong>You only need this if your metadata is missing DNA concentration values</strong> for some samples. If you already included DNA concentration for your samples when uploading your metadata, there is nothing to do here and you can skip this step.</p>
+        <p>To fill in missing values, upload a CSV/XLS with <strong>SampleID</strong> and <strong>DNA_concentration_ng_ul</strong> columns. Every SampleID must already exist in this project, or nothing will be updated.</p>
         <form id="step_4_update_dna_concentration_form">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           <input type="hidden" name="process_id" value="{{ process_id }}">
