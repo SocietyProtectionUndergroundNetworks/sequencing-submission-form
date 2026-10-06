@@ -87,6 +87,18 @@ class SequencingCompanyUpload:
                 )
                 upload.nr_sequencer_ids = nr_sequencer_ids
 
+                # Which project(s) this upload's rows are about -- a
+                # single CSV upload can span more than one project.
+                projects = (
+                    session.query(SequencingCompanyInputTable.project)
+                    .filter_by(sequencingCompanyUploadId=filtered_dict["id"])
+                    .distinct()
+                    .all()
+                )
+                upload.projects = sorted(
+                    {p for (p,) in projects if p}
+                )
+
                 # Add user name and email to the upload dictionary
                 upload.user_name = user_dict["name"]
                 upload.user_email = user_dict["email"]

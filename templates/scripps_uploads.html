@@ -22,6 +22,7 @@
       <thead>
         <tr>
           <th scope="col">#</th>
+          <th scope="col">Project(s)</th>
           <th scope="col">Created At</th>
           <th scope="col">Updated AT</th>
         </tr>
@@ -33,7 +34,8 @@
                 <a href="/scripps_form?upload_id={{ upload.id }}">
                   {{ upload.id }}
                 </a>
-              </td>       
+              </td>
+              <td>{{ upload.projects | join(', ') }}</td>
               <td>{{ upload.created_at }}</td>
               <td>{{ upload.updated_at }}</td>
           </tr>
