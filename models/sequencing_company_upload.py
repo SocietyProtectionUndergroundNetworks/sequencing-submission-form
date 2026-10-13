@@ -95,9 +95,7 @@ class SequencingCompanyUpload:
                     .distinct()
                     .all()
                 )
-                upload.projects = sorted(
-                    {p for (p,) in projects if p}
-                )
+                upload.projects = sorted({p for (p,) in projects if p})
 
                 # Add user name and email to the upload dictionary
                 upload.user_name = user_dict["name"]

@@ -31,7 +31,10 @@ logger = logging.getLogger("my_app_logger")
 def generate_mapping_files():
     process_id = request.form.get("process_id")
     mode = request.form.get("mode")
-    SequencingUpload.generate_mapping_files_for_process(process_id, mode)
+    try:
+        SequencingUpload.generate_mapping_files_for_process(process_id, mode)
+    except ValueError as e:
+        return jsonify({"result": "error", "message": str(e)}), 200
     SequencingUpload.export_sample_locations(process_id)
     return (
         jsonify({"result": 1}),

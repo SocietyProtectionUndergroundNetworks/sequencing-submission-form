@@ -16,6 +16,7 @@ from helpers.fastqc import init_create_fastqc_report, check_fastqc_report
 from helpers.metadata_check import (
     get_sequences_based_on_primers,
     build_region_primer_dict,
+    find_invalid_lotus_sample_ids,
 )
 from helpers.bucket import (
     check_file_exists_in_bucket,
@@ -1577,6 +1578,20 @@ class SequencingUpload:
                             sample_info[sample_id]["files_by_run"][region][
                                 sequencing_run
                             ].extend(paired_files)
+
+        # Refuse to generate mapping files that LotuS3 would reject (or
+        # silently mishandle) -- better to stop here than produce a mapping
+        # file that fails partway through a run.
+        invalid_sample_ids = find_invalid_lotus_sample_ids(sample_info.keys())
+        if invalid_sample_ids:
+            details = "; ".join(
+                f"{p['sample_id']!r}: {', '.join(p['issues'])}"
+                for p in invalid_sample_ids
+            )
+            raise ValueError(
+                "Mapping file generation aborted -- the following "
+                f"SampleIDs are not valid for LotuS3: {details}"
+            )
 
         # Write files for each region
         os.makedirs(output_dir, exist_ok=True)

@@ -1,3 +1,6 @@
+import csv
+import os
+import pytest
 from datetime import datetime
 from tests.test_helpers import (
     _create_dummy_user_and_bucket_dependencies,
@@ -604,3 +607,133 @@ def test_get_samples(db_session, mocker, app):
         sequencing_upload_id_2 + 1
     )
     assert samples_no_results == []
+
+
+def _build_sample_data(sample_id, region="ITS2", sequencing_run="Run_1"):
+    """Builds a minimal samples_data_complete entry, shaped the way
+    get_samples_with_sequencers_and_files/generate_mapping_files_for_process
+    feed it into generate_mapping_files_from_data."""
+    return {
+        "SampleID": sample_id,
+        "Site_name": "Test Site",
+        "Latitude": "1.234",
+        "Longitude": "5.678",
+        "Vegetation": "Forest",
+        "Land_use": "Natural",
+        "Ecosystem": "Tropical",
+        "Sample_or_Control": "True sample",
+        "project_country": "Testland",
+        "project_uploads_folder": "00999_TESTFOLDER",
+        "sequencer_ids": [
+            {
+                "Region": region,
+                "sequencing_run": sequencing_run,
+                "uploaded_files": [
+                    {
+                        "new_name": f"{sample_id}_{region}_1.fastq.gz",
+                        "exclude_from_mapping": False,
+                    },
+                    {
+                        "new_name": f"{sample_id}_{region}_2.fastq.gz",
+                        "exclude_from_mapping": False,
+                    },
+                ],
+            }
+        ],
+    }
+
+
+REGION_DICT = {"ITS2": {"Forward Primer": "AAAA", "Reverse Primer": "TTTT"}}
+
+
+def test_generate_mapping_files_rejects_invalid_sample_ids(mocker, tmp_path):
+    """
+    SampleIDs with a dash, a leading digit, or other characters LotuS3
+    chokes on should abort mapping file generation entirely -- no mapping
+    file should be written for ANY sample, not just the offending one.
+    """
+    mock_bucket_upload = mocker.patch(
+        "models.sequencing_upload.init_bucket_chunked_upload_v2"
+    )
+
+    samples_data = [
+        _build_sample_data("Good_Sample_1"),
+        _build_sample_data("Bad-Sample"),
+        _build_sample_data("1StartsWithNumber"),
+    ]
+    output_dir = str(tmp_path / "mapping_files")
+
+    with pytest.raises(ValueError) as exc_info:
+        SequencingUpload.generate_mapping_files_from_data(
+            samples_data, output_dir, "test-bucket", REGION_DICT, "all"
+        )
+
+    message = str(exc_info.value)
+    assert "Bad-Sample" in message
+    assert "dash" in message
+    assert "1StartsWithNumber" in message
+    assert "starts with a number" in message
+
+    # Nothing should have been written or uploaded.
+    assert not os.path.isdir(output_dir)
+    mock_bucket_upload.assert_not_called()
+
+
+def test_generate_mapping_files_accepts_valid_sample_ids(mocker, tmp_path):
+    """
+    With only valid SampleIDs, the mapping file should be generated with
+    the expected content.
+    """
+    mock_bucket_upload = mocker.patch(
+        "models.sequencing_upload.init_bucket_chunked_upload_v2"
+    )
+
+    samples_data = [_build_sample_data("Good_Sample_1")]
+    output_dir = str(tmp_path / "mapping_files")
+
+    SequencingUpload.generate_mapping_files_from_data(
+        samples_data, output_dir, "test-bucket", REGION_DICT, "all"
+    )
+
+    mapping_file_path = os.path.join(output_dir, "ITS2_Mapping.txt")
+    assert os.path.isfile(mapping_file_path)
+
+    with open(mapping_file_path, newline="") as f:
+        rows = list(csv.reader(f, delimiter="\t"))
+
+    assert rows[0] == [
+        "#SampleID",
+        "fastqFile",
+        "ForwardPrimer",
+        "ReversePrimer",
+        "Site_name",
+        "Latitude",
+        "Longitude",
+        "Country",
+        "Vegetation",
+        "Land_use",
+        "Ecosystem",
+        "Sample_or_Control",
+        "SequencingRun",
+    ]
+    assert rows[1] == [
+        "Good_Sample_1",
+        "/seq_processed/00999_TESTFOLDER/Good_Sample_1_ITS2_1.fastq.gz,"
+        "/seq_processed/00999_TESTFOLDER/Good_Sample_1_ITS2_2.fastq.gz",
+        "AAAA",
+        "TTTT",
+        "Test_Site",
+        "1.234",
+        "5.678",
+        "Testland",
+        "Forest",
+        "Natural",
+        "Tropical",
+        "sample",
+        "Run_1",
+    ]
+
+    mock_bucket_upload.assert_called_once()
+    _, kwargs = mock_bucket_upload.call_args
+    assert kwargs["bucket_name"] == "test-bucket"
+    assert kwargs["destination_blob_name"] == "ITS2_Mapping.txt"

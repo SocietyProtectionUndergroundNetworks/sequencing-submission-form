@@ -152,6 +152,56 @@ def check_sample_id(sample_id):
     return {"status": 1, "message": "Valid value"}
 
 
+def find_invalid_lotus_sample_ids(sample_ids):
+    """
+    Checks SampleIDs against the constraints LotuS3's mapping-file parser
+    enforces (verified against the lotus3 source), plus known downstream
+    issues, so a mapping file that would fail or silently corrupt a run is
+    never written.
+
+    Confirmed fatal in lotus3 itself (aborts the whole run):
+      - a dash (-) anywhere in the SampleID
+      - leading/trailing whitespace
+      - a SampleID that is literally "OTU" (any case)
+    Confirmed non-fatal but harmful:
+      - an empty SampleID: the row is silently skipped, so that sample's
+        reads are dropped from the analysis without a hard error
+    Known downstream issue (not enforced by lotus3 itself, but by R/biom
+    further down the pipeline):
+      - a SampleID starting with a digit gets silently re-prefixed with
+        "X" by R's make.names() when phyloseq loads the sample data,
+        desynchronizing it from the mapping file / OTU table
+
+    Returns a list of {"sample_id": ..., "issues": [...]} for every
+    SampleID with at least one problem; an empty list means all clear.
+    """
+    problems = []
+    for sample_id in sample_ids:
+        sid = "" if sample_id is None else str(sample_id)
+        issues = []
+
+        if sid.strip() == "":
+            issues.append("SampleID is empty")
+        else:
+            if sid != sid.strip():
+                issues.append("SampleID has leading/trailing whitespace")
+            if sid.strip().upper() == "OTU":
+                issues.append(
+                    'SampleID is literally "OTU", which LotuS3 refuses'
+                )
+            if "-" in sid:
+                issues.append("SampleID contains a dash (-)")
+            if sid[:1].isdigit():
+                issues.append("SampleID starts with a number")
+            if re.search(r"[^A-Za-z0-9_-]", sid):
+                issues.append("SampleID contains special character(s)")
+
+        if issues:
+            problems.append({"sample_id": sample_id, "issues": issues})
+
+    return problems
+
+
 def check_sequencing_facility(value):
     return check_field_length_value(value, 150)
 

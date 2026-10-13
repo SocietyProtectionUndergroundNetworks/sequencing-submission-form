@@ -3006,12 +3006,18 @@
           success: function(response) {
               if (response.result=="1") {
                 window.location.reload();
+              } else {
+                $('#step_11_msg').html("<p>" + response.message + "</p>").removeClass('text-success').addClass('text-danger');
               }
               disableForm_step_10()
           },
           error: function(xhr, status, error) {
               console.error('Error:', error);
-              $('#step_11_msg').html("<p>An error occurred while processing the file.</p>").removeClass('text-success').addClass('text-danger');
+              var message = "An error occurred while processing the file.";
+              if (xhr.responseJSON && xhr.responseJSON.message) {
+                message = xhr.responseJSON.message;
+              }
+              $('#step_11_msg').html("<p>" + message + "</p>").removeClass('text-success').addClass('text-danger');
 
           }
       });
