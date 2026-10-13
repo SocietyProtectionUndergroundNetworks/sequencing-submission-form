@@ -327,6 +327,12 @@
               Filling in the form once for each of your samples
             </label>
           </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="upload_method" id="upload_method_3" value="3">
+            <label class="form-check-label" for="upload_method_3">
+              We will/have used the mobile app to submit our metadata
+            </label>
+          </div>
         </fieldset>
       </form>
       <div id="step_4_explanation_case_1" class="explanation" style="display:none;">
@@ -349,6 +355,13 @@
       <div id="step_4_explanation_case_2" class="explanation" style="display:none;">
         <p>Fill in the form bellow once for each sample. Pay very good attention to the coordinates.</p>
         <p>When you enter the coordinates the map should be showing you where this was.</p>
+      </div>
+      <div id="step_4_explanation_case_3" class="explanation" style="display:none;">
+        <p>
+          Please let us know when you have finished uploading your metadata
+          via the mobile app, by emailing
+          <a href="mailto:{{ admin_contact_email }}">{{ admin_contact_email }}</a>.
+        </p>
       </div>
       <div id="step_4_filename"></div>
       <div id="step_4_msg" class="explanation">
@@ -1587,11 +1600,18 @@
       if (this.value == '1') {
         $('#step_4_explanation_case_1').show();
         $('#step_4_explanation_case_2').hide();
+        $('#step_4_explanation_case_3').hide();
         $('#metadataForm').hide();
       } else if (this.value == '2') {
         $('#step_4_explanation_case_1').hide();
         $('#step_4_explanation_case_2').show();
+        $('#step_4_explanation_case_3').hide();
         $('#metadataForm').show();
+      } else if (this.value == '3') {
+        $('#step_4_explanation_case_1').hide();
+        $('#step_4_explanation_case_2').hide();
+        $('#step_4_explanation_case_3').show();
+        $('#metadataForm').hide();
       }
     });
   });

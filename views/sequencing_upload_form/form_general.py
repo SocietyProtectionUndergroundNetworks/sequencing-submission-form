@@ -36,6 +36,7 @@ def metadata_form():
     my_buckets = {}
     map_key = os.environ.get("GOOGLE_MAP_API_KEY")
     google_sheets_template_url = os.environ.get("GOOGLE_SPREADSHEET_TEMPLATE")
+    admin_contact_email = os.environ.get("ADMIN_CONTACT_EMAIL", "")
     for my_bucket in current_user.buckets:
         my_buckets[my_bucket] = Bucket.get(my_bucket)
     expected_columns = get_columns_data(exclude=False)
@@ -199,6 +200,7 @@ def metadata_form():
         forward_to_reverse=forward_to_reverse,
         nr_files_per_sequence=nr_files_per_sequence,
         google_sheets_template_url=google_sheets_template_url,
+        admin_contact_email=admin_contact_email,
         valid_samples=valid_samples,
         missing_sequencing_ids=missing_sequencing_ids,
         samples_data_complete=samples_data_complete,
