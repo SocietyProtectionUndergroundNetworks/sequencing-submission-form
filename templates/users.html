@@ -20,6 +20,11 @@
       for group: "{{ group_name }}"
     {% endif %}
   </h1>
+  <datalist id="bucket-list">
+      {% for bucket in all_buckets %}
+          <option value="{{ bucket }}">
+      {% endfor %}
+  </datalist>
   <div>
     <table class="table">
       <thead>
@@ -111,12 +116,15 @@
                 <form action="/give_access_to_bucket" method="post" class="buckets-form">
                   <input type="hidden" name="user_id" value="{{ user.user.id }}">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                  <select name="bucket" id="buckets_{{ user.user.id }}">
-                    <option value="none"> - </option>
-                    {% for bucket in all_buckets %}
-                      <option value="{{ bucket }}">{{ bucket }}</option>
-                    {% endfor %}
-                  </select>
+                  <input
+                      type="text"
+                      name="bucket"
+                      id="buckets_{{ user.user.id }}"
+                      class="form-control bucket-access-input"
+                      list="bucket-list"
+                      autocomplete="off"
+                      placeholder="Add bucket..."
+                  >
                 </form>
               </td>
               <td>
@@ -173,12 +181,6 @@
                 autocomplete="off"
             >
 
-            <datalist id="bucket-list">
-                {% for bucket in all_buckets %}
-                    <option value="{{ bucket }}">
-                {% endfor %}
-            </datalist>
-
             <div class="invalid-feedback">
                 This bucket is not in the approved list.
             </div>
@@ -219,10 +221,6 @@
     });
     $('.approved-checkbox').on('change', function() {
       $(this).closest('.approved-form').submit();
-    });
-
-    $(document).on('change', 'select[name="bucket"]', function() {
-      $(this).closest('.buckets-form').submit();
     });
 
     $(document).on('change', 'select[name="group"]', function() {
@@ -333,7 +331,7 @@
           }).get()
       );
 
-      $('#bucket').on('input blur', function () {
+      $(document).on('input blur', '#bucket, .bucket-access-input', function () {
           const value = $(this).val();
 
           if (value === '' || validBuckets.has(value)) {
@@ -349,6 +347,15 @@
           if (value && !validBuckets.has(value)) {
               e.preventDefault();
               $('#bucket').addClass('is-invalid');
+          }
+      });
+
+      // Buckets access column: submit as soon as a valid bucket is chosen
+      // (typed exactly or picked from the datalist suggestions).
+      $(document).on('change', '.bucket-access-input', function () {
+          const value = $(this).val();
+          if (value && validBuckets.has(value)) {
+              $(this).closest('.buckets-form').submit();
           }
       });
   });
