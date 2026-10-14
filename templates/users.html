@@ -150,14 +150,14 @@
           {% set user_group = all_groups | selectattr("id", "equalto", p_user.group_id) | list %}
           <tr>
               <td scope="row">
-                #
+                <a href="#" class="remove_preapproved_user text-danger" data-preapproved-user-id="{{ p_user.id }}">X</a>
               </td>
               <td>{{ p_user.email }}</td>
               <td>{{ p_user.bucket }}</td>
               <td>
                 {% if user_group %}
                     {{ user_group[0].name }}
-                {% endif %}                
+                {% endif %}
               </td>
           </tr>
         {% endfor %}
@@ -319,6 +319,31 @@
           error: function(xhr, status, error) {
             // Handle error response if needed
             console.error('Error removing user:', error);
+          }
+        });
+      }
+    });
+
+    $('.remove_preapproved_user').on('click', function(event) {
+      event.preventDefault();
+      var preapprovedUserId = $(this).data('preapproved-user-id');
+      var $row = $(this).closest('tr');
+
+      if (confirm("Are you sure you want to remove this preapproved user?")) {
+        $.ajax({
+          url: '/remove_preapproved_user',
+          type: 'POST',
+          data: {
+            preapproved_user_id: preapprovedUserId
+          },
+          success: function(response) {
+            console.log(response);
+            if (response.status == 1) {
+              $row.remove();
+            }
+          },
+          error: function(xhr, status, error) {
+            console.error('Error removing preapproved user:', error);
           }
         });
       }

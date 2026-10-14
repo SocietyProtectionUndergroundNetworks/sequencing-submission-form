@@ -392,6 +392,19 @@ def add_preapproved_user():
 
 
 @user_bp.route(
+    "/remove_preapproved_user",
+    methods=["POST"],
+    endpoint="remove_preapproved_user",
+)
+@login_required
+@admin_required
+def remove_preapproved_user():
+    preapproved_user_id = request.form.get("preapproved_user_id")
+
+    return PreapprovedUser.delete(preapproved_user_id)
+
+
+@user_bp.route(
     "/match_goodgrands",
     methods=["GET"],
     endpoint="match_goodgrands",
