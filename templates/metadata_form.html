@@ -573,6 +573,7 @@
           style="display:none"
         {% endif %}
       >
+        <p style="color: red; font-size: 1.5em;"><strong>Please note: We want the RAW data in fastq.gz or fq.gz format</strong></p>
         <h3> Step 6: Provide the sequencer ID</h3>
 
         {% if process_data["metadata_upload_confirmed"] %}
@@ -958,7 +959,7 @@
 
       <div id="step_8" class="form-step-item">
         <h3> Step 8: Upload the fastq files</h3>
-        <div class="text-warning"> Please note: We want the RAW data in fastq.gz format</div>
+        <p style="color: red; font-size: 1.5em;"><strong>Please note: We want the RAW data in fastq.gz or fq.gz format</strong></p>
         <form
           method="POST"
           action="/sequencing_file_upload"
