@@ -56,6 +56,11 @@ args <- parse_args(parser)
 # Load phyloseq object
 load(str_c(args$lotus2, "/", "phyloseq.Rdata"))
 
+# EUKARYOME-based taxonomy annotates some genera with a kingdom suffix
+# (e.g. "Lactarius(Fungi)") to disambiguate names shared across kingdoms.
+# Strip it so these genera match cleanly against the FungalTraits ECM list below.
+tax_table(physeq)[, "Genus"] <- gsub("\\s*\\([^()]*\\)\\s*$", "", tax_table(physeq)[, "Genus"])
+
 # export physeq object as 3 csv files
 export_phyloseq_as_csv <- function  (ps, prefix = "") {
   if (!inherits(ps, "phyloseq")) {
