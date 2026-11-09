@@ -192,6 +192,39 @@ def run_remote_command(ip, command, stream_output=False):
 # ---------------------------------------------------------
 #             High-level Combined Runner
 # ---------------------------------------------------------
+VM_SHARE_MOUNTS = ["/mnt/seq_processed", "/mnt/lotus2_files"]
+
+
+def ensure_shares_mounted(ip, attempts=12, delay_seconds=5):
+    """
+    Mount any share from the VM's fstab that isn't mounted yet, retrying
+    while the network comes up. Raises HetznerVMError if they can't be
+    mounted, so lotus3 never runs against empty folders.
+    """
+    mounts = " ".join(VM_SHARE_MOUNTS)
+    # Wait until boot has finished (Docker and networking are up). It ends
+    # as "degraded" if a boot-time mount failed, which is fine here.
+    run_remote_command(ip, "timeout 300 systemctl is-system-running --wait")
+    command = (
+        f"for i in $(seq 1 {attempts}); do "
+        f"ok=1; "
+        f"for m in {mounts}; do "
+        f"mountpoint -q $m || mount $m || ok=0; "
+        f"done; "
+        f'[ "$ok" = 1 ] && exit 0; '
+        f"sleep {delay_seconds}; "
+        f"done; "
+        f"exit 1"
+    )
+    stdout, stderr, code = run_remote_command(ip, command)
+    if code != 0:
+        raise HetznerVMError(
+            f"Could not mount the shares ({mounts}) on VM {ip}: "
+            f"{stderr.strip() or stdout.strip()}"
+        )
+    logger.info(f"Shares mounted on VM {ip}.")
+
+
 def run_lotus3_on_vm(command_string, server_name, server_size="cpx62"):
     """
     Main high-level function used by lotus2.py:
@@ -206,14 +239,20 @@ def run_lotus3_on_vm(command_string, server_name, server_size="cpx62"):
     vm_id = vm["id"]
     vm_ip = vm["ip"]
 
-    # On Vms we use /tmp for temporary files
-    command_string = f"{command_string} -tmp /tmp"
+    # On VMs, temporary files go to the VM's local disk. LotuS3 3.14+ refuses
+    # top-level folders such as /tmp, so use the folder lotus2.py creates
+    # (and points TMPDIR to) for remote runs.
+    command_string = f"{command_string} -tmp /tmp/lotus_tmp"
 
     try:
         # 1. Wait for VM
         wait_for_ssh(vm_ip)
 
-        # 2. Run lotus3 command
+        # 2. Make sure the shares are mounted. At boot, the fstab mounts can
+        # run before the private network reaches production, and then fail.
+        ensure_shares_mounted(vm_ip)
+
+        # 3. Run lotus3 command
         full_cmd = f"""
             docker run --rm \
                 --user root \
