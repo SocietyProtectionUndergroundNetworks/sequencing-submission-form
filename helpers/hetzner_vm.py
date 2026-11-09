@@ -16,6 +16,15 @@ HETZNER_SNAPSHOT_ID = os.environ.get(
 SSH_PRIVATE_KEY = os.environ.get(
     "HETZNER_SSH_PRIVATE_KEY_IN_DOCKER", "~/.ssh/id_rsa"
 )
+# Optional, all unset by default (VMs are then created as before).
+# See docs/hetzner_remote_pipeline.md, "Private network to production".
+HETZNER_LOCATION = os.environ.get("HETZNER_LOCATION")  # e.g. hel1
+HETZNER_NETWORK_ID = os.environ.get("HETZNER_NETWORK_ID")
+HETZNER_FIREWALL_ID = os.environ.get("HETZNER_FIREWALL_ID")
+# "1": connect to the VM over the private network instead of its public IPv4
+HETZNER_SSH_VIA_PRIVATE_IP = (
+    os.environ.get("HETZNER_SSH_VIA_PRIVATE_IP") == "1"
+)
 
 API_URL = "https://api.hetzner.cloud/v1/servers"
 
@@ -39,13 +48,46 @@ def create_vm(name="lotus3-runner", server_size="cpx62"):
         "image": HETZNER_SNAPSHOT_ID,
         "ssh_keys": [HETZNER_SSH_KEY_ID],
     }
+    if HETZNER_LOCATION:
+        data["location"] = HETZNER_LOCATION
+    if HETZNER_NETWORK_ID:
+        data["networks"] = [int(HETZNER_NETWORK_ID)]
+    if HETZNER_FIREWALL_ID:
+        data["firewalls"] = [{"firewall": int(HETZNER_FIREWALL_ID)}]
 
     r = requests.post(API_URL, json=data, headers=_api_headers())
     if r.status_code != 201:
         raise HetznerVMError(f"VM create failed: {r.text}")
 
     server = r.json()["server"]
-    return {"id": server["id"], "ip": server["public_net"]["ipv4"]["ip"]}
+    ip = server["public_net"]["ipv4"]["ip"]
+
+    if HETZNER_NETWORK_ID and HETZNER_SSH_VIA_PRIVATE_IP:
+        try:
+            ip = _wait_for_private_ip(server["id"])
+        except Exception:
+            # The caller only cleans up VMs it got back, so delete it here.
+            delete_vm(server["id"])
+            raise
+
+    return {"id": server["id"], "ip": ip}
+
+
+def _wait_for_private_ip(server_id, timeout_seconds=120):
+    """Wait for the VM's IP on HETZNER_NETWORK_ID and return it."""
+    deadline = time.time() + timeout_seconds
+    while time.time() < deadline:
+        r = requests.get(f"{API_URL}/{server_id}", headers=_api_headers())
+        if r.status_code == 200:
+            for net in r.json()["server"].get("private_net", []):
+                same_net = str(net.get("network")) == str(HETZNER_NETWORK_ID)
+                if same_net and net.get("ip"):
+                    return net["ip"]
+        time.sleep(5)
+    raise HetznerVMError(
+        f"VM {server_id} got no IP on network {HETZNER_NETWORK_ID} "
+        f"within {timeout_seconds}s."
+    )
 
 
 def delete_vm(server_id):
