@@ -416,6 +416,16 @@ def generate_lotus2_report(
         )
     analysis_type = SequencingAnalysisType.get(analysis_type_id)
 
+    # Sequencing platform used for this upload (meta projects combine
+    # multiple uploads, so there is no single platform to key off of).
+    sequencing_platform = None
+    if not is_meta:
+        from models.sequencing_upload import SequencingUpload
+
+        upload_data = SequencingUpload.get(process_id)
+        if upload_data:
+            sequencing_platform = upload_data.get("Sequencing_platform")
+
     # Initial DB updates
     SequencingAnalysis.update_field(
         analysis_id, "lotus2_started_at", datetime.utcnow()
@@ -571,14 +581,20 @@ def generate_lotus2_report(
                 input_dir, "mapping_files", f"{region}_Mapping.txt"
             )
 
-            # Select SDM file
+            # Select SDM file. An explicit choice from the admin dropdown
+            # always wins; "" (the default "Auto" option) falls through to
+            # the platform-based pick below.
             sdm_map = {
+                "sdm_miSeq_ITS": "/lotus2_files/sdm_miSeq_ITS.txt",
                 "sdm_miSeq_ITS_200": "/lotus2_files/sdm_miSeq_ITS_200.txt",
                 "sdm_miSeq_ITS_forward": "/lotus2_files/sdm_miSeq_ITS_forward.txt",
             }
-            sdmopt = sdm_map.get(
-                parameters.get("sdmopt"), "/lotus2_files/sdm_miSeq_ITS.txt"
-            )
+            if parameters.get("sdmopt") in sdm_map:
+                sdmopt = sdm_map[parameters["sdmopt"]]
+            elif (sequencing_platform or "").strip() == "Illumina NextSeq":
+                sdmopt = "/lotus2_files/sdm_NextSeq2000_ITS_Spun.txt"
+            else:
+                sdmopt = "/lotus2_files/sdm_miSeq_ITS.txt"
 
             # refDB / tax4refDB selection
             if analysis_type.name in ["ITS1", "ITS2"]:
@@ -635,13 +651,17 @@ def generate_lotus2_report(
                 input_dir, "mapping_files", "SSU_Mapping.txt"
             )
 
+            # Same "Auto" vs. explicit-override logic as the ITS branch above.
             sdm_map = {
+                "sdm_miSeq2_SSU_Spun": "/lotus2_files/sdm_miSeq2_SSU_Spun.txt",
                 "sdm_miSeq2_250": "/lotus2_files/sdm_miSeq2_250.txt",
             }
-            sdmopt = sdm_map.get(
-                parameters.get("sdmopt"),
-                "/lotus2_files/sdm_miSeq2_SSU_Spun.txt",
-            )
+            if parameters.get("sdmopt") in sdm_map:
+                sdmopt = sdm_map[parameters["sdmopt"]]
+            elif (sequencing_platform or "").strip() == "Illumina NextSeq":
+                sdmopt = "/lotus2_files/sdm_NextSeq2000_SSU_Spun.txt"
+            else:
+                sdmopt = "/lotus2_files/sdm_miSeq2_SSU_Spun.txt"
 
             # Select DBs
             if analysis_type.name in ["SSU_dada2", "SSU_vsearch"]:
