@@ -1,0 +1,51 @@
+# LotuS3 3.14 (GitHub hildebra/LotuS3, main @ c0cbad3) with its bundled sdm 3.67, LCA and rtk.
+# The toolchain (R/dada2, vsearch, blast, minimap2, mafft, FastTree, ITSx, ...) and the
+# LotuS reference DBs come from the bioconda LotuS3 3.11 image; only the LotuS3 Perl
+# pipeline, its R helper scripts and the sdm/LCA/rtk binaries are replaced.
+#
+# Also applies LotuS3 dev commit 7620a42 (reference DB validation accepts identical
+# repeated taxonomy IDs). Without it 3.14 refuses SLV_138.1_SSU_NO_AMF.tax.
+# It changes validation only, not results.
+FROM quay.io/biocontainers/lotus3:3.11--hdfd78af_0
+
+ARG LOTUS3_COMMIT=c0cbad3435d85d88311dbdf0b75879c5f55d871d
+ARG LOTUS3_PATCH=7620a4220616d4335afafb0554508c88291495d8
+ARG L311=/usr/local/share/lotus3-3.11-0
+ARG L314=/usr/local/share/lotus3-3.14
+
+# -------------------------------
+# DB files missing from the bioconda image (same as Dockerfile-lotus3)
+# -------------------------------
+RUN mkdir -p ${L311}/DB && cd ${L311}/DB \
+    && wget -q -O phiX.fasta http://lotus2.earlham.ac.uk/lotus/packs/DB/phiX.fasta \
+    && wget -q -O uchITS.zip http://lotus2.earlham.ac.uk/lotus/packs/DB/uchime_reference_dataset_11.03.2015.zip \
+    && rm -rf ITS_chimera && unzip -q uchITS.zip -d ITS_chimera && rm uchITS.zip \
+    && wget -q -O rdp_gold.fa.gz http://lotus2.earlham.ac.uk/lotus/packs/rdp_gold.fa.gz \
+    && gunzip -f rdp_gold.fa.gz
+
+# -------------------------------
+# LotuS3 3.14 from git + sdm 3.67 (committed as bin/sdm)
+# -------------------------------
+RUN mkdir -p ${L314} \
+    && wget -q -O /tmp/lotus3.tar.gz https://codeload.github.com/hildebra/LotuS3/tar.gz/${LOTUS3_COMMIT} \
+    && tar -xzf /tmp/lotus3.tar.gz -C ${L314} --strip-components=1 \
+    && rm /tmp/lotus3.tar.gz \
+    && cd ${L314} \
+    && wget -q -O /tmp/fix.patch https://github.com/hildebra/LotuS3/commit/${LOTUS3_PATCH}.patch \
+    && patch -p1 < /tmp/fix.patch && rm /tmp/fix.patch \
+    && chmod +x lotus3 bin/sdm bin/LCA bin/rtk \
+    # lOTUs.cfg = the 3.11 one, with sdm/LCA/rtk from 3.14 and absolute paths to the 3.11 DB folder
+    && sed -e "s|^sdm .*|sdm ${L314}/bin/sdm|" \
+           -e "s|^LCA .*|LCA ${L314}/bin/LCA|" \
+           -e "s|^rtk .*|rtk ${L314}/bin/rtk|" \
+           -e "s| DB//| ${L311}/DB/|" \
+           -e "s|^UCHIME_REFDB_ITS .*|UCHIME_REFDB_ITS ${L311}/DB/ITS_chimera/uchime_sh_refs_dynamic_original_985_11.03.2015.fasta|" \
+           -e "s|^UCHIME_REFDB_ITS1 .*|UCHIME_REFDB_ITS1 ${L311}/DB/ITS_chimera/ITS1_ITS2_datasets/uchime_sh_refs_dynamic_develop_985_11.03.2015.ITS1.fasta|" \
+           -e "s|^UCHIME_REFDB_ITS2 .*|UCHIME_REFDB_ITS2 ${L311}/DB/ITS_chimera/ITS1_ITS2_datasets/uchime_sh_refs_dynamic_develop_985_11.03.2015.ITS2.fasta|" \
+           ${L311}/lOTUs.cfg | awk '!seen[$0]++' > ${L314}/lOTUs.cfg \
+    # make "lotus3" and "sdm" on the PATH the 3.14 ones
+    && printf '#!/bin/sh\nexec perl %s/lotus3 "$@"\n' ${L314} > /usr/local/bin/lotus3 \
+    && chmod +x /usr/local/bin/lotus3 \
+    && ln -sf ${L314}/bin/sdm /usr/local/bin/sdm \
+    && sdm -v 2>&1 | head -3 \
+    && grep -E '^(sdm|LCA|rtk|REFDB_PHIX|UCHIME_REFDB|UCHIME_REFDB_ITS2) ' ${L314}/lOTUs.cfg

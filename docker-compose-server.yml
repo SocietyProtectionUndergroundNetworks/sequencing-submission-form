@@ -50,14 +50,14 @@ services:
       - flask
     command: ["tail", "-f", "/dev/null"]
 
+  # LotuS3 3.14 + sdm 3.67
   lotus3:
     build:
       context: .
-      dockerfile: Dockerfile-lotus3
+      dockerfile: Dockerfile-lotus3-314
     container_name: spun-lotus3
     volumes:
-      - ./seq_processed:/seq_processed  #v2 processed files
-      - ./processing:/processing  #v1 processed files
+      - ./seq_processed:/seq_processed
       - ./lotus2_files:/lotus2_files
     networks:
       - flask
