@@ -17,7 +17,18 @@ logger = logging.getLogger("my_app_logger")
 def parse_lotus2_read_stats(lotus2_result_text):
     """
     Extracts the sdm summary block lotus2/lotus3 prints partway through
-    its console output, verbatim, e.g.:
+    its console output, verbatim.
+
+    LotuS 3.14 (current, sdm 3.67+) prints, e.g.:
+
+        Read pairs processed: 1,795,627
+        High-quality: R1 1,287,541 (71.7%); R2 1,332,153 (74.2%)
+        Mid-quality: R1 211,645 (11.8%); R2 85,476 (4.8%)
+        Rejected: R1 296,441 (16.5%); R2 377,998 (21.1%)
+        Pairs accepted on both ends (upper bound): 1,417,629 (78.9%)
+        Merged reads: 1,765,486 / 1,795,627 (98.3%)
+
+    Older runs (lotus3 <= 3.11, sdm <= 3.37) printed instead:
 
         Reads processed: 4,957,343; 4,957,343 (pair 1;pair 2)
         Accepted (High qual): 4,182,802; 4,440,985 (4,092; 951,604
@@ -32,18 +43,22 @@ def parse_lotus2_read_stats(lotus2_result_text):
 
     Returned as-is (not re-derived into our own accepted/rejected totals
     or percentages) so the numbers shown always match exactly what lotus3
-    itself reported -- "Reads processed" is a read-*pair* count while
-    Accepted/Rejected are per-mate (each mate is independently accepted
-    or rejected), and presenting our own computed percentages next to the
-    pair count read as contradictory (e.g. an "accepted" count exceeding
-    "processed").
+    itself reported.
 
-    Returns None if the text is empty or doesn't contain this block --
+    Returns None if the text is empty or doesn't contain either block --
     e.g. a run that errored before reaching this stage, so lotus2_result
     holds an error message instead.
     """
     if not lotus2_result_text:
         return None
+
+    match = re.search(
+        r"Read pairs processed:.*?Merged reads:\s*[\d,]+\s*/\s*[\d,]+\s*\([\d.]+%\)",
+        lotus2_result_text,
+        re.DOTALL,
+    )
+    if match:
+        return match.group(0)
 
     match = re.search(
         r"Reads processed:.*?Rejected:\s*[\d,]+\s*;\s*[\d,]+",
