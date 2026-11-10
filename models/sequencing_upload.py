@@ -632,7 +632,11 @@ class SequencingUpload:
                 datadict["region_2_reverse_primer"] = "AML2"
                 datadict["region_1"] = "ITS2"
                 datadict["region_2"] = "SSU"
-                datadict["Sequencing_platform"] = "Element Biosciences AVITI"
+                # Default platform for Scripps/QIB uploads, unless an admin
+                # explicitly picked a different one (the field is otherwise
+                # hidden from non-admins, who submit it unset).
+                if datadict.get("Sequencing_platform") in (None, "", "0"):
+                    datadict["Sequencing_platform"] = "Illumina NextSeq"
             else:
                 datadict["region_1"] = cls.get_region(
                     datadict["region_1_forward_primer"],

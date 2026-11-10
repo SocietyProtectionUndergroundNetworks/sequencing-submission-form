@@ -1191,6 +1191,7 @@
 
   <script type="application/javascript">
   var markersArray = [];
+  var isAdmin = {{ 'true' if is_admin else 'false' }};
   var project_common_data = {{ project_common_data|tojson|safe }};
   var samples_data = {{ samples_data|tojson|safe }};
   var sequencing_regions_number = {{ process_data["Sequencing_regions_number"] if process_data["Sequencing_regions_number"] else 0 }};
@@ -1392,6 +1393,12 @@
     $('#step_3_form .form-group').each(function() {
       var condition = $(this).data('condition');
       if ((condition === "IfNotScripps") || (condition === "OptionalIfNotScripps")) {
+        // Admins can still see (and override) Sequencing_platform even when
+        // using Scripps/QIB, since a default gets applied automatically.
+        if (this.id === "Sequencing_platform_row" && isAdmin) {
+          $(this).show();
+          return;
+        }
         if (usingScrippsNoChecked) {
           $(this).show(); // Show the form group if condition matches and using_scripps_no is checked
         } else {

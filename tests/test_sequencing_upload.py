@@ -55,14 +55,20 @@ def test_create_sequencing_upload(db_session, mocker, app):
     assert created_record.uploads_folder is not None
     assert f"{sequencing_upload_id:05}" in created_record.uploads_folder
 
-    # Test 'using_scripps' = 'yes' path with two regions
+    # Test 'using_scripps' = 'yes' path with two regions. The
+    # Sequencing_platform field is hidden from non-admins in this case, so
+    # the browser submits the unset sentinel value "0", same as here.
     (
         sequencing_upload_id_scripps,
         test_user_id_2,
         test_project_id_scripps,
         test_data_scripps,
     ) = _create_dummy_sequencing_upload(
-        db_session, mocker, app, using_scripps="yes"
+        db_session,
+        mocker,
+        app,
+        using_scripps="yes",
+        Sequencing_platform="0",
     )
 
     created_record_scripps = (
@@ -78,11 +84,34 @@ def test_create_sequencing_upload(db_session, mocker, app):
     assert created_record_scripps.region_2_reverse_primer == "AML2"
     assert created_record_scripps.region_1 == "ITS2"
     assert created_record_scripps.region_2 == "SSU"
+    assert created_record_scripps.Sequencing_platform == "Illumina NextSeq"
+    assert created_record_scripps.Sequencing_regions_number == 2
+
+    # An admin can see and override Sequencing_platform even when using
+    # Scripps/QIB -- the hardcoded default must not clobber that choice.
+    (
+        sequencing_upload_id_scripps_override,
+        _,
+        _,
+        _,
+    ) = _create_dummy_sequencing_upload(
+        db_session,
+        mocker,
+        app,
+        using_scripps="yes",
+        Sequencing_platform="Element Biosciences AVITI",
+    )
+
+    created_record_scripps_override = (
+        db_session.query(SequencingUploadsTable)
+        .filter_by(id=sequencing_upload_id_scripps_override)
+        .first()
+    )
+
     assert (
-        created_record_scripps.Sequencing_platform
+        created_record_scripps_override.Sequencing_platform
         == "Element Biosciences AVITI"
     )
-    assert created_record_scripps.Sequencing_regions_number == 2
 
 
 def test_get_sequencing_upload(db_session, mocker):
