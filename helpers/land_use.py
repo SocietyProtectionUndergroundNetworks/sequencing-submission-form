@@ -152,4 +152,4 @@ def get_elevation(longitude, latitude):
             f"Error retrieving elevation data: no coverage at "
             f"({latitude}, {longitude})"
         )
-    return elevation
+    return round(elevation, 1)
