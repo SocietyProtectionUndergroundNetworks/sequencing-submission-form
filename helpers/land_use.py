@@ -117,20 +117,39 @@ def get_baileys_ecoregion(longitude, latitude):
 
 # Function to get elevation for given coordinates
 def get_elevation(longitude, latitude):
-    # Load the SRTM Digital Elevation Model (DEM) dataset
-    srtm = ee.Image("USGS/SRTMGL1_003")
-
-    # Define the point geometry for the specified coordinates
     point = ee.Geometry.Point([longitude, latitude])
 
-    # Sample the SRTM dataset at the given point and get the elevation
-    elevation_value = (
-        srtm.sample(region=point, scale=30).first().get("elevation")
-    )
-
-    # Retrieve the elevation value
+    # SRTM only covers latitudes between -56 and 60 degrees, so samples
+    # further south/north (e.g. Antarctica) have no pixel there: .first()
+    # comes back null and .get() on it raises, rather than returning None.
+    srtm = ee.Image("USGS/SRTMGL1_003")
     try:
-        elevation = elevation_value.getInfo()
-        return elevation
-    except Exception as e:
-        return f"Error retrieving elevation data: {e}"
+        elevation = (
+            srtm.sample(region=point, scale=30).first().get("elevation")
+        ).getInfo()
+    except Exception:
+        elevation = None
+
+    if elevation is None:
+        # Fall back to the global Copernicus GLO-30 DEM, which covers the
+        # poles, for coordinates outside SRTM's coverage.
+        copernicus_dem = (
+            ee.ImageCollection("COPERNICUS/DEM/GLO30_2024_1")
+            .select("DEM")
+            .mosaic()
+        )
+        try:
+            elevation = (
+                copernicus_dem.sample(region=point, scale=30)
+                .first()
+                .get("DEM")
+            ).getInfo()
+        except Exception as e:
+            return f"Error retrieving elevation data: {e}"
+
+    if elevation is None:
+        return (
+            f"Error retrieving elevation data: no coverage at "
+            f"({latitude}, {longitude})"
+        )
+    return elevation
