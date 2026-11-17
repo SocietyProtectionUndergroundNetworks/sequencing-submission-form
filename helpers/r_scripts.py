@@ -6,6 +6,7 @@ import json
 import shlex
 from datetime import datetime
 from helpers.vtx import generate_vtx_file
+from helpers.lotus2 import parse_lotus3_version, parse_sdm_version
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML
 from urllib.request import pathname2url
@@ -43,6 +44,20 @@ def make_file_uri(app_root, relative_path):
     return f'file:///{pathname2url(absolute_path).lstrip("/")}'
 
 
+def get_sdm_version(progout_log_path):
+    """Reads a LotuS_progout.log file's version banner, which is on one of
+    its first few lines, without loading the whole (often 70KB-250KB+)
+    file into memory."""
+    if not progout_log_path or not os.path.isfile(progout_log_path):
+        return None
+    try:
+        with open(progout_log_path, "r", errors="ignore") as f:
+            header = "".join(f.readline() for _ in range(10))
+    except OSError:
+        return None
+    return parse_sdm_version(header)
+
+
 def make_pdf_to_png(pdf_path):
     if not os.path.exists(pdf_path) or os.path.getsize(pdf_path) == 0:
         return None
@@ -77,6 +92,8 @@ def create_pdf_report(process_id):
     excluded_samples_ssu = None
     its_command = None
     ssu_command = None
+    its_lotus2_result = None
+    ssu_lotus2_result = None
     its_region = None
     ssu_region = None
     its_count_ecm = 0
@@ -92,6 +109,7 @@ def create_pdf_report(process_id):
                 process_id
             )
             its_command = r_report["lotus2_command"]
+            its_lotus2_result = r_report.get("lotus2_result")
             its_region = r_report.get("region", "ITS")  # Use get for safety
             its_count_ecm = SequencingAnalysis.get_ecm_count(r_report["id"])
         elif "FULL_ITS_Eukaryome" == r_report["analysis_type"]:
@@ -103,6 +121,7 @@ def create_pdf_report(process_id):
                 process_id
             )
             its_command = r_report["lotus2_command"]
+            its_lotus2_result = r_report.get("lotus2_result")
             its_region = r_report["region"]
             its_count_ecm = SequencingAnalysis.get_ecm_count(r_report["id"])
 
@@ -115,12 +134,35 @@ def create_pdf_report(process_id):
                 process_id
             )
             ssu_command = r_report["lotus2_command"]
+            ssu_lotus2_result = r_report.get("lotus2_result")
             ssu_region = r_report["region"]
             ssu_count_amf = SequencingAnalysis.get_amf_count(r_report["id"])
 
     # Set up global path variables
     app_root = os.path.abspath(".")
     base_data_path = os.path.join(app_root, "seq_processed", uploads_folder)
+
+    # LotuS3/sdm version info, for display alongside the OTU/ASV commands
+    its_lotus3_version = parse_lotus3_version(its_lotus2_result)
+    ssu_lotus3_version = parse_lotus3_version(ssu_lotus2_result)
+    its_sdm_version = get_sdm_version(
+        os.path.join(
+            base_data_path,
+            "lotus2_report",
+            its_report or "",
+            "LotuSLogS",
+            "LotuS_progout.log",
+        )
+    )
+    ssu_sdm_version = get_sdm_version(
+        os.path.join(
+            base_data_path,
+            "lotus2_report",
+            ssu_report or "",
+            "LotuSLogS",
+            "LotuS_progout.log",
+        )
+    )
 
     # --- 2. Prepare Data for Jinja ---
 
@@ -208,6 +250,8 @@ def create_pdf_report(process_id):
         "missing_samples_its": missing_samples_its,
         "excluded_samples_its": excluded_samples_its,
         "its_formatted_command": format_lotus_command(its_command),
+        "its_lotus3_version": its_lotus3_version,
+        "its_sdm_version": its_sdm_version,
         "its_contaminants_file_exists": os.path.exists(
             os.path.join(app_root, its_contaminants_csv_rel_path)
         ),
@@ -225,6 +269,8 @@ def create_pdf_report(process_id):
         "missing_samples_ssu": missing_samples_ssu,
         "excluded_samples_ssu": excluded_samples_ssu,
         "ssu_formatted_command": format_lotus_command(ssu_command),
+        "ssu_lotus3_version": ssu_lotus3_version,
+        "ssu_sdm_version": ssu_sdm_version,
         "ssu_contaminants_file_exists": os.path.exists(
             os.path.join(app_root, ssu_contaminants_csv_rel_path)
         ),

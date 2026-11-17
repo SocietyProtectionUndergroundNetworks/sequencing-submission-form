@@ -221,7 +221,12 @@
         
 
         <h2>{{ its_region }} OTU table</h2>
-        <p>OTUs were produced using VSEARCH within the LotuS3 pipeline:</p>
+        <p>
+            OTUs were produced using VSEARCH within the LotuS3 pipeline
+            {% if its_lotus3_version or its_sdm_version %}
+                (LotuS3 version {{ its_lotus3_version | default("N/A") }}, sdm version {{ its_sdm_version | default("N/A") }})
+            {% endif %}:
+        </p>
         <pre><code style="font-size:8pt;">{{ its_formatted_command }}</code></pre>
         <p>SDM opt configuration file can be downloaded from 
             <a href="https://github.com/SocietyProtectionUndergroundNetworks/sequencing-submission-form/tree/master/lotus2_files">SPUN's Github</a>, 
@@ -318,7 +323,12 @@
         <div class="page-break"></div>
 
         <h2>SSU ASV table</h2>
-        <p>ASVs were produced using DADA2 within the LotuS3 pipeline:</p>
+        <p>
+            ASVs were produced using DADA2 within the LotuS3 pipeline
+            {% if ssu_lotus3_version or ssu_sdm_version %}
+                (LotuS3 version {{ ssu_lotus3_version | default("N/A") }}, sdm version {{ ssu_sdm_version | default("N/A") }})
+            {% endif %}:
+        </p>
         <pre><code style="font-size:8pt;">{{ ssu_formatted_command }}</code></pre>
         <p>
             The database used for parameter -refDB is the <a href="https://maarjam.ut.ee/">MaarjAM</a> 

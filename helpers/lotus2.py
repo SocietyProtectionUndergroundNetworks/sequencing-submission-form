@@ -68,6 +68,43 @@ def parse_lotus2_read_stats(lotus2_result_text):
     return match.group(0) if match else None
 
 
+def parse_lotus3_version(lotus2_result_text):
+    """
+    Extracts the LotuS3 version from a run's console output (stored as
+    SequencingAnalysisTable.lotus2_result), e.g. the line:
+
+        00:00:00 LotuS 3.14
+
+    returns "3.14". Returns None if the text is empty or the version
+    banner isn't found.
+    """
+    if not lotus2_result_text:
+        return None
+
+    match = re.search(r"LotuS\s+([\d.]+)", lotus2_result_text)
+    return match.group(1) if match else None
+
+
+def parse_sdm_version(progout_log_text):
+    """
+    Extracts the sdm (simple demultiplexer) version from the banner at the
+    top of a LotuS_progout.log file, e.g.:
+
+        This is sdm (simple demultiplexer) 3.67 beta.
+
+    returns "3.67 beta". Returns None if the text is empty or the banner
+    isn't found.
+    """
+    if not progout_log_text:
+        return None
+
+    match = re.search(
+        r"sdm \(simple demultiplexer\)\s+([\d.]+(?:\s*beta)?)",
+        progout_log_text,
+    )
+    return match.group(1).strip() if match else None
+
+
 def parse_lotus2_progout_sample_blocks(text):
     """
     Parses a LotuS_progout.log file's per-sample blocks (sdm processes and
