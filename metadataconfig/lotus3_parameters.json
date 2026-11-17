@@ -1,0 +1,334 @@
+{
+  "intro": "PLACEHOLDER: short introduction from the lead scientist on the overall bioinformatics philosophy behind these choices (e.g. why LotuS3, why both OTU- and ASV-based approaches are offered side by side for SSU).",
+  "parameter_groups": [
+    {
+      "id": "its_unite",
+      "title": "ITS1 / ITS2 — UNITE reference database",
+      "analysis_types": ["ITS1", "ITS2"],
+      "summary": "Standard Illumina ITS1/ITS2 runs, clustered into OTUs with VSEARCH and classified against UNITE.",
+      "parameters": [
+        {
+          "flag": "-refDB / -tax4refDB",
+          "value": "UNITE_v10_sh_general_release_dynamic_all_19.02.2025.fasta / .tax",
+          "what_it_does": "The reference sequence database LotuS3 BLASTs OTUs against, and the matching taxonomy lookup file used to translate a hit into a taxonomic lineage.",
+          "why_we_chose_it": "PLACEHOLDER: why UNITE (vs. another ITS database) and why this particular UNITE release/version."
+        },
+        {
+          "flag": "-amplicon_type",
+          "value": "ITS1 or ITS2 (matches the region being processed)",
+          "what_it_does": "Tells LotuS3 which marker region is being processed; some of LotuS3's internal heuristics (e.g. primer/length handling) depend on this.",
+          "why_we_chose_it": "PLACEHOLDER"
+        },
+        {
+          "flag": "-LCA_idthresh",
+          "value": "97,95,93,91,88,78",
+          "what_it_does": "Percent-identity thresholds used by LotuS3's Lowest-Common-Ancestor (LCA) algorithm: the BLAST hit identity needed to accept a taxonomic assignment at each rank, from Species down to Phylum.",
+          "why_we_chose_it": "PLACEHOLDER: why these specific six values rather than, e.g., LotuS3's own defaults for this amplicon type."
+        },
+        {
+          "flag": "-tax_group",
+          "value": "fungi",
+          "what_it_does": "Restricts the taxonomic lineage lookups to the Fungi kingdom.",
+          "why_we_chose_it": "PLACEHOLDER"
+        },
+        {
+          "flag": "-taxAligner",
+          "value": "blast",
+          "what_it_does": "The alignment tool LotuS3 uses to match OTU sequences against the reference database (alternatives LotuS3 supports include e.g. SINTAX, LAMBDA).",
+          "why_we_chose_it": "PLACEHOLDER"
+        },
+        {
+          "flag": "-clustering",
+          "value": "vsearch",
+          "what_it_does": "Sequences are clustered into OTUs (Operational Taxonomic Units) at a fixed similarity threshold, rather than denoised into exact ASVs (Amplicon Sequence Variants).",
+          "why_we_chose_it": "PLACEHOLDER: why OTU clustering for ITS1/ITS2 specifically (note SSU offers both a VSEARCH/OTU and a DADA2/ASV analysis type side by side)."
+        },
+        {
+          "flag": "-id",
+          "value": "0.97",
+          "what_it_does": "The percent-identity threshold VSEARCH uses to decide whether two sequences belong in the same OTU.",
+          "why_we_chose_it": "PLACEHOLDER: why 97% (a very common default in the field, but we should confirm this is a deliberate choice and not just carried over from an example config)."
+        },
+        {
+          "flag": "-derepMin",
+          "value": "10:1,5:2,3:3",
+          "what_it_does": "Minimum-abundance filter applied during dereplication: a unique sequence must be seen at least this many times (depending on how many samples it appears in) before it is kept as input for clustering. This guards against single-read sequencing errors being treated as real OTU seeds.",
+          "why_we_chose_it": "PLACEHOLDER: why these specific abundance/sample-count pairs."
+        },
+        {
+          "flag": "-sdmThreads",
+          "value": "1",
+          "what_it_does": "Number of CPU threads given to the sdm (demultiplexing/quality-filtering) step specifically, separate from the overall -t thread count given to LotuS3.",
+          "why_we_chose_it": "PLACEHOLDER: why 1 thread (an infrastructure/performance choice rather than a scientific one — please confirm there isn't a reason this shouldn't just be raised)."
+        },
+        {
+          "flag": "-sdmopt",
+          "value": "see “sdm options files” section below",
+          "what_it_does": "Which sdm options file (quality filtering / primer matching rules) is used for this run. Chosen automatically from the upload's Sequencing_platform, or can be overridden by an admin at report-generation time.",
+          "why_we_chose_it": null
+        }
+      ]
+    },
+    {
+      "id": "its_eukaryome",
+      "title": "ITS1 / ITS2 — Eukaryome reference database",
+      "analysis_types": ["ITS1_eukaryome", "ITS2_eukaryome"],
+      "summary": "Same ITS1/ITS2 runs as above, but classified against the broader Eukaryome database instead of UNITE.",
+      "parameters": [
+        {
+          "flag": "-refDB / -tax4refDB",
+          "value": "mothur_EUK_ITS_v1.9.4.fasta / _lotus.tax",
+          "what_it_does": "Eukaryome is a reference database covering the full eukaryotic tree (not just Fungi), so it can assign taxonomy to non-fungal ITS sequences that UNITE would leave unclassified.",
+          "why_we_chose_it": "PLACEHOLDER: when/why we run the Eukaryome variant alongside (or instead of) the UNITE one for a given project."
+        },
+        {
+          "flag": "(all other flags)",
+          "value": "identical to the UNITE variant above",
+          "what_it_does": "-amplicon_type, -LCA_idthresh, -tax_group, -taxAligner, -clustering, -id, -derepMin, -sdmThreads and -sdmopt are all set the same way as the UNITE variant.",
+          "why_we_chose_it": null
+        },
+        {
+          "flag": "(compute size)",
+          "value": "runs on a larger VM (ccx43 instead of cpx62) when using the remote pipeline",
+          "what_it_does": "The Eukaryome reference FASTA/BLAST database is much larger on disk than UNITE's, so Eukaryome-based analyses need more disk space than the default remote VM provides.",
+          "why_we_chose_it": null
+        }
+      ]
+    },
+    {
+      "id": "ssu_core",
+      "title": "SSU — reduced SILVA + MaarjAM reference database",
+      "analysis_types": ["SSU_dada2", "SSU_vsearch"],
+      "summary": "Standard Illumina SSU (18S) runs. Offered as both an OTU-based (VSEARCH) and an ASV-based (DADA2) analysis, run side by side on the same reads.",
+      "parameters": [
+        {
+          "flag": "-refDB / -tax4refDB",
+          "value": "vt_types_fasta_from_05-06-2019.qiime.fasta + SLV_138.1_SSU_NO_AMF.fasta / vt_types_GF.txt + SLV_138.1_SSU_NO_AMF.tax",
+          "what_it_does": "Combines the MaarjAM Virtual Taxa (VTX) reference, used for AMF (Glomeromycotina) classification, with a reduced SILVA 138.1 SSU database (with the AMF portion removed, since MaarjAM already covers that group) for everything else.",
+          "why_we_chose_it": "This pairing, and the fact that the MaarjAM taxonomy file is adjusted to match Schüßler's AMF taxonomy, mirrors what we already tell users in the project's PDF report (see templates/pdf_report.html). PLACEHOLDER: anything beyond that already-reviewed text, e.g. why this specific SILVA release or why AMF was removed from it rather than filtered differently."
+        },
+        {
+          "flag": "-amplicon_type",
+          "value": "SSU",
+          "what_it_does": "Tells LotuS3 this is the SSU/18S marker region.",
+          "why_we_chose_it": null
+        },
+        {
+          "flag": "-LCA_idthresh",
+          "value": "97,95,93,91,88,78,0",
+          "what_it_does": "Same LCA mechanism as the ITS group above, but with an extra trailing 0% threshold (an extra, always-satisfied rank) compared to the ITS1/ITS2 setting.",
+          "why_we_chose_it": "PLACEHOLDER: why SSU gets a 7-value threshold list where ITS1/ITS2 gets 6."
+        },
+        {
+          "flag": "-tax_group",
+          "value": "fungi",
+          "what_it_does": "Restricts the taxonomic lineage lookups to the Fungi kingdom, even though the SSU reference database itself (SILVA) is not fungi-specific.",
+          "why_we_chose_it": "PLACEHOLDER"
+        },
+        {
+          "flag": "-taxAligner",
+          "value": "blast",
+          "what_it_does": "Same as the ITS group above.",
+          "why_we_chose_it": null
+        },
+        {
+          "flag": "-clustering",
+          "value": "vsearch (SSU_vsearch) or dada2 (SSU_dada2)",
+          "what_it_does": "The two analysis types run the same reads through two different approaches: VSEARCH clusters reads into similarity-based OTUs, DADA2 denoises them into exact-sequence ASVs. Both are produced for every SSU upload so users/researchers can compare or choose.",
+          "why_we_chose_it": "PLACEHOLDER: why both are offered rather than standardizing on one."
+        },
+        {
+          "flag": "-derepMin",
+          "value": "10:1,5:2,3:3",
+          "what_it_does": "Same mechanism as the ITS group above.",
+          "why_we_chose_it": null
+        },
+        {
+          "flag": "-sdmThreads",
+          "value": "1",
+          "what_it_does": "Same as the ITS group above.",
+          "why_we_chose_it": null
+        },
+        {
+          "flag": "-sdmopt",
+          "value": "see “sdm options files” section below",
+          "what_it_does": "Same mechanism as the ITS group above (auto-selected by Sequencing_platform, admin-overridable).",
+          "why_we_chose_it": null
+        },
+        {
+          "flag": "(no -id flag)",
+          "value": "not set for SSU (unlike ITS1/ITS2, which sets -id 0.97)",
+          "what_it_does": "The SSU command does not pass an explicit -id value, so VSEARCH clustering falls back to LotuS3's own default identity threshold.",
+          "why_we_chose_it": "PLACEHOLDER: confirm whether this is intentional or an oversight, and if intentional, what LotuS3's default resolves to and why that's acceptable here."
+        }
+      ]
+    },
+    {
+      "id": "ssu_eukaryome",
+      "title": "SSU — Eukaryome reference database",
+      "analysis_types": ["SSU_eukaryome"],
+      "summary": "SSU runs classified against Eukaryome instead of SILVA/MaarjAM. Always run as DADA2/ASVs (not offered as a separate VSEARCH/OTU variant).",
+      "parameters": [
+        {
+          "flag": "-refDB / -tax4refDB",
+          "value": "mothur_EUK_SSU_v1.9.3.fasta / _lotus.tax",
+          "what_it_does": "Same rationale as the ITS Eukaryome variant: broader eukaryotic coverage than SILVA/MaarjAM.",
+          "why_we_chose_it": "PLACEHOLDER"
+        },
+        {
+          "flag": "-clustering",
+          "value": "dada2",
+          "what_it_does": "Unlike the SILVA/MaarjAM SSU group, there is no separate SSU_eukaryome VSEARCH/OTU variant — only the DADA2/ASV analysis type exists for this reference database.",
+          "why_we_chose_it": "PLACEHOLDER: why only the ASV variant is offered here."
+        },
+        {
+          "flag": "(all other flags)",
+          "value": "identical to the SSU core variant above",
+          "what_it_does": "-amplicon_type, -LCA_idthresh, -tax_group, -taxAligner, -derepMin, -sdmThreads and -sdmopt are all set the same way.",
+          "why_we_chose_it": null
+        },
+        {
+          "flag": "(compute size)",
+          "value": "runs on a larger VM (ccx43 instead of cpx62) when using the remote pipeline",
+          "what_it_does": "Same reason as the ITS Eukaryome variant: the Eukaryome database needs more disk space than the default remote VM provides.",
+          "why_we_chose_it": null
+        }
+      ]
+    },
+    {
+      "id": "full_its_unite",
+      "title": "Full-length ITS (PacBio) — UNITE reference database",
+      "analysis_types": ["FULL_ITS_UNITE", "FULL_ITS_LSU_UNITE"],
+      "summary": "Long-read PacBio runs spanning the full ITS region (optionally extending into LSU/28S), classified against UNITE.",
+      "parameters": [
+        {
+          "flag": "-refDB / -tax4refDB",
+          "value": "UNITE_v10_sh_general_release_dynamic_all_19.02.2025.fasta / .tax",
+          "what_it_does": "Same UNITE database as the Illumina ITS1/ITS2 group above.",
+          "why_we_chose_it": null
+        },
+        {
+          "flag": "-amplicon_type",
+          "value": "ITS (hardcoded, regardless of whether the LSU-extended variant is used)",
+          "what_it_does": "Tells LotuS3 this is ITS data.",
+          "why_we_chose_it": "PLACEHOLDER: why the LSU-extended runs are still labelled plain ‘ITS’ here rather than a distinct amplicon type."
+        },
+        {
+          "flag": "-p",
+          "value": "PacBio",
+          "what_it_does": "Tells LotuS3/sdm the reads come from PacBio sequencing (long reads, different error profile/quality encoding to Illumina), which changes some of LotuS3's internal handling.",
+          "why_we_chose_it": null
+        },
+        {
+          "flag": "-LCA_idthresh",
+          "value": "97,95,93,91,88,78,0",
+          "what_it_does": "Same mechanism as the SSU group (7-value list, one more entry than the Illumina ITS1/ITS2 group).",
+          "why_we_chose_it": "PLACEHOLDER"
+        },
+        {
+          "flag": "-tax_group / -taxAligner / -clustering",
+          "value": "fungi / blast / vsearch",
+          "what_it_does": "Same as the Illumina ITS1/ITS2 group.",
+          "why_we_chose_it": null
+        },
+        {
+          "flag": "-derepMin",
+          "value": "10:1,5:2,3:3",
+          "what_it_does": "Same mechanism as the other groups.",
+          "why_we_chose_it": null
+        },
+        {
+          "flag": "-sdmopt",
+          "value": "sdm_PacBio_ITS.txt or sdm_PacBio_ITS_3000.txt depending on analysis type (see below)",
+          "what_it_does": "Chosen automatically from whether this is the plain ITS or the LSU-extended variant — not platform- or admin-selectable like the Illumina groups.",
+          "why_we_chose_it": null
+        }
+      ]
+    },
+    {
+      "id": "full_its_eukaryome",
+      "title": "Full-length ITS (PacBio) — Eukaryome reference database",
+      "analysis_types": ["FULL_ITS_Eukaryome", "FULL_ITS_LSU_Eukaryome"],
+      "summary": "Same long-read PacBio runs as above, classified against Eukaryome instead of UNITE.",
+      "parameters": [
+        {
+          "flag": "-refDB / -tax4refDB",
+          "value": "mothur_EUK_ITS_v1.9.4.fasta / _lotus.tax",
+          "what_it_does": "Same Eukaryome database as the Illumina ITS1/ITS2 Eukaryome group.",
+          "why_we_chose_it": null
+        },
+        {
+          "flag": "(all other flags)",
+          "value": "identical to the Full-length ITS UNITE variant above",
+          "what_it_does": "-amplicon_type, -p, -LCA_idthresh, -tax_group, -taxAligner, -clustering, -derepMin and -sdmopt are all set the same way.",
+          "why_we_chose_it": null
+        }
+      ]
+    }
+  ],
+  "sdm_files": [
+    {
+      "filename": "sdm_miSeq_ITS.txt",
+      "region_group": "ITS1 / ITS2",
+      "used_for": "Default ITS1/ITS2 sdm options — auto-selected whenever Sequencing_platform is not “Illumina NextSeq” and no admin override is chosen.",
+      "what_it_does": "Requires a minimum post-trim length of 110bp and average quality 27; rejects reads where either the forward or reverse primer can't be matched; checks for swapped/mixed read pairs and reverse-complemented reads. No fixed-length truncation.",
+      "why_we_chose_it": "PLACEHOLDER: why these particular thresholds (length/quality/error budget) for standard MiSeq ITS runs."
+    },
+    {
+      "filename": "sdm_miSeq_ITS_200.txt",
+      "region_group": "ITS1 / ITS2",
+      "used_for": "Admin override only (not auto-selected by the app for any platform).",
+      "what_it_does": "Lowers the minimum post-trim length to 80bp, forces all reads to be truncated to 200bp, and — unlike the default file — accepts reads even when the forward and/or reverse primer can't be matched, and skips the mixed-pair/reverse-read checks.",
+      "why_we_chose_it": "PLACEHOLDER: what run/amplicon-length scenario this file is meant for (filename suggests a shorter read or shorter amplicon than the default)."
+    },
+    {
+      "filename": "sdm_miSeq_ITS_forward.txt",
+      "region_group": "ITS1 / ITS2",
+      "used_for": "Admin override only (not auto-selected by the app for any platform).",
+      "what_it_does": "Lowers the minimum post-trim length to 90bp and minimum average quality to 25; still requires the forward primer to be matched, but — unlike the default file — accepts reads where the reverse primer can't be matched.",
+      "why_we_chose_it": "PLACEHOLDER: presumably for forward-read-only / single-direction data, to confirm."
+    },
+    {
+      "filename": "sdm_NextSeq2000_ITS_Spun.txt",
+      "region_group": "ITS1 / ITS2",
+      "used_for": "Auto-selected for ITS1/ITS2 whenever the upload's Sequencing_platform is “Illumina NextSeq”.",
+      "what_it_does": "Same minimum length/quality as the default MiSeq file, but allows a much larger accumulated-error budget (2 vs 0.75), tolerates 1 primer mismatch (vs 0), and trims (rather than outright rejecting) homopolymer runs longer than 12nt. Its lenient/mid-quality pass also accepts reads missing the reverse primer, where the default file's lenient pass does not.",
+      "why_we_chose_it": "PLACEHOLDER: the technical motivation is presumably that the NextSeq 2000 uses 2-channel SBS chemistry, which produces a different quality-score profile (and different homopolymer error behaviour) than MiSeq's 4-channel chemistry — to be confirmed/worded by the lead scientist."
+    },
+    {
+      "filename": "sdm_miSeq2_SSU_Spun.txt",
+      "region_group": "SSU",
+      "used_for": "Default SSU sdm options — auto-selected whenever Sequencing_platform is not “Illumina NextSeq” and no admin override is chosen.",
+      "what_it_does": "Requires a minimum post-trim length of 170bp (longer than the ITS default, matching the SSU amplicon), trims the first 5nt of every read, allows a larger accumulated-error budget (3.75) than the ITS default, and only requires the forward primer to be matched (accepts reads missing the reverse primer).",
+      "why_we_chose_it": "PLACEHOLDER"
+    },
+    {
+      "filename": "sdm_miSeq2_250.txt",
+      "region_group": "SSU",
+      "used_for": "Admin override only (not auto-selected by the app for any platform).",
+      "what_it_does": "Intended to force-truncate reads to 250bp (the rest of the settings match the default SSU file, except this file requires both primers to be matched rather than just the forward one). Technical note: the truncation-length option in this file is spelled “TruncateSequenceLengt:” instead of “TruncateSequenceLength” (missing the final ‘h’, with a trailing colon) — this looks like a typo that would cause sdm to silently ignore the setting and NOT truncate to 250bp as intended. Flagging for verification/fix; this page does not change the file.",
+      "why_we_chose_it": "PLACEHOLDER"
+    },
+    {
+      "filename": "sdm_NextSeq2000_SSU_Spun.txt",
+      "region_group": "SSU",
+      "used_for": "Auto-selected for SSU whenever the upload's Sequencing_platform is “Illumina NextSeq”.",
+      "what_it_does": "Lower accumulated-error budget than the default SSU file (2 vs 3.75) but tolerates 2 primer mismatches (vs 0), requires both primers to be matched on the strict pass but not on the lenient pass, and trims homopolymer runs longer than 12nt (same as the NextSeq ITS file).",
+      "why_we_chose_it": "PLACEHOLDER: same NextSeq chemistry rationale as sdm_NextSeq2000_ITS_Spun.txt, to be confirmed/worded by the lead scientist."
+    },
+    {
+      "filename": "sdm_PacBio_ITS.txt",
+      "region_group": "Full-length ITS",
+      "used_for": "Auto-selected for FULL_ITS_UNITE and FULL_ITS_Eukaryome (the non-LSU-extended PacBio analyses). Caps sequences at 1000bp.",
+      "what_it_does": "Much stricter minimum quality (35 vs 27) and longer minimum length (300bp) than the Illumina files, allows up to 2 ambiguous bases and homopolymer runs up to 16nt (both higher than Illumina), and turns on “ExtensivePrimerChecks” — scanning for the reverse primer occurring more than once in a read (relevant to PacBio's long/circular reads) and trimming to the first forward–reverse primer pairing found.",
+      "why_we_chose_it": "PLACEHOLDER: these thresholds presumably reflect PacBio's different read-length/error profile compared to Illumina — to be confirmed/worded by the lead scientist."
+    },
+    {
+      "filename": "sdm_PacBio_ITS_3000.txt",
+      "region_group": "Full-length ITS",
+      "used_for": "Auto-selected for FULL_ITS_LSU_UNITE and FULL_ITS_LSU_Eukaryome (the LSU-extended PacBio analyses).",
+      "what_it_does": "Identical to sdm_PacBio_ITS.txt except the maximum sequence length is 3000bp instead of 1000bp, to accommodate the longer amplicon produced when the LSU/28S region is included.",
+      "why_we_chose_it": null
+    }
+  ]
+}

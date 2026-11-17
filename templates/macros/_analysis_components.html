@@ -31,16 +31,16 @@
                   <fieldset>
                     Debug: <input type="checkbox" name="debug"> <br>
                     {% if region_data.analysis_type in ['SSU_dada2', 'SSU_vsearch', 'SSU_eukaryome'] %}
-                      <h4> Sdmopt:</h4>
+                      <h4> Sdmopt: <a href="{{ url_for('documentation.lotus3_parameters') }}" target="_blank" title="What do these sdm options files do, and why?">&#9432;</a></h4>
                       <div>
                         <select name="sdmopt">
                           <option value="" selected>Auto (based on Sequencing platform)</option>
                           <option value="sdm_miSeq2_SSU_Spun">sdm_miSeq2_SSU_Spun.txt</option>
                           <option value="sdm_miSeq2_250">sdm_miSeq2_250.txt</option>
                         </select>
-                      </div>                            
+                      </div>
                     {% elif region_data.analysis_type in ['ITS1', 'ITS1_eukaryome', 'ITS2', 'ITS2_eukaryome'] %}
-                      <h4> Sdmopt:</h4>
+                      <h4> Sdmopt: <a href="{{ url_for('documentation.lotus3_parameters') }}" target="_blank" title="What do these sdm options files do, and why?">&#9432;</a></h4>
                       <div>
                         <select name="sdmopt">
                           <option value="" selected>Auto (based on Sequencing platform)</option>

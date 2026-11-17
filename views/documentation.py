@@ -12,6 +12,7 @@ from flask import (
 from pathlib import Path
 from helpers.create_xls_template import create_template_one_drive_and_excel
 from helpers.metadata_check import get_columns_data
+from helpers.lotus2 import get_lotus3_parameters_doc
 from helpers.decorators import (
     approved_required,
     admin_required,
@@ -61,6 +62,20 @@ def metadata_instructions():
         "metadata_instructions.html",
         expected_columns=expected_columns,
         google_sheets_template_url=google_sheets_template_url,
+    )
+
+
+@documentation_bp.route(
+    "/lotus3_parameters",
+    endpoint="lotus3_parameters",
+)
+@login_required
+@admin_required
+@approved_required
+def lotus3_parameters():
+    return render_template(
+        "lotus3_parameters.html",
+        doc=get_lotus3_parameters_doc(),
     )
 
 
