@@ -1,0 +1,143 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="/static/css/google_login.css" rel="stylesheet" type="text/css" />
+    <link href="/static/css/general.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnSuA4Ss2PkkikSOLtYs8BlYIeeIK1h99ty4YfvRPAlzr377vr3CXDb7sb7eEEBYjDtcYj+AjBH3FLv5uSJuXg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js" integrity="sha512-7Pi/otdlbbCR+LnW+F7PwFcSDJOuUJB3OxtEHbg4vSMvzvJjde4Po1v4BR9Gdc9aXNUNFVUY+SK51wWT8WF0Gg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <title>LotuS3 parameters &amp; sdm options</title>
+    <style>
+        .placeholder-text {
+            background-color: #fff3cd;
+            border: 1px dashed #c69500;
+            padding: 0.5rem 0.75rem;
+            border-radius: 4px;
+            color: #665200;
+            font-style: italic;
+        }
+        .not-documented {
+            color: #888;
+            font-style: italic;
+        }
+        table.params-table th, table.params-table td {
+            vertical-align: top;
+        }
+        .group-card {
+            margin-bottom: 2.5rem;
+        }
+    </style>
+</head>
+<body>
+  {% import 'macros/_navbar.html' as nav %}
+  {{ nav.render_navbar(logo_href='https://spun.earth', links=[
+      {'url': 'https://spun.earth', 'label': 'Spun Website'},
+      {'url': '/', 'label': 'App homepage'},
+      {'url': '/admin_operations', 'label': 'Admin operations'},
+      {'url': '/logout', 'label': 'Logout'},
+  ]) }}
+
+  <div class="p-4">
+    <h1>LotuS3 parameters &amp; sdm options</h1>
+    <p>
+      This page explains the LotuS3 command-line parameters and sdm options files SPUN uses for each
+      kind of analysis, and why. Entries highlighted like this:
+    </p>
+    <p class="placeholder-text" style="display:inline-block;">PLACEHOLDER: ...</p>
+    <p>
+      haven't been written/reviewed by the lead scientist yet &mdash; everything else on this page has
+      been confirmed as accurate.
+    </p>
+
+    {% if doc.intro %}
+      <div class="p-3 mb-4 {{ 'placeholder-text' if doc.intro.startswith('PLACEHOLDER') else '' }}">
+        {{ doc.intro }}
+      </div>
+    {% endif %}
+
+    <h2>Pipeline parameters, by analysis</h2>
+    <p>Grouped by the distinct branches of the pipeline code (see <code>helpers/lotus2.py</code>), not by every individual analysis type, since most flags are shared within a group.</p>
+
+    {% for group in doc.parameter_groups %}
+      <div class="group-card" id="group-{{ group.id }}">
+        <h3>{{ group.title }}</h3>
+        <p><strong>Used for analysis types:</strong> {{ group.analysis_types|join(', ') }}</p>
+        {% if group.summary %}<p>{{ group.summary }}</p>{% endif %}
+
+        <table class="table table-bordered params-table">
+          <thead>
+            <tr>
+              <th style="width: 14%;">Flag</th>
+              <th style="width: 20%;">Value</th>
+              <th style="width: 33%;">What it does</th>
+              <th style="width: 33%;">Why we chose it</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for param in group.parameters %}
+              <tr>
+                <td><code>{{ param.flag }}</code></td>
+                <td>{{ param.value }}</td>
+                <td>{{ param.what_it_does }}</td>
+                <td>
+                  {% if param.why_we_chose_it and param.why_we_chose_it.startswith('PLACEHOLDER') %}
+                    <span class="placeholder-text">{{ param.why_we_chose_it }}</span>
+                  {% elif param.why_we_chose_it %}
+                    {{ param.why_we_chose_it }}
+                  {% else %}
+                    <span class="not-documented">(shared with / covered by another row above &mdash; no separate rationale needed)</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endfor %}
+
+    <div class="page-break"></div>
+    <h2>sdm options files</h2>
+    <p>
+      Each LotuS3 run picks one "sdm options" file (in <code>lotus2_files/</code>) that controls read quality
+      filtering, primer matching and demultiplexing before clustering/denoising happens. The file is chosen
+      automatically from the upload's <code>Sequencing_platform</code>, unless an admin explicitly overrides it
+      from the dropdown on the project page (Step 12).
+    </p>
+
+    <table class="table table-bordered params-table">
+      <thead>
+        <tr>
+          <th style="width: 16%;">File</th>
+          <th style="width: 10%;">Region</th>
+          <th style="width: 20%;">When it's used</th>
+          <th style="width: 27%;">What it does</th>
+          <th style="width: 27%;">Why we chose it</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sdm in doc.sdm_files %}
+          <tr id="sdm-{{ sdm.filename }}">
+            <td><code>{{ sdm.filename }}</code></td>
+            <td>{{ sdm.region_group }}</td>
+            <td>{{ sdm.used_for }}</td>
+            <td>{{ sdm.what_it_does }}</td>
+            <td>
+              {% if sdm.why_we_chose_it and sdm.why_we_chose_it.startswith('PLACEHOLDER') %}
+                <span class="placeholder-text">{{ sdm.why_we_chose_it }}</span>
+              {% elif sdm.why_we_chose_it %}
+                {{ sdm.why_we_chose_it }}
+              {% else %}
+                <span class="not-documented">(not yet documented)</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <p class="text-muted mt-4">
+      Source of truth for the actual commands: <code>helpers/lotus2.py</code>. Source of truth for this
+      page's content: <code>metadataconfig/lotus3_parameters.json</code>.
+    </p>
+  </div>
+</body>
+</html>

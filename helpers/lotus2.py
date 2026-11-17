@@ -1,4 +1,5 @@
 import docker
+import json
 import logging
 import re
 import shutil
@@ -12,6 +13,23 @@ from helpers.hetzner_vm import run_lotus3_on_vm
 
 # PROCESS_DIR =
 logger = logging.getLogger("my_app_logger")
+
+
+def get_lotus3_parameters_doc():
+    """
+    Loads metadataconfig/lotus3_parameters.json: the write-up of which
+    LotuS3 parameters and sdm options files we use and why, shown on the
+    /lotus3_parameters admin documentation page. Entries whose
+    "why_we_chose_it" is still a "PLACEHOLDER: ..." string haven't been
+    reviewed/written by the lead scientist yet.
+    """
+    current_dir = os.path.dirname(__file__)
+    base_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
+    file_path = os.path.join(
+        base_dir, "metadataconfig", "lotus3_parameters.json"
+    )
+    with open(file_path, "r") as f:
+        return json.load(f)
 
 
 def parse_lotus2_read_stats(lotus2_result_text):
