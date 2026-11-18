@@ -14,3 +14,4 @@ from . import samples  # noqa: E402, F401
 from . import sequencer_ids  # noqa: E402, F401
 from . import files_upload  # noqa: E402, F401
 from . import meta_projects  # noqa: E402, F401
+from . import platform_audit  # noqa: E402, F401
