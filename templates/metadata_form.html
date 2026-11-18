@@ -1017,6 +1017,28 @@
         </form>
       </div>
 
+      {% if is_admin %}
+        <div id="step_9_5" class="form-step-item">
+          <h3> Platform check (admin only) </h3>
+          <div>
+            Checks the actual FASTQ files on disk against the declared
+            sequencing platform
+            (<strong>{{ process_data.Sequencing_platform or 'Not set' }}</strong>),
+            by reading each file's read header. This does not change
+            anything in the database and is not stored -- it is
+            recomputed from the files every time you run it.
+          </div>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            id="step_9_5_run_audit_button"
+            data-process_id="{{ process_id }}"
+          >Check files on disk</button>
+          <div id="step_9_5_msg" class="explanation"></div>
+          <div id="step_9_5_results"></div>
+        </div>
+      {% endif %}
+
     {% endif %}
 
 
@@ -2850,6 +2872,74 @@
 
   ////// ############################################# /////////
   ////// ############ STEP 9 ENDS HERE ############### /////////
+  ////// ############################################# /////////
+
+  ////// ############################################# /////////
+  ////// ########## STEP 9_5 (platform check) ######### /////////
+  ////// ############################################# /////////
+  function escapeHtml(text) {
+      return $('<div>').text(text == null ? '' : text).html();
+  }
+
+  $('#step_9_5_run_audit_button').click(function() {
+      var processId = $(this).data('process_id');
+      var formData = new FormData();
+      formData.append('process_id', processId);
+
+      $(this).attr('disabled', 'disabled');
+      $('#step_9_5_msg').removeClass('text-success text-danger').html('<p>Checking files on disk...</p>');
+      $('#step_9_5_results').empty();
+
+      var button = $(this);
+      $.ajax({
+          url: '/audit_sequencing_platform',
+          type: 'POST',
+          data: formData,
+          contentType: false,
+          processData: false,
+          success: function(response) {
+              button.removeAttr('disabled');
+
+              if (response.error) {
+                  $('#step_9_5_msg').removeClass('text-success').addClass('text-danger').html('<p>' + escapeHtml(response.error) + '</p>');
+                  return;
+              }
+
+              $('#step_9_5_msg').removeClass('text-danger').addClass('text-success').html('<p>' + escapeHtml(response.verdict) + '</p>');
+
+              if (response.files && response.files.length) {
+                  var tableHtml = '<table class="table-bordered mt-3"><thead><tr>' +
+                      '<th scope="col" class="bg-gray">Filename</th>' +
+                      '<th scope="col" class="bg-gray">Detected platform</th>' +
+                      '<th scope="col" class="bg-gray">Signature</th>' +
+                      '<th scope="col" class="bg-gray">Status</th>' +
+                      '</tr></thead><tbody>';
+
+                  $.each(response.files, function(i, f) {
+                      var statusClass = 'text-muted';
+                      if (f.status === 'match') { statusClass = 'text-success'; }
+                      else if (f.status === 'mismatch') { statusClass = 'text-danger'; }
+
+                      tableHtml += '<tr>' +
+                          '<td>' + escapeHtml(f.filename) + '</td>' +
+                          '<td>' + escapeHtml(f.detected_platform || 'Unknown') + '</td>' +
+                          '<td>' + escapeHtml(f.signature || '') + '</td>' +
+                          '<td class="' + statusClass + '">' + escapeHtml(f.status) + '</td>' +
+                          '</tr>';
+                  });
+                  tableHtml += '</tbody></table>';
+                  $('#step_9_5_results').html(tableHtml);
+              }
+          },
+          error: function(xhr, status, error) {
+              button.removeAttr('disabled');
+              console.error('Error:', error);
+              $('#step_9_5_msg').removeClass('text-success').addClass('text-danger').html('<p>An error occurred while running the check.</p>');
+          }
+      });
+  });
+  ////// ############################################# /////////
+  ////// ######## STEP 9_5 (platform check) ENDS ####### /////////
   ////// ############################################# /////////
 
   ////// ############################################# /////////
