@@ -191,8 +191,13 @@ class TaxonomyManager:
         Get the ID of an existing entry in the lookup
         table or create a new one if it doesn't exist.
         """
-        # Skip creation if the name is "?" or None
-        if name in ["?", None]:
+        # Skip creation if the name is "?", None, or NaN (pandas reads an
+        # empty taxonomy CSV cell -- e.g. an OTU LotuS3 couldn't resolve
+        # down to this rank -- as float('nan'), which MySQLdb can't bind
+        # as a query parameter and would otherwise blow up here with
+        # "nan can not be used with MySQL". `name != name` is only True
+        # for NaN.
+        if name in ["?", None] or name != name:
             return None
 
         # If a session is provided, use it; otherwise, create a new session
