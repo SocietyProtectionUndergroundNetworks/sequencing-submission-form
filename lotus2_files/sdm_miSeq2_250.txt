@@ -8,7 +8,7 @@ minAvgQuality	27
 *minSeqLength	170
 *minAvgQuality	20
 #truncate total Sequence length to X (length after Barcode, Adapter and Primer removals, set to -1 to deactivate)
-TruncateSequenceLengt:	250
+TruncateSequenceLength	250
 
 #Ambiguous bases in Sequence
 maxAmbiguousNT	0
