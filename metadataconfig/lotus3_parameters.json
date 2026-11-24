@@ -59,7 +59,7 @@
           "flag": "-sdmThreads",
           "value": "1",
           "what_it_does": "Number of CPU threads given to the sdm (demultiplexing/quality-filtering) step specifically, separate from the overall -t thread count given to LotuS3.",
-          "why_we_chose_it": "PLACEHOLDER: why 1 thread (an infrastructure/performance choice rather than a scientific one — please confirm there isn't a reason this shouldn't just be raised)."
+          "why_we_chose_it": "Previous tests have shown that sdm's multithreading is not deterministic (aka, it can produce different results on different runs, based on race conditions), so we limit it to 1 thread ensuring reproducibility. Note: We haven't retested this with the latest sdm version, so it may be worth checking whether multithreading is now deterministic and could be safely enabled for speed."
         },
         {
           "flag": "-sdmopt",
