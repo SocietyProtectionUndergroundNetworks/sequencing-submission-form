@@ -18,12 +18,12 @@
     "Forward Primer": "TACACACCGCCCGTCG",
     "Reverse Primer": "CCTSCSCTTANTDATATGC"
   },
-  "ITS4/fITS7": {
+  "fITS7/ITS4": {
     "Region": "ITS2",
-    "Forward Primer": "TCCTCCGCTTATTGATATGC",
-    "Forward Primer Revcomp": "GCATATCAATAAGCGGAGGA",
-    "Reverse Primer": "GTGARTCATCGAATCTTTG",
-    "Reverse Primer Revcomp": "CAAAGATTCGATGAYTCAC"
+    "Forward Primer": "GTGARTCATCGAATCTTTG",
+    "Forward Primer Revcomp": "CAAAGATTCGATGAYTCAC",
+    "Reverse Primer": "TCCTCCGCTTATTGATATGC",
+    "Reverse Primer Revcomp": "GCATATCAATAAGCGGAGGA"
   },
   "ITS1/ITS4": {
     "Region": "Full_ITS",
