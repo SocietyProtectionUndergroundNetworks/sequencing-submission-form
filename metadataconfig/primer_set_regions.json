@@ -25,12 +25,6 @@
     "Reverse Primer": "GTGARTCATCGAATCTTTG",
     "Reverse Primer Revcomp": "CAAAGATTCGATGAYTCAC"
   },
-  "ITS9/ITS4": {
-    "Region": "Full_ITS",
-    "Forward Primer": "GAACGCAGCRAAIIGCGATA",
-    "Reverse Primer": "TCCTCCGCTTATTGATATGC",
-    "Reverse Primer Revcomp": "GCATATCAATAAGCGGAGGA"
-  },
   "ITS1/ITS4": {
     "Region": "Full_ITS",
     "Forward Primer": "CTTGGTCATTTAGAGGAAGTAA",
